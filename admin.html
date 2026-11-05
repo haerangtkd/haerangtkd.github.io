@@ -161,7 +161,7 @@
   </div></details>
 
   <details class="card"><summary>⑥ 도장 일정</summary><div class="in">
-    <p class="hint">달력과 첫 화면 <b>다가오는 일정</b>에 나와요. <b>휴관·공휴일</b>로 넣은 날은 '오늘의 운동'에 쉬는 날로 나와요.</p>
+    <p class="hint">달력과 첫 화면 <b>다가오는 일정</b>에 나와요. 행사 포스터를 붙이면 첫 화면 <b>행사</b> 칸에도 나와요. <b>휴관·공휴일</b>로 넣은 날은 '오늘의 운동'에 쉬는 날로 나와요.</p>
     <div id="ed-schedule"></div>
   </div></details>
 
@@ -397,12 +397,13 @@ function renderAll(){
   listEditor('ed-schedule', 'schedule', {
     noun:'일정',
     title:(e) => `${e.date ? e.date.slice(5).replace('-', '/') + ' ' : ''}${e.title || '새 일정'}`,
-    blank:() => ({date: new Date(Date.now() + 9*3600000).toISOString().slice(0,10), end:'', title:'', type:'행사', note:''}),
+    blank:() => ({date: new Date(Date.now() + 9*3600000).toISOString().slice(0,10), end:'', title:'', type:'행사', note:'', image:''}),
     fields:[
       {k:'date', label:'날짜', type:'date', half:true}, {k:'end', label:'끝나는 날 (하루면 비우기)', type:'date', half:true},
       {k:'title', label:'일정 이름'},
       {k:'type', label:'종류 (달력 점 색깔)', type:'select', opts:[['행사','행사 (주황)'],['심사','심사 (빨강)'],['대회','대회 (남색)'],['휴관','휴관·공휴일 (회색)'],['기타','기타 (청록)']]},
-      {k:'note', label:'한 줄 메모 (시간, 장소 등)'}
+      {k:'note', label:'한 줄 메모 (시간, 장소, 대상 등)'},
+      {k:'image', label:'행사 사진·포스터 (넣으면 첫 화면 \'행사\' 칸에 나와요)', type:'photo'}
     ]
   });
   const today = () => new Date(Date.now() + 9*3600000).toISOString().slice(0,10);
