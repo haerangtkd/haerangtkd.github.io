@@ -4,54 +4,178 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>해랑경희 태권도장</title>
-<meta name="description" content="해랑경희 태권도장이 어떤 생각으로, 어떻게 지도하고 있는지 한곳에 모았습니다.">
+<meta name="description" content="해랑경희 태권도장의 교육 철학, 지도진, 수련 프로그램과 시간표를 한눈에 보실 수 있습니다.">
 <meta property="og:title" content="해랑경희 태권도장">
-<meta property="og:description" content="저희가 어떤 생각으로, 어떻게 지도하고 있는지 소개해 드립니다.">
+<meta property="og:description" content="교육 철학 · 지도진 · 프로그램과 시간표 · 상담 문의">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
-  :root{--brand:#A40F16;--ink:#1C1A19;--muted:#6B6460;--paper:#FBF8F4;--card:#FFFFFF;--line:#ECE5DE}
+  :root{
+    --brand:#A40F16; --brand-deep:#7A0B10; --brand-soft:#FBEDEE;
+    --ink:#1C1A19; --muted:#6B6460; --paper:#FBF8F4; --card:#FFFFFF; --line:#ECE5DE;
+    --orange:#D9822B; --teal:#2E9C9A; --navy:#1F3B63;
+  }
   *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
   body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:480px;margin:0 auto;padding:0 16px 48px}
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px 56px}
+  section{scroll-margin-top:64px}
+
+  /* 상단 */
   header{background:var(--brand);color:#fff;padding:52px 24px 72px;text-align:center;position:relative;overflow:hidden}
   header::before{content:"跆";position:absolute;right:-18px;bottom:-60px;font-family:'Noto Serif KR',serif;font-weight:900;font-size:220px;line-height:1;color:rgba(255,255,255,.07);pointer-events:none}
   .greet{font-size:13px;letter-spacing:.18em;opacity:.85;margin-bottom:14px}
   h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:34px;line-height:1.25}
   h1 small{display:block;font-size:15px;font-weight:700;font-family:'Noto Sans KR',sans-serif;letter-spacing:.3em;margin-top:8px;opacity:.9}
-  .intro{background:var(--card);border-radius:18px;padding:26px 22px;margin-top:-40px;position:relative;box-shadow:0 6px 24px rgba(60,20,20,.08);border:1px solid var(--line)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 20px}
+  .intro{margin-top:-40px;position:relative;box-shadow:0 6px 24px rgba(60,20,20,.08)}
   .intro p{font-size:15.5px;word-break:keep-all}
   .intro p + p{margin-top:12px}
   .intro strong{color:var(--brand)}
-  .section-title{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.12em;margin:34px 4px 12px}
-  .links{display:flex;flex-direction:column;gap:12px}
-  .link{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-decoration:none;color:inherit;transition:transform .15s,border-color .15s,box-shadow .15s}
-  .link:active{transform:scale(.98)}
-  .link:hover{border-color:var(--brand);box-shadow:0 4px 16px rgba(164,15,22,.10)}
-  .icon{flex:none;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:#FBEDEE;color:var(--brand)}
-  .icon svg{width:24px;height:24px}
-  .link.main{background:var(--brand);border-color:var(--brand);color:#fff}
-  .link.main .icon{background:rgba(255,255,255,.16);color:#fff}
-  .link.main .desc{color:rgba(255,255,255,.82)}
-  .text{flex:1;min-width:0}
-  .name{display:block;font-weight:700;font-size:16.5px;word-break:keep-all}
-  .desc{display:block;font-size:13.5px;color:var(--muted);margin-top:2px;word-break:keep-all}
-  .arrow{flex:none;opacity:.45}
-  .link.main .arrow{opacity:.8}
-  footer{text-align:center;margin-top:40px;color:var(--muted);font-size:14px}
-  footer .bow{font-family:'Noto Serif KR',serif;font-weight:900;color:var(--brand);font-size:18px;margin-bottom:4px}
-  /* 흘러가는 사진 띠 */
+
+  /* 바로가기 */
+  .label{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.12em;margin:34px 4px 12px}
+  .shortcuts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .sc{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 6px 14px;text-decoration:none;color:var(--ink);font-size:13.5px;font-weight:700;text-align:center;word-break:keep-all;line-height:1.3;transition:transform .15s,border-color .15s}
+  .sc:active{transform:scale(.96)}
+  .sc:hover{border-color:var(--brand)}
+  .sc .ic{width:42px;height:42px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center}
+  .sc .ic svg{width:22px;height:22px}
+  .sc-call{grid-column:1/-1;flex-direction:row;justify-content:center;background:var(--brand);border-color:var(--brand);color:#fff;font-size:15px;padding:14px}
+  .sc-call .ic{width:auto;height:auto;background:none;color:#fff}
+
+  /* 따라오는 메뉴 */
+  .topnav{position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(251,248,244,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);transform:translateY(-100%);transition:transform .25s ease}
+  .topnav.on{transform:none}
+  .topnav .row{max-width:520px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:10px 16px;scrollbar-width:none}
+  .topnav .row::-webkit-scrollbar{display:none}
+  .topnav a{flex:none;font-size:13.5px;font-weight:700;color:var(--muted);text-decoration:none;padding:7px 13px;border-radius:999px;background:#fff;border:1px solid var(--line);transition:background .15s,color .15s}
+  .topnav a.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+  /* 섹션 공통 */
+  .sec{margin-top:56px}
+  .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .sec-head .no{flex:none;width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-size:13px;font-weight:900;display:grid;place-items:center}
+  .sec-head h2{font-family:'Noto Serif KR',serif;font-weight:900;font-size:21px;line-height:1.35;word-break:keep-all}
+  .lead{font-size:15px;color:var(--muted);margin:-4px 2px 16px;word-break:keep-all}
+
+  /* 교육 철학 */
+  .q{border-radius:16px;padding:20px 20px;font-size:16px;font-weight:700;line-height:1.6;word-break:keep-all;text-align:center}
+  .q1{background:#FCE9E2;color:#7A2E1C}
+  .q2{background:#E6EEFB;color:#1F3B63}
+  .plus{text-align:center;font-size:30px;font-weight:900;color:var(--navy);line-height:1;margin:10px 0}
+  .letter{margin-top:16px;font-family:'Noto Serif KR',serif;font-size:15.5px;line-height:1.9;word-break:keep-all}
+  .letter p + p{margin-top:14px}
+  .letter .sign{text-align:right;font-weight:700;color:var(--brand);margin-top:18px}
+
+  /* 지도진 */
+  .staff{display:flex;flex-direction:column;gap:12px}
+  .member{overflow:hidden;padding:0}
+  .member .photo{width:100%;aspect-ratio:4/3.2;object-fit:cover;object-position:center 18%;display:block;background:#E9E2DB}
+  .member .body{padding:18px 20px 20px}
+  .member .who{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+  .member .role{font-size:13px;font-weight:700;color:#fff;background:var(--brand);padding:2px 10px;border-radius:999px}
+  .member .name{font-size:19px;font-weight:900}
+  .member ul{list-style:none;font-size:14.5px;color:#3A3533}
+  .member li{position:relative;padding-left:14px;word-break:keep-all}
+  .member li + li{margin-top:4px}
+  .member li::before{content:"";position:absolute;left:0;top:.7em;width:5px;height:5px;border-radius:50%;background:var(--brand)}
+  .member.lead-member{border-color:var(--brand)}
+  .note{font-size:13px;color:var(--muted);text-align:center;margin-top:12px}
+
+  /* 교육 내용 */
+  .areas{display:flex;flex-direction:column;gap:10px}
+  .area{border-radius:16px;padding:16px 18px;color:#fff}
+  .area h3{font-size:16px;font-weight:900;margin-bottom:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips span{background:rgba(255,255,255,.2);border-radius:999px;padding:4px 12px;font-size:13.5px;font-weight:500}
+  .goals{margin-top:14px}
+  .goal{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line)}
+  .goal:last-child{border-bottom:0}
+  .goal b{font-size:15.5px;flex:1;word-break:keep-all}
+  .goal span{font-size:13.5px;color:var(--brand);font-weight:700;text-align:right;word-break:keep-all;max-width:55%}
+  .closing{margin-top:14px;font-size:15px;line-height:1.75;word-break:keep-all;background:var(--brand-soft);border-radius:14px;padding:16px 18px;color:#5A1A1D}
+
+  /* 프로그램 */
+  .tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:none;font:inherit;font-size:14px;font-weight:700;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+  .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .common{font-size:13.5px;color:var(--muted);margin:0 2px 10px}
+  .common b{color:var(--ink)}
+  .days{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .day{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 4px 12px;text-align:center;min-width:0}
+  .day .d{font-family:'Noto Serif KR',serif;font-weight:900;font-size:17px;color:var(--brand);margin-bottom:6px}
+  .day.today{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+  .day p{font-size:12px;line-height:1.45;word-break:keep-all;color:#3A3533}
+  .day p + p{margin-top:4px}
+  .day p.sub{color:var(--muted);font-size:11px}
+  .tt{margin-top:16px;padding:0;overflow:hidden}
+  .tt h3{font-size:15px;font-weight:900;padding:14px 18px;background:#F6EFD9;color:#5B4612}
+  .tt table{width:100%;border-collapse:collapse;font-size:14.5px}
+  .tt td{padding:11px 18px;border-top:1px solid var(--line);vertical-align:top;word-break:keep-all}
+  .tt td:first-child{white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums;width:1%;color:var(--ink)}
+  .tt td:last-child{color:#3A3533}
+
+  /* FAQ */
+  .faq details{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .faq details + details{margin-top:10px}
+  .faq summary{list-style:none;cursor:pointer;padding:18px 20px;font-weight:700;font-size:16px;display:flex;align-items:center;gap:10px}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::before{content:"Q";flex:none;width:26px;height:26px;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:900;display:grid;place-items:center}
+  .faq summary::after{content:"";margin-left:auto;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s}
+  .faq details[open] summary::after{transform:rotate(-135deg)}
+  .faq .ans{padding:0 20px 20px}
+  .pt{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  .pt .ck{flex:none;width:22px;height:22px;border-radius:6px;background:#E8F5EC;color:#1E7A46;display:grid;place-items:center;margin-top:2px}
+  .pt b{display:block;font-size:15px;word-break:keep-all}
+  .pt span{display:block;font-size:13.5px;color:var(--muted);word-break:keep-all}
+  .faq .closing{margin-top:8px}
+
+  /* 사진 띠 */
   .marquee{margin:0 -16px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
   .track{display:flex;gap:10px;width:max-content;animation:flow var(--dur,40s) linear infinite}
   .marquee:hover .track,.marquee.paused .track{animation-play-state:paused}
   .track img{width:200px;height:150px;object-fit:cover;border-radius:14px;flex:none;cursor:pointer;background:#EEE6DF;display:block}
   @keyframes flow{to{transform:translateX(calc(-50% - 5px))}}
-  @media (prefers-reduced-motion:reduce){.track{animation-duration:calc(var(--dur,40s) * 3)}}
-  .lightbox{position:fixed;inset:0;background:rgba(20,10,10,.92);display:grid;place-items:center;padding:16px;z-index:10;opacity:0;pointer-events:none;transition:opacity .2s}
+  .lightbox{position:fixed;inset:0;background:rgba(20,10,10,.92);display:grid;place-items:center;padding:16px;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
   .lightbox.on{opacity:1;pointer-events:auto}
   .lightbox img{max-width:100%;max-height:85vh;border-radius:12px}
+
+  /* 상담 */
+  .call{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--brand);color:#fff;text-decoration:none;border-radius:16px;padding:18px;font-size:18px;font-weight:900;letter-spacing:.02em}
+  .call svg{width:22px;height:22px}
+  .call small{display:block;font-size:12.5px;font-weight:500;opacity:.85;letter-spacing:0}
+  .links{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+  .link{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;text-decoration:none;color:inherit;transition:transform .15s,border-color .15s}
+  .link:active{transform:scale(.98)}
+  .link:hover{border-color:var(--brand)}
+  .link .ic{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand)}
+  .link .ic svg{width:22px;height:22px}
+  .link.main{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+  .text{flex:1;min-width:0}
+  .name{display:block;font-weight:700;font-size:16px;word-break:keep-all}
+  .desc{display:block;font-size:13px;color:var(--muted);margin-top:1px;word-break:keep-all}
+  .arrow{flex:none;opacity:.4}
+
+  footer{text-align:center;margin-top:48px;color:var(--muted);font-size:14px}
+  footer .bow{font-family:'Noto Serif KR',serif;font-weight:900;color:var(--brand);font-size:18px;margin-bottom:4px}
+
+  .totop{position:fixed;right:16px;bottom:20px;z-index:20;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer}
+  .totop.on{opacity:.9;pointer-events:auto}
+
+  /* 스크롤하면 떠오르는 효과 */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none;transition:none}
+    .track{animation-duration:calc(var(--dur,40s) * 3)}
+  }
+
   #app{opacity:0;transition:opacity .25s}
   #app.ready{opacity:1}
 </style>
@@ -70,54 +194,152 @@ const ICONS = {
   map:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
   star:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9Z"/>',
+  chat:'<path d="M4 5h16v11H9l-5 4Z"/><path d="M8 9.5h8M8 12.5h5"/>',
+  kakao:'<path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6L6.5 20l3.6-2.3c.6.1 1.2.1 1.9.1 5 0 9-3.1 9-7s-4-6.8-9-6.8Z"/>',
+  photo:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-8 8"/>',
+  bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.3 1 2.2h5.2c0-.9.4-1.7 1-2.2A6 6 0 0 0 12 3Z"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  book:'<path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2Z"/><path d="M4 21V5"/><path d="M8 7h8"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .8c0 1.7-2.5 2.2-2.5 4"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  up:'<path d="m6 15 6-6 6 6"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
-
-const FALLBACK = {"greet":"태권! 안녕하십니까","title":"해랑경희","subtitle":"태 권 도 장","intro":["안녕하십니까, 해랑경희 태권도장입니다.","저희가 어떤 생각으로, 어떻게 제자들을 지도하고 있는지 한곳에 모아 두었습니다.","자녀분에게 운동하는 시간이 필요하다고 느끼신다면, 해랑경희 태권도장을 선택해 주시기를 권해 드립니다."],"sectionTitle":"둘러보기","links":[{"icon":"home","name":"도장 소개","desc":"지도 철학과 수업 안내를 한눈에","url":"https://haerangtkd.notion.site/33570613ed75806dafc9f266bf5d290e","main":true},{"icon":"news","name":"언론 취재 기사","desc":"해랑경희 태권도장을 취재한 기사","url":"https://m.besttimes.co.kr/14426","main":false},{"icon":"blog","name":"네이버 블로그","desc":"어떤 생각으로 지도하는지 담은 글","url":"https://m.blog.naver.com/haerang_tkd/223781332649","main":false},{"icon":"insta","name":"인스타그램","desc":"@haerang_tkd · 수업 일상과 제자들 모습","url":"https://www.instagram.com/haerang_tkd","main":false}],"footer":"감사합니다","footerSub":"해랑경희 태권도장"};
+const AREA_COLORS = ['var(--orange)','var(--teal)','var(--navy)','var(--brand)'];
+const DAYS = ['월','화','수','목','금'];
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const svg = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ICONS.link}</svg>`;
+const svg = (name, sw=2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ICONS.link}</svg>`;
 const arrow = '<svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+const list = a => (a || []).filter(Boolean);
+
+let D;
+let sectionNo = 0;
+const head = (title) => `<div class="sec-head"><span class="no">${++sectionNo}</span><h2>${esc(title)}</h2></div>`;
 
 function render(d){
+  D = d; sectionNo = 0;
   const brand = esc(d.footerSub || '해랑경희 태권도장');
-  const intro = (d.intro || []).map(p => `<p>${esc(p).split(brand).join(`<strong>${brand}</strong>`)}</p>`).join('');
-  const links = (d.links || []).map(l => `
-    <a class="link${l.main ? ' main' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener">
-      <span class="icon">${svg(l.icon)}</span>
-      <span class="text"><span class="name">${esc(l.name)}</span>${l.desc ? `<span class="desc">${esc(l.desc)}</span>` : ''}</span>
-      ${arrow}
-    </a>`).join('');
+  const intro = list(d.intro).map(p => `<p>${esc(p).split(brand).join(`<strong>${brand}</strong>`)}</p>`).join('');
+
+  // 섹션을 순서대로 만들고, 내용이 있는 것만 바로가기에 올림
+  const sections = [];
+  const ph = d.philosophy || {};
+  if(list(ph.questions).length || list(ph.message).length) sections.push({id:'philosophy', label:'교육 철학', icon:'bulb', html: sec('philosophy', ph.title || '교육 철학', `
+      ${list(ph.questions).map((q,i) => (i ? '<div class="plus">+</div>' : '') + `<div class="q ${i % 2 ? 'q2' : 'q1'}">${esc(q)}</div>`).join('')}
+      ${list(ph.message).length ? `<div class="card letter">${list(ph.message).map(p => `<p>${esc(p)}</p>`).join('')}<p class="sign">감사합니다.</p></div>` : ''}`)});
+
+  const st = d.staff || {};
+  if(list(st.members).length) sections.push({id:'staff', label:'지도진 소개', icon:'user', html: sec('staff', st.title || '지도진 소개', `
+      ${st.lead ? `<p class="lead">${esc(st.lead)}</p>` : ''}
+      <div class="staff">${list(st.members).map((m,i) => `
+        <div class="card member${i === 0 ? ' lead-member' : ''}">
+          ${m.photo ? `<img class="photo" src="${esc(m.photo)}" alt="${esc(m.name)} ${esc(m.role)}" loading="lazy">` : ''}
+          <div class="body">
+            <div class="who"><span class="role">${esc(m.role)}</span><span class="name">${esc(m.name)}</span></div>
+            <ul>${list(m.career).map(c => `<li>${esc(c)}</li>`).join('')}</ul>
+          </div>
+        </div>`).join('')}
+      </div>
+      ${st.note ? `<p class="note">${esc(st.note)}</p>` : ''}`)});
+
+  const cu = d.curriculum || {};
+  if(list(cu.areas).length || list(cu.goals).length) sections.push({id:'curriculum', label:'교육 내용', icon:'book', html: sec('curriculum', cu.title || '교육 내용', `
+      <div class="areas">${list(cu.areas).map((a,i) => `
+        <div class="area" style="background:${AREA_COLORS[i % AREA_COLORS.length]}">
+          <h3>${esc(a.name)}</h3><div class="chips">${list(a.items).map(x => `<span>${esc(x)}</span>`).join('')}</div>
+        </div>`).join('')}</div>
+      ${list(cu.goals).length ? `<div class="card goals">${list(cu.goals).map(g => `<div class="goal"><b>${esc(g.title)}</b><span>${esc(g.desc)}</span></div>`).join('')}</div>` : ''}
+      ${cu.closing ? `<p class="closing">${esc(cu.closing)}</p>` : ''}`)});
+
+  const pr = d.program || {};
+  if(list(pr.divisions).length || list(pr.timetable).length) sections.push({id:'program', label:'프로그램·시간표', icon:'clock', html: sec('program', pr.title || '수련 프로그램 및 시간표', `
+      ${list(pr.divisions).length ? `
+        <div class="tabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
+        <div id="divBox"></div>` : ''}
+      ${list(pr.timetable).length ? `
+        <div class="card tt"><h3>수련 시간표</h3><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}`)});
+
+  if(list(d.faq).length) sections.push({id:'faq', label:'자주 묻는 질문', icon:'help', html: sec('faq', '자주 묻는 질문', `
+      <div class="faq">${list(d.faq).map((f,i) => `
+        <details${i === 0 ? ' open' : ''}><summary>${esc(f.q)}</summary><div class="ans">
+          ${list(f.points).map(p => `<div class="pt"><span class="ck">${svg('check',3)}</span><div><b>${esc(p.t)}</b>${p.d ? `<span>${esc(p.d)}</span>` : ''}</div></div>`).join('')}
+          ${f.closing ? `<p class="closing">${esc(f.closing)}</p>` : ''}
+        </div></details>`).join('')}</div>`)});
+
+  if(list(d.gallery).length) sections.push({id:'gallery', label:'사진', icon:'photo', html: sec('gallery', d.galleryTitle || '사진으로 보는 해랑경희', gallery(d), true)});
+
+  const ct = d.contact || {};
+  const tel = (ct.phone || '').replace(/[^0-9+]/g, '');
+  sections.push({id:'contact', label:'상담 문의', icon:'phone', html: sec('contact', ct.title || '상담 및 문의하기', `
+      ${tel ? `<a class="call" href="tel:${esc(tel)}">${svg('phone')}<span>${esc(ct.phone)}<small>눌러서 바로 전화 상담</small></span></a>` : ''}
+      <nav class="links">${list(d.links).map(l => `
+        <a class="link${l.main ? ' main' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener">
+          <span class="ic">${svg(l.icon)}</span>
+          <span class="text"><span class="name">${esc(l.name)}</span>${l.desc ? `<span class="desc">${esc(l.desc)}</span>` : ''}</span>
+          ${arrow}
+        </a>`).join('')}</nav>`)});
+
+  const tiles = sections.filter(s => s.id !== 'contact');
+  const shortcuts = `
+    <div class="label">바로가기</div>
+    <div class="shortcuts" id="shortcuts">
+      ${tiles.map(s => `<a class="sc" href="#${s.id}"><span class="ic">${svg(s.icon)}</span>${esc(s.label)}</a>`).join('')}
+      <a class="sc sc-call" href="#contact"><span class="ic">${svg('phone')}</span>상담 문의하기</a>
+    </div>`;
+
   document.getElementById('app').innerHTML = `
+    <nav class="topnav" id="topnav"><div class="row">${sections.map(s => `<a href="#${s.id}" data-id="${s.id}">${esc(s.label)}</a>`).join('')}</div></nav>
     <header><div class="greet">${esc(d.greet)}</div><h1>${esc(d.title)}<small>${esc(d.subtitle)}</small></h1></header>
     <main class="wrap">
-      <section class="intro">${intro}</section>
-      ${gallery(d)}
-      <div class="section-title">${esc(d.sectionTitle)}</div>
-      <nav class="links">${links}</nav>
+      <section class="card intro">${intro}</section>
+      ${shortcuts}
+      ${sections.map(s => s.html).join('')}
       <footer><div class="bow">${esc(d.footer)}</div>${esc(d.footerSub)}</footer>
-    </main>`;
+    </main>
+    <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
+
   document.getElementById('app').classList.add('ready');
-  setupGallery();
+  setupTabs(); setupGallery(); setupNav(); setupReveal();
+}
+
+function sec(id, title, inner, bare){
+  return `<section class="sec reveal" id="${id}">${head(title)}${inner}</section>`;
 }
 
 function gallery(d){
-  const pics = (d.gallery || []).filter(Boolean);
-  if(!pics.length) return '';
-  // 사진이 적어도 화면을 꽉 채우도록 반복한 뒤, 끊김 없이 이어지게 한 번 더 복제
+  const pics = list(d.gallery);
   let row = pics.slice();
   while(row.length < 8) row = row.concat(pics);
-  const imgs = row.map(p => `<img src="${esc(p)}" alt="수업 사진" loading="lazy">`).join('');
-  return `<div class="section-title">${esc(d.galleryTitle || '수업 모습')}</div>
-    <div class="marquee"><div class="track" style="--dur:${row.length * 4}s">${imgs}${imgs}</div></div>`;
+  const imgs = row.map(p => `<img src="${esc(p)}" alt="수업 사진" decoding="async">`).join('');
+  return `<div class="marquee"><div class="track" style="--dur:${row.length * 4}s">${imgs}${imgs}</div></div>`;
+}
+
+// 부별 요일 프로그램 탭
+function setupTabs(){
+  const box = document.getElementById('divBox');
+  if(!box) return;
+  const today = DAYS[new Date().getDay() - 1]; // 월~금이면 오늘 요일 강조
+  const show = i => {
+    const v = list(D.program.divisions)[i];
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', +b.dataset.div === i));
+    box.innerHTML = `
+      ${v.common ? `<p class="common">매일 <b>${esc(v.common)}</b></p>` : ''}
+      <div class="days">${DAYS.map(dd => `
+        <div class="day${dd === today ? ' today' : ''}"><div class="d">${dd}</div>
+          ${list((v.days || {})[dd]).map(x => `<p class="${/^\(.*\)$/.test(x) ? 'sub' : ''}">${esc(x)}</p>`).join('')}
+        </div>`).join('')}</div>`;
+  };
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => show(+b.dataset.div));
+  show(0);
 }
 
 function setupGallery(){
   const m = document.querySelector('.marquee');
   if(!m) return;
   const lb = document.createElement('div');
-  lb.className = 'lightbox';
-  lb.innerHTML = '<img alt="">';
+  lb.className = 'lightbox'; lb.innerHTML = '<img alt="">';
   document.body.append(lb);
   m.addEventListener('click', e => {
     if(e.target.tagName !== 'IMG') return;
@@ -127,10 +349,41 @@ function setupGallery(){
   lb.addEventListener('click', () => { lb.classList.remove('on'); m.classList.remove('paused'); });
 }
 
+// 바로가기 영역을 지나면 위에 메뉴가 따라오고, 지금 보고 있는 섹션을 표시
+function setupNav(){
+  const nav = document.getElementById('topnav'), sc = document.getElementById('shortcuts'), top = document.getElementById('totop');
+  top.onclick = () => window.scrollTo({top:0, behavior:'smooth'});
+  const onScroll = () => {
+    const past = sc.getBoundingClientRect().bottom < 0;
+    nav.classList.toggle('on', past); top.classList.toggle('on', past);
+    let cur = null;
+    document.querySelectorAll('main section.sec').forEach(s => { if(s.getBoundingClientRect().top < 120) cur = s.id; });
+    nav.querySelectorAll('a').forEach(a => {
+      const on = a.dataset.id === cur;
+      if(on && !a.classList.contains('active')) a.scrollIntoView({block:'nearest', inline:'center'});
+      a.classList.toggle('active', on);
+    });
+  };
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+}
+
+function setupReveal(){
+  const els = document.querySelectorAll('.reveal');
+  if(!('IntersectionObserver' in window)){ els.forEach(e => e.classList.add('in')); return; }
+  const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), {rootMargin:'0px 0px -8% 0px'});
+  els.forEach(e => io.observe(e));
+  // 바로가기로 점프했을 때 내용이 비어 보이지 않도록
+  window.addEventListener('hashchange', () => { const t = document.querySelector(location.hash); if(t) t.classList.add('in'); });
+}
+
 fetch('data.json?t=' + Date.now())
   .then(r => { if(!r.ok) throw 0; return r.json(); })
   .then(render)
-  .catch(() => render(FALLBACK));
+  .catch(() => {
+    document.getElementById('app').innerHTML = '<p style="padding:40px 20px;text-align:center;color:#6B6460">내용을 불러오지 못했어요. 잠시 후 새로고침해 주세요.</p>';
+    document.getElementById('app').classList.add('ready');
+  });
 </script>
 </body>
 </html>
