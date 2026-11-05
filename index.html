@@ -142,8 +142,12 @@
   .mini .ph{margin-bottom:10px}
   .mini .ph h3{white-space:normal;font-size:14.5px;line-height:1.35}
   .mini .slides{aspect-ratio:1}
-  .mini .ph [data-prev],.mini .ph [data-next]{display:none}
-  @media (max-width:899px){ .mini .ph .cnt,.mini .ph [data-pp]{display:none} }
+  .ctrl{display:flex;align-items:center;justify-content:center;gap:2px;margin-top:8px}
+  .ctrl button{flex:none;width:28px;height:30px;border:0;background:none;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+  .ctrl button:hover{background:#F3EEE9}
+  .ctrl svg{width:17px;height:17px}
+  .ctrl .cnt{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;padding:0 2px;white-space:nowrap}
+  .ctrl .cnt b{color:var(--ink)}
   .capline{margin-top:8px;font-size:13.5px;font-weight:700;line-height:1.4;min-height:2.8em;word-break:keep-all}
   .capline small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
   @media (max-width:440px){ .ph [data-prev],.ph [data-next]{display:none} }
@@ -666,9 +670,13 @@ function activePosters(d){
   return list(d.board).filter(p => p.image || p.title).filter(p => (!isDate(p.start) || parseD(p.start) <= TODAY) && (!isDate(p.end) || TODAY <= parseD(p.end)));
 }
 const pad2 = n => String(n).padStart(2, '0');
-function sliderHead(title, n, more){
+// 작은 칸: 사진 아래에  ‹  01 · 06  ‖  ›
+function ctrlRow(n){
+  return n > 1 ? `<div class="ctrl"><button type="button" data-prev aria-label="이전">${svg('left',2.4)}</button><span class="cnt"><b data-cur>01</b> · ${pad2(n)}</span><button type="button" data-pp aria-label="멈춤">${svg('pause',2.6)}</button><button type="button" data-next aria-label="다음">${svg('right',2.4)}</button></div>` : '';
+}
+function sliderHead(title, n, more, mini){
   return `<div class="ph"><h3>${esc(title)}</h3>
-    ${n > 1 ? `<span class="cnt"><b data-cur>01</b> · ${pad2(n)}</span>
+    ${n > 1 && !mini ? `<span class="cnt"><b data-cur>01</b> · ${pad2(n)}</span>
       <button type="button" data-prev aria-label="이전">${svg('left',2.4)}</button>
       <button type="button" data-pp aria-label="멈춤">${svg('pause',2.6)}</button>
       <button type="button" data-next aria-label="다음">${svg('right',2.4)}</button>` : ''}
@@ -677,8 +685,8 @@ function sliderHead(title, n, more){
 function photoPanel(d){
   const pics = list(d.gallery);
   if(!pics.length) return '';
-  return `<div class="card panel slider mini">${sliderHead(d.galleryTitle || '사진으로 보는 해랑경희', pics.length, '#/gallery')}
-    <div class="slides">${pics.map((p, i) => `<div class="sl${i ? '' : ' on'}"><img src="${esc(p)}" alt="수업 사진" data-zoom ${i > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div></div>`;
+  return `<div class="card panel slider mini">${sliderHead(d.galleryTitle || '사진으로 보는 해랑경희', pics.length, '#/gallery', true)}
+    <div class="slides">${pics.map((p, i) => `<div class="sl${i ? '' : ' on'}"><img src="${esc(p)}" alt="수업 사진" data-zoom ${i > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div>${ctrlRow(pics.length)}</div>`;
 }
 // 행사 사진: 일정에 사진을 붙이면 여기 나옴 (다가오는 행사 먼저, 그다음 지난 행사 최근 순)
 function eventPanel(){
@@ -692,7 +700,7 @@ function eventPanel(){
     return `<div class="sl poster${i ? '' : ' on'}" data-cap="${esc(e.title)}" data-sub="${rangeText(e)}"><img src="${esc(e.image)}" alt="${esc(e.title)}" data-zoom ${i > 1 ? 'loading="lazy"' : ''}>${dd}</div>`;
   });
   if(!slides.length) slides.push(`<div class="sl text on"><p class="emptybox">행사 사진이 올라오면 여기에 보여요.</p></div>`);
-  return `<div class="card panel slider mini">${sliderHead('행사', evs.length, '#/schedule')}<div class="slides">${slides.join('')}</div>${evs.length ? `<p class="capline"></p>` : ''}</div>`;
+  return `<div class="card panel slider mini">${sliderHead('행사', evs.length, '#/schedule', true)}<div class="slides">${slides.join('')}</div>${evs.length ? `<p class="capline"></p>` : ''}${ctrlRow(evs.length)}</div>`;
 }
 function posterSlide(p, i){
   const inner = `${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.title || '알림')}" ${p.url ? '' : 'data-zoom'}>` : ''}${p.title ? `<span class="cap">${esc(p.title)}</span>` : ''}`;
@@ -816,13 +824,12 @@ function setupGallery(){
 }
 // 홈의 사진·알림판 슬라이드 (4초마다 넘어감, ‖ 로 멈춤)
 function setupSliders(){
-  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('.slider').forEach(box => {
     const sl = [...box.querySelectorAll('.sl')], cur = box.querySelector('[data-cur]'), pp = box.querySelector('[data-pp]'), capl = box.querySelector('.capline');
     const cap = () => { if(capl && sl[i]){ capl.innerHTML = ''; capl.append(sl[i].dataset.cap || ''); const sm = document.createElement('small'); sm.textContent = sl[i].dataset.sub || ''; capl.append(sm); } };
     let i = 0; cap();
     if(sl.length < 2) return;
-    let playing = !still, t;
+    let playing = true, t;
     const show = n => { sl[i].classList.remove('on'); i = (n + sl.length) % sl.length; sl[i].classList.add('on'); if(cur) cur.textContent = String(i + 1).padStart(2, '0'); cap(); };
     const loop = () => { clearInterval(t); if(playing) t = setInterval(() => show(i + 1), 4000); };
     const setPP = () => { pp.innerHTML = svg(playing ? 'pause' : 'play', 2.6); pp.setAttribute('aria-label', playing ? '멈춤' : '재생'); };
