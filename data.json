@@ -483,7 +483,7 @@
   "contact": {
     "title": "상담 및 문의하기",
     "phone": "010-9917-9954",
-    "floatPhone": true
+    "floatPhone": false
   },
   "location": {
     "title": "찾아오시는 길",
@@ -537,7 +537,7 @@
       "url": "https://blog.naver.com/haerang_tkd/223781332649",
       "main": false,
       "short": "네이버 블로그",
-      "float": false
+      "float": true
     },
     {
       "icon": "photo",
