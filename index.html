@@ -692,7 +692,9 @@ function photoPanel(d){
 function eventPanel(){
   const withImg = EVENTS.filter(e => e.image);
   const up = withImg.filter(e => e.en >= TODAY).sort((a, b) => a.s - b.s);
-  const past = withImg.filter(e => e.en < TODAY).sort((a, b) => b.s - a.s);
+  // 지난 행사는 끝난 지 1개월까지만
+  const cutoff = new Date(TODAY.getFullYear(), TODAY.getMonth() - 1, TODAY.getDate());
+  const past = withImg.filter(e => e.en < TODAY && e.en >= cutoff).sort((a, b) => b.s - a.s);
   const evs = up.concat(past);
   const slides = evs.map((e, i) => {
     const n = dayDiff(e.s, TODAY);
