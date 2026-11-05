@@ -137,15 +137,22 @@
     <div id="ed-timetable"></div>
   </div></details>
 
-  <details class="card"><summary>⑤ 월간 수련 계획 (오늘의 운동)</summary><div class="in">
-    <p class="hint"><b>월초마다 이렇게 입력해 주세요</b><br>
-    1. 여기서 <b>+ 달 추가</b>를 누르면 지난달 요일별 테마가 복사된 새 달이 생겨요. 바뀐 것만 고치세요.<br>
-    2. 날짜가 정해진 내용(승급심사주간, 특강, 공휴일, 기네스 등)은 아래 <b>⑥ 일정</b>에 넣으세요.<br>
+  <details class="card"><summary>⑤ 오늘의 운동 · 이달의 공지</summary><div class="in">
+    <p class="hint"><b>월초에 할 일</b><br>
+    1. 아래 <b>+ 달 추가</b>를 누르고 이달 공지사항을 적어요.<br>
+    2. 계획표의 날짜 칸(승급심사주간, 특강, 공휴일, 기네스 등)은 <b>⑥ 일정</b>에 넣어요.<br>
     → 사이트의 '오늘의 운동'에 그날 요일 테마와 그날 일정이 자동으로 나와요. 공휴일·휴관으로 넣은 날은 '쉬는 날'로 나와요.</p>
     <div class="row">
       <div><label class="f">카드 제목</label><input data-k="monthly.title"></div>
       <div><label class="f">주말 문구</label><input data-k="monthly.weekendText"></div>
     </div>
+    <label class="f" style="margin-top:18px;font-weight:700;color:var(--ink)">요일별 운동테마 (매달 같음 · 바뀔 때만 고치기)</label>
+    <label class="f">월요일 (한 줄에 하나)</label><textarea data-lines="monthly.weekday.월" style="min-height:64px"></textarea>
+    <label class="f">화요일</label><textarea data-lines="monthly.weekday.화" style="min-height:64px"></textarea>
+    <label class="f">수요일</label><textarea data-lines="monthly.weekday.수" style="min-height:64px"></textarea>
+    <label class="f">목요일</label><textarea data-lines="monthly.weekday.목" style="min-height:64px"></textarea>
+    <label class="f">금요일</label><textarea data-lines="monthly.weekday.금" style="min-height:64px"></textarea>
+    <label class="f">토요일 (비우면 주말 문구가 나와요)</label><textarea data-lines="monthly.weekday.토" style="min-height:64px"></textarea>
     <div id="ed-months"></div>
   </div></details>
 
@@ -371,20 +378,19 @@ function renderAll(){
     ]
   });
   listEditor('ed-months', 'monthly.months', {
-    noun:'달', heading:'달별 계획 (최신 달이 아래)',
-    title:(m) => m.month ? `${m.month.slice(0,4)}년 ${+m.month.slice(5)}월` : '새 달',
+    noun:'달', heading:'이달의 공지사항 (최신 달이 아래, 그 달에만 첫 화면에 나와요)',
+    title:(m) => m.month ? `${m.month.slice(0,4)}년 ${+m.month.slice(5)}월 공지` : '새 달',
     blank:() => {
       const ms = (getP(data, 'monthly.months') || []).filter(m => m.month).sort((a, b) => a.month.localeCompare(b.month));
       const last = ms[ms.length - 1];
       let y, mo;
       if(last){ [y, mo] = last.month.split('-').map(Number); mo++; if(mo > 12){ mo = 1; y++; } }
       else { const n = new Date(Date.now() + 9*3600000); y = n.getUTCFullYear(); mo = n.getUTCMonth() + 1; }
-      return { month: `${y}-${String(mo).padStart(2,'0')}`, weekday: JSON.parse(JSON.stringify(last ? last.weekday || {} : {})), notices: [] };
+      return { month: `${y}-${String(mo).padStart(2,'0')}`, notices: [] };
     },
     fields:[
       {k:'month', label:'몇 년 몇 월', type:'month'},
-      ...['월','화','수','목','금','토'].map(d => ({k:'weekday.' + d, label: d + '요일 운동테마 (한 줄에 하나)' + (d === '토' ? ' · 비우면 주말 문구가 나와요' : ''), type:'lines', short:true})),
-      {k:'notices', label:'이달의 공지사항 (한 줄 = 공지 하나)', type:'lines'}
+      {k:'notices', label:'공지사항 (한 줄 = 공지 하나)', type:'lines'}
     ]
   });
   listEditor('ed-faq', 'faq', {

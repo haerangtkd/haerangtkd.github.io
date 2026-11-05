@@ -73,7 +73,10 @@
   .drawer .pfoot{padding:14px 18px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 
   /* ---------- 홈 ---------- */
-  .hero{background:var(--brand);color:#fff;padding:40px 24px 78px;text-align:center;position:relative;overflow:hidden}
+  .hero{background:var(--brand);color:#fff;padding:46px 16px 84px;text-align:center;position:relative;overflow:hidden}
+  .ht{width:min(100%,480px);margin:0 auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .ht img{display:block;width:100%;height:auto}
+  .ht .ht-slogan{width:99%}
   .hero .wm{position:absolute;right:-50px;bottom:-60px;width:250px;opacity:.09;pointer-events:none}
   .greet{font-size:13px;letter-spacing:.18em;opacity:.85;margin-bottom:12px}
   .hero h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:30px;line-height:1.3}
@@ -462,9 +465,7 @@ function render(d){
 
     <div id="homePage">
       <div class="hero">${lionW}
-        <div class="greet">${esc(d.greet)}</div>
-        <h1>${brand}</h1>
-        ${d.slogan ? `<p class="slogan">${esc(d.slogan)}</p>` : ''}
+        <h1 class="ht"><img class="ht-title" src="img/title-white.png" alt="${brand}"><img class="ht-slogan" src="img/slogan-white.png" alt="${esc(d.slogan || '')}"></h1>
       </div>
       <main class="wrap">
         <section class="card intro">${intro}</section>
@@ -530,13 +531,19 @@ function monthPlan(d){
   const cur = ymd(TODAY).slice(0, 7);
   return { exact: ms.find(m => m.month === cur), plan: ms.find(m => m.month === cur) || ms.filter(m => m.month < cur).pop() || ms[ms.length - 1] };
 }
+// 요일별 운동테마는 매달 같음 (예전 형식처럼 달마다 들어 있으면 그것도 읽음)
+function weekdayThemes(d){
+  const w = (d.monthly || {}).weekday;
+  if(w && Object.values(w).some(v => list(v).length)) return w;
+  const { plan } = monthPlan(d);
+  return (plan && plan.weekday) || {};
+}
 function workoutCard(d, onHome){
   const mo = d.monthly || {};
-  const { plan } = monthPlan(d);
   const dow = TODAY.getDay(), weekend = dow === 0 || dow === 6;
   const evs = eventsOn(TODAY);
   const off = evs.filter(e => e.type === '휴관');
-  const items = plan ? list((plan.weekday || {})[WEEK[dow]]) : [];
+  const items = list(weekdayThemes(d)[WEEK[dow]]);
   const evRows = evs.filter(e => e.type !== '휴관').map(e => {
     const c = EV_COLORS[e.type] || EV_COLORS['기타'];
     return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type === '수련' ? '이번 주 집중' : e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
@@ -548,17 +555,16 @@ function workoutCard(d, onHome){
       ${items.length ? `<ol>${items.map(i => `<li><b>${esc(i)}</b></li>`).join('')}</ol>` : ''}
       ${!evRows && !items.length ? `<div class="theme">오늘은 정해진 운동이 없어요</div>` : ''}`;
   return `<div class="card hc wo">
-    <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2>${onHome ? `<a class="more" href="#/today">이달 계획 ›</a>` : ''}</div>
+    <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2>${onHome ? `<a class="more" href="#/today">요일별 테마 ›</a>` : ''}</div>
     ${body}<div class="pad"></div>
   </div>`;
 }
 function weekTable(d){
-  const { plan } = monthPlan(d);
-  if(!plan) return '';
-  const rows = ['월','화','수','목','금','토'].map(w => [w, list((plan.weekday || {})[w])]).filter(([, v]) => v.length);
+  const wd = weekdayThemes(d);
+  const rows = ['월','화','수','목','금','토'].map(w => [w, list(wd[w])]).filter(([, v]) => v.length);
   if(!rows.length) return '';
   const today = WEEK[TODAY.getDay()];
-  return `<div class="card tt wk" style="margin-top:14px"><h4>${+plan.month.slice(5)}월 요일별 운동테마</h4><table>
+  return `<div class="card tt wk" style="margin-top:14px"><h4>요일별 운동테마</h4><table>
     ${rows.map(([w, v]) => `<tr class="${w === today ? 'today' : ''}"><td>${w}</td><td>${v.map(esc).join(' · ')}</td></tr>`).join('')}</table></div>`;
 }
 function noticeCard(d){
