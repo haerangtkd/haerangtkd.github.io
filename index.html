@@ -101,9 +101,18 @@
   .wo li span{font-size:13.5px;font-weight:700;color:#FFD9A8;white-space:nowrap}
   .wo .tip{margin:6px 18px 0;font-size:13.5px;background:rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;word-break:keep-all}
   .wo .note{padding:10px 18px 16px;font-size:12.5px;color:rgba(255,255,255,.7);word-break:keep-all}
-  .wo .done{margin:12px 18px 0;width:calc(100% - 36px);font:inherit;font-weight:700;font-size:15px;border:0;border-radius:12px;padding:12px;background:#fff;color:var(--navy);cursor:pointer;transition:transform .15s}
-  .wo .done:active{transform:scale(.97)}
-  .wo .done.ok{background:#FFD9A8}
+  .wo .sub{padding:4px 18px 0;font-size:14px;color:rgba(255,255,255,.8)}
+  .wo .focusbox{padding:2px 18px 6px;display:flex;flex-direction:column;gap:8px}
+  .wo .focus{background:rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;line-height:1.45}
+  .wo .focus b{font-size:16px;word-break:keep-all}
+  .wo .focus > span:last-child:not(.tag){display:block;font-size:12.5px;color:rgba(255,255,255,.75);margin-top:2px}
+  .wo .focus .tag{border:1px solid rgba(255,255,255,.4)}
+  .wo .note{padding:0 0 12px}
+  .nt .hc-head .ic{background:#FFF3DC;color:#B7791F}
+  .nt ul{list-style:none;padding:0 18px 16px}
+  .nt li{position:relative;padding:10px 0 10px 16px;border-top:1px solid var(--line);font-size:14.5px;word-break:keep-all}
+  .nt li::before{content:"";position:absolute;left:2px;top:19px;width:6px;height:6px;border-radius:50%;background:#D9822B}
+  .grid7 .cell.off .n{color:#C23A3A}
   .up .hc-head .ic{background:var(--brand-soft);color:var(--brand)}
   .up ul{list-style:none;padding:0 18px 16px}
   .up li{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
@@ -314,7 +323,7 @@ const ICONS = {
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
 const AREA_COLORS = ['var(--orange)','var(--teal)','var(--navy)','var(--brand)'];
-const EV_COLORS = { '심사':'#A40F16', '대회':'#1F3B63', '행사':'#D9822B', '휴관':'#8A837E', '기타':'#2E9C9A' };
+const EV_COLORS = { '수련':'#3C8D5A', '심사':'#A40F16', '대회':'#1F3B63', '행사':'#D9822B', '휴관':'#8A837E', '기타':'#2E9C9A' };
 const DAYS = ['월','화','수','목','금'];
 const WEEK = ['일','월','화','수','목','금','토'];
 
@@ -457,6 +466,7 @@ function render(d){
       <div class="home">
         ${workoutCard(d)}
         ${upcomingCard()}
+        ${noticeCard(d)}
       </div>
       ${shortcuts}
       ${order.filter(id => S[id] && S[id].html).map(id => S[id].html).join('')}
@@ -472,34 +482,51 @@ function render(d){
   setupMenu(); setupTabs(); setupCalendar(); setupWorkout(); setupGallery(); setupTop(); setupReveal();
 }
 
-// ---------- 오늘의 운동 ----------
-function todaysWorkout(d){
-  const w = d.workout || {};
-  const sp = list(w.special).find(x => x.date === ymd(TODAY));
-  if(sp) return sp;
-  return list(w.week).find(x => x.day === WEEK[TODAY.getDay()]);
+// ---------- 오늘의 운동 (월간 수련 계획표 + 일정에서 자동으로) ----------
+// 이번 달 계획이 있으면 그걸, 없으면 가장 최근 달 계획의 요일별 테마를 사용
+function monthPlan(d){
+  const ms = list((d.monthly || {}).months).filter(m => m.month).sort((a, b) => a.month.localeCompare(b.month));
+  const cur = ymd(TODAY).slice(0, 7);
+  return { exact: ms.find(m => m.month === cur), plan: ms.find(m => m.month === cur) || ms.filter(m => m.month < cur).pop() || ms[ms.length - 1] };
 }
 function workoutCard(d){
-  const w = d.workout || {};
-  const t = todaysWorkout(d);
-  if(!t) return '';
+  const mo = d.monthly || {};
+  const { plan } = monthPlan(d);
+  const dow = TODAY.getDay(), weekend = dow === 0 || dow === 6;
+  const evs = eventsOn(TODAY);
+  const off = evs.filter(e => e.type === '휴관');
+  const items = plan ? list((plan.weekday || {})[WEEK[dow]]) : [];
+  const evRows = evs.filter(e => e.type !== '휴관').map(e => {
+    const c = EV_COLORS[e.type] || EV_COLORS['기타'];
+    return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type === '수련' ? '이번 주 집중' : e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
+  }).join('');
+
+  let body;
+  if(off.length){
+    body = `<div class="theme">오늘은 쉬는 날이에요</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
+  }else if(weekend && !evRows && !items.length){
+    body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말! 월요일에 만나요 ☺')}</div>`;
+  }else{
+    body = `${evRows ? `<div class="focusbox">${evRows}</div>` : ''}
+      ${items.length ? `<ol>${items.map(i => `<li><b>${esc(i)}</b></li>`).join('')}</ol>` : ''}
+      ${!evRows && !items.length ? `<div class="theme">오늘은 정해진 운동이 없어요</div>` : ''}`;
+  }
   return `<div class="card hc wo anchor" id="today">
-    <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(w.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2></div>
-    ${t.title ? `<div class="theme">${esc(t.title)}</div>` : ''}
-    <ol>${list(t.items).map(i => `<li><b>${esc(i.t)}</b>${i.d ? `<span>${esc(i.d)}</span>` : ''}</li>`).join('')}</ol>
-    ${t.tip ? `<div class="tip">💡 ${esc(t.tip)}</div>` : ''}
-    <button class="done" id="doneBtn" type="button">오늘 운동 다 했어요!</button>
-    ${w.note ? `<div class="note">${esc(w.note)}</div>` : '<div class="note"></div>'}
+    <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2><a class="more" href="#schedule">이달 일정 ›</a></div>
+    ${body}
+    <div class="note"></div>
   </div>`;
 }
-function setupWorkout(){
-  const b = document.getElementById('doneBtn');
-  if(!b) return;
-  const key = 'haerang_done_' + ymd(TODAY);
-  const mark = () => { b.classList.add('ok'); b.textContent = '오늘 운동 완료! 최고예요 👍'; };
-  try{ if(localStorage.getItem(key)) mark(); }catch(e){}
-  b.onclick = () => { mark(); try{ localStorage.setItem(key, '1'); }catch(e){} };
+function noticeCard(d){
+  const { exact } = monthPlan(d);
+  const ns = exact ? list(exact.notices) : [];
+  if(!ns.length) return '';
+  return `<div class="card hc nt">
+    <div class="hc-head"><span class="ic">${svg('star')}</span><h2>${+exact.month.slice(5)}월 공지사항<small>해랑경희 태권도장</small></h2></div>
+    <ul>${ns.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
+  </div>`;
 }
+function setupWorkout(){}
 
 // ---------- 일정 ----------
 function upcomingCard(){
@@ -530,7 +557,7 @@ function setupCalendar(){
     for(let i = 0; i < lead; i++) cells += '<span class="cell out"></span>';
     for(let dd = 1; dd <= days; dd++){
       const dt = new Date(y, m, dd), evs = eventsOn(dt);
-      const cls = ['cell', dt.getDay() === 0 ? 'sun' : '', dt.getDay() === 6 ? 'sat' : '', +dt === +TODAY ? 'today' : '', sel && +dt === +sel ? 'sel' : ''].join(' ');
+      const cls = ['cell', dt.getDay() === 0 ? 'sun' : '', dt.getDay() === 6 ? 'sat' : '', evs.some(e => e.type === '휴관') ? 'off' : '', +dt === +TODAY ? 'today' : '', sel && +dt === +sel ? 'sel' : ''].join(' ');
       cells += `<button type="button" class="${cls}" data-d="${dd}" aria-label="${m+1}월 ${dd}일${evs.length ? ', 일정 ' + evs.length + '개' : ''}"><span class="n">${dd}</span>
         ${evs.length ? `<span class="dots">${evs.slice(0,3).map(e => `<i style="background:${EV_COLORS[e.type] || EV_COLORS['기타']}"></i>`).join('')}</span>` : ''}</button>`;
     }

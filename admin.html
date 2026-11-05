@@ -136,17 +136,22 @@
     <div id="ed-timetable"></div>
   </div></details>
 
-  <details class="card"><summary>⑤ 해랑경희 일정</summary><div class="in">
-    <p class="hint">일정을 넣으면 사이트 달력과 맨 위 <b>다가오는 일정</b>에 자동으로 나와요. 날짜 순서는 저장할 때 자동으로 정리돼요. 지난 일정은 지우지 않아도 달력에만 남고 '다가오는 일정'에서는 빠져요.</p>
-    <div id="ed-schedule"></div>
+  <details class="card"><summary>⑤ 월간 수련 계획 (오늘의 운동)</summary><div class="in">
+    <p class="hint"><b>월초마다 이렇게 입력해 주세요</b><br>
+    1. 여기서 <b>+ 달 추가</b>를 누르면 지난달 요일별 테마가 복사된 새 달이 생겨요. 바뀐 것만 고치세요.<br>
+    2. 날짜가 정해진 내용(승급심사주간, 특강, 공휴일, 기네스 등)은 아래 <b>⑥ 일정</b>에 넣으세요.<br>
+    → 사이트의 '오늘의 운동'에 그날 요일 테마와 그날 일정이 자동으로 나와요. 공휴일·휴관으로 넣은 날은 '쉬는 날'로 나와요.</p>
+    <div class="row">
+      <div><label class="f">카드 제목</label><input data-k="monthly.title"></div>
+      <div><label class="f">주말 문구</label><input data-k="monthly.weekendText"></div>
+    </div>
+    <div id="ed-months"></div>
   </div></details>
 
-  <details class="card"><summary>⑥ 오늘의 운동</summary><div class="in">
-    <p class="hint">요일별로 정해 두면 매일 그날 요일의 운동이 자동으로 나와요. 특정 날짜만 바꾸고 싶으면 아래 <b>특별한 날</b>에 넣으세요.</p>
-    <label class="f">제목</label><input data-k="workout.title">
-    <label class="f">아래 작은 안내</label><input data-k="workout.note">
-    <div id="ed-week"></div>
-    <div id="ed-special"></div>
+  <details class="card"><summary>⑥ 일정 (날짜별)</summary><div class="in">
+    <p class="hint">달력, <b>다가오는 일정</b>, <b>오늘의 운동</b>에 자동으로 나와요. 날짜 순서는 저장할 때 정리돼요.<br>
+    종류: <b>수련</b> = 그 기간 집중 수련 내용 (예: 기본동작 및 힘의 강약) · <b>휴관</b> = 공휴일·쉬는 날</p>
+    <div id="ed-schedule"></div>
   </div></details>
 
   <details class="card"><summary>⑦ 자주 묻는 질문</summary><div class="in">
@@ -288,6 +293,7 @@ function listEditor(boxId, path, cfgL){
           if(f.type === 'select') inp.innerHTML = f.opts.map(([v,t]) => `<option value="${v}">${esc(t)}</option>`).join('');
           if(f.inputmode) inp.setAttribute('inputmode', f.inputmode);
           if(f.type === 'date') inp.type = 'date';
+          if(f.type === 'month') inp.type = 'month';
           if(f.type === 'lines'){ inp.value = (val || []).join('\n'); inp.oninput = () => setP(it, f.k, toLines(inp.value)); }
           else if(f.type === 'pairs'){
             inp.value = (val || []).map(p => p.d ? `${p.t} | ${p.d}` : p.t).join('\n');
@@ -359,29 +365,25 @@ function renderAll(){
     fields:[
       {k:'date', label:'날짜', type:'date', half:true}, {k:'end', label:'끝나는 날 (하루면 비우기)', type:'date', half:true},
       {k:'title', label:'일정 이름'},
-      {k:'type', label:'종류 (달력 점 색깔)', type:'select', opts:[['행사','행사 (주황)'],['심사','심사 (빨강)'],['대회','대회 (남색)'],['휴관','휴관 (회색)'],['기타','기타 (청록)']]},
+      {k:'type', label:'종류 (달력 점 색깔)', type:'select', opts:[['수련','수련 (초록)'],['행사','행사 (주황)'],['심사','심사 (빨강)'],['대회','대회 (남색)'],['휴관','휴관·공휴일 (회색)'],['기타','기타 (청록)']]},
       {k:'note', label:'한 줄 메모 (시간, 장소 등)'}
     ]
   });
-  const WEEK_OPTS = ['월','화','수','목','금','토','일'].map(d => [d, d + '요일']);
-  listEditor('ed-week', 'workout.week', {
-    noun:'요일', heading:'요일별 운동',
-    title:(w) => `${w.day || ''}요일 · ${w.title || ''}`,
-    blank:() => ({day:'월', title:'', items:[], tip:''}),
+  listEditor('ed-months', 'monthly.months', {
+    noun:'달', heading:'달별 계획 (최신 달이 아래)',
+    title:(m) => m.month ? `${m.month.slice(0,4)}년 ${+m.month.slice(5)}월` : '새 달',
+    blank:() => {
+      const ms = (getP(data, 'monthly.months') || []).filter(m => m.month).sort((a, b) => a.month.localeCompare(b.month));
+      const last = ms[ms.length - 1];
+      let y, mo;
+      if(last){ [y, mo] = last.month.split('-').map(Number); mo++; if(mo > 12){ mo = 1; y++; } }
+      else { const n = new Date(Date.now() + 9*3600000); y = n.getUTCFullYear(); mo = n.getUTCMonth() + 1; }
+      return { month: `${y}-${String(mo).padStart(2,'0')}`, weekday: JSON.parse(JSON.stringify(last ? last.weekday || {} : {})), notices: [] };
+    },
     fields:[
-      {k:'day', label:'요일', type:'select', opts:WEEK_OPTS, half:true}, {k:'title', label:'오늘의 주제', half:true},
-      {k:'items', label:'운동 (한 줄에 하나)', type:'pairs', hint:'"운동 이름 | 횟수" 형식으로 적어요. 예) 스쿼트 | 15회 × 2세트'},
-      {k:'tip', label:'한 줄 팁'}
-    ]
-  });
-  listEditor('ed-special', 'workout.special', {
-    noun:'특별한 날', heading:'특별한 날 (이 날짜엔 요일 운동 대신 이걸 보여줘요)',
-    title:(w) => `${w.date || '날짜 없음'} · ${w.title || ''}`,
-    blank:() => ({date: new Date(Date.now() + 9*3600000).toISOString().slice(0,10), title:'', items:[], tip:''}),
-    fields:[
-      {k:'date', label:'날짜', type:'date', half:true}, {k:'title', label:'오늘의 주제', half:true},
-      {k:'items', label:'운동 (한 줄에 하나)', type:'pairs', hint:'"운동 이름 | 횟수" 형식'},
-      {k:'tip', label:'한 줄 팁'}
+      {k:'month', label:'몇 년 몇 월', type:'month'},
+      ...['월','화','수','목','금','토'].map(d => ({k:'weekday.' + d, label: d + '요일 운동테마 (한 줄에 하나)' + (d === '토' ? ' · 비우면 주말 문구가 나와요' : ''), type:'lines', short:true})),
+      {k:'notices', label:'이달의 공지사항 (한 줄 = 공지 하나)', type:'lines'}
     ]
   });
   listEditor('ed-faq', 'faq', {
@@ -495,10 +497,7 @@ function tidy(){
   if(data.program) data.program.timetable = (data.program.timetable || []).filter(r => r.time || r.who);
   data.faq = (data.faq || []).filter(f => f.q);
   data.schedule = (data.schedule || []).filter(e => e.date && e.title).sort((a, b) => a.date.localeCompare(b.date));
-  if(data.workout){
-    data.workout.week = (data.workout.week || []).filter(w => w.day);
-    data.workout.special = (data.workout.special || []).filter(w => w.date).sort((a, b) => a.date.localeCompare(b.date));
-  }
+  if(data.monthly) data.monthly.months = (data.monthly.months || []).filter(m => m.month).sort((a, b) => a.month.localeCompare(b.month));
 }
 
 async function save(){
