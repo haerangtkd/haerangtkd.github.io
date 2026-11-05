@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>해랑경희 태권도장</title>
+<meta name="description" content="해랑경희 태권도장이 어떤 생각으로, 어떻게 지도하고 있는지 한곳에 모았습니다.">
+<meta property="og:title" content="해랑경희 태권도장">
+<meta property="og:description" content="저희가 어떤 생각으로, 어떻게 지도하고 있는지 소개해 드립니다.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--brand:#A40F16;--ink:#1C1A19;--muted:#6B6460;--paper:#FBF8F4;--card:#FFFFFF;--line:#ECE5DE}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:480px;margin:0 auto;padding:0 16px 48px}
+  header{background:var(--brand);color:#fff;padding:52px 24px 72px;text-align:center;position:relative;overflow:hidden}
+  header::before{content:"跆";position:absolute;right:-18px;bottom:-60px;font-family:'Noto Serif KR',serif;font-weight:900;font-size:220px;line-height:1;color:rgba(255,255,255,.07);pointer-events:none}
+  .greet{font-size:13px;letter-spacing:.18em;opacity:.85;margin-bottom:14px}
+  h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:34px;line-height:1.25}
+  h1 small{display:block;font-size:15px;font-weight:700;font-family:'Noto Sans KR',sans-serif;letter-spacing:.3em;margin-top:8px;opacity:.9}
+  .intro{background:var(--card);border-radius:18px;padding:26px 22px;margin-top:-40px;position:relative;box-shadow:0 6px 24px rgba(60,20,20,.08);border:1px solid var(--line)}
+  .intro p{font-size:15.5px;word-break:keep-all}
+  .intro p + p{margin-top:12px}
+  .intro strong{color:var(--brand)}
+  .section-title{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.12em;margin:34px 4px 12px}
+  .links{display:flex;flex-direction:column;gap:12px}
+  .link{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-decoration:none;color:inherit;transition:transform .15s,border-color .15s,box-shadow .15s}
+  .link:active{transform:scale(.98)}
+  .link:hover{border-color:var(--brand);box-shadow:0 4px 16px rgba(164,15,22,.10)}
+  .icon{flex:none;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:#FBEDEE;color:var(--brand)}
+  .icon svg{width:24px;height:24px}
+  .link.main{background:var(--brand);border-color:var(--brand);color:#fff}
+  .link.main .icon{background:rgba(255,255,255,.16);color:#fff}
+  .link.main .desc{color:rgba(255,255,255,.82)}
+  .text{flex:1;min-width:0}
+  .name{display:block;font-weight:700;font-size:16.5px;word-break:keep-all}
+  .desc{display:block;font-size:13.5px;color:var(--muted);margin-top:2px;word-break:keep-all}
+  .arrow{flex:none;opacity:.45}
+  .link.main .arrow{opacity:.8}
+  footer{text-align:center;margin-top:40px;color:var(--muted);font-size:14px}
+  footer .bow{font-family:'Noto Serif KR',serif;font-weight:900;color:var(--brand);font-size:18px;margin-bottom:4px}
+  /* 흘러가는 사진 띠 */
+  .marquee{margin:0 -16px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+  .track{display:flex;gap:10px;width:max-content;animation:flow var(--dur,40s) linear infinite}
+  .marquee:hover .track,.marquee.paused .track{animation-play-state:paused}
+  .track img{width:200px;height:150px;object-fit:cover;border-radius:14px;flex:none;cursor:pointer;background:#EEE6DF;display:block}
+  @keyframes flow{to{transform:translateX(calc(-50% - 5px))}}
+  @media (prefers-reduced-motion:reduce){.track{animation-duration:calc(var(--dur,40s) * 3)}}
+  .lightbox{position:fixed;inset:0;background:rgba(20,10,10,.92);display:grid;place-items:center;padding:16px;z-index:10;opacity:0;pointer-events:none;transition:opacity .2s}
+  .lightbox.on{opacity:1;pointer-events:auto}
+  .lightbox img{max-width:100%;max-height:85vh;border-radius:12px}
+  #app{opacity:0;transition:opacity .25s}
+  #app.ready{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const ICONS = {
+  home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
+  news:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h6M7 12h10M7 16h10"/>',
+  blog:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  insta:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/>',
+  youtube:'<rect x="2.5" y="5" width="19" height="14" rx="4"/><path d="m10 9 5 3-5 3Z" fill="currentColor"/>',
+  phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+  map:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+  star:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9Z"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
+};
+
+const FALLBACK = {"greet":"태권! 안녕하십니까","title":"해랑경희","subtitle":"태 권 도 장","intro":["안녕하십니까, 해랑경희 태권도장입니다.","저희가 어떤 생각으로, 어떻게 제자들을 지도하고 있는지 한곳에 모아 두었습니다.","자녀분에게 운동하는 시간이 필요하다고 느끼신다면, 해랑경희 태권도장을 선택해 주시기를 권해 드립니다."],"sectionTitle":"둘러보기","links":[{"icon":"home","name":"도장 소개","desc":"지도 철학과 수업 안내를 한눈에","url":"https://haerangtkd.notion.site/33570613ed75806dafc9f266bf5d290e","main":true},{"icon":"news","name":"언론 취재 기사","desc":"해랑경희 태권도장을 취재한 기사","url":"https://m.besttimes.co.kr/14426","main":false},{"icon":"blog","name":"네이버 블로그","desc":"어떤 생각으로 지도하는지 담은 글","url":"https://m.blog.naver.com/haerang_tkd/223781332649","main":false},{"icon":"insta","name":"인스타그램","desc":"@haerang_tkd · 수업 일상과 제자들 모습","url":"https://www.instagram.com/haerang_tkd","main":false}],"footer":"감사합니다","footerSub":"해랑경희 태권도장"};
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const svg = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ICONS.link}</svg>`;
+const arrow = '<svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+
+function render(d){
+  const brand = esc(d.footerSub || '해랑경희 태권도장');
+  const intro = (d.intro || []).map(p => `<p>${esc(p).split(brand).join(`<strong>${brand}</strong>`)}</p>`).join('');
+  const links = (d.links || []).map(l => `
+    <a class="link${l.main ? ' main' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener">
+      <span class="icon">${svg(l.icon)}</span>
+      <span class="text"><span class="name">${esc(l.name)}</span>${l.desc ? `<span class="desc">${esc(l.desc)}</span>` : ''}</span>
+      ${arrow}
+    </a>`).join('');
+  document.getElementById('app').innerHTML = `
+    <header><div class="greet">${esc(d.greet)}</div><h1>${esc(d.title)}<small>${esc(d.subtitle)}</small></h1></header>
+    <main class="wrap">
+      <section class="intro">${intro}</section>
+      ${gallery(d)}
+      <div class="section-title">${esc(d.sectionTitle)}</div>
+      <nav class="links">${links}</nav>
+      <footer><div class="bow">${esc(d.footer)}</div>${esc(d.footerSub)}</footer>
+    </main>`;
+  document.getElementById('app').classList.add('ready');
+  setupGallery();
+}
+
+function gallery(d){
+  const pics = (d.gallery || []).filter(Boolean);
+  if(!pics.length) return '';
+  // 사진이 적어도 화면을 꽉 채우도록 반복한 뒤, 끊김 없이 이어지게 한 번 더 복제
+  let row = pics.slice();
+  while(row.length < 8) row = row.concat(pics);
+  const imgs = row.map(p => `<img src="${esc(p)}" alt="수업 사진" loading="lazy">`).join('');
+  return `<div class="section-title">${esc(d.galleryTitle || '수업 모습')}</div>
+    <div class="marquee"><div class="track" style="--dur:${row.length * 4}s">${imgs}${imgs}</div></div>`;
+}
+
+function setupGallery(){
+  const m = document.querySelector('.marquee');
+  if(!m) return;
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.innerHTML = '<img alt="">';
+  document.body.append(lb);
+  m.addEventListener('click', e => {
+    if(e.target.tagName !== 'IMG') return;
+    lb.querySelector('img').src = e.target.src;
+    lb.classList.add('on'); m.classList.add('paused');
+  });
+  lb.addEventListener('click', () => { lb.classList.remove('on'); m.classList.remove('paused'); });
+}
+
+fetch('data.json?t=' + Date.now())
+  .then(r => { if(!r.ok) throw 0; return r.json(); })
+  .then(render)
+  .catch(() => render(FALLBACK));
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "greet": "태권! 안녕하십니까",
+  "title": "해랑경희",
+  "subtitle": "태 권 도 장",
+  "intro": [
+    "안녕하십니까, 해랑경희 태권도장입니다.",
+    "저희가 어떤 생각으로, 어떻게 제자들을 지도하고 있는지 한곳에 모아 두었습니다.",
+    "자녀분에게 운동하는 시간이 필요하다고 느끼신다면, 해랑경희 태권도장을 선택해 주시기를 권해 드립니다."
+  ],
+  "galleryTitle": "수업 모습",
+  "gallery": ["photos/sample1.jpg", "photos/sample2.jpg", "photos/sample3.jpg", "photos/sample4.jpg", "photos/sample5.jpg", "photos/sample6.jpg"],
+  "sectionTitle": "둘러보기",
+  "links": [
+    { "icon": "home", "name": "도장 소개", "desc": "지도 철학과 수업 안내를 한눈에", "url": "https://haerangtkd.notion.site/33570613ed75806dafc9f266bf5d290e", "main": true },
+    { "icon": "news", "name": "언론 취재 기사", "desc": "해랑경희 태권도장을 취재한 기사", "url": "https://m.besttimes.co.kr/14426", "main": false },
+    { "icon": "blog", "name": "네이버 블로그", "desc": "어떤 생각으로 지도하는지 담은 글", "url": "https://m.blog.naver.com/haerang_tkd/223781332649", "main": false },
+    { "icon": "insta", "name": "인스타그램", "desc": "@haerang_tkd · 수업 일상과 제자들 모습", "url": "https://www.instagram.com/haerang_tkd", "main": false }
+  ],
+  "footer": "감사합니다",
+  "footerSub": "해랑경희 태권도장"
+}
