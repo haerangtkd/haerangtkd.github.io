@@ -495,7 +495,7 @@ function render(d){
       <img src="img/lion.png" alt="">
       <div><b>${brand}</b><br>
       ${ct.phone ? `상담 전화 <a href="tel:${esc(tel)}">${esc(ct.phone)}</a><br>` : ''}
-      © ${TODAY.getFullYear()} ${brand}</div>
+      © ${esc(d.since || '2023')} ${brand}</div>
     </div></footer>
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
