@@ -259,7 +259,7 @@
   .plus{text-align:center;font-size:30px;font-weight:900;color:var(--navy);line-height:1;margin:10px 0}
   .letter{margin-top:16px;font-family:'Noto Serif KR',serif;font-size:15.5px;line-height:1.9;word-break:keep-all}
   .letter p + p{margin-top:14px}
-  .letter .sign{text-align:right;font-weight:700;color:var(--brand);margin-top:18px}
+  .letter .sign{text-align:center;font-weight:700;color:var(--brand);margin-top:18px}
 
   /* 지도진 */
   .staff{display:flex;flex-direction:column;gap:12px}
@@ -403,7 +403,7 @@
   .fab a.f-logo{border:0;overflow:hidden}
   .fab a.f-logo img{width:82%;height:82%;display:block;border-radius:22%}
   .fab a.f-logo.f-kakao img{width:90%;height:90%}
-  .fab a.f-logo.f-blog{background:#222;box-shadow:0 0 0 1.5px rgba(255,255,255,.85),0 4px 14px rgba(0,0,0,.22)}
+  .fab a.f-logo.f-blog{background:#222}
   .fab a.f-logo.f-blog img{width:100%;height:100%;border-radius:0}
   .ic.has-logo{background:none!important;padding:0;overflow:hidden}
   .ic .logo-ic{width:100%;height:100%;display:block;border-radius:inherit}
@@ -643,8 +643,9 @@ function render(d){
     <footer class="foot"><div class="in">
       <img src="img/lion.png" alt="">
       <div><b>${brand}</b><br>
-      ${lo.address ? `${esc(lo.address)}<br>` : ''}
-      ${ct.phone ? `상담 전화 <a href="tel:${esc(tel)}">${esc(ct.phone)}</a><br>` : ''}
+      ${ct.ceo ? `대표자 : ${esc(ct.ceo)}<br>` : ''}
+      ${lo.address ? `주소 : ${esc(lo.address)}<br>` : ''}
+      ${ct.phone ? `<a href="tel:${esc(tel)}">${esc(ct.phone)}</a><br>` : ''}
       © ${esc(d.since || '2023')} ${brand}</div>
     </div></footer>
     ${(() => {

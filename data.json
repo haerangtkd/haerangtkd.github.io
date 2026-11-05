@@ -495,7 +495,8 @@
   "contact": {
     "title": "상담 및 문의하기",
     "phone": "010-9917-9954",
-    "floatPhone": false
+    "floatPhone": false,
+    "ceo": "이아빈"
   },
   "location": {
     "title": "찾아오시는 길",
