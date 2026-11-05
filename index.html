@@ -141,7 +141,7 @@
   @media (min-width:900px){ .twin{grid-template-columns:1fr 1fr 1fr;gap:12px} .twin .wide{grid-column:auto} }
   .mini{padding:12px 12px 12px}
   .mini .ph{margin-bottom:10px}
-  .mini .ph h3{white-space:normal;font-size:14.5px;line-height:1.35}
+  .mini .ph h3{white-space:normal;word-break:keep-all;font-size:14.5px;line-height:1.35}
   .mini .slides{aspect-ratio:1}
   .ctrl{display:flex;align-items:center;justify-content:center;gap:2px;margin-top:8px}
   .ctrl button{flex:none;width:28px;height:30px;border:0;background:none;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
@@ -252,7 +252,8 @@
   .lead{font-size:15px;color:var(--muted);margin:-6px 2px 16px;word-break:keep-all}
 
   /* 교육 철학 */
-  .q{border-radius:16px;padding:20px;font-size:16px;font-weight:700;line-height:1.6;word-break:keep-all;text-align:center}
+  .q{border-radius:16px;padding:18px 12px;font-size:15px;letter-spacing:-.02em;font-weight:700;line-height:1.6;word-break:keep-all;text-align:center;text-wrap:balance}
+  @media (min-width:600px){ .q{font-size:16px;padding:20px} }
   .q1{background:#FCE9E2;color:#7A2E1C}
   .q2{background:#E6EEFB;color:#1F3B63}
   .plus{text-align:center;font-size:30px;font-weight:900;color:var(--navy);line-height:1;margin:10px 0}
@@ -763,7 +764,9 @@ function ctrlRow(n){
   return n > 1 ? `<div class="ctrl"><button type="button" data-prev aria-label="이전">${svg('left',2.4)}</button><span class="cnt"><b data-cur>01</b> · ${pad2(n)}</span><button type="button" data-pp aria-label="멈춤">${svg('pause',2.6)}</button><button type="button" data-next aria-label="다음">${svg('right',2.4)}</button></div>` : '';
 }
 function sliderHead(title, n, more, mini){
-  return `<div class="ph"><h3>${esc(title)}</h3>
+  // 작은 칸 제목은 마지막 단어를 다음 줄로 (예: 사진으로 보는 / 해랑경희)
+  const t = mini && /\s/.test(title.trim()) ? esc(title.trim()).replace(/\s+(\S+)$/, '<br>$1') : esc(title);
+  return `<div class="ph"><h3>${t}</h3>
     ${n > 1 && !mini ? `<span class="cnt"><b data-cur>01</b> · ${pad2(n)}</span>
       <button type="button" data-prev aria-label="이전">${svg('left',2.4)}</button>
       <button type="button" data-pp aria-label="멈춤">${svg('pause',2.6)}</button>
