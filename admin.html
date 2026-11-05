@@ -165,9 +165,9 @@
     <div class="item" style="margin-top:4px">
       <div class="item-head"><strong>🏆 해랑 기네스 (매달 첫째 주 금요일 자동)</strong></div>
       <label class="check"><input type="checkbox" id="gOn"> 매달 자동으로 일정에 넣기</label>
-      <p class="hint">그 달 날짜가 다르면 아래 일정에 '해랑경희 기네스'를 직접 넣으세요. 직접 넣은 날짜가 우선이고, 휴관일과 겹치면 자동으로 빠져요.</p>
+      <p class="hint">일정 이름에는 그 분기 종목이 나와요. 그 달 날짜가 다르면 아래 일정에 종류를 '기네스'로 직접 넣으세요. 직접 넣은 날짜가 우선이고, 휴관일과 겹치면 자동으로 빠져요.</p>
       <div class="row">
-        <div><label class="f">일정 이름</label><input data-k="guinness.title"></div>
+        <div><label class="f">종목이 비었을 때 이름</label><input data-k="guinness.title"></div>
         <div><label class="f">시작 월</label><input type="month" data-k="guinness.start"></div>
       </div>
       <label class="f">메모</label><input data-k="guinness.note">
@@ -441,7 +441,7 @@ function renderAll(){
     fields:[
       {k:'date', label:'날짜', type:'date', half:true}, {k:'end', label:'끝나는 날 (하루면 비우기)', type:'date', half:true},
       {k:'title', label:'일정 이름'},
-      {k:'type', label:'종류 (달력 점 색깔)', type:'select', opts:[['행사','행사 (주황)'],['심사','심사 (빨강)'],['대회','대회 (남색)'],['휴관','휴관·공휴일 (회색)'],['기타','기타 (청록)']]},
+      {k:'type', label:'종류 (달력 점 색깔)', type:'select', opts:[['행사','행사 (주황)'],['기네스','기네스 (금색)'],['심사','심사 (빨강)'],['대회','대회 (남색)'],['휴관','휴관·공휴일 (회색)'],['기타','기타 (청록)']]},
       {k:'note', label:'한 줄 메모 (시간, 장소, 대상 등)'},
       {k:'image', label:'행사 사진·포스터 (넣으면 첫 화면 \'행사\' 칸에 나와요)', type:'photo'}
     ]

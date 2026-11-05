@@ -344,7 +344,7 @@
   .ev .what{flex:1;min-width:0;border-left:3px solid var(--brand);padding-left:12px}
   .ev .what b{display:block;font-size:15px;word-break:keep-all}
   .ev .what span{font-size:13px;color:var(--muted);word-break:keep-all}
-  .tag{display:inline-block;font-size:11.5px;font-weight:700;color:#fff;border-radius:6px;padding:1px 7px;margin-right:6px;vertical-align:1px}
+  .tag,.ev .what .tag,.up li .t .tag{display:inline-block;font-size:11.5px;font-weight:700;color:#fff;border-radius:6px;padding:1px 7px;margin-right:6px;vertical-align:1px;line-height:1.5}
 
   /* FAQ */
   .faq details{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
@@ -461,7 +461,7 @@ const ICONS = {
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
 const AREA_COLORS = ['var(--orange)','var(--teal)','var(--navy)','var(--brand)'];
-const EV_COLORS = { '수련':'#3C8D5A', '심사':'#A40F16', '대회':'#1F3B63', '행사':'#D9822B', '휴관':'#8A837E', '기타':'#2E9C9A' };
+const EV_COLORS = { '수련':'#3C8D5A', '기네스':'#B8860B', '심사':'#A40F16', '대회':'#1F3B63', '행사':'#D9822B', '휴관':'#8A837E', '기타':'#2E9C9A' };
 const DAYS = ['월','화','수','목','금'];
 const WEEK = ['일','월','화','수','목','금','토'];
 
@@ -842,10 +842,10 @@ function guinnessEvents(d, manual){
     const y = first.getFullYear(), m = first.getMonth() + 1;
     if(y * 12 + m < sy * 12 + sm) continue;
     const fri = new Date(y, m - 1, 1 + ((5 - first.getDay() + 7) % 7));
-    if(manual.some(e => e.s <= fri && fri <= e.en && (e.title || '').includes('기네스'))) continue;   // 직접 넣은 기네스 일정이 있으면 그걸 사용
+    if(manual.some(e => e.s <= fri && fri <= e.en && (e.type === '기네스' || (e.title || '').includes('기네스')))) continue;   // 직접 넣은 기네스 일정이 있으면 그걸 사용
     if(manual.some(e => e.type === '휴관' && e.s <= fri && fri <= e.en)) continue;                     // 휴관일이면 건너뜀
     const item = (g.items || {})[String(Math.floor((m - 1) / 3) + 1)];
-    out.push({ title: (g.title || '해랑경희 기네스') + (item ? ' · ' + item : ''), type: '행사', note: g.note || '', image: '', s: fri, en: fri, auto: true });
+    out.push({ title: item || g.title || '해랑경희 기네스', type: '기네스', note: g.note || '', image: '', s: fri, en: fri, auto: true });
   }
   return out;
 }
@@ -858,7 +858,7 @@ function upcomingCard(){
     ${next.length ? `<ul>${next.map(e => {
       const n = dayDiff(e.s, TODAY);
       const label = n > 0 ? 'D-' + n : (n === 0 ? '오늘' : '진행 중');
-      return `<li><span class="dday${n <= 0 ? ' now' : ''}">${label}</span><div class="t"><b>${esc(e.title)}</b><span>${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></li>`;
+      return `<li><span class="dday${n <= 0 ? ' now' : ''}">${label}</span><div class="t"><b>${e.type === '기네스' ? `<span class="tag" style="background:${EV_COLORS['기네스']}">기네스</span>` : ''}${esc(e.title)}</b><span>${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></li>`;
     }).join('')}</ul>` : `<p class="empty">예정된 일정이 없어요.</p>`}
   </div>`;
 }
