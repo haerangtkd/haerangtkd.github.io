@@ -130,6 +130,7 @@
   .sc:hover{border-color:var(--brand)}
   .sc .ic{width:38px;height:38px;border-radius:11px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center}
   .sc .ic svg{width:20px;height:20px}
+  .shortcuts.three{grid-template-columns:repeat(3,1fr)}
   .sc-call{grid-column:1/-1;flex-direction:row;justify-content:center;background:var(--brand);border-color:var(--brand);color:#fff;font-size:15px;padding:14px}
   .sc-call .ic{width:auto;height:auto;background:none;color:#fff}
 
@@ -606,7 +607,6 @@ function render(d){
       </div>
       <main class="wrap">
         <section class="card intro">${intro}</section>
-        <nav class="quick" aria-label="바로가기">${tileIds.map(id => `<a href="#/${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}</nav>
         <div class="home">
           ${workoutCard(d, true)}
         </div>
@@ -618,12 +618,11 @@ function render(d){
         <div class="home">
           ${upcomingCard()}
         </div>
-        <div class="label">${esc(ct.title || '상담 및 문의하기')}</div>
-        <div class="shortcuts">
-          ${list(d.links).slice(0, 8).map(l => `<a class="sc" href="${esc(l.url)}" target="_blank" rel="noopener"><span class="ic${LOGOS[l.icon] ? ' has-logo' : ''}">${ico(l.icon)}</span>${esc(l.short || l.name)}</a>`).join('')}
-          ${tel ? `<a class="sc sc-call" href="tel:${esc(tel)}"><span class="ic">${svg('phone')}</span>${esc(ct.phone)} 전화 상담</a>` : ''}
+        <div class="label">바로가기</div>
+        <div class="shortcuts${tileIds.length % 3 === 0 ? ' three' : ''}">
+          ${tileIds.map(id => `<a class="sc" href="#/${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
+          <a class="sc sc-call" href="#/contact"><span class="ic">${svg('phone')}</span>상담 문의하기</a>
         </div>
-        ${lo.address ? `<a class="addr" href="#/location"><span class="ic">${svg('map')}</span><span>${esc(lo.address)}<small>찾아오시는 길 · 지도 보기</small></span>${arrow}</a>` : ''}
       </main>
     </div>
 
