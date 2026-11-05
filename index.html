@@ -204,6 +204,35 @@
   .pr .go{display:inline-block;margin-top:10px;font-size:13.5px;font-weight:700;color:var(--brand)}
   .emptybox{text-align:center;color:var(--muted);font-size:14.5px;padding:30px 16px}
 
+  /* 위쪽 바로가기 (한 줄, 옆으로 밀기) */
+  .quick{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:12px -16px 0;padding:2px 16px 4px;scroll-snap-type:x proximity}
+  .quick::-webkit-scrollbar{display:none}
+  .quick a{flex:none;width:74px;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--ink);font-size:12px;font-weight:700;text-align:center;line-height:1.25;word-break:keep-all;scroll-snap-align:start}
+  .quick a .ic{width:50px;height:50px;border-radius:16px;background:#fff;border:1px solid var(--line);color:var(--brand);display:grid;place-items:center;transition:transform .15s,border-color .15s}
+  .quick a:active .ic{transform:scale(.93)}
+  .quick a:hover .ic{border-color:var(--brand)}
+  .quick a .ic svg{width:23px;height:23px}
+  @media (min-width:700px){ .quick{justify-content:center;flex-wrap:wrap;overflow:visible} }
+  .addr{display:flex;align-items:center;gap:10px;margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px;text-decoration:none;color:var(--ink)}
+  .addr .ic{flex:none;width:36px;height:36px;border-radius:11px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center}
+  .addr .ic svg{width:20px;height:20px}
+  .addr span{flex:1;min-width:0;font-size:14px;font-weight:700;word-break:keep-all}
+  .addr span small{display:block;font-size:12.5px;font-weight:500;color:var(--muted)}
+
+  /* 찾아오시는 길 */
+  .mapbox{padding:0;overflow:hidden}
+  .mapbox iframe{display:block;width:100%;height:320px;border:0;background:#EEE9E3}
+  .mapbox .info{padding:16px 18px 18px}
+  .mapbox .info b{display:block;font-size:17px;font-weight:900}
+  .mapbox .info p{font-size:15px;margin-top:2px;word-break:keep-all}
+  .mapbox .info .note{font-size:13.5px;color:var(--muted);text-align:left;margin-top:6px}
+  .mapbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .mapbtns a,.mapbtns button{display:flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:14px;font-weight:700;border-radius:12px;padding:12px 8px;text-decoration:none;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink)}
+  .mapbtns .nv{background:#03C75A;border-color:#03C75A;color:#fff}
+  .mapbtns .kk{background:#FEE500;border-color:#FEE500;color:#191919}
+  .mapbtns .wide{grid-column:1/-1}
+  .mapbtns svg{width:17px;height:17px}
+
   /* ---------- 하위 페이지 ---------- */
   .pagehero{background:var(--brand);color:#fff;position:relative;overflow:hidden;padding:22px 20px 24px}
   .pagehero .in{max-width:640px;margin:0 auto;position:relative}
@@ -403,7 +432,7 @@ const ICONS = {
   run:'<circle cx="14" cy="4.5" r="2"/><path d="m6 20 3.5-5 3 2 1.5-6"/><path d="M9 9.5 12 8l3 3 3.5 1"/><path d="m14 11-2 5"/>',
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   up:'<path d="m6 15 6-6 6 6"/>', left:'<path d="m15 6-6 6 6 6"/>', right:'<path d="m9 6 6 6-6 6"/>',
-  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>', plus:'<path d="M12 5v14M5 12h14"/>', pause:'<path d="M9 6v12M15 6v12"/>', play:'<path d="m8 5 11 7-11 7Z"/>', megaphone:'<path d="M3 10v4h3l8 5V5L6 10Z"/><path d="M18 9a4 4 0 0 1 0 6"/>', close:'<path d="M6 6l12 12M18 6 6 18"/>',
+  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>', copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>', plus:'<path d="M12 5v14M5 12h14"/>', pause:'<path d="M9 6v12M15 6v12"/>', play:'<path d="m8 5 11 7-11 7Z"/>', megaphone:'<path d="M3 10v4h3l8 5V5L6 10Z"/><path d="M18 9a4 4 0 0 1 0 6"/>', close:'<path d="M6 6l12 12M18 6 6 18"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
 const AREA_COLORS = ['var(--orange)','var(--teal)','var(--navy)','var(--brand)'];
@@ -500,15 +529,32 @@ function render(d){
           ${arrow}
         </a>`).join('')}</nav>`)};
 
+  const lo = d.location || {};
+  if(lo.address){
+    const q = encodeURIComponent((lo.address || '').replace(/\s*\d+층.*$/, '') + ' ' + (lo.name || ''));
+    S.location = {label:'찾아오시는 길', short:'오시는 길', icon:'map', html: sec('location', lo.title || '찾아오시는 길', `
+      <div class="card mapbox">
+        <iframe title="${esc(lo.name || brand)} 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${q}&hl=ko&z=17&output=embed"></iframe>
+        <div class="info"><b>${esc(lo.name || brand)}</b><p>${esc(lo.address)}</p>${lo.note ? `<p class="note">${esc(lo.note)}</p>` : ''}
+          <div class="mapbtns">
+            ${lo.naver ? `<a class="nv" href="${esc(lo.naver)}" target="_blank" rel="noopener">${svg('map')}네이버지도</a>` : ''}
+            ${lo.kakao ? `<a class="kk" href="${esc(lo.kakao)}" target="_blank" rel="noopener">${svg('map')}카카오맵</a>` : ''}
+            <button type="button" id="copyAddr">${svg('copy')}주소 복사</button>
+            ${tel ? `<a href="tel:${esc(tel)}">${svg('phone')}전화하기</a>` : ''}
+          </div>
+        </div>
+      </div>`)};
+  }
+
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
-    {name:'도장 소개', items:['philosophy','staff']},
+    {name:'도장 소개', items:['philosophy','staff','location']},
     {name:'수련 안내', items:['today','curriculum','program','timetable','faq']},
     {name:'도장 소식', items:['schedule','notice','gallery','press']},
     {name:'상담 문의', items:['contact']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
-  const tileIds = ['philosophy','staff','today','timetable','schedule','notice','gallery','press'].filter(id => S[id]);
+  const tileIds = ['philosophy','staff','location','today','timetable','schedule','notice','gallery','press'].filter(id => S[id]);
   const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
   document.getElementById('app').innerHTML = `
@@ -540,6 +586,7 @@ function render(d){
       </div>
       <main class="wrap">
         <section class="card intro">${intro}</section>
+        <nav class="quick" aria-label="바로가기">${tileIds.map(id => `<a href="#/${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}</nav>
         <div class="home">
           ${workoutCard(d, true)}
         </div>
@@ -551,11 +598,12 @@ function render(d){
         <div class="home">
           ${upcomingCard()}
         </div>
-        <div class="label">바로가기</div>
+        <div class="label">${esc(ct.title || '상담 및 문의하기')}</div>
         <div class="shortcuts">
-          ${tileIds.map(id => `<a class="sc" href="#/${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
-          <a class="sc sc-call" href="#/contact"><span class="ic">${svg('phone')}</span>상담 문의하기</a>
+          ${list(d.links).slice(0, 8).map(l => `<a class="sc" href="${esc(l.url)}" target="_blank" rel="noopener"><span class="ic">${svg(l.icon)}</span>${esc(l.short || l.name)}</a>`).join('')}
+          ${tel ? `<a class="sc sc-call" href="tel:${esc(tel)}"><span class="ic">${svg('phone')}</span>${esc(ct.phone)} 전화 상담</a>` : ''}
         </div>
+        ${lo.address ? `<a class="addr" href="#/location"><span class="ic">${svg('map')}</span><span>${esc(lo.address)}<small>찾아오시는 길 · 지도 보기</small></span>${arrow}</a>` : ''}
       </main>
     </div>
 
@@ -571,6 +619,7 @@ function render(d){
     <footer class="foot"><div class="in">
       <img src="img/lion.png" alt="">
       <div><b>${brand}</b><br>
+      ${lo.address ? `${esc(lo.address)}<br>` : ''}
       ${ct.phone ? `상담 전화 <a href="tel:${esc(tel)}">${esc(ct.phone)}</a><br>` : ''}
       © ${esc(d.since || '2023')} ${brand}</div>
     </div></footer>
@@ -578,6 +627,13 @@ function render(d){
 
   document.getElementById('app').classList.add('ready');
   setupMenu(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop();
+  const cb = document.getElementById('copyAddr');
+  if(cb) cb.onclick = async () => {
+    const txt = lo.address;
+    try{ await navigator.clipboard.writeText(txt); }
+    catch(e){ const t = document.createElement('textarea'); t.value = txt; document.body.append(t); t.select(); try{ document.execCommand('copy'); }catch(_){} t.remove(); }
+    cb.lastChild.textContent = '복사됐어요'; setTimeout(() => { cb.lastChild.textContent = '주소 복사'; }, 1800);
+  };
   window.addEventListener('hashchange', route); route();
 }
 

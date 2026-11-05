@@ -190,7 +190,16 @@
   <details class="card"><summary>⑪ 상담 문의 · 링크</summary><div class="in">
     <label class="f">제목</label><input data-k="contact.title">
     <label class="f">전화번호 (누르면 바로 전화 연결)</label><input data-k="contact.phone" inputmode="tel">
+    <p class="hint">위에서부터 <b>8개</b>가 첫 화면 '상담 및 문의하기' 칸에 나와요. 블로그 칸(도장 모습·해랑경희 칼럼·수련 이야기)은 지금 블로그 첫 화면으로 연결돼 있으니, 이름과 주소를 원하시는 글이나 카테고리로 바꿔 주세요.</p>
     <div id="ed-links"></div>
+  </div></details>
+
+  <details class="card"><summary>⑫ 찾아오시는 길</summary><div class="in">
+    <label class="f">도장 이름</label><input data-k="location.name">
+    <label class="f">주소 (지도는 이 주소로 자동 표시)</label><input data-k="location.address">
+    <label class="f">네이버지도 링크</label><input data-k="location.naver" inputmode="url">
+    <label class="f">카카오맵 링크</label><input data-k="location.kakao" inputmode="url">
+    <label class="f">안내 (주차, 건물 입구 등 · 없어도 돼요)</label><textarea data-k="location.note"></textarea>
   </div></details>
 
   <details class="card"><summary>하단</summary><div class="in">
@@ -209,7 +218,7 @@
 </div></div>
 
 <script>
-const ICON_OPTIONS = [['calendar','달력 (예약)'],['chat','말풍선 (톡톡)'],['kakao','카카오톡'],['insta','인스타그램'],['blog','펜 (블로그)'],['news','신문 (기사)'],['youtube','유튜브'],['phone','전화'],['map','지도 (위치)'],['photo','사진'],['home','집'],['star','별 (이벤트)'],['link','링크']];
+const ICON_OPTIONS = [['calendar','달력 (예약)'],['chat','말풍선 (톡톡)'],['kakao','카카오톡'],['insta','인스타그램'],['blog','펜 (블로그)'],['news','신문 (기사)'],['youtube','유튜브'],['phone','전화'],['map','지도 (위치)'],['photo','사진'],['home','집'],['book','책 (칼럼)'],['star','별 (이벤트)'],['link','링크']];
 const DAYS = ['월','화','수','목','금'];
 const LS = 'haerang_admin';
 let cfg = {}, data = null, sha = null;
@@ -466,10 +475,11 @@ function renderAll(){
   });
   listEditor('ed-links', 'links', {
     noun:'링크', heading:'문의 · 소식 링크', mainKey:'main',
-    title:(l,i) => l.name || `${i+1}번 링크`,
-    blank:() => ({icon:'link', name:'', desc:'', url:'', main:false}),
+    title:(l,i) => `${i < 8 ? '🏠 ' : ''}${l.name || `${i+1}번 링크`}`,
+    blank:() => ({icon:'link', name:'', short:'', desc:'', url:'', main:false}),
     fields:[
-      {k:'name', label:'이름'}, {k:'desc', label:'설명 (한 줄)'},
+      {k:'name', label:'이름', half:true}, {k:'short', label:'첫 화면 칸 이름 (짧게)', half:true},
+      {k:'desc', label:'설명 (한 줄)'},
       {k:'url', label:'주소', inputmode:'url'},
       {k:'icon', label:'아이콘', type:'select', opts:ICON_OPTIONS},
       {k:'main', label:'빨간 테두리로 강조', type:'check'}
