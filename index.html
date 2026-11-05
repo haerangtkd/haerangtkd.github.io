@@ -8,6 +8,9 @@
 <meta property="og:title" content="해랑경희 태권도장">
 <meta property="og:description" content="교육 철학 · 지도진 · 시간표 · 일정 · 오늘의 운동 · 상담 문의">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://haerangtkd.github.io/introduce/img/og.jpg">
+<link rel="icon" href="img/icon.png">
+<link rel="apple-touch-icon" href="img/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@500;700;900&display=swap" rel="stylesheet">
@@ -16,71 +19,70 @@
     --brand:#A40F16; --brand-deep:#7A0B10; --brand-soft:#FBEDEE;
     --ink:#1C1A19; --muted:#6B6460; --paper:#FBF8F4; --card:#FFFFFF; --line:#ECE5DE;
     --orange:#D9822B; --teal:#2E9C9A; --navy:#1F3B63; --gray:#8A837E;
-    --hh:58px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
   body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased}
   body.lock{overflow:hidden}
-  .wrap{max-width:560px;margin:0 auto;padding:0 16px 56px}
-  section,.anchor{scroll-margin-top:calc(var(--hh) + 14px)}
   a{color:inherit}
+  .wrap{max-width:640px;margin:0 auto;padding:0 16px 56px}
+  [hidden]{display:none!important}
 
-  /* ---------- 상단 메뉴 바 ---------- */
-  .gnb{position:sticky;top:0;z-index:40;height:var(--hh);background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-  .gnb .in{max-width:1080px;height:100%;margin:0 auto;padding:0 8px 0 16px;display:flex;align-items:center;gap:8px}
-  .logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink);margin-right:auto}
-  .logo .mark{width:34px;height:34px;border-radius:10px;background:var(--brand);color:#fff;display:grid;place-items:center;font-family:'Noto Serif KR',serif;font-weight:900;font-size:19px}
-  .logo b{font-family:'Noto Serif KR',serif;font-weight:900;font-size:18px;letter-spacing:-.01em}
-  .logo small{font-size:12px;color:var(--muted);font-weight:700;margin-left:2px}
-  .iconbtn{width:44px;height:44px;border:0;background:none;border-radius:12px;display:grid;place-items:center;color:var(--ink);cursor:pointer;text-decoration:none}
-  .iconbtn:hover{background:#F3EEE9}
-  .iconbtn svg{width:24px;height:24px}
-  .iconbtn.call{color:var(--brand)}
-  /* 넓은 화면: 메뉴를 바로 펼쳐 보여줌 */
-  .menu-inline{display:none;gap:4px;height:100%}
-  .menu-inline .grp{position:relative;height:100%;display:flex;align-items:center}
-  .menu-inline .grp > a{font-weight:700;font-size:15px;text-decoration:none;padding:8px 14px;border-radius:10px}
-  .menu-inline .grp:hover > a,.menu-inline .grp:focus-within > a{color:var(--brand);background:var(--brand-soft)}
-  .menu-inline .drop{position:absolute;top:calc(100% - 6px);left:50%;transform:translateX(-50%) translateY(6px);min-width:170px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 30px rgba(40,20,20,.12);padding:8px;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s}
-  .menu-inline .grp:hover .drop,.menu-inline .grp:focus-within .drop{opacity:1;pointer-events:auto;transform:translateX(-50%)}
-  .menu-inline .drop a{display:block;padding:9px 12px;border-radius:9px;text-decoration:none;font-size:14.5px;white-space:nowrap}
-  .menu-inline .drop a:hover{background:var(--brand-soft);color:var(--brand)}
-  @media (min-width:900px){ .menu-inline{display:flex} .menu-btn{display:none} }
+  /* ---------- 상단: 로고 줄 ---------- */
+  .top{background:#fff}
+  .top .in{max-width:1080px;margin:0 auto;height:64px;display:flex;align-items:center;gap:8px;padding:0 12px 0 14px}
+  .logo{margin-right:auto;display:flex;align-items:center}
+  .logo img{height:38px;width:auto;display:block}
+  .tel{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:var(--brand);text-decoration:none}
+  .tel svg{width:23px;height:23px}
+  .allmenu{display:flex;align-items:center;gap:6px;border:0;background:var(--brand);color:#fff;font:inherit;font-weight:900;font-size:14px;padding:9px 14px 9px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  .allmenu svg{width:18px;height:18px}
+  .allmenu:active{transform:scale(.96)}
 
-  /* 전체 메뉴 (휴대폰) */
+  /* ---------- 상단: 메뉴 바 (스크롤해도 따라옴) ---------- */
+  .gnb{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .gnb .in{max-width:1080px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 6px}
+  .gnb .in::-webkit-scrollbar{display:none}
+  .gnb a{flex:1 0 auto;text-align:center;text-decoration:none;font-weight:700;font-size:15px;color:#3A3533;padding:13px 12px 11px;border-bottom:3px solid transparent;white-space:nowrap}
+  .gnb a.on{color:var(--brand);border-bottom-color:var(--brand)}
+  @media (min-width:900px){
+    .top .in{height:78px}
+    .logo img{height:46px}
+    .gnb .in{justify-content:center;gap:28px}
+    .gnb a{flex:0 0 auto;font-size:17px;padding:16px 18px 14px}
+  }
+
+  /* 전체메뉴 */
   .drawer{position:fixed;inset:0;z-index:50;visibility:hidden}
   .drawer.on{visibility:visible}
   .drawer .dim{position:absolute;inset:0;background:rgba(20,10,10,.45);opacity:0;transition:opacity .25s}
   .drawer.on .dim{opacity:1}
-  .drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(88vw,380px);background:#fff;transform:translateX(100%);transition:transform .28s ease;display:flex;flex-direction:column}
+  .drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(88vw,400px);background:#fff;transform:translateX(100%);transition:transform .28s ease;display:flex;flex-direction:column}
   .drawer.on .panel{transform:none}
-  .drawer .phead{height:var(--hh);display:flex;align-items:center;padding:0 8px 0 18px;border-bottom:1px solid var(--line)}
-  .drawer .phead b{font-family:'Noto Serif KR',serif;font-weight:900;font-size:17px;margin-right:auto}
-  .drawer .pbody{flex:1;overflow-y:auto;padding:10px 18px 20px}
-  .drawer .g{padding:14px 0;border-bottom:1px solid var(--line)}
+  .drawer .phead{height:64px;display:flex;align-items:center;padding:0 8px 0 18px;background:var(--brand);color:#fff}
+  .drawer .phead b{font-size:18px;font-weight:900;margin-right:auto;display:flex;align-items:center;gap:8px}
+  .drawer .phead b svg{width:20px;height:20px}
+  .drawer .x{width:44px;height:44px;border:0;background:none;color:#fff;border-radius:12px;display:grid;place-items:center;cursor:pointer}
+  .drawer .x svg{width:24px;height:24px}
+  .drawer .pbody{flex:1;overflow-y:auto;padding:6px 18px 20px}
+  .drawer .g{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:16px 0;border-bottom:1px solid var(--line)}
   .drawer .g:last-child{border-bottom:0}
-  .drawer .g h3{font-size:13px;color:var(--brand);font-weight:900;letter-spacing:.08em;margin-bottom:6px}
-  .drawer .g a{display:flex;align-items:center;gap:12px;padding:10px 4px;text-decoration:none;font-size:16.5px;font-weight:700;border-radius:10px}
-  .drawer .g a:active{background:#F5EFEA}
-  .drawer .g a .ic{width:34px;height:34px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:none}
-  .drawer .g a .ic svg{width:19px;height:19px}
+  .drawer .g h3{font-size:15.5px;font-weight:900;color:var(--brand);padding-top:7px}
+  .drawer .g div{display:flex;flex-direction:column}
+  .drawer .g a{text-decoration:none;font-size:15.5px;font-weight:500;padding:7px 10px;border-radius:9px}
+  .drawer .g a:active,.drawer .g a:hover{background:var(--brand-soft);color:var(--brand)}
   .drawer .pfoot{padding:14px 18px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 
-  /* ---------- 히어로 ---------- */
-  .hero{background:var(--brand);color:#fff;padding:44px 24px 76px;text-align:center;position:relative;overflow:hidden}
-  .hero::before{content:"跆";position:absolute;right:-18px;bottom:-60px;font-family:'Noto Serif KR',serif;font-weight:900;font-size:220px;line-height:1;color:rgba(255,255,255,.07);pointer-events:none}
+  /* ---------- 홈 ---------- */
+  .hero{background:var(--brand);color:#fff;padding:40px 24px 78px;text-align:center;position:relative;overflow:hidden}
+  .hero .wm{position:absolute;right:-50px;bottom:-60px;width:250px;opacity:.09;pointer-events:none}
   .greet{font-size:13px;letter-spacing:.18em;opacity:.85;margin-bottom:12px}
-  h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:34px;line-height:1.25}
-  h1 small{display:block;font-size:15px;font-weight:700;font-family:'Noto Sans KR',sans-serif;letter-spacing:.3em;margin-top:8px;opacity:.9}
-
+  .hero h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:30px;line-height:1.3}
+  .slogan{margin:12px auto 0;max-width:330px;font-size:13.5px;line-height:1.6;opacity:.9;word-break:keep-all}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 20px}
-  .intro{margin-top:-44px;position:relative;box-shadow:0 6px 24px rgba(60,20,20,.08)}
+  .intro{margin-top:-46px;position:relative;box-shadow:0 6px 24px rgba(60,20,20,.08)}
   .intro p{font-size:15.5px;word-break:keep-all}
   .intro p + p{margin-top:12px}
   .intro strong{color:var(--brand)}
-
-  /* ---------- 홈 카드: 오늘의 운동 / 다가오는 일정 ---------- */
   .home{display:grid;gap:12px;margin-top:14px}
   .hc{padding:0;overflow:hidden}
   .hc-head{display:flex;align-items:center;gap:10px;padding:16px 18px 12px}
@@ -93,26 +95,18 @@
   .wo .hc-head .ic{background:rgba(255,255,255,.15);color:#fff}
   .wo .hc-head h2 small{color:rgba(255,255,255,.75)}
   .wo .hc-head .more{color:rgba(255,255,255,.8)}
-  .wo .theme{padding:0 18px 4px;font-family:'Noto Serif KR',serif;font-weight:900;font-size:21px}
+  .wo .theme{padding:0 18px 4px;font-family:'Noto Serif KR',serif;font-weight:900;font-size:21px;word-break:keep-all}
+  .wo .sub{padding:4px 18px 0;font-size:14px;color:rgba(255,255,255,.8)}
   .wo ol{list-style:none;padding:8px 18px 4px;counter-reset:w}
   .wo li{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid rgba(255,255,255,.14);counter-increment:w}
   .wo li::before{content:counter(w);flex:none;width:24px;height:24px;border-radius:50%;background:#fff;color:var(--navy);font-size:12.5px;font-weight:900;display:grid;place-items:center}
   .wo li b{flex:1;font-size:15px;word-break:keep-all}
-  .wo li span{font-size:13.5px;font-weight:700;color:#FFD9A8;white-space:nowrap}
-  .wo .tip{margin:6px 18px 0;font-size:13.5px;background:rgba(255,255,255,.1);border-radius:10px;padding:9px 12px;word-break:keep-all}
-  .wo .note{padding:10px 18px 16px;font-size:12.5px;color:rgba(255,255,255,.7);word-break:keep-all}
-  .wo .sub{padding:4px 18px 0;font-size:14px;color:rgba(255,255,255,.8)}
   .wo .focusbox{padding:2px 18px 6px;display:flex;flex-direction:column;gap:8px}
   .wo .focus{background:rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;line-height:1.45}
   .wo .focus b{font-size:16px;word-break:keep-all}
   .wo .focus > span:last-child:not(.tag){display:block;font-size:12.5px;color:rgba(255,255,255,.75);margin-top:2px}
   .wo .focus .tag{border:1px solid rgba(255,255,255,.4)}
-  .wo .note{padding:0 0 12px}
-  .nt .hc-head .ic{background:#FFF3DC;color:#B7791F}
-  .nt ul{list-style:none;padding:0 18px 16px}
-  .nt li{position:relative;padding:10px 0 10px 16px;border-top:1px solid var(--line);font-size:14.5px;word-break:keep-all}
-  .nt li::before{content:"";position:absolute;left:2px;top:19px;width:6px;height:6px;border-radius:50%;background:#D9822B}
-  .grid7 .cell.off .n{color:#C23A3A}
+  .wo .pad{height:12px}
   .up .hc-head .ic{background:var(--brand-soft);color:var(--brand)}
   .up ul{list-style:none;padding:0 18px 16px}
   .up li{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
@@ -122,8 +116,10 @@
   .up li .t b{display:block;font-size:15px;word-break:keep-all}
   .up li .t span{font-size:12.5px;color:var(--muted)}
   .empty{padding:4px 18px 18px;font-size:14px;color:var(--muted)}
-
-  /* ---------- 바로가기 ---------- */
+  .nt .hc-head .ic{background:#FFF3DC;color:#B7791F}
+  .nt ul{list-style:none;padding:0 18px 16px}
+  .nt li{position:relative;padding:10px 0 10px 16px;border-top:1px solid var(--line);font-size:14.5px;word-break:keep-all}
+  .nt li::before{content:"";position:absolute;left:2px;top:19px;width:6px;height:6px;border-radius:50%;background:#D9822B}
   .label{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.12em;margin:32px 4px 12px}
   .shortcuts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
   .sc{display:flex;flex-direction:column;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 4px 11px;text-decoration:none;color:var(--ink);font-size:12.5px;font-weight:700;text-align:center;word-break:keep-all;line-height:1.3;transition:transform .15s,border-color .15s}
@@ -134,12 +130,22 @@
   .sc-call{grid-column:1/-1;flex-direction:row;justify-content:center;background:var(--brand);border-color:var(--brand);color:#fff;font-size:15px;padding:14px}
   .sc-call .ic{width:auto;height:auto;background:none;color:#fff}
 
-  /* ---------- 섹션 공통 ---------- */
-  .sec{margin-top:56px}
-  .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-  .sec-head .no{flex:none;width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-size:13px;font-weight:900;display:grid;place-items:center}
-  .sec-head h2{font-family:'Noto Serif KR',serif;font-weight:900;font-size:21px;line-height:1.35;word-break:keep-all}
-  .lead{font-size:15px;color:var(--muted);margin:-4px 2px 16px;word-break:keep-all}
+  /* ---------- 하위 페이지 ---------- */
+  .pagehero{background:var(--brand);color:#fff;position:relative;overflow:hidden;padding:22px 20px 24px}
+  .pagehero .in{max-width:640px;margin:0 auto;position:relative}
+  .pagehero .wm{position:absolute;right:-40px;top:-30px;width:150px;opacity:.1;pointer-events:none}
+  .crumb{font-size:12.5px;opacity:.8}
+  .crumb a{text-decoration:none}
+  .pagehero h2{font-family:'Noto Serif KR',serif;font-weight:900;font-size:24px;margin-top:2px}
+  .subtabs{background:#fff;border-bottom:1px solid var(--line)}
+  .subtabs .in{max-width:640px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 16px}
+  .subtabs .in::-webkit-scrollbar{display:none}
+  .subtabs a{flex:none;text-decoration:none;font-size:14px;font-weight:700;padding:8px 16px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:#fff}
+  .subtabs a.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .sec{padding-top:26px;animation:fadeUp .35s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .sec > h3.st{font-family:'Noto Serif KR',serif;font-weight:900;font-size:20px;line-height:1.4;word-break:keep-all;margin-bottom:16px}
+  .lead{font-size:15px;color:var(--muted);margin:-6px 2px 16px;word-break:keep-all}
 
   /* 교육 철학 */
   .q{border-radius:16px;padding:20px;font-size:16px;font-weight:700;line-height:1.6;word-break:keep-all;text-align:center}
@@ -168,7 +174,7 @@
   /* 교육 내용 */
   .areas{display:flex;flex-direction:column;gap:10px}
   .area{border-radius:16px;padding:16px 18px;color:#fff}
-  .area h3{font-size:16px;font-weight:900;margin-bottom:10px}
+  .area h4{font-size:16px;font-weight:900;margin-bottom:10px}
   .chips{display:flex;flex-wrap:wrap;gap:6px}
   .chips span{background:rgba(255,255,255,.2);border-radius:999px;padding:4px 12px;font-size:13.5px;font-weight:500}
   .goals{margin-top:14px}
@@ -181,8 +187,8 @@
   /* 프로그램 */
   .tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
   .tabs::-webkit-scrollbar{display:none}
-  .tabs button{flex:none;font:inherit;font-size:14px;font-weight:700;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
-  .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .tabs button{flex:none;font:inherit;font-size:14px;font-weight:700;padding:8px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+  .tabs button.on{background:var(--brand-soft);color:var(--brand);border-color:var(--brand)}
   .common{font-size:13.5px;color:var(--muted);margin:0 2px 10px}
   .common b{color:var(--ink)}
   .days{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
@@ -192,12 +198,15 @@
   .day p{font-size:12px;line-height:1.45;word-break:keep-all;color:#3A3533}
   .day p + p{margin-top:4px}
   .day p.sub{color:var(--muted);font-size:11px}
-  .tt{margin-top:16px;padding:0;overflow:hidden}
-  .tt h3{font-size:15px;font-weight:900;padding:14px 18px;background:#F6EFD9;color:#5B4612}
+  .tt{padding:0;overflow:hidden}
+  .tt h4{font-size:15px;font-weight:900;padding:14px 18px;background:#F6EFD9;color:#5B4612}
   .tt table{width:100%;border-collapse:collapse;font-size:14.5px}
   .tt td{padding:11px 18px;border-top:1px solid var(--line);vertical-align:top;word-break:keep-all}
   .tt td:first-child{white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums;width:1%}
   .tt td:last-child{color:#3A3533}
+  .tt + .tt{margin-top:14px}
+  .wk td:first-child{color:var(--brand);font-family:'Noto Serif KR',serif;font-weight:900}
+  .wk tr.today td{background:var(--brand-soft)}
 
   /* 일정 (달력) */
   .cal{padding:16px 14px 14px}
@@ -209,6 +218,7 @@
   .dow{font-size:12px;font-weight:700;color:var(--muted);padding:4px 0}
   .dow:first-child,.cell.sun .n{color:#C23A3A}
   .dow:last-child,.cell.sat .n{color:#2F5FA8}
+  .grid7 .cell.off .n{color:#C23A3A}
   .cell{position:relative;border:0;background:none;font:inherit;border-radius:10px;padding:5px 0 9px;min-height:46px;cursor:pointer;color:var(--ink)}
   .cell.out{visibility:hidden}
   .cell .n{font-size:14px;font-weight:500;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%}
@@ -220,7 +230,7 @@
   .legend span{display:flex;align-items:center;gap:5px}
   .legend i{width:8px;height:8px;border-radius:50%}
   .evlist{margin-top:12px}
-  .evlist h3{font-size:14px;font-weight:700;color:var(--muted);margin:0 4px 8px}
+  .evlist h4{font-size:14px;font-weight:700;color:var(--muted);margin:0 4px 8px}
   .ev{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
   .ev + .ev{margin-top:8px}
   .ev .when{flex:none;width:46px;text-align:center;line-height:1.15}
@@ -247,12 +257,14 @@
   .pt span{display:block;font-size:13.5px;color:var(--muted);word-break:keep-all}
   .faq .closing{margin-top:8px}
 
-  /* 사진 띠 */
+  /* 사진 */
   .marquee{margin:0 -16px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
   .track{display:flex;gap:10px;width:max-content;animation:flow var(--dur,40s) linear infinite}
   .marquee:hover .track,.marquee.paused .track{animation-play-state:paused}
-  .track img{width:200px;height:150px;object-fit:cover;border-radius:14px;flex:none;cursor:pointer;background:#EEE6DF;display:block}
+  .track img{width:220px;height:165px;object-fit:cover;border-radius:14px;flex:none;cursor:pointer;background:#EEE6DF;display:block}
   @keyframes flow{to{transform:translateX(calc(-50% - 5px))}}
+  .photogrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:16px}
+  .photogrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer;background:#EEE6DF;display:block}
   .lightbox{position:fixed;inset:0;background:rgba(20,10,10,.92);display:grid;place-items:center;padding:16px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
   .lightbox.on{opacity:1;pointer-events:auto}
   .lightbox img{max-width:100%;max-height:85vh;border-radius:12px}
@@ -273,20 +285,18 @@
   .desc{display:block;font-size:13px;color:var(--muted);margin-top:1px;word-break:keep-all}
   .arrow{flex:none;opacity:.4}
 
-  footer.foot{margin-top:56px;background:#2A2524;color:#CFC6C0;font-size:13px;line-height:1.8}
-  footer.foot .in{max-width:560px;margin:0 auto;padding:28px 20px calc(30px + env(safe-area-inset-bottom))}
-  footer.foot b{color:#fff;font-family:'Noto Serif KR',serif;font-size:16px}
+  footer.foot{background:#2A2524;color:#CFC6C0;font-size:13px;line-height:1.8}
+  footer.foot .in{max-width:640px;margin:0 auto;padding:26px 20px calc(30px + env(safe-area-inset-bottom));display:flex;gap:14px;align-items:center}
+  footer.foot img{width:46px;height:auto;flex:none;opacity:.9}
+  footer.foot b{color:#fff;font-size:15px}
   footer.foot a{color:#fff}
 
   .totop{position:fixed;right:16px;bottom:20px;z-index:30;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer}
   .totop svg{width:22px;height:22px}
   .totop.on{opacity:.9;pointer-events:auto}
 
-  .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
-  .reveal.in{opacity:1;transform:none}
   @media (prefers-reduced-motion:reduce){
-    html{scroll-behavior:auto}
-    .reveal{opacity:1;transform:none;transition:none}
+    .sec{animation:none}
     .track{animation-duration:calc(var(--dur,40s) * 3)}
     .drawer .panel,.drawer .dim{transition:none}
   }
@@ -332,7 +342,7 @@ const svg = (name, sw=2) => `<svg viewBox="0 0 24 24" fill="none" stroke="curren
 const arrow = '<svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
 const list = a => (a || []).filter(Boolean);
 
-// 날짜 도우미 (한국 시간 기준으로 오늘을 계산)
+// 날짜 (한국 시간 기준 오늘)
 const pad = n => String(n).padStart(2, '0');
 const ymd = dt => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
 const parseD = s => { const [y,m,d] = String(s).split('-').map(Number); return new Date(y, m-1, d); };
@@ -340,13 +350,11 @@ const TODAY = (() => { const n = new Date(); const k = new Date(n.getTime() + (n
 const dayDiff = (a, b) => Math.round((a - b) / 86400000);
 const krDate = dt => `${dt.getMonth()+1}월 ${dt.getDate()}일 ${WEEK[dt.getDay()]}요일`;
 
-let D, EVENTS = [];
-let sectionNo = 0;
-const head = title => `<div class="sec-head"><span class="no">${++sectionNo}</span><h2>${esc(title)}</h2></div>`;
-const sec = (id, title, inner) => `<section class="sec reveal" id="${id}">${head(title)}${inner}</section>`;
+let D, EVENTS = [], S = {}, GROUPS = [];
+const sec = (id, title, inner) => `<section class="sec" id="sec-${id}" data-id="${id}" hidden>${title ? `<h3 class="st">${esc(title)}</h3>` : ''}${inner}</section>`;
 
 function render(d){
-  D = d; sectionNo = 0;
+  D = d; S = {};
   EVENTS = list(d.schedule).filter(e => /^\d{4}-\d{2}-\d{2}$/.test(e.date)).map(e => {
     const s = parseD(e.date); let en = e.end && /^\d{4}-\d{2}-\d{2}$/.test(e.end) ? parseD(e.end) : s;
     if(en < s) en = s;
@@ -356,7 +364,6 @@ function render(d){
   const brand = esc(d.footerSub || '해랑경희 태권도장');
   const intro = list(d.intro).map(p => `<p>${esc(p).split(brand).join(`<strong>${brand}</strong>`)}</p>`).join('');
 
-  const S = {};   // id → {label, icon, html}
   const ph = d.philosophy || {};
   if(list(ph.questions).length || list(ph.message).length) S.philosophy = {label:'교육 철학', icon:'bulb', html: sec('philosophy', ph.title || '교육 철학', `
       ${list(ph.questions).map((q,i) => (i ? '<div class="plus">+</div>' : '') + `<div class="q ${i % 2 ? 'q2' : 'q1'}">${esc(q)}</div>`).join('')}
@@ -380,23 +387,17 @@ function render(d){
   if(list(cu.areas).length || list(cu.goals).length) S.curriculum = {label:'교육 내용', icon:'book', html: sec('curriculum', cu.title || '교육 내용', `
       <div class="areas">${list(cu.areas).map((a,i) => `
         <div class="area" style="background:${AREA_COLORS[i % AREA_COLORS.length]}">
-          <h3>${esc(a.name)}</h3><div class="chips">${list(a.items).map(x => `<span>${esc(x)}</span>`).join('')}</div>
+          <h4>${esc(a.name)}</h4><div class="chips">${list(a.items).map(x => `<span>${esc(x)}</span>`).join('')}</div>
         </div>`).join('')}</div>
       ${list(cu.goals).length ? `<div class="card goals">${list(cu.goals).map(g => `<div class="goal"><b>${esc(g.title)}</b><span>${esc(g.desc)}</span></div>`).join('')}</div>` : ''}
       ${cu.closing ? `<p class="closing">${esc(cu.closing)}</p>` : ''}`)};
 
   const pr = d.program || {};
-  if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'프로그램·시간표', short:'시간표', icon:'clock', html: sec('program', pr.title || '수련 프로그램 및 시간표', `
-      ${list(pr.divisions).length ? `
-        <div class="tabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
-        <div id="divBox"></div>` : ''}
-      ${list(pr.timetable).length ? `
-        <div class="card tt"><h3>수련 시간표</h3><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}`)};
-
-  S.schedule = {label:'도장 일정', short:'일정', icon:'calendar', html: sec('schedule', '해랑경희 일정', `
-      <div class="card cal" id="cal"></div>
-      <div class="legend">${Object.entries(EV_COLORS).map(([k,c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('')}</div>
-      <div class="evlist" id="evlist"></div>`)};
+  if(list(pr.divisions).length) S.program = {label:'수련 프로그램', short:'프로그램', icon:'book', html: sec('program', pr.title || '수련 프로그램', `
+      <div class="tabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
+      <div id="divBox"></div>`)};
+  if(list(pr.timetable).length) S.timetable = {label:'수련 시간표', short:'시간표', icon:'clock', html: sec('timetable', '수련 시간표', `
+      <div class="card tt"><h4>요일 공통 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>`)};
 
   if(list(d.faq).length) S.faq = {label:'자주 묻는 질문', icon:'help', html: sec('faq', '자주 묻는 질문', `
       <div class="faq">${list(d.faq).map((f,i) => `
@@ -405,6 +406,13 @@ function render(d){
           ${f.closing ? `<p class="closing">${esc(f.closing)}</p>` : ''}
         </div></details>`).join('')}</div>`)};
 
+  S.today = {label:'오늘의 운동', icon:'run', html: sec('today', '', `${workoutCard(d, false)}${weekTable(d)}`)};
+  S.schedule = {label:'도장 일정', short:'일정', icon:'calendar', html: sec('schedule', '해랑경희 일정', `
+      <div class="card cal" id="cal"></div>
+      <div class="legend">${Object.entries(EV_COLORS).map(([k,c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('')}</div>
+      <div class="evlist" id="evlist"></div>`)};
+  const ns = noticeCard(d);
+  if(ns) S.notice = {label:'공지사항', icon:'star', html: sec('notice', '', ns)};
   if(list(d.gallery).length) S.gallery = {label:'사진', icon:'photo', html: sec('gallery', d.galleryTitle || '사진으로 보는 해랑경희', gallery(d))};
 
   const ct = d.contact || {};
@@ -418,78 +426,111 @@ function render(d){
           ${arrow}
         </a>`).join('')}</nav>`)};
 
-  S.today = {label:'오늘의 운동', icon:'run'};
-
-  // 메뉴 묶음 (학교 홈페이지처럼 큰 메뉴 → 작은 메뉴)
-  const GROUPS = [
+  // 큰 메뉴 → 작은 메뉴(탭)
+  GROUPS = [
     {name:'도장 소개', items:['philosophy','staff']},
-    {name:'수련 안내', items:['curriculum','program','faq']},
-    {name:'도장 소식', items:['today','schedule','gallery']},
+    {name:'수련 안내', items:['curriculum','program','timetable','faq']},
+    {name:'도장 소식', items:['today','schedule','notice','gallery']},
     {name:'상담 문의', items:['contact']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
-  const inline = GROUPS.map(g => `<div class="grp"><a href="#${g.items[0]}">${esc(g.name)}</a>
-      ${g.items.length > 1 ? `<div class="drop">${g.items.map(id => `<a href="#${id}">${esc(S[id].label)}</a>`).join('')}</div>` : ''}</div>`).join('');
-  const drawer = GROUPS.map(g => `<div class="g"><h3>${esc(g.name)}</h3>
-      ${g.items.map(id => `<a href="#${id}" data-close><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].label)}</a>`).join('')}</div>`).join('');
-
-  const tileIds = ['philosophy','staff','curriculum','program','schedule','today','faq','gallery'].filter(id => S[id]);
-  const shortcuts = `
-    <div class="label">바로가기</div>
-    <div class="shortcuts">
-      ${tileIds.map(id => `<a class="sc" href="#${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
-      <a class="sc sc-call" href="#contact"><span class="ic">${svg('phone')}</span>상담 문의하기</a>
-    </div>`;
-
-  const order = ['philosophy','staff','curriculum','program','schedule','faq','gallery','contact'];
+  const tileIds = ['philosophy','staff','curriculum','timetable','schedule','today','faq','gallery'].filter(id => S[id]);
+  const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
   document.getElementById('app').innerHTML = `
-    <div class="gnb"><div class="in">
-      <a class="logo" href="#top"><span class="mark">跆</span><b>${esc(d.title)}</b><small>태권도장</small></a>
-      <nav class="menu-inline">${inline}</nav>
-      ${tel ? `<a class="iconbtn call" href="tel:${esc(tel)}" aria-label="전화 상담">${svg('phone')}</a>` : ''}
-      <button class="iconbtn menu-btn" id="menuBtn" type="button" aria-label="전체 메뉴" aria-expanded="false">${svg('menu')}</button>
-    </div></div>
+    <header class="top"><div class="in">
+      <a class="logo" href="#/"><img src="img/logo-header.png" alt="${brand}"></a>
+      ${tel ? `<a class="tel" href="tel:${esc(tel)}" aria-label="전화 상담">${svg('phone')}</a>` : ''}
+      <button class="allmenu" id="menuBtn" type="button" aria-expanded="false">${svg('menu',2.4)}전체메뉴</button>
+    </div></header>
+    <nav class="gnb" aria-label="주 메뉴"><div class="in">
+      <a href="#/" data-g="home">홈</a>
+      ${GROUPS.map(g => `<a href="#/${g.items[0]}" data-g="${esc(g.name)}">${esc(g.name)}</a>`).join('')}
+    </div></nav>
 
     <div class="drawer" id="drawer" aria-hidden="true">
       <div class="dim" data-close></div>
-      <div class="panel" role="dialog" aria-label="전체 메뉴">
-        <div class="phead"><b>전체 메뉴</b><button class="iconbtn" type="button" data-close aria-label="닫기">${svg('close')}</button></div>
-        <div class="pbody">${drawer}</div>
+      <div class="panel" role="dialog" aria-label="전체메뉴">
+        <div class="phead"><b>${svg('menu',2.4)}전체메뉴</b><button class="x" type="button" data-close aria-label="닫기">${svg('close')}</button></div>
+        <div class="pbody">
+          <div class="g"><h3>홈</h3><div><a href="#/" data-close>처음 화면</a></div></div>
+          ${GROUPS.map(g => `<div class="g"><h3>${esc(g.name)}</h3><div>${g.items.map(id => `<a href="#/${id}" data-close>${esc(S[id].label)}</a>`).join('')}</div></div>`).join('')}
+        </div>
         ${tel ? `<div class="pfoot"><a class="callbig" href="tel:${esc(tel)}">${svg('phone')}<span>${esc(ct.phone)}<small>전화 상담</small></span></a></div>` : ''}
       </div>
     </div>
 
-    <div class="hero" id="top"><div class="greet">${esc(d.greet)}</div><h1>${esc(d.title)}<small>${esc(d.subtitle)}</small></h1></div>
-    <main class="wrap">
-      <section class="card intro">${intro}</section>
-      <div class="home">
-        ${workoutCard(d)}
-        ${upcomingCard()}
-        ${noticeCard(d)}
+    <div id="homePage">
+      <div class="hero">${lionW}
+        <div class="greet">${esc(d.greet)}</div>
+        <h1>${brand}</h1>
+        ${d.slogan ? `<p class="slogan">${esc(d.slogan)}</p>` : ''}
       </div>
-      ${shortcuts}
-      ${order.filter(id => S[id] && S[id].html).map(id => S[id].html).join('')}
-    </main>
+      <main class="wrap">
+        <section class="card intro">${intro}</section>
+        <div class="home">
+          ${workoutCard(d, true)}
+          ${upcomingCard()}
+          ${ns}
+        </div>
+        <div class="label">바로가기</div>
+        <div class="shortcuts">
+          ${tileIds.map(id => `<a class="sc" href="#/${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
+          <a class="sc sc-call" href="#/contact"><span class="ic">${svg('phone')}</span>상담 문의하기</a>
+        </div>
+      </main>
+    </div>
+
+    <div id="subPage" hidden>
+      <div class="pagehero"><div class="in">${lionW}
+        <div class="crumb"><a href="#/">홈</a> › <span id="crumbG"></span></div>
+        <h2 id="pageTitle"></h2>
+      </div></div>
+      <div class="subtabs"><div class="in" id="subtabs"></div></div>
+      <main class="wrap">${Object.values(S).map(x => x.html || '').join('')}</main>
+    </div>
+
     <footer class="foot"><div class="in">
-      <b>${esc(d.footerSub)}</b><br>
+      <img src="img/lion.png" alt="">
+      <div><b>${brand}</b><br>
       ${ct.phone ? `상담 전화 <a href="tel:${esc(tel)}">${esc(ct.phone)}</a><br>` : ''}
-      ${esc(d.footer)} · © ${TODAY.getFullYear()} ${esc(d.footerSub)}
+      © ${TODAY.getFullYear()} ${brand}</div>
     </div></footer>
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupTabs(); setupCalendar(); setupWorkout(); setupGallery(); setupTop(); setupReveal();
+  setupMenu(); setupTabs(); setupCalendar(); setupGallery(); setupTop();
+  window.addEventListener('hashchange', route); route();
 }
 
-// ---------- 오늘의 운동 (월간 수련 계획표 + 일정에서 자동으로) ----------
-// 이번 달 계획이 있으면 그걸, 없으면 가장 최근 달 계획의 요일별 테마를 사용
+// ---------- 화면 전환 ----------
+function route(){
+  const id = location.hash.replace(/^#\/?/, '');
+  const g = GROUPS.find(x => x.items.includes(id));
+  const home = !g;
+  document.getElementById('homePage').hidden = !home;
+  document.getElementById('subPage').hidden = home;
+  document.querySelectorAll('.gnb a').forEach(a => a.classList.toggle('on', home ? a.dataset.g === 'home' : a.dataset.g === g.name));
+  const on = document.querySelector('.gnb a.on'); if(on) on.scrollIntoView({block:'nearest', inline:'center'});
+  if(!home){
+    document.getElementById('crumbG').textContent = g.name + (g.items.length > 1 ? ' › ' + S[id].label : '');
+    document.getElementById('pageTitle').textContent = g.items.length > 1 ? S[id].label : g.name;
+    const tabs = document.getElementById('subtabs');
+    tabs.parentElement.hidden = g.items.length < 2;
+    tabs.innerHTML = g.items.map(x => `<a href="#/${x}" class="${x === id ? 'on' : ''}">${esc(S[x].label)}</a>`).join('');
+    document.querySelectorAll('#subPage .sec').forEach(s => s.hidden = s.dataset.id !== id);
+    const t = tabs.querySelector('.on'); if(t) t.scrollIntoView({block:'nearest', inline:'center'});
+  }
+  window.scrollTo(0, 0);
+}
+
+// ---------- 오늘의 운동 ----------
 function monthPlan(d){
   const ms = list((d.monthly || {}).months).filter(m => m.month).sort((a, b) => a.month.localeCompare(b.month));
   const cur = ymd(TODAY).slice(0, 7);
   return { exact: ms.find(m => m.month === cur), plan: ms.find(m => m.month === cur) || ms.filter(m => m.month < cur).pop() || ms[ms.length - 1] };
 }
-function workoutCard(d){
+function workoutCard(d, onHome){
   const mo = d.monthly || {};
   const { plan } = monthPlan(d);
   const dow = TODAY.getDay(), weekend = dow === 0 || dow === 6;
@@ -500,22 +541,25 @@ function workoutCard(d){
     const c = EV_COLORS[e.type] || EV_COLORS['기타'];
     return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type === '수련' ? '이번 주 집중' : e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
   }).join('');
-
   let body;
-  if(off.length){
-    body = `<div class="theme">오늘은 쉬는 날이에요</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
-  }else if(weekend && !evRows && !items.length){
-    body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말! 월요일에 만나요 ☺')}</div>`;
-  }else{
-    body = `${evRows ? `<div class="focusbox">${evRows}</div>` : ''}
+  if(off.length) body = `<div class="theme">오늘은 쉬는 날이에요</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
+  else if(weekend && !evRows && !items.length) body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말! 월요일에 만나요 ☺')}</div>`;
+  else body = `${evRows ? `<div class="focusbox">${evRows}</div>` : ''}
       ${items.length ? `<ol>${items.map(i => `<li><b>${esc(i)}</b></li>`).join('')}</ol>` : ''}
       ${!evRows && !items.length ? `<div class="theme">오늘은 정해진 운동이 없어요</div>` : ''}`;
-  }
-  return `<div class="card hc wo anchor" id="today">
-    <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2><a class="more" href="#schedule">이달 일정 ›</a></div>
-    ${body}
-    <div class="note"></div>
+  return `<div class="card hc wo">
+    <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2>${onHome ? `<a class="more" href="#/today">이달 계획 ›</a>` : ''}</div>
+    ${body}<div class="pad"></div>
   </div>`;
+}
+function weekTable(d){
+  const { plan } = monthPlan(d);
+  if(!plan) return '';
+  const rows = ['월','화','수','목','금','토'].map(w => [w, list((plan.weekday || {})[w])]).filter(([, v]) => v.length);
+  if(!rows.length) return '';
+  const today = WEEK[TODAY.getDay()];
+  return `<div class="card tt wk" style="margin-top:14px"><h4>${+plan.month.slice(5)}월 요일별 운동테마</h4><table>
+    ${rows.map(([w, v]) => `<tr class="${w === today ? 'today' : ''}"><td>${w}</td><td>${v.map(esc).join(' · ')}</td></tr>`).join('')}</table></div>`;
 }
 function noticeCard(d){
   const { exact } = monthPlan(d);
@@ -526,13 +570,12 @@ function noticeCard(d){
     <ul>${ns.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
   </div>`;
 }
-function setupWorkout(){}
 
 // ---------- 일정 ----------
 function upcomingCard(){
   const next = EVENTS.filter(e => e.en >= TODAY).slice(0, 3);
   return `<div class="card hc up">
-    <div class="hc-head"><span class="ic">${svg('calendar')}</span><h2>다가오는 일정<small>해랑경희 소식</small></h2><a class="more" href="#schedule">전체 보기 ›</a></div>
+    <div class="hc-head"><span class="ic">${svg('calendar')}</span><h2>다가오는 일정<small>해랑경희 소식</small></h2><a class="more" href="#/schedule">전체 보기 ›</a></div>
     ${next.length ? `<ul>${next.map(e => {
       const n = dayDiff(e.s, TODAY);
       const label = n > 0 ? 'D-' + n : (n === 0 ? '오늘' : '진행 중');
@@ -565,11 +608,10 @@ function setupCalendar(){
       <div class="grid7">${WEEK.map(w => `<span class="dow">${w}</span>`).join('')}${cells}</div>`;
     cal.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { m += +b.dataset.mv; if(m < 0){ m = 11; y--; } if(m > 11){ m = 0; y++; } sel = null; draw(); });
     cal.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { const dt = new Date(y, m, +b.dataset.d); sel = sel && +sel === +dt ? null : dt; draw(); });
-    // 아래 목록: 고른 날 → 그날 일정, 아니면 이번 달 전체
     let evs, title;
     if(sel){ evs = eventsOn(sel); title = krDate(sel); }
     else{ const s = new Date(y, m, 1), e = new Date(y, m+1, 0); evs = EVENTS.filter(x => x.s <= e && x.en >= s); title = `${m+1}월 일정`; }
-    box.innerHTML = `<h3>${title}</h3>` + (evs.length ? evs.map(e => `
+    box.innerHTML = `<h4>${title}</h4>` + (evs.length ? evs.map(e => `
       <div class="ev"><div class="when"><b>${e.s.getDate()}</b><span>${e.s.getMonth()+1}월 ${WEEK[e.s.getDay()]}</span></div>
         <div class="what" style="border-color:${EV_COLORS[e.type] || EV_COLORS['기타']}"><b><span class="tag" style="background:${EV_COLORS[e.type] || EV_COLORS['기타']}">${esc(e.type || '기타')}</span>${esc(e.title)}</b>
         <span>${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></div>`).join('') : `<div class="ev"><div class="what" style="border-color:var(--line)"><span>등록된 일정이 없어요.</span></div></div>`);
@@ -602,7 +644,8 @@ function gallery(d){
   let row = pics.slice();
   while(row.length < 8) row = row.concat(pics);
   const imgs = row.map(p => `<img src="${esc(p)}" alt="수업 사진" decoding="async">`).join('');
-  return `<div class="marquee"><div class="track" style="--dur:${row.length * 4}s">${imgs}${imgs}</div></div>`;
+  return `<div class="marquee"><div class="track" style="--dur:${row.length * 4}s">${imgs}${imgs}</div></div>
+    <div class="photogrid">${pics.map(p => `<img src="${esc(p)}" alt="수업 사진" loading="lazy">`).join('')}</div>`;
 }
 function setupGallery(){
   const m = document.querySelector('.marquee');
@@ -610,11 +653,13 @@ function setupGallery(){
   const lb = document.createElement('div');
   lb.className = 'lightbox'; lb.innerHTML = '<img alt="">';
   document.body.append(lb);
-  m.addEventListener('click', e => {
+  const open = e => {
     if(e.target.tagName !== 'IMG') return;
     lb.querySelector('img').src = e.target.src;
     lb.classList.add('on'); m.classList.add('paused');
-  });
+  };
+  m.addEventListener('click', open);
+  document.querySelector('.photogrid').addEventListener('click', open);
   lb.addEventListener('click', () => { lb.classList.remove('on'); m.classList.remove('paused'); });
 }
 
@@ -634,14 +679,6 @@ function setupTop(){
   top.onclick = () => window.scrollTo({top:0, behavior:'smooth'});
   const f = () => top.classList.toggle('on', window.scrollY > 700);
   window.addEventListener('scroll', f, {passive:true}); f();
-}
-function setupReveal(){
-  const els = document.querySelectorAll('.reveal');
-  if(!('IntersectionObserver' in window)){ els.forEach(e => e.classList.add('in')); return; }
-  const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), {rootMargin:'0px 0px -8% 0px'});
-  els.forEach(e => io.observe(e));
-  const showHash = () => { const t = location.hash && document.querySelector(location.hash); if(t) t.classList.add('in'); };
-  window.addEventListener('hashchange', showHash); showHash();
 }
 
 fetch('data.json?t=' + Date.now())
