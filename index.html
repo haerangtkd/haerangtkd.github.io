@@ -226,6 +226,18 @@
   .mapbox .info{padding:16px 18px 18px}
   .mapbox .info b{display:block;font-size:17px;font-weight:900}
   .mapbox .info p{font-size:15px;margin-top:2px;word-break:keep-all}
+  .mapbox .info .lm{display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;color:var(--brand);margin-top:4px}
+  .mapbox .info .lm svg{width:15px;height:15px;flex:none}
+  .hours h4{display:flex;align-items:center;justify-content:space-between}
+  .hours .open{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:#E9E2DB;color:#6B6460}
+  .hours .open.on{background:#1E7A46;color:#fff}
+  .hours td:first-child{color:var(--brand);font-family:'Noto Serif KR',serif;font-weight:900}
+  .hours tr.today td{background:var(--brand-soft);font-weight:700}
+  .hours tr.off td:last-child{color:#C23A3A}
+  .park{display:flex;gap:12px;align-items:flex-start;margin-top:14px;padding:16px 18px}
+  .park svg{width:26px;height:26px;color:var(--brand);flex:none;margin-top:2px}
+  .park b{font-size:15px}
+  .park p{font-size:14.5px;color:#3A3533;word-break:keep-all}
   .mapbox .info .note{font-size:13.5px;color:var(--muted);text-align:left;margin-top:6px}
   .mapbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
   .mapbtns a,.mapbtns button{display:flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:14px;font-weight:700;border-radius:12px;padding:12px 8px;text-decoration:none;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink)}
@@ -457,7 +469,7 @@ const ICONS = {
   run:'<circle cx="14" cy="4.5" r="2"/><path d="m6 20 3.5-5 3 2 1.5-6"/><path d="M9 9.5 12 8l3 3 3.5 1"/><path d="m14 11-2 5"/>',
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   up:'<path d="m6 15 6-6 6 6"/>', left:'<path d="m15 6-6 6 6 6"/>', right:'<path d="m9 6 6 6-6 6"/>',
-  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>', copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>', plus:'<path d="M12 5v14M5 12h14"/>', pause:'<path d="M9 6v12M15 6v12"/>', play:'<path d="m8 5 11 7-11 7Z"/>', megaphone:'<path d="M3 10v4h3l8 5V5L6 10Z"/><path d="M18 9a4 4 0 0 1 0 6"/>', close:'<path d="M6 6l12 12M18 6 6 18"/>',
+  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>', car:'<path d="M5 17h14v-4l-2-5H7l-2 5Z"/><path d="M5 13h14"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/>', copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>', plus:'<path d="M12 5v14M5 12h14"/>', pause:'<path d="M9 6v12M15 6v12"/>', play:'<path d="m8 5 11 7-11 7Z"/>', megaphone:'<path d="M3 10v4h3l8 5V5L6 10Z"/><path d="M18 9a4 4 0 0 1 0 6"/>', close:'<path d="M6 6l12 12M18 6 6 18"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
 const AREA_COLORS = ['var(--orange)','var(--teal)','var(--navy)','var(--brand)'];
@@ -561,10 +573,19 @@ function render(d){
   const lo = d.location || {};
   if(lo.address){
     const q = encodeURIComponent((lo.address || '').replace(/\s*\d+층.*$/, '') + ' ' + (lo.name || ''));
-    S.location = {label:'찾아오시는 길', short:'오시는 길', icon:'map', html: sec('location', lo.title || '찾아오시는 길', `
+    const hrs = lo.hours || {};
+    const order = ['월','화','수','목','금','토','일'];
+    const todayW = WEEK[TODAY.getDay()];
+    // 지금 운영 중인지 (한국 시간 기준)
+    const nowK = (() => { const n = new Date(); return new Date(n.getTime() + (n.getTimezoneOffset() + 540) * 60000); })();
+    const tm = /(\d{1,2}):(\d{2})\s*[-~]\s*(\d{1,2}):(\d{2})/.exec(hrs[todayW] || '');
+    const mins = nowK.getHours() * 60 + nowK.getMinutes();
+    const offToday = eventsOn(TODAY).some(e => e.type === '휴관');
+    const openNow = !offToday && tm && mins >= (+tm[1]) * 60 + (+tm[2]) && mins < (+tm[3]) * 60 + (+tm[4]);
+    S.location = {label: lo.title || '오시는 길', short:'오시는 길', icon:'map', html: sec('location', lo.title || '오시는 길', `
       <div class="card mapbox">
         <iframe title="${esc(lo.name || brand)} 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${q}&hl=ko&z=17&output=embed"></iframe>
-        <div class="info"><b>${esc(lo.name || brand)}</b><p>${esc(lo.address)}</p>${lo.note ? `<p class="note">${esc(lo.note)}</p>` : ''}
+        <div class="info"><b>${esc(lo.name || brand)}</b><p>${esc(lo.address)}</p>${lo.landmark ? `<p class="lm">${svg('map')}${esc(lo.landmark)}</p>` : ''}${lo.note ? `<p class="note">${esc(lo.note)}</p>` : ''}
           <div class="mapbtns">
             ${lo.naver ? `<a class="nv" href="${esc(lo.naver)}" target="_blank" rel="noopener">${svg('map')}네이버지도</a>` : ''}
             ${lo.kakao ? `<a class="kk" href="${esc(lo.kakao)}" target="_blank" rel="noopener">${svg('map')}카카오맵</a>` : ''}
@@ -572,7 +593,10 @@ function render(d){
             ${tel ? `<a href="tel:${esc(tel)}">${svg('phone')}전화하기</a>` : ''}
           </div>
         </div>
-      </div>`)};
+      </div>
+      ${Object.keys(hrs).length ? `<div class="card tt hours" style="margin-top:14px"><h4>운영 시간 ${tm || offToday ? `<span class="open ${openNow ? 'on' : ''}">${openNow ? '지금 운영 중' : (offToday ? '오늘 휴관' : '운영 시간 아님')}</span>` : `<span class="open">오늘 휴무</span>`}</h4><table>
+        ${order.filter(w => hrs[w]).map(w => `<tr class="${w === todayW ? 'today' : ''}${/휴/.test(hrs[w]) ? ' off' : ''}"><td>${w}</td><td>${esc(hrs[w])}</td></tr>`).join('')}</table></div>` : ''}
+      ${lo.parking ? `<div class="card park">${svg('car')}<div><b>주차 안내</b><p>${esc(lo.parking)}</p></div></div>` : ''}`)};
   }
 
   // 큰 메뉴 → 작은 메뉴(탭)
