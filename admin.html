@@ -162,6 +162,24 @@
 
   <details class="card"><summary>⑥ 도장 일정</summary><div class="in">
     <p class="hint">달력과 첫 화면 <b>다가오는 일정</b>에 나와요. 행사 포스터를 붙이면 첫 화면 <b>행사</b> 칸에도 나와요. <b>휴관·공휴일</b>로 넣은 날은 '오늘의 운동'에 쉬는 날로 나와요.</p>
+    <div class="item" style="margin-top:4px">
+      <div class="item-head"><strong>🏆 해랑 기네스 (매달 첫째 주 금요일 자동)</strong></div>
+      <label class="check"><input type="checkbox" id="gOn"> 매달 자동으로 일정에 넣기</label>
+      <p class="hint">그 달 날짜가 다르면 아래 일정에 '해랑경희 기네스'를 직접 넣으세요. 직접 넣은 날짜가 우선이고, 휴관일과 겹치면 자동으로 빠져요.</p>
+      <div class="row">
+        <div><label class="f">일정 이름</label><input data-k="guinness.title"></div>
+        <div><label class="f">시작 월</label><input type="month" data-k="guinness.start"></div>
+      </div>
+      <label class="f">메모</label><input data-k="guinness.note">
+      <div class="row">
+        <div><label class="f">1~3월 종목</label><input data-k="guinness.items.1"></div>
+        <div><label class="f">4~6월 종목</label><input data-k="guinness.items.2"></div>
+      </div>
+      <div class="row">
+        <div><label class="f">7~9월 종목</label><input data-k="guinness.items.3"></div>
+        <div><label class="f">10~12월 종목</label><input data-k="guinness.items.4"></div>
+      </div>
+    </div>
     <div id="ed-schedule"></div>
   </div></details>
 
@@ -300,8 +318,13 @@ function bindFloatPhone(){
   c.checked = getP(data, 'contact.floatPhone') !== false;
   c.onchange = () => setP(data, 'contact.floatPhone', c.checked);
 }
+function bindGuinness(){
+  const c = $('gOn'); if(!c) return;
+  c.checked = !!getP(data, 'guinness.on');
+  c.onchange = () => setP(data, 'guinness.on', c.checked);
+}
 function bindSimple(root){
-  bindFloatPhone();
+  bindFloatPhone(); bindGuinness();
   root.querySelectorAll('#editor [data-k]').forEach(el => {
     el.value = getP(data, el.dataset.k) ?? '';
     el.oninput = () => setP(data, el.dataset.k, el.value);

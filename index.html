@@ -483,7 +483,8 @@ function render(d){
     const s = parseD(e.date); let en = e.end && /^\d{4}-\d{2}-\d{2}$/.test(e.end) ? parseD(e.end) : s;
     if(en < s) en = s;
     return {...e, s, en};
-  }).sort((a, b) => a.s - b.s);
+  });
+  EVENTS = EVENTS.concat(guinnessEvents(d, EVENTS)).sort((a, b) => a.s - b.s);
 
   const brand = esc(d.footerSub || '해랑경희 태권도장');
   const intro = list(d.intro).map(p => `<p>${esc(p).split(brand).join(`<strong>${brand}</strong>`)}</p>`).join('');
@@ -708,9 +709,12 @@ function workoutCard(d, onHome){
   const dow = TODAY.getDay(), weekend = dow === 0 || dow === 6;
   const evs = eventsOn(TODAY);
   const off = evs.filter(e => e.type === '휴관');
-  const fs = focusList(d).filter(f => f.s <= TODAY && TODAY <= f.en);
+  let fs = focusList(d).filter(f => f.s <= TODAY && TODAY <= f.en);
+  // 같은 이름의 일정(예: 해랑경희 기네스 · 스피드 발차기)이 있으면 그 이름으로 한 번만 보여줌
+  const dup = e => fs.some(f => (e.title || '').includes(f.title) || f.title.includes(e.title || '-'));
+  fs = fs.map(f => { const e = evs.find(x => x.type !== '휴관' && ((x.title || '').includes(f.title) || f.title.includes(x.title || '-'))); return e ? {...f, title: e.title.length > f.title.length ? e.title : f.title} : f; });
   const items = list(weekdayThemes(d)[WEEK[dow]]);
-  const evRows = evs.filter(e => e.type !== '휴관').map(e => {
+  const evRows = evs.filter(e => e.type !== '휴관' && !dup(e)).map(e => {
     const c = EV_COLORS[e.type] || EV_COLORS['기타'];
     return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
   }).join('');
@@ -814,6 +818,26 @@ function pressPage(d){
       <div class="b"><div class="src">${esc(p.source || '언론 보도')}${isDate(p.date) ? ` <span>· ${p.date.replace(/-/g, '.')}</span>` : ''}</div>
       <h4>${esc(p.title)}</h4>${p.summary ? `<p>${esc(p.summary)}</p>` : ''}<span class="go">기사 보기 ›</span></div>
     </a>`).join('')}</div>`;
+}
+
+// ---------- 해랑 기네스: 매달 첫째 주 금요일 자동 ----------
+// 분기별 종목: 1~3월(1) · 4~6월(2) · 7~9월(3) · 10~12월(4)
+function guinnessEvents(d, manual){
+  const g = d.guinness || {};
+  if(!g.on) return [];
+  const [sy, sm] = /^\d{4}-\d{2}$/.test(g.start || '') ? g.start.split('-').map(Number) : [TODAY.getFullYear(), TODAY.getMonth() + 1];
+  const out = [];
+  for(let k = -12; k <= 12; k++){
+    const first = new Date(TODAY.getFullYear(), TODAY.getMonth() + k, 1);
+    const y = first.getFullYear(), m = first.getMonth() + 1;
+    if(y * 12 + m < sy * 12 + sm) continue;
+    const fri = new Date(y, m - 1, 1 + ((5 - first.getDay() + 7) % 7));
+    if(manual.some(e => e.s <= fri && fri <= e.en && (e.title || '').includes('기네스'))) continue;   // 직접 넣은 기네스 일정이 있으면 그걸 사용
+    if(manual.some(e => e.type === '휴관' && e.s <= fri && fri <= e.en)) continue;                     // 휴관일이면 건너뜀
+    const item = (g.items || {})[String(Math.floor((m - 1) / 3) + 1)];
+    out.push({ title: (g.title || '해랑경희 기네스') + (item ? ' · ' + item : ''), type: '행사', note: g.note || '', image: '', s: fri, en: fri, auto: true });
+  }
+  return out;
 }
 
 // ---------- 일정 ----------
