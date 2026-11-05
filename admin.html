@@ -136,18 +136,31 @@
     <div id="ed-timetable"></div>
   </div></details>
 
-  <details class="card"><summary>⑤ 자주 묻는 질문</summary><div class="in">
+  <details class="card"><summary>⑤ 해랑경희 일정</summary><div class="in">
+    <p class="hint">일정을 넣으면 사이트 달력과 맨 위 <b>다가오는 일정</b>에 자동으로 나와요. 날짜 순서는 저장할 때 자동으로 정리돼요. 지난 일정은 지우지 않아도 달력에만 남고 '다가오는 일정'에서는 빠져요.</p>
+    <div id="ed-schedule"></div>
+  </div></details>
+
+  <details class="card"><summary>⑥ 오늘의 운동</summary><div class="in">
+    <p class="hint">요일별로 정해 두면 매일 그날 요일의 운동이 자동으로 나와요. 특정 날짜만 바꾸고 싶으면 아래 <b>특별한 날</b>에 넣으세요.</p>
+    <label class="f">제목</label><input data-k="workout.title">
+    <label class="f">아래 작은 안내</label><input data-k="workout.note">
+    <div id="ed-week"></div>
+    <div id="ed-special"></div>
+  </div></details>
+
+  <details class="card"><summary>⑦ 자주 묻는 질문</summary><div class="in">
     <div id="ed-faq"></div>
   </div></details>
 
-  <details class="card"><summary>⑥ 사진</summary><div class="in">
+  <details class="card"><summary>⑧ 사진</summary><div class="in">
     <label class="f">제목</label><input data-k="galleryTitle">
     <div id="gallery" class="gallery"></div>
     <label class="btn ghost wide">+ 사진 추가 (여러 장 선택 가능)<input type="file" id="addPhoto" accept="image/*" multiple hidden></label>
     <p class="hint">사진은 자동으로 크기를 줄여서 올라가요. ◀ ▶로 순서를 바꿀 수 있어요. 가로 사진이 가장 잘 어울려요.</p>
   </div></details>
 
-  <details class="card"><summary>⑦ 상담 문의 · 링크</summary><div class="in">
+  <details class="card"><summary>⑨ 상담 문의 · 링크</summary><div class="in">
     <label class="f">제목</label><input data-k="contact.title">
     <label class="f">전화번호 (누르면 바로 전화 연결)</label><input data-k="contact.phone" inputmode="tel">
     <div id="ed-links"></div>
@@ -274,6 +287,7 @@ function listEditor(boxId, path, cfgL){
           const inp = wrap.querySelector(tag);
           if(f.type === 'select') inp.innerHTML = f.opts.map(([v,t]) => `<option value="${v}">${esc(t)}</option>`).join('');
           if(f.inputmode) inp.setAttribute('inputmode', f.inputmode);
+          if(f.type === 'date') inp.type = 'date';
           if(f.type === 'lines'){ inp.value = (val || []).join('\n'); inp.oninput = () => setP(it, f.k, toLines(inp.value)); }
           else if(f.type === 'pairs'){
             inp.value = (val || []).map(p => p.d ? `${p.t} | ${p.d}` : p.t).join('\n');
@@ -337,6 +351,38 @@ function renderAll(){
     title:(r) => r.time || '새 시간',
     blank:() => ({time:'', who:''}),
     fields:[{k:'time', label:'시간', half:true}, {k:'who', label:'수업 대상', half:true}]
+  });
+  listEditor('ed-schedule', 'schedule', {
+    noun:'일정',
+    title:(e) => `${e.date ? e.date.slice(5).replace('-', '/') + ' ' : ''}${e.title || '새 일정'}`,
+    blank:() => ({date: new Date(Date.now() + 9*3600000).toISOString().slice(0,10), end:'', title:'', type:'행사', note:''}),
+    fields:[
+      {k:'date', label:'날짜', type:'date', half:true}, {k:'end', label:'끝나는 날 (하루면 비우기)', type:'date', half:true},
+      {k:'title', label:'일정 이름'},
+      {k:'type', label:'종류 (달력 점 색깔)', type:'select', opts:[['행사','행사 (주황)'],['심사','심사 (빨강)'],['대회','대회 (남색)'],['휴관','휴관 (회색)'],['기타','기타 (청록)']]},
+      {k:'note', label:'한 줄 메모 (시간, 장소 등)'}
+    ]
+  });
+  const WEEK_OPTS = ['월','화','수','목','금','토','일'].map(d => [d, d + '요일']);
+  listEditor('ed-week', 'workout.week', {
+    noun:'요일', heading:'요일별 운동',
+    title:(w) => `${w.day || ''}요일 · ${w.title || ''}`,
+    blank:() => ({day:'월', title:'', items:[], tip:''}),
+    fields:[
+      {k:'day', label:'요일', type:'select', opts:WEEK_OPTS, half:true}, {k:'title', label:'오늘의 주제', half:true},
+      {k:'items', label:'운동 (한 줄에 하나)', type:'pairs', hint:'"운동 이름 | 횟수" 형식으로 적어요. 예) 스쿼트 | 15회 × 2세트'},
+      {k:'tip', label:'한 줄 팁'}
+    ]
+  });
+  listEditor('ed-special', 'workout.special', {
+    noun:'특별한 날', heading:'특별한 날 (이 날짜엔 요일 운동 대신 이걸 보여줘요)',
+    title:(w) => `${w.date || '날짜 없음'} · ${w.title || ''}`,
+    blank:() => ({date: new Date(Date.now() + 9*3600000).toISOString().slice(0,10), title:'', items:[], tip:''}),
+    fields:[
+      {k:'date', label:'날짜', type:'date', half:true}, {k:'title', label:'오늘의 주제', half:true},
+      {k:'items', label:'운동 (한 줄에 하나)', type:'pairs', hint:'"운동 이름 | 횟수" 형식'},
+      {k:'tip', label:'한 줄 팁'}
+    ]
   });
   listEditor('ed-faq', 'faq', {
     noun:'질문', title:(f) => f.q || '새 질문',
@@ -448,6 +494,11 @@ function tidy(){
   if(data.staff) data.staff.members = (data.staff.members || []).filter(m => m.name || m.role);
   if(data.program) data.program.timetable = (data.program.timetable || []).filter(r => r.time || r.who);
   data.faq = (data.faq || []).filter(f => f.q);
+  data.schedule = (data.schedule || []).filter(e => e.date && e.title).sort((a, b) => a.date.localeCompare(b.date));
+  if(data.workout){
+    data.workout.week = (data.workout.week || []).filter(w => w.day);
+    data.workout.special = (data.workout.special || []).filter(w => w.date).sort((a, b) => a.date.localeCompare(b.date));
+  }
 }
 
 async function save(){
