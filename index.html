@@ -858,7 +858,7 @@ function upcomingCard(){
     ${next.length ? `<ul>${next.map(e => {
       const n = dayDiff(e.s, TODAY);
       const label = n > 0 ? 'D-' + n : (n === 0 ? '오늘' : '진행 중');
-      return `<li><span class="dday${n <= 0 ? ' now' : ''}">${label}</span><div class="t"><b>${e.type === '기네스' ? `<span class="tag" style="background:${EV_COLORS['기네스']}">기네스</span>` : ''}${esc(e.title)}</b><span>${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></li>`;
+      return `<li><span class="dday${n <= 0 ? ' now' : ''}">${label}</span><div class="t"><b><span class="tag" style="background:${EV_COLORS[e.type] || EV_COLORS['기타']}">${esc(e.type || '기타')}</span>${esc(e.title)}</b><span>${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></li>`;
     }).join('')}</ul>` : `<p class="empty">예정된 일정이 없어요.</p>`}
   </div>`;
 }
