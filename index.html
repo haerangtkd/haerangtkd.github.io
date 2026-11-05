@@ -394,7 +394,20 @@
   footer.foot b{color:#fff;font-size:15px}
   footer.foot a{color:#fff}
 
-  .totop{position:fixed;right:16px;bottom:20px;z-index:30;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer}
+  /* 오른쪽에 떠 있는 버튼 */
+  .fab{position:fixed;right:12px;bottom:76px;z-index:35;display:flex;flex-direction:column;gap:10px}
+  .fab a{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.22);transition:transform .15s;background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .fab a:active{transform:scale(.92)}
+  .fab a svg{width:24px;height:24px}
+  .fab a.f-calendar{background:#03C75A;color:#fff;border:0}
+  .fab a.f-chat{background:#03C75A;color:#fff;border:0}
+  .fab a.f-insta{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%);color:#fff;border:0}
+  .fab a.f-kakao{background:#FEE500;color:#3C1E1E;border:0}
+  .fab a.f-youtube{background:#FF0000;color:#fff;border:0}
+  .fab a.f-phone{background:var(--brand);color:#fff;border:0}
+  .fab a.f-blog,.fab a.f-book,.fab a.f-photo,.fab a.f-star{background:#03C75A;color:#fff;border:0}
+  body.lock .fab{display:none}
+  .totop{position:fixed;right:15px;bottom:20px;z-index:30;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer}
   .totop svg{width:22px;height:22px}
   .totop.on{opacity:.9;pointer-events:auto}
 
@@ -623,6 +636,12 @@ function render(d){
       ${ct.phone ? `상담 전화 <a href="tel:${esc(tel)}">${esc(ct.phone)}</a><br>` : ''}
       © ${esc(d.since || '2023')} ${brand}</div>
     </div></footer>
+    ${(() => {
+      const fl = list(d.links).filter(l => l.float && l.url);
+      const ph = tel && ct.floatPhone !== false;
+      if(!fl.length && !ph) return '';
+      return `<nav class="fab" aria-label="빠른 문의">${fl.map(l => `<a class="f-${esc(l.icon)}" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.name)}" title="${esc(l.name)}">${svg(l.icon, 2.2)}</a>`).join('')}${ph ? `<a class="f-phone" href="tel:${esc(tel)}" aria-label="전화 상담" title="전화 상담">${svg('phone', 2.2)}</a>` : ''}</nav>`;
+    })()}
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');

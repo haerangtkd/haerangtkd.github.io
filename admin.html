@@ -190,6 +190,7 @@
   <details class="card"><summary>⑪ 상담 문의 · 링크</summary><div class="in">
     <label class="f">제목</label><input data-k="contact.title">
     <label class="f">전화번호 (누르면 바로 전화 연결)</label><input data-k="contact.phone" inputmode="tel">
+    <label class="check"><input type="checkbox" id="floatPhone"> 오른쪽에 떠 있는 전화 버튼 보이기</label>
     <p class="hint">위에서부터 <b>8개</b>가 첫 화면 '상담 및 문의하기' 칸에 나와요. 블로그 칸(도장 모습·해랑경희 칼럼·수련 이야기)은 지금 블로그 첫 화면으로 연결돼 있으니, 이름과 주소를 원하시는 글이나 카테고리로 바꿔 주세요.</p>
     <div id="ed-links"></div>
   </div></details>
@@ -294,7 +295,13 @@ function showEditor(){
 }
 
 // 한 칸짜리 입력(data-k)과 여러 줄 입력(data-lines) 연결
+function bindFloatPhone(){
+  const c = $('floatPhone'); if(!c) return;
+  c.checked = getP(data, 'contact.floatPhone') !== false;
+  c.onchange = () => setP(data, 'contact.floatPhone', c.checked);
+}
 function bindSimple(root){
+  bindFloatPhone();
   root.querySelectorAll('#editor [data-k]').forEach(el => {
     el.value = getP(data, el.dataset.k) ?? '';
     el.oninput = () => setP(data, el.dataset.k, el.value);
@@ -482,7 +489,8 @@ function renderAll(){
       {k:'desc', label:'설명 (한 줄)'},
       {k:'url', label:'주소', inputmode:'url'},
       {k:'icon', label:'아이콘', type:'select', opts:ICON_OPTIONS},
-      {k:'main', label:'빨간 테두리로 강조', type:'check'}
+      {k:'main', label:'빨간 테두리로 강조', type:'check'},
+      {k:'float', label:'오른쪽에 떠 있는 버튼으로도 보이기', type:'check'}
     ]
   });
   renderGallery();

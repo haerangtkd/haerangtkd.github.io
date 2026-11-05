@@ -482,7 +482,8 @@
   ],
   "contact": {
     "title": "상담 및 문의하기",
-    "phone": "010-9917-9954"
+    "phone": "010-9917-9954",
+    "floatPhone": true
   },
   "location": {
     "title": "찾아오시는 길",
@@ -499,7 +500,8 @@
       "desc": "체험수업·상담 예약",
       "url": "https://naver.me/FM9x4hfi",
       "main": true,
-      "short": "네이버 예약"
+      "short": "네이버 예약",
+      "float": true
     },
     {
       "icon": "chat",
@@ -507,7 +509,8 @@
       "desc": "네이버로 편하게 질문하기",
       "url": "https://talk.naver.com/WYCVDRR",
       "main": false,
-      "short": "톡톡 문의"
+      "short": "톡톡 문의",
+      "float": false
     },
     {
       "icon": "kakao",
@@ -515,7 +518,8 @@
       "desc": "카카오톡 채널로 문의하기",
       "url": "https://pf.kakao.com/_nxiJxdG",
       "main": false,
-      "short": "카카오톡"
+      "short": "카카오톡",
+      "float": true
     },
     {
       "icon": "insta",
@@ -523,7 +527,8 @@
       "desc": "@haerang_tkd · 수업 일상과 제자들 모습",
       "url": "https://www.instagram.com/haerang_tkd",
       "main": false,
-      "short": "인스타그램"
+      "short": "인스타그램",
+      "float": true
     },
     {
       "icon": "blog",
@@ -531,7 +536,8 @@
       "desc": "어떤 생각으로 지도하는지 담은 글",
       "url": "https://blog.naver.com/haerang_tkd/223781332649",
       "main": false,
-      "short": "네이버 블로그"
+      "short": "네이버 블로그",
+      "float": false
     },
     {
       "icon": "photo",
@@ -539,7 +545,8 @@
       "short": "도장 모습",
       "desc": "블로그에서 보는 도장 모습",
       "url": "https://blog.naver.com/haerang_tkd",
-      "main": false
+      "main": false,
+      "float": false
     },
     {
       "icon": "book",
@@ -547,7 +554,8 @@
       "short": "해랑경희 칼럼",
       "desc": "해랑경희의 교육 이야기",
       "url": "https://blog.naver.com/haerang_tkd",
-      "main": false
+      "main": false,
+      "float": false
     },
     {
       "icon": "star",
@@ -555,7 +563,8 @@
       "short": "수련 이야기",
       "desc": "수업·대회·심사 이야기",
       "url": "https://blog.naver.com/haerang_tkd",
-      "main": false
+      "main": false,
+      "float": false
     }
   ],
   "footer": "감사합니다",
