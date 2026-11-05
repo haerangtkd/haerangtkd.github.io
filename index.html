@@ -133,6 +133,58 @@
   .sc-call{grid-column:1/-1;flex-direction:row;justify-content:center;background:var(--brand);border-color:var(--brand);color:#fff;font-size:15px;padding:14px}
   .sc-call .ic{width:auto;height:auto;background:none;color:#fff}
 
+  /* 홈: 사진 | 알림판 두 칸 */
+  .twin{display:grid;gap:12px;margin-top:12px}
+  @media (min-width:900px){ .twin{grid-template-columns:1fr 1fr} }
+  @media (max-width:440px){ .ph [data-prev],.ph [data-next]{display:none} }
+  .panel{padding:16px 16px 14px;display:flex;flex-direction:column;min-width:0}
+  .ph{display:flex;align-items:center;gap:2px;margin-bottom:12px}
+  .ph h3{font-size:16px;font-weight:900;margin-right:auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ph .cnt{font-size:13px;color:var(--muted);margin-right:2px;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
+  .ph button,.ph a.plus{flex:none}
+  @media (min-width:900px){ #homePage .wrap{max-width:860px} }
+  .ph .cnt b{color:var(--ink)}
+  .ph button,.ph a.plus{width:29px;height:30px;border:0;background:none;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--ink);text-decoration:none}
+  .ph button:hover,.ph a.plus:hover{background:#F3EEE9}
+  .ph svg{width:17px;height:17px}
+  .ph a.plus svg{width:20px;height:20px}
+  .slides{position:relative;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#F3EEE9}
+  .sl{position:absolute;inset:0;opacity:0;transition:opacity .6s ease;pointer-events:none;display:block;text-decoration:none;color:inherit}
+  .sl.on{opacity:1;pointer-events:auto}
+  .sl img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+  .sl.poster img{object-fit:contain}
+  .sl .cap{position:absolute;left:0;right:0;bottom:0;padding:22px 12px 10px;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff;font-size:14px;font-weight:700;word-break:keep-all}
+  .sl.text{padding:14px 14px 10px;overflow:auto;background:#FFF8EC}
+  .sl.text ul{list-style:none}
+  .sl.text li{position:relative;padding:8px 0 8px 14px;border-top:1px solid #F1E3C8;font-size:14px;word-break:keep-all}
+  .sl.text li:first-child{border-top:0}
+  .sl.text li::before{content:"";position:absolute;left:1px;top:16px;width:6px;height:6px;border-radius:50%;background:#D9822B}
+  .sl.text h4{font-size:13px;color:#B7791F;margin-bottom:4px}
+  .wo .flabel{padding:0 18px;font-size:12.5px;font-weight:700;color:#FFD9A8;letter-spacing:.04em}
+  .wo .flabel + ol{padding-top:4px}
+  .wo .theme + .sub{margin-bottom:8px}
+  .fo td:first-child{color:var(--ink)}
+  .fo tr.now td{background:var(--brand-soft);font-weight:700}
+  .fo tr.past td{color:#A9A19B}
+
+  /* 알림판 페이지 · 보도자료 */
+  .posters{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .pst{padding:0;overflow:hidden;text-decoration:none;color:inherit;display:block}
+  .pst img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:#F3EEE9;cursor:zoom-in}
+  .pst div{padding:10px 12px 12px;font-size:14px;font-weight:700;word-break:keep-all}
+  .pst div span{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+  .press{display:flex;flex-direction:column;gap:12px}
+  .pr{display:flex;flex-direction:column;padding:0;overflow:hidden;text-decoration:none;color:inherit;transition:border-color .15s}
+  .pr:hover{border-color:var(--brand)}
+  .pr img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#F3EEE9}
+  .pr .b{padding:16px 18px 18px}
+  .pr .src{font-size:12.5px;font-weight:700;color:var(--brand)}
+  .pr .src span{color:var(--muted);font-weight:500}
+  .pr h4{font-size:16.5px;font-weight:900;line-height:1.45;margin:4px 0 6px;word-break:keep-all}
+  .pr p{font-size:14px;color:var(--muted);word-break:keep-all}
+  .pr .go{display:inline-block;margin-top:10px;font-size:13.5px;font-weight:700;color:var(--brand)}
+  .emptybox{text-align:center;color:var(--muted);font-size:14.5px;padding:30px 16px}
+
   /* ---------- 하위 페이지 ---------- */
   .pagehero{background:var(--brand);color:#fff;position:relative;overflow:hidden;padding:22px 20px 24px}
   .pagehero .in{max-width:640px;margin:0 auto;position:relative}
@@ -332,7 +384,7 @@ const ICONS = {
   run:'<circle cx="14" cy="4.5" r="2"/><path d="m6 20 3.5-5 3 2 1.5-6"/><path d="M9 9.5 12 8l3 3 3.5 1"/><path d="m14 11-2 5"/>',
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   up:'<path d="m6 15 6-6 6 6"/>', left:'<path d="m15 6-6 6 6 6"/>', right:'<path d="m9 6 6 6-6 6"/>',
-  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>', close:'<path d="M6 6l12 12M18 6 6 18"/>',
+  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>', plus:'<path d="M12 5v14M5 12h14"/>', pause:'<path d="M9 6v12M15 6v12"/>', play:'<path d="m8 5 11 7-11 7Z"/>', megaphone:'<path d="M3 10v4h3l8 5V5L6 10Z"/><path d="M18 9a4 4 0 0 1 0 6"/>', close:'<path d="M6 6l12 12M18 6 6 18"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
 const AREA_COLORS = ['var(--orange)','var(--teal)','var(--navy)','var(--brand)'];
@@ -409,13 +461,13 @@ function render(d){
           ${f.closing ? `<p class="closing">${esc(f.closing)}</p>` : ''}
         </div></details>`).join('')}</div>`)};
 
-  S.today = {label:'오늘의 운동', icon:'run', html: sec('today', '', `${workoutCard(d, false)}${weekTable(d)}`)};
+  S.today = {label:'오늘의 운동', icon:'run', html: sec('today', '', `${workoutCard(d, false)}${focusTable(d)}${weekTable(d)}`)};
   S.schedule = {label:'도장 일정', short:'일정', icon:'calendar', html: sec('schedule', '해랑경희 일정', `
       <div class="card cal" id="cal"></div>
-      <div class="legend">${Object.entries(EV_COLORS).map(([k,c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('')}</div>
+      <div class="legend">${Object.entries(EV_COLORS).filter(([k]) => EVENTS.some(e => (EV_COLORS[e.type] ? e.type : '기타') === k)).map(([k,c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('')}</div>
       <div class="evlist" id="evlist"></div>`)};
-  const ns = noticeCard(d);
-  if(ns) S.notice = {label:'공지사항', icon:'star', html: sec('notice', '', ns)};
+  S.notice = {label:'알림판·공지', short:'알림판', icon:'megaphone', html: sec('notice', '', noticePage(d))};
+  S.press = {label:'보도자료', icon:'news', html: sec('press', '보도자료', pressPage(d))};
   if(list(d.gallery).length) S.gallery = {label:'사진', icon:'photo', html: sec('gallery', d.galleryTitle || '사진으로 보는 해랑경희', gallery(d))};
 
   const ct = d.contact || {};
@@ -432,12 +484,12 @@ function render(d){
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
     {name:'도장 소개', items:['philosophy','staff']},
-    {name:'수련 안내', items:['curriculum','program','timetable','faq']},
-    {name:'도장 소식', items:['today','schedule','notice','gallery']},
+    {name:'수련 안내', items:['today','curriculum','program','timetable','faq']},
+    {name:'도장 소식', items:['schedule','notice','gallery','press']},
     {name:'상담 문의', items:['contact']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
-  const tileIds = ['philosophy','staff','curriculum','timetable','schedule','today','faq','gallery'].filter(id => S[id]);
+  const tileIds = ['philosophy','staff','today','timetable','schedule','notice','gallery','press'].filter(id => S[id]);
   const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
   document.getElementById('app').innerHTML = `
@@ -471,8 +523,13 @@ function render(d){
         <section class="card intro">${intro}</section>
         <div class="home">
           ${workoutCard(d, true)}
+        </div>
+        <div class="twin">
+          ${photoPanel(d)}
+          ${boardPanel(d)}
+        </div>
+        <div class="home">
           ${upcomingCard()}
-          ${ns}
         </div>
         <div class="label">바로가기</div>
         <div class="shortcuts">
@@ -500,7 +557,7 @@ function render(d){
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupTabs(); setupCalendar(); setupGallery(); setupTop();
+  setupMenu(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop();
   window.addEventListener('hashchange', route); route();
 }
 
@@ -538,26 +595,44 @@ function weekdayThemes(d){
   const { plan } = monthPlan(d);
   return (plan && plan.weekday) || {};
 }
+const isDate = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '');
+function focusList(d){
+  return list((d.monthly || {}).focus).filter(f => isDate(f.date) && f.title).map(f => {
+    const s = parseD(f.date); let en = isDate(f.end) ? parseD(f.end) : s; if(en < s) en = s;
+    return {...f, s, en};
+  }).sort((a, b) => a.s - b.s);
+}
 function workoutCard(d, onHome){
   const mo = d.monthly || {};
   const dow = TODAY.getDay(), weekend = dow === 0 || dow === 6;
   const evs = eventsOn(TODAY);
   const off = evs.filter(e => e.type === '휴관');
+  const fs = focusList(d).filter(f => f.s <= TODAY && TODAY <= f.en);
   const items = list(weekdayThemes(d)[WEEK[dow]]);
   const evRows = evs.filter(e => e.type !== '휴관').map(e => {
     const c = EV_COLORS[e.type] || EV_COLORS['기타'];
-    return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type === '수련' ? '이번 주 집중' : e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
+    return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
   }).join('');
   let body;
   if(off.length) body = `<div class="theme">오늘은 쉬는 날이에요</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
-  else if(weekend && !evRows && !items.length) body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말! 월요일에 만나요 ☺')}</div>`;
-  else body = `${evRows ? `<div class="focusbox">${evRows}</div>` : ''}
-      ${items.length ? `<ol>${items.map(i => `<li><b>${esc(i)}</b></li>`).join('')}</ol>` : ''}
-      ${!evRows && !items.length ? `<div class="theme">오늘은 정해진 운동이 없어요</div>` : ''}`;
+  else if(weekend && !fs.length && !evRows && !items.length) body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말! 월요일에 만나요 ☺')}</div>`;
+  else body = `
+      ${fs.length ? `<div class="flabel">${fs.some(f => +f.s !== +f.en) ? '이번 주 수련' : '오늘의 수련'}</div><div class="theme">${fs.map(f => esc(f.title)).join(' · ')}</div><p class="sub">${fs.map(rangeText).join(', ')}</p>` : ''}
+      ${evRows ? `<div class="focusbox">${evRows}</div>` : ''}
+      ${items.length ? `<div class="flabel" style="margin-top:6px">${WEEK[dow]}요일 수업</div><ol>${items.map(i => `<li><b>${esc(i)}</b></li>`).join('')}</ol>` : ''}
+      ${!fs.length && !evRows && !items.length ? `<div class="theme">오늘은 정해진 운동이 없어요</div>` : ''}`;
   return `<div class="card hc wo">
-    <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2>${onHome ? `<a class="more" href="#/today">요일별 테마 ›</a>` : ''}</div>
+    <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2>${onHome ? `<a class="more" href="#/today">이달 수련 계획 ›</a>` : ''}</div>
     ${body}<div class="pad"></div>
   </div>`;
+}
+function focusTable(d){
+  const y = TODAY.getFullYear(), m = TODAY.getMonth();
+  const ms = new Date(y, m, 1), me = new Date(y, m + 1, 0);
+  const rows = focusList(d).filter(f => f.s <= me && f.en >= ms);
+  if(!rows.length) return '';
+  return `<div class="card tt fo" style="margin-top:14px"><h4>${m + 1}월 수련 계획</h4><table>
+    ${rows.map(f => `<tr class="${f.s <= TODAY && TODAY <= f.en ? 'now' : (f.en < TODAY ? 'past' : '')}"><td>${rangeText(f)}</td><td>${esc(f.title)}</td></tr>`).join('')}</table></div>`;
 }
 function weekTable(d){
   const wd = weekdayThemes(d);
@@ -567,14 +642,57 @@ function weekTable(d){
   return `<div class="card tt wk" style="margin-top:14px"><h4>요일별 운동테마</h4><table>
     ${rows.map(([w, v]) => `<tr class="${w === today ? 'today' : ''}"><td>${w}</td><td>${v.map(esc).join(' · ')}</td></tr>`).join('')}</table></div>`;
 }
-function noticeCard(d){
+function monthNotices(d){
   const { exact } = monthPlan(d);
-  const ns = exact ? list(exact.notices) : [];
-  if(!ns.length) return '';
-  return `<div class="card hc nt">
-    <div class="hc-head"><span class="ic">${svg('star')}</span><h2>${+exact.month.slice(5)}월 공지사항<small>해랑경희 태권도장</small></h2></div>
-    <ul>${ns.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
-  </div>`;
+  return exact ? { m: +exact.month.slice(5), list: list(exact.notices) } : { m: TODAY.getMonth() + 1, list: [] };
+}
+function activePosters(d){
+  return list(d.board).filter(p => p.image || p.title).filter(p => (!isDate(p.start) || parseD(p.start) <= TODAY) && (!isDate(p.end) || TODAY <= parseD(p.end)));
+}
+const pad2 = n => String(n).padStart(2, '0');
+function sliderHead(title, n, more){
+  return `<div class="ph"><h3>${esc(title)}</h3>
+    ${n > 1 ? `<span class="cnt"><b data-cur>01</b> · ${pad2(n)}</span>
+      <button type="button" data-prev aria-label="이전">${svg('left',2.4)}</button>
+      <button type="button" data-pp aria-label="멈춤">${svg('pause',2.6)}</button>
+      <button type="button" data-next aria-label="다음">${svg('right',2.4)}</button>` : ''}
+    <a class="plus" href="${more}" aria-label="더 보기">${svg('plus',2.2)}</a></div>`;
+}
+function photoPanel(d){
+  const pics = list(d.gallery);
+  if(!pics.length) return '';
+  return `<div class="card panel slider">${sliderHead(d.galleryTitle || '사진으로 보는 해랑경희', pics.length, '#/gallery')}
+    <div class="slides">${pics.map((p, i) => `<div class="sl${i ? '' : ' on'}"><img src="${esc(p)}" alt="수업 사진" data-zoom ${i > 1 ? 'loading="lazy"' : ''}></div>`).join('')}</div></div>`;
+}
+function posterSlide(p, i){
+  const inner = `${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.title || '알림')}" ${p.url ? '' : 'data-zoom'}>` : ''}${p.title ? `<span class="cap">${esc(p.title)}</span>` : ''}`;
+  return p.url ? `<a class="sl poster${i ? '' : ' on'}" href="${esc(p.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="sl poster${i ? '' : ' on'}">${inner}</div>`;
+}
+function boardPanel(d){
+  const ps = activePosters(d), nt = monthNotices(d);
+  const slides = ps.map(posterSlide);
+  if(nt.list.length) slides.push(`<div class="sl text${slides.length ? '' : ' on'}"><h4>${nt.m}월 공지사항</h4><ul>${nt.list.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`);
+  if(!slides.length) slides.push(`<div class="sl text on"><p class="emptybox">새 소식이 올라오면 여기에 보여요.</p></div>`);
+  return `<div class="card panel slider">${sliderHead('알림판', slides.length, '#/notice')}<div class="slides">${slides.join('')}</div></div>`;
+}
+function noticePage(d){
+  const ps = activePosters(d), nt = monthNotices(d);
+  return `${ps.length ? `<h3 class="st">행사 · 알림</h3><div class="posters">${ps.map(p => {
+      const inner = `${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.title || '알림')}" ${p.url ? '' : 'data-zoom'} loading="lazy">` : ''}<div>${esc(p.title || '')}${isDate(p.end) ? `<span>~ ${+p.end.slice(5,7)}.${+p.end.slice(8)}까지</span>` : ''}</div>`;
+      return p.url ? `<a class="card pst" href="${esc(p.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="card pst">${inner}</div>`;
+    }).join('')}</div>` : ''}
+    <h3 class="st" style="${ps.length ? 'margin-top:28px' : ''}">${nt.m}월 공지사항</h3>
+    ${nt.list.length ? `<div class="card hc nt"><ul style="padding-top:6px">${nt.list.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : `<div class="card emptybox">이번 달 공지사항이 아직 없어요.</div>`}`;
+}
+function pressPage(d){
+  const ps = list(d.press).filter(p => p.title && p.url).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  if(!ps.length) return `<div class="card emptybox">아직 등록된 보도자료가 없어요.</div>`;
+  return `<div class="press">${ps.map(p => `
+    <a class="card pr" href="${esc(p.url)}" target="_blank" rel="noopener">
+      ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy">` : ''}
+      <div class="b"><div class="src">${esc(p.source || '언론 보도')}${isDate(p.date) ? ` <span>· ${p.date.replace(/-/g, '.')}</span>` : ''}</div>
+      <h4>${esc(p.title)}</h4>${p.summary ? `<p>${esc(p.summary)}</p>` : ''}<span class="go">기사 보기 ›</span></div>
+    </a>`).join('')}</div>`;
 }
 
 // ---------- 일정 ----------
@@ -654,19 +772,36 @@ function gallery(d){
     <div class="photogrid">${pics.map(p => `<img src="${esc(p)}" alt="수업 사진" loading="lazy">`).join('')}</div>`;
 }
 function setupGallery(){
-  const m = document.querySelector('.marquee');
-  if(!m) return;
   const lb = document.createElement('div');
   lb.className = 'lightbox'; lb.innerHTML = '<img alt="">';
   document.body.append(lb);
-  const open = e => {
-    if(e.target.tagName !== 'IMG') return;
-    lb.querySelector('img').src = e.target.src;
-    lb.classList.add('on'); m.classList.add('paused');
-  };
-  m.addEventListener('click', open);
-  document.querySelector('.photogrid').addEventListener('click', open);
-  lb.addEventListener('click', () => { lb.classList.remove('on'); m.classList.remove('paused'); });
+  const m = document.querySelector('.marquee');
+  document.getElementById('app').addEventListener('click', e => {
+    const img = e.target.closest('.marquee img, .photogrid img, img[data-zoom]');
+    if(!img) return;
+    lb.querySelector('img').src = img.src;
+    lb.classList.add('on'); if(m) m.classList.add('paused');
+  });
+  lb.addEventListener('click', () => { lb.classList.remove('on'); if(m) m.classList.remove('paused'); });
+}
+// 홈의 사진·알림판 슬라이드 (4초마다 넘어감, ‖ 로 멈춤)
+function setupSliders(){
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.slider').forEach(box => {
+    const sl = [...box.querySelectorAll('.sl')], cur = box.querySelector('[data-cur]'), pp = box.querySelector('[data-pp]');
+    if(sl.length < 2) return;
+    let i = 0, playing = !still, t;
+    const show = n => { sl[i].classList.remove('on'); i = (n + sl.length) % sl.length; sl[i].classList.add('on'); if(cur) cur.textContent = String(i + 1).padStart(2, '0'); };
+    const loop = () => { clearInterval(t); if(playing) t = setInterval(() => show(i + 1), 4000); };
+    const setPP = () => { pp.innerHTML = svg(playing ? 'pause' : 'play', 2.6); pp.setAttribute('aria-label', playing ? '멈춤' : '재생'); };
+    box.querySelector('[data-prev]').onclick = () => { show(i - 1); loop(); };
+    box.querySelector('[data-next]').onclick = () => { show(i + 1); loop(); };
+    pp.onclick = () => { playing = !playing; setPP(); loop(); };
+    let x0 = null;
+    box.querySelector('.slides').addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, {passive:true});
+    box.querySelector('.slides').addEventListener('touchend', e => { if(x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if(Math.abs(dx) > 40){ show(i + (dx < 0 ? 1 : -1)); loop(); } x0 = null; });
+    setPP(); loop();
+  });
 }
 
 // ---------- 메뉴 ----------

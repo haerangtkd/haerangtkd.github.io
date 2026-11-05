@@ -139,43 +139,55 @@
     <div id="ed-timetable"></div>
   </div></details>
 
-  <details class="card"><summary>⑤ 오늘의 운동 · 이달의 공지</summary><div class="in">
-    <p class="hint"><b>월초에 할 일</b><br>
-    1. 아래 <b>+ 달 추가</b>를 누르고 이달 공지사항을 적어요.<br>
-    2. 계획표의 날짜 칸(승급심사주간, 특강, 공휴일, 기네스 등)은 <b>⑥ 일정</b>에 넣어요.<br>
-    → 사이트의 '오늘의 운동'에 그날 요일 테마와 그날 일정이 자동으로 나와요. 공휴일·휴관으로 넣은 날은 '쉬는 날'로 나와요.</p>
-    <div class="row">
-      <div><label class="f">카드 제목</label><input data-k="monthly.title"></div>
-      <div><label class="f">주말 문구</label><input data-k="monthly.weekendText"></div>
-    </div>
-    <label class="f" style="margin-top:18px;font-weight:700;color:var(--ink)">요일별 운동테마 (매달 같음 · 바뀔 때만 고치기)</label>
+  <p class="hint" style="margin-top:20px"><b>월초에 할 일</b> — 월간 수련 계획표를 보고<br>
+  · 평일 칸(겨루기 스텝 및 개인 품새, 기네스, 승급심사주간 등) → <b>오늘의 운동</b><br>
+  · 주말·공휴일 칸(공인단 심사, 해랑경희데이, 합숙, 공휴일 등) → <b>도장 일정</b><br>
+  · 아래 공지사항 → <b>알림판 · 공지</b>에 <b>+ 달 추가</b></p>
+
+  <details class="card"><summary>⑤ 오늘의 운동</summary><div class="in">
+    <p class="hint">오늘 날짜에 해당하는 <b>수련 내용</b>과 그날 <b>요일 수업</b>이 사이트의 '오늘의 운동'에 자동으로 나와요. 지난 기간은 지우지 않아도 돼요.</p>
+    <div id="ed-focus"></div>
+    <label class="f" style="margin-top:22px;font-weight:700;color:var(--ink)">요일별 수업 (매달 같음 · 바뀔 때만 고치기)</label>
     <label class="f">월요일 (한 줄에 하나)</label><textarea data-lines="monthly.weekday.월" style="min-height:64px"></textarea>
     <label class="f">화요일</label><textarea data-lines="monthly.weekday.화" style="min-height:64px"></textarea>
     <label class="f">수요일</label><textarea data-lines="monthly.weekday.수" style="min-height:64px"></textarea>
     <label class="f">목요일</label><textarea data-lines="monthly.weekday.목" style="min-height:64px"></textarea>
     <label class="f">금요일</label><textarea data-lines="monthly.weekday.금" style="min-height:64px"></textarea>
     <label class="f">토요일 (비우면 주말 문구가 나와요)</label><textarea data-lines="monthly.weekday.토" style="min-height:64px"></textarea>
-    <div id="ed-months"></div>
+    <div class="row">
+      <div><label class="f">카드 제목</label><input data-k="monthly.title"></div>
+      <div><label class="f">주말 문구</label><input data-k="monthly.weekendText"></div>
+    </div>
   </div></details>
 
-  <details class="card"><summary>⑥ 일정 (날짜별)</summary><div class="in">
-    <p class="hint">달력, <b>다가오는 일정</b>, <b>오늘의 운동</b>에 자동으로 나와요. 날짜 순서는 저장할 때 정리돼요.<br>
-    종류: <b>수련</b> = 그 기간 집중 수련 내용 (예: 기본동작 및 힘의 강약) · <b>휴관</b> = 공휴일·쉬는 날</p>
+  <details class="card"><summary>⑥ 도장 일정</summary><div class="in">
+    <p class="hint">달력과 첫 화면 <b>다가오는 일정</b>에 나와요. <b>휴관·공휴일</b>로 넣은 날은 '오늘의 운동'에 쉬는 날로 나와요.</p>
     <div id="ed-schedule"></div>
   </div></details>
 
-  <details class="card"><summary>⑦ 자주 묻는 질문</summary><div class="in">
+  <details class="card"><summary>⑦ 알림판 · 공지</summary><div class="in">
+    <p class="hint">첫 화면 오른쪽 <b>알림판</b>에 포스터가 차례로 넘어가며 나와요. 게시 기간을 정하면 그 기간에만 보여요. 이달 공지사항도 알림판 마지막 장에 나와요.</p>
+    <div id="ed-board"></div>
+    <div id="ed-months"></div>
+  </div></details>
+
+  <details class="card"><summary>⑧ 보도자료</summary><div class="in">
+    <p class="hint">도장 소식 → 보도자료에 최신 날짜순으로 나와요. 기사 주소를 꼭 넣어 주세요.</p>
+    <div id="ed-press"></div>
+  </div></details>
+
+  <details class="card"><summary>⑨ 자주 묻는 질문</summary><div class="in">
     <div id="ed-faq"></div>
   </div></details>
 
-  <details class="card"><summary>⑧ 사진</summary><div class="in">
+  <details class="card"><summary>⑩ 사진</summary><div class="in">
     <label class="f">제목</label><input data-k="galleryTitle">
     <div id="gallery" class="gallery"></div>
     <label class="btn ghost wide">+ 사진 추가 (여러 장 선택 가능)<input type="file" id="addPhoto" accept="image/*" multiple hidden></label>
     <p class="hint">사진은 자동으로 크기를 줄여서 올라가요. ◀ ▶로 순서를 바꿀 수 있어요. 가로 사진이 가장 잘 어울려요.</p>
   </div></details>
 
-  <details class="card"><summary>⑨ 상담 문의 · 링크</summary><div class="in">
+  <details class="card"><summary>⑪ 상담 문의 · 링크</summary><div class="in">
     <label class="f">제목</label><input data-k="contact.title">
     <label class="f">전화번호 (누르면 바로 전화 연결)</label><input data-k="contact.phone" inputmode="tel">
     <div id="ed-links"></div>
@@ -389,12 +401,45 @@ function renderAll(){
     fields:[
       {k:'date', label:'날짜', type:'date', half:true}, {k:'end', label:'끝나는 날 (하루면 비우기)', type:'date', half:true},
       {k:'title', label:'일정 이름'},
-      {k:'type', label:'종류 (달력 점 색깔)', type:'select', opts:[['수련','수련 (초록)'],['행사','행사 (주황)'],['심사','심사 (빨강)'],['대회','대회 (남색)'],['휴관','휴관·공휴일 (회색)'],['기타','기타 (청록)']]},
+      {k:'type', label:'종류 (달력 점 색깔)', type:'select', opts:[['행사','행사 (주황)'],['심사','심사 (빨강)'],['대회','대회 (남색)'],['휴관','휴관·공휴일 (회색)'],['기타','기타 (청록)']]},
       {k:'note', label:'한 줄 메모 (시간, 장소 등)'}
     ]
   });
+  const today = () => new Date(Date.now() + 9*3600000).toISOString().slice(0,10);
+  listEditor('ed-focus', 'monthly.focus', {
+    noun:'수련 내용', heading:'날짜별 수련 내용 (계획표 평일 칸)',
+    title:(f) => `${f.date ? f.date.slice(5).replace('-', '/') : ''}${f.end ? '~' + f.end.slice(5).replace('-', '/') : ''} ${f.title || '새 수련'}`,
+    blank:() => ({date: today(), end:'', title:''}),
+    fields:[
+      {k:'date', label:'시작 날짜', type:'date', half:true}, {k:'end', label:'끝 날짜 (하루면 비우기)', type:'date', half:true},
+      {k:'title', label:'수련 내용 (예: 겨루기 스텝 및 개인 품새)'}
+    ]
+  });
+  listEditor('ed-board', 'board', {
+    noun:'포스터', heading:'알림판 포스터 (위에 있을수록 먼저)',
+    title:(p) => p.title || '새 포스터',
+    blank:() => ({title:'', image:'', url:'', start:'', end:''}),
+    fields:[
+      {k:'image', label:'포스터 사진', type:'photo'},
+      {k:'title', label:'제목 (사진 아래 글씨)'},
+      {k:'start', label:'게시 시작 (비우면 바로)', type:'date', half:true}, {k:'end', label:'게시 끝 (비우면 계속)', type:'date', half:true},
+      {k:'url', label:'누르면 열릴 주소 (없으면 비우기 · 비우면 사진이 크게 보여요)', inputmode:'url'}
+    ]
+  });
+  listEditor('ed-press', 'press', {
+    noun:'기사', heading:'',
+    title:(p) => p.title || '새 기사',
+    blank:() => ({title:'', source:'', date: today(), url:'', image:'', summary:''}),
+    fields:[
+      {k:'title', label:'기사 제목'},
+      {k:'source', label:'언론사', half:true}, {k:'date', label:'날짜', type:'date', half:true},
+      {k:'url', label:'기사 주소', inputmode:'url'},
+      {k:'summary', label:'한 줄 소개 (없어도 돼요)', type:'textarea'},
+      {k:'image', label:'대표 사진 (없어도 돼요)', type:'photo'}
+    ]
+  });
   listEditor('ed-months', 'monthly.months', {
-    noun:'달', heading:'이달의 공지사항 (최신 달이 아래, 그 달에만 첫 화면에 나와요)',
+    noun:'달', heading:'이달의 공지사항 (그 달에만 나와요)',
     title:(m) => m.month ? `${m.month.slice(0,4)}년 ${+m.month.slice(5)}월 공지` : '새 달',
     blank:() => {
       const ms = (getP(data, 'monthly.months') || []).filter(m => m.month).sort((a, b) => a.month.localeCompare(b.month));
@@ -520,6 +565,11 @@ function tidy(){
   if(data.program) data.program.timetable = (data.program.timetable || []).filter(r => r.time || r.who);
   data.faq = (data.faq || []).filter(f => f.q);
   data.schedule = (data.schedule || []).filter(e => e.date && e.title).sort((a, b) => a.date.localeCompare(b.date));
+  data.board = (data.board || []).filter(p => p.image || p.title);
+  (data.board || []).forEach(p => { if(p.url && !/^(https?:|tel:|mailto:|#)/i.test(p.url)) p.url = 'https://' + p.url; });
+  data.press = (data.press || []).filter(p => p.title && p.url).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  data.press.forEach(p => { if(!/^https?:/i.test(p.url)) p.url = 'https://' + p.url; });
+  if(data.monthly) data.monthly.focus = (data.monthly.focus || []).filter(f => f.date && f.title).sort((a, b) => a.date.localeCompare(b.date));
   if(data.monthly) data.monthly.months = (data.monthly.months || []).filter(m => m.month).sort((a, b) => a.month.localeCompare(b.month));
 }
 
