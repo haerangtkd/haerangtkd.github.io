@@ -396,14 +396,17 @@
   footer.foot a{color:#fff}
 
   /* 오른쪽에 떠 있는 버튼 */
-  .fab{position:fixed;right:12px;bottom:76px;z-index:35;display:flex;flex-direction:column;gap:10px}
-  .fab a{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.22);transition:transform .15s;background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .fab{position:fixed;right:12px;bottom:72px;z-index:35;display:flex;flex-direction:column;gap:8px}
+  .fab a{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.22);transition:transform .15s;background:#fff;color:var(--ink);border:1px solid var(--line)}
   .fab a:active{transform:scale(.92)}
-  .fab a.f-logo{background:none!important;border:0;overflow:hidden}
-  .fab a.f-logo img{width:100%;height:100%;display:block}
+  .fab a.f-logo{border:0;overflow:hidden}
+  .fab a.f-logo img{width:82%;height:82%;display:block;border-radius:22%}
+  .fab a.f-logo.f-kakao img{width:90%;height:90%}
+  .fab a.f-logo.f-blog{background:#222;box-shadow:0 0 0 1.5px rgba(255,255,255,.85),0 4px 14px rgba(0,0,0,.22)}
+  .fab a.f-logo.f-blog img{width:100%;height:100%;border-radius:0}
   .ic.has-logo{background:none!important;padding:0;overflow:hidden}
   .ic .logo-ic{width:100%;height:100%;display:block;border-radius:inherit}
-  .fab a svg{width:24px;height:24px}
+  .fab a svg{width:21px;height:21px}
   .fab a.f-calendar{background:#03C75A;color:#fff;border:0}
   .fab a.f-chat{background:#03C75A;color:#fff;border:0}
   .fab a.f-insta{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%);color:#fff;border:0}
@@ -412,7 +415,7 @@
   .fab a.f-phone{background:var(--brand);color:#fff;border:0}
   .fab a.f-blog,.fab a.f-book,.fab a.f-photo,.fab a.f-star{background:#03C75A;color:#fff;border:0}
   body.lock .fab{display:none}
-  .totop{position:fixed;right:15px;bottom:20px;z-index:30;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer}
+  .totop{position:fixed;right:12px;bottom:20px;z-index:30;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer}
   .totop svg{width:22px;height:22px}
   .totop.on{opacity:.9;pointer-events:auto}
 
@@ -576,7 +579,7 @@ function render(d){
     {name:'상담 문의', items:['contact']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
-  const tileIds = ['philosophy','staff','location','today','timetable','schedule','notice','gallery','press'].filter(id => S[id]);
+  const tileIds = ['philosophy','staff','today','timetable','schedule','notice','gallery','press'].filter(id => S[id]);
   const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
   document.getElementById('app').innerHTML = `
@@ -647,7 +650,7 @@ function render(d){
       const fl = list(d.links).filter(l => l.float && l.url);
       const ph = tel && ct.floatPhone !== false;
       if(!fl.length && !ph) return '';
-      return `<nav class="fab" aria-label="빠른 문의">${fl.map(l => `<a class="f-${esc(l.icon)}${LOGOS[l.icon] ? ' f-logo' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.name)}" title="${esc(l.name)}">${LOGOS[l.icon] ? `<img src="${LOGOS[l.icon]}" alt="">` : svg(l.icon, 2.2)}</a>`).join('')}${ph ? `<a class="f-phone" href="tel:${esc(tel)}" aria-label="전화 상담" title="전화 상담">${svg('phone', 2.2)}</a>` : ''}</nav>`;
+      return `<nav class="fab" aria-label="빠른 문의">${fl.map(l => { const lg = LOGOS[l.icon] && l.icon !== 'insta'; return `<a class="f-${esc(l.icon)}${lg ? ' f-logo' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.name)}" title="${esc(l.name)}">${lg ? `<img src="${LOGOS[l.icon]}" alt="">` : svg(l.icon, 2.2)}</a>`; }).join('')}${ph ? `<a class="f-phone" href="tel:${esc(tel)}" aria-label="전화 상담" title="전화 상담">${svg('phone', 2.2)}</a>` : ''}</nav>`;
     })()}
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
