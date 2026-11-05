@@ -69,6 +69,12 @@
   #status{font-size:13px;color:var(--muted);text-align:center;margin-top:6px;min-height:18px}
   #status.ok{color:var(--ok)} #status.err{color:var(--brand)}
   .hidden{display:none!important}
+  #loginMsg{margin-top:12px;font-size:14px;font-weight:700;color:var(--brand);word-break:keep-all;line-height:1.55}
+  #loginMsg:empty{display:none}
+  .modal{position:fixed;inset:0;z-index:100;background:rgba(20,10,10,.5);display:grid;place-items:center;padding:24px}
+  .modal .box{background:#fff;border-radius:16px;padding:22px 20px 16px;width:min(100%,340px);box-shadow:0 12px 40px rgba(0,0,0,.25)}
+  .modal p{font-size:15.5px;line-height:1.6;word-break:keep-all;margin-bottom:16px}
+  .modal .row{gap:8px}
 </style>
 </head>
 <body>
@@ -94,6 +100,7 @@
     <p class="hint">키는 이 기기에만 저장되고 사이트에는 올라가지 않습니다. 키가 없으면 누구도 내용을 바꿀 수 없어요.<br>
     키 만들기: GitHub → Settings → Developer settings → Fine-grained tokens → 이 저장소만 선택 → Contents 권한 <b>Read and write</b></p>
     <button id="connectBtn" class="btn wide" type="button">연결하기</button>
+    <p id="loginMsg" role="alert"></p>
   </div>
 </div>
 
@@ -204,6 +211,18 @@ let uploading = 0;
 
 const $ = id => document.getElementById(id);
 const status = (msg, cls='') => { $('status').textContent = msg; $('status').className = cls; };
+// 카카오톡 등 앱 안 브라우저에서는 alert/confirm 창이 막혀 있어서, 화면 안에 직접 띄움
+function ask(text, ok='확인', cancel='취소'){
+  return new Promise(res => {
+    const m = document.createElement('div'); m.className = 'modal';
+    m.innerHTML = `<div class="box" role="dialog"><p></p><div class="row">${cancel ? `<button type="button" class="btn plain" data-v="0">${cancel}</button>` : ''}<button type="button" class="btn" data-v="1">${ok}</button></div></div>`;
+    m.querySelector('p').textContent = text;
+    m.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { m.remove(); res(b.dataset.v === '1'); });
+    document.body.append(m);
+  });
+}
+const tell = text => ask(text, '확인', '');
+const loginMsg = t => { $('loginMsg').textContent = t || ''; };
 const b64encode = s => btoa(unescape(encodeURIComponent(s)));
 const b64decode = s => decodeURIComponent(escape(atob(s.replace(/\n/g,''))));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -227,10 +246,11 @@ function api(method, body, path='data.json'){
 
 async function connect(){
   const btn = $('connectBtn');
-  btn.disabled = true; btn.textContent = '연결 중…';
+  btn.disabled = true; btn.textContent = '연결 중…'; loginMsg('');
   try{
     const r = await api('GET');
-    if(r.status === 401) throw new Error('관리자 키가 맞지 않아요.');
+    if(r.status === 401) throw new Error('관리자 키가 맞지 않거나 기간이 끝났어요. 키를 다시 복사해서 붙여넣어 주세요.');
+    if(r.status === 403) throw new Error('키 권한이 부족해요. 키를 만들 때 Contents를 Read and write로 했는지 확인해 주세요.');
     if(r.status === 404) throw new Error('저장소나 data.json을 찾지 못했어요. 아이디·저장소 이름을 확인해 주세요.');
     if(!r.ok) throw new Error('연결 실패 (' + r.status + ')');
     const j = await r.json();
@@ -238,7 +258,7 @@ async function connect(){
     data = JSON.parse(b64decode(j.content));
     showEditor();
   }catch(e){
-    alert(e.message); showLogin();
+    showLogin(); loginMsg(e.message.includes('Failed to fetch') ? '인터넷 연결을 확인해 주세요.' : e.message);
   }finally{
     btn.disabled = false; btn.textContent = '연결하기';
   }
@@ -318,7 +338,7 @@ function listEditor(boxId, path, cfgL){
       });
       el.querySelector('[data-a="up"]').onclick = () => { [arr[i-1], arr[i]] = [arr[i], arr[i-1]]; draw(); };
       el.querySelector('[data-a="down"]').onclick = () => { [arr[i+1], arr[i]] = [arr[i], arr[i+1]]; draw(); };
-      el.querySelector('[data-a="del"]').onclick = () => { if(confirm(`'${cfgL.title(it, i)}'을(를) 삭제할까요?`)){ arr.splice(i,1); draw(); } };
+      el.querySelector('[data-a="del"]').onclick = async () => { if(await ask(`'${cfgL.title(it, i)}'을(를) 삭제할까요?`, '삭제')){ arr.splice(i,1); draw(); } };
       box.append(el);
     });
     const add = document.createElement('button');
@@ -460,7 +480,7 @@ function drawPhoto(box, it, key){
     const f = e.target.files[0]; e.target.value = ''; if(!f) return;
     box.classList.add('uploading'); busy(true);
     try{ setP(it, key, await uploadImage(f)); status('사진이 올라갔어요. 저장을 눌러야 사이트에 보여요.', 'ok'); }
-    catch(err){ alert(err.message); status(''); }
+    catch(err){ tell(err.message); status(''); }
     finally{ busy(false); box.classList.remove('uploading'); drawPhoto(box, it, key); }
   };
   const x = box.querySelector('[data-x]');
@@ -479,7 +499,7 @@ function renderGallery(){
     t.querySelector('img').src = imgSrc(p);
     t.querySelector('[data-a="l"]').onclick = () => { [data.gallery[i-1], data.gallery[i]] = [data.gallery[i], data.gallery[i-1]]; renderGallery(); };
     t.querySelector('[data-a="r"]').onclick = () => { [data.gallery[i+1], data.gallery[i]] = [data.gallery[i], data.gallery[i+1]]; renderGallery(); };
-    t.querySelector('[data-a="x"]').onclick = () => { if(confirm('이 사진을 뺄까요?')){ data.gallery.splice(i,1); renderGallery(); } };
+    t.querySelector('[data-a="x"]').onclick = async () => { if(await ask('이 사진을 뺄까요?', '빼기')){ data.gallery.splice(i,1); renderGallery(); } };
     box.append(t);
   });
 }
@@ -489,7 +509,7 @@ async function addPhotos(files){
     const ph = document.createElement('div'); ph.className = 'thumb uploading'; $('gallery').append(ph);
     busy(true);
     try{ data.gallery.push(await uploadImage(file)); }
-    catch(e){ alert(e.message); }
+    catch(e){ tell(e.message); }
     finally{ busy(false); renderGallery(); }
   }
   status('사진이 올라갔어요. 저장을 눌러야 사이트에 보여요.', 'ok');
@@ -530,10 +550,10 @@ async function save(){
 
 $('connectBtn').onclick = () => {
   cfg = { owner:$('owner').value.trim(), repo:$('repo').value.trim(), token:$('token').value.trim() };
-  if(!cfg.owner || !cfg.repo || !cfg.token) return alert('세 칸을 모두 채워주세요.');
+  if(!cfg.owner || !cfg.repo || !cfg.token) return loginMsg('세 칸을 모두 채워주세요.');
   saveCfg(); connect();
 };
-$('logoutBtn').onclick = () => { if(confirm('이 기기에서 관리자 키를 지울까요?')){ try{ localStorage.removeItem(LS); }catch(e){} cfg = {}; showLogin(); } };
+$('logoutBtn').onclick = async () => { if(await ask('이 기기에서 관리자 키를 지울까요?', '지우기')){ try{ localStorage.removeItem(LS); }catch(e){} cfg = {}; showLogin(); } };
 $('addPhoto').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if(f.length) addPhotos(f); };
 $('saveBtn').onclick = save;
 window.addEventListener('beforeunload', e => { if(uploading > 0){ e.preventDefault(); e.returnValue = ''; } });
