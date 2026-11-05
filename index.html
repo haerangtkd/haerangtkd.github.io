@@ -396,8 +396,12 @@
 
   /* 오른쪽에 떠 있는 버튼 */
   .fab{position:fixed;right:12px;bottom:76px;z-index:35;display:flex;flex-direction:column;gap:10px}
-  .fab a{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.22);transition:transform .15s;background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .fab a{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.22);transition:transform .15s;background:#fff;color:var(--ink);border:1px solid var(--line)}
   .fab a:active{transform:scale(.92)}
+  .fab a.f-logo{background:none!important;border:0;overflow:hidden}
+  .fab a.f-logo img{width:100%;height:100%;display:block}
+  .ic.has-logo{background:none!important;padding:0;overflow:hidden}
+  .ic .logo-ic{width:100%;height:100%;display:block;border-radius:inherit}
   .fab a svg{width:24px;height:24px}
   .fab a.f-calendar{background:#03C75A;color:#fff;border:0}
   .fab a.f-chat{background:#03C75A;color:#fff;border:0}
@@ -455,6 +459,9 @@ const WEEK = ['일','월','화','수','목','금','토'];
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const svg = (name, sw=2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ICONS.link}</svg>`;
+// 카카오톡·인스타·블로그·유튜브는 실제 로고 그림으로
+const LOGOS = { kakao:'img/sns/kakao.png', insta:'img/sns/insta.png', blog:'img/sns/blog.png', youtube:'img/sns/youtube.png' };
+const ico = name => LOGOS[name] ? `<img class="logo-ic" src="${LOGOS[name]}" alt="">` : svg(name);
 const arrow = '<svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
 const list = a => (a || []).filter(Boolean);
 
@@ -537,7 +544,7 @@ function render(d){
       ${tel ? `<a class="callbig" href="tel:${esc(tel)}">${svg('phone')}<span>${esc(ct.phone)}<small>눌러서 바로 전화 상담</small></span></a>` : ''}
       <nav class="links">${list(d.links).map(l => `
         <a class="link${l.main ? ' main' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener">
-          <span class="ic">${svg(l.icon)}</span>
+          <span class="ic${LOGOS[l.icon] ? ' has-logo' : ''}">${ico(l.icon)}</span>
           <span class="text"><span class="name">${esc(l.name)}</span>${l.desc ? `<span class="desc">${esc(l.desc)}</span>` : ''}</span>
           ${arrow}
         </a>`).join('')}</nav>`)};
@@ -613,7 +620,7 @@ function render(d){
         </div>
         <div class="label">${esc(ct.title || '상담 및 문의하기')}</div>
         <div class="shortcuts">
-          ${list(d.links).slice(0, 8).map(l => `<a class="sc" href="${esc(l.url)}" target="_blank" rel="noopener"><span class="ic">${svg(l.icon)}</span>${esc(l.short || l.name)}</a>`).join('')}
+          ${list(d.links).slice(0, 8).map(l => `<a class="sc" href="${esc(l.url)}" target="_blank" rel="noopener"><span class="ic${LOGOS[l.icon] ? ' has-logo' : ''}">${ico(l.icon)}</span>${esc(l.short || l.name)}</a>`).join('')}
           ${tel ? `<a class="sc sc-call" href="tel:${esc(tel)}"><span class="ic">${svg('phone')}</span>${esc(ct.phone)} 전화 상담</a>` : ''}
         </div>
         ${lo.address ? `<a class="addr" href="#/location"><span class="ic">${svg('map')}</span><span>${esc(lo.address)}<small>찾아오시는 길 · 지도 보기</small></span>${arrow}</a>` : ''}
@@ -640,7 +647,7 @@ function render(d){
       const fl = list(d.links).filter(l => l.float && l.url);
       const ph = tel && ct.floatPhone !== false;
       if(!fl.length && !ph) return '';
-      return `<nav class="fab" aria-label="빠른 문의">${fl.map(l => `<a class="f-${esc(l.icon)}" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.name)}" title="${esc(l.name)}">${svg(l.icon, 2.2)}</a>`).join('')}${ph ? `<a class="f-phone" href="tel:${esc(tel)}" aria-label="전화 상담" title="전화 상담">${svg('phone', 2.2)}</a>` : ''}</nav>`;
+      return `<nav class="fab" aria-label="빠른 문의">${fl.map(l => `<a class="f-${esc(l.icon)}${LOGOS[l.icon] ? ' f-logo' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.name)}" title="${esc(l.name)}">${LOGOS[l.icon] ? `<img src="${LOGOS[l.icon]}" alt="">` : svg(l.icon, 2.2)}</a>`).join('')}${ph ? `<a class="f-phone" href="tel:${esc(tel)}" aria-label="전화 상담" title="전화 상담">${svg('phone', 2.2)}</a>` : ''}</nav>`;
     })()}
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
