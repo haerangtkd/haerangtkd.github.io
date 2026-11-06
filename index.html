@@ -418,10 +418,12 @@
   .fab a.f-logo.f-blog{background:#000}
   .fab a.f-logo.f-calendar{background:#fff}
   .fab a.f-logo.f-calendar img{width:62%;height:62%;border-radius:0}
+  .fab a.f-logo.f-chat{background:#fff}
+  .fab a.f-logo.f-chat img{width:64%;height:64%;border-radius:0}
   .fab a.f-logo.f-blog img{width:100%;height:100%;border-radius:0}
   .ic.has-logo{background:none!important;padding:0;overflow:hidden}
   .ic .logo-ic{width:100%;height:100%;display:block;border-radius:inherit}
-  .ic .logo-ic.lg-calendar{width:80%;height:80%;border-radius:0}
+  .ic .logo-ic.lg-calendar,.ic .logo-ic.lg-chat{width:80%;height:80%;border-radius:0}
   .fab a svg{width:21px;height:21px}
   .fab a.f-calendar{background:#03C75A;color:#fff;border:0}
   .fab a.f-chat{background:#03C75A;color:#fff;border:0}
@@ -480,7 +482,7 @@ const WEEK = ['일','월','화','수','목','금','토'];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const svg = (name, sw=2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ICONS.link}</svg>`;
 // 카카오톡·인스타·블로그·유튜브는 실제 로고 그림으로
-const LOGOS = { kakao:'img/sns/kakao.png', insta:'img/sns/insta.png', blog:'img/sns/blog.png?v=3', youtube:'img/sns/youtube.png', calendar:'img/sns/naver-booking.png?v=1' };
+const LOGOS = { kakao:'img/sns/kakao.png', insta:'img/sns/insta.png', blog:'img/sns/blog.png?v=3', youtube:'img/sns/youtube.png', calendar:'img/sns/naver-booking.png?v=1', chat:'img/sns/naver-talk.png?v=1' };
 const ico = name => LOGOS[name] ? `<img class="logo-ic lg-${name}" src="${LOGOS[name]}" alt="">` : svg(name);
 const arrow = '<svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
 const list = a => (a || []).filter(Boolean);
