@@ -449,7 +449,8 @@
   .qp{position:fixed;right:0;bottom:84px;z-index:35;display:flex;align-items:flex-end;transform:translateX(236px);transition:transform .28s ease}
   .qp.open{transform:none}
   .qp .qtab{width:42px;border:0;border-radius:14px 0 0 14px;background:var(--brand);color:#fff;font:inherit;font-weight:900;font-size:15px;line-height:1.15;padding:14px 0 10px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;box-shadow:-4px 4px 14px rgba(0,0,0,.18);margin-bottom:18px}
-  .qp .qtab .v{writing-mode:vertical-rl;letter-spacing:.12em}
+  .qp .qtab .v{display:flex;flex-direction:column;align-items:center;gap:1px}
+  .qp .qtab .v i{font-style:normal;display:block;line-height:1.15}
   .qp .qtab .ar{width:26px;height:26px;border-radius:50%;background:#fff;color:var(--brand);display:grid;place-items:center;transition:transform .28s}
   .qp .qtab .ar svg{width:16px;height:16px}
   .qp.open .qtab .ar{transform:rotate(180deg)}
@@ -735,7 +736,7 @@ function render(d){
       const ph = tel && ct.floatPhone !== false;
       if(!fl.length && !ph) return '';
       const row = (cls, href, name, desc, icon, ext) => `<a href="${esc(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}><span class="qi ${cls}">${icon}</span><span><b>${esc(name)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}</span></a>`;
-      return `<div class="qp" id="qp"><button class="qtab" id="qtab" type="button" aria-expanded="false" aria-controls="qbox"><span class="v">빠른상담</span><span class="ar">${svg('left',2.8)}</span></button>
+      return `<div class="qp" id="qp"><button class="qtab" id="qtab" type="button" aria-expanded="false" aria-controls="qbox"><span class="v" aria-label="빠른상담"><i>빠</i><i>른</i><i>상</i><i>담</i></span><span class="ar">${svg('left',2.8)}</span></button>
         <nav class="qbox" id="qbox" aria-label="빠른 상담"><h4>빠른 상담</h4>${fl.map(l => { const lg = LOGOS[l.icon] && l.icon !== 'insta'; return row(`f-${esc(l.icon)}${lg ? ' f-logo' : ''}`, l.url, l.name, l.desc, lg ? `<img src="${LOGOS[l.icon]}" alt="">` : svg(l.icon, 2.2), true); }).join('')}${ph ? row('f-phone', 'tel:' + tel, '전화 상담', ct.phone, svg('phone', 2.2), false) : ''}</nav></div>`;
     })()}
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
