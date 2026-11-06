@@ -238,6 +238,11 @@
   .park{display:flex;gap:12px;align-items:flex-start;margin-top:14px;padding:16px 18px}
   .park svg{width:26px;height:26px;color:var(--brand);flex:none;margin-top:2px}
   .park b{font-size:15px}
+  .park.gift>div{flex:1;min-width:0}
+  .rf{margin-top:6px}
+  .rr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed #EBC4C7;white-space:nowrap;font-size:14px}
+  .rr span{color:#3A3533}
+  .rr em{font-style:normal;font-weight:900;color:var(--brand)}
   .park.gift{background:var(--brand-soft);border-color:#F3D3D5}
   .faq .fa{font-size:14.5px;color:#3A3533;word-break:keep-all;margin:0 0 8px}
   .faq .fa:last-child{margin-bottom:0}
@@ -573,7 +578,7 @@ function render(d){
       ${list(fe.plans).length ? `<div class="card fee"><h4>월 회비</h4>${list(fe.plans).map(p => `
         <div class="plan"><div><b>${esc(p.name)}</b>${p.who ? `<span>${esc(p.who)}</span>` : ''}</div><strong>${esc(p.price)}</strong></div>`).join('')}
         ${list(fe.notes).length ? `<ul class="fnotes">${list(fe.notes).map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}</div>` : ''}
-      ${list(fe.referral).length ? `<div class="card park gift">${svg('gift')}<div><b>${esc(fe.referralTitle || '지인 소개 혜택')}</b>${list(fe.referral).map(t => `<p>${esc(t)}</p>`).join('')}</div></div>` : ''}
+      ${list(fe.referral).length ? `<div class="card park gift">${svg('gift')}<div><b>${esc(fe.referralTitle || '지인 소개 혜택')}</b><div class="rf">${list(fe.referral).map(t => { const [a, ...b] = String(t).split('|'); return `<div class="rr"><span>${esc(a.trim())}</span><em>${esc(b.join('|').trim())}</em></div>`; }).join('')}</div></div></div>` : ''}
       ${fe.shuttle ? `<div class="card park">${svg('car')}<div><b>${esc(fe.shuttle)}</b>${fe.shuttleNote ? `<p>${esc(fe.shuttleNote)}</p>` : ''}</div></div>` : ''}
       ${tel0 ? `<a class="btn-call" href="tel:${esc(tel0)}">${svg('phone')}회비·차량 전화로 문의하기</a>` : ''}`)};
 
