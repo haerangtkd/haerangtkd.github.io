@@ -139,6 +139,14 @@
     <div id="ed-timetable"></div>
   </div></details>
 
+  <details class="card"><summary>④-2 회비 · 차량 안내</summary><div class="in">
+    <label class="f">제목</label><input data-k="fee.title">
+    <div id="ed-fee"></div>
+    <label class="f">회비 아래 작은 안내 (한 줄에 하나)</label><textarea data-lines="fee.notes"></textarea>
+    <label class="f">차량 안내 (굵은 글씨)</label><input data-k="fee.shuttle">
+    <label class="f">차량 추가 설명 (없어도 돼요)</label><textarea data-k="fee.shuttleNote"></textarea>
+  </div></details>
+
   <p class="hint" style="margin-top:20px"><b>월초에 할 일</b> — 월간 수련 계획표를 보고<br>
   · 평일 칸(겨루기 스텝 및 개인 품새, 기네스, 승급심사주간 등) → <b>오늘의 운동</b><br>
   · 주말·공휴일 칸(공인단 심사, 해랑경희데이, 합숙, 공휴일 등) → <b>도장 일정</b><br>
@@ -442,6 +450,12 @@ function renderAll(){
     blank:() => ({time:'', who:''}),
     fields:[{k:'time', label:'시간', half:true}, {k:'who', label:'수업 대상', half:true}]
   });
+  listEditor('ed-fee', 'fee.plans', {
+    noun:'회비', heading:'월 회비',
+    title:(p) => p.name || '새 회비',
+    blank:() => ({name:'', who:'', price:''}),
+    fields:[{k:'name', label:'이름 (예: 주 3회)', half:true}, {k:'price', label:'금액 (예: 145,000원)', half:true}, {k:'who', label:'대상 (예: 유치부 · 초등부)'}]
+  });
   listEditor('ed-schedule', 'schedule', {
     noun:'일정',
     title:(e) => `${e.date ? e.date.slice(5).replace('-', '/') + ' ' : ''}${e.title || '새 일정'}`,
@@ -614,6 +628,7 @@ function tidy(){
   data.links.forEach(l => { if(!/^(https?:|tel:|mailto:)/i.test(l.url)) l.url = 'https://' + l.url; });
   if(data.staff) data.staff.members = (data.staff.members || []).filter(m => m.name || m.role);
   if(data.program) data.program.timetable = (data.program.timetable || []).filter(r => r.time || r.who);
+  if(data.fee) data.fee.plans = (data.fee.plans || []).filter(p => p.name || p.price);
   data.faq = (data.faq || []).filter(f => f.q);
   data.schedule = (data.schedule || []).filter(e => e.date && e.title).sort((a, b) => a.date.localeCompare(b.date));
   data.board = (data.board || []).filter(p => p.image || p.title);

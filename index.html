@@ -238,6 +238,16 @@
   .park{display:flex;gap:12px;align-items:flex-start;margin-top:14px;padding:16px 18px}
   .park svg{width:26px;height:26px;color:var(--brand);flex:none;margin-top:2px}
   .park b{font-size:15px}
+  .fee h4{font-size:15px;font-weight:900;color:var(--brand);margin-bottom:6px}
+  .fee .plan{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+  .fee .plan b{display:block;font-size:16px}
+  .fee .plan span{display:block;font-size:13px;color:var(--muted)}
+  .fee .plan strong{font-size:18px;font-weight:900;white-space:nowrap}
+  .fnotes{list-style:none;margin-top:8px;padding:12px 14px;background:var(--paper);border-radius:12px}
+  .fnotes li{position:relative;padding-left:12px;font-size:13.5px;color:#3A3533;word-break:keep-all}
+  .fnotes li::before{content:'';position:absolute;left:0;top:.7em;width:4px;height:4px;border-radius:50%;background:var(--brand)}
+  .btn-call{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:14px;border-radius:14px;background:var(--brand);color:#fff;font-weight:900;font-size:15px;text-decoration:none}
+  .btn-call svg{width:20px;height:20px}
   .park p{font-size:14.5px;color:#3A3533;word-break:keep-all}
   .mapbox .info .note{font-size:13.5px;color:var(--muted);text-align:left;margin-top:6px}
   .mapbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
@@ -471,6 +481,7 @@ const ICONS = {
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   up:'<path d="m6 15 6-6 6 6"/>', left:'<path d="m15 6-6 6 6 6"/>', right:'<path d="m9 6 6 6-6 6"/>',
   menu:'<path d="M4 7h16M4 12h16M4 17h16"/>', car:'<path d="M5 17h14v-4l-2-5H7l-2 5Z"/><path d="M5 13h14"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/>', copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>', plus:'<path d="M12 5v14M5 12h14"/>', pause:'<path d="M9 6v12M15 6v12"/>', play:'<path d="m8 5 11 7-11 7Z"/>', megaphone:'<path d="M3 10v4h3l8 5V5L6 10Z"/><path d="M18 9a4 4 0 0 1 0 6"/>', close:'<path d="M6 6l12 12M18 6 6 18"/>',
+  won:'<path d="M4 7l3.5 11L12 8l4.5 10L20 7"/><path d="M3 11.5h18M3 14.5h18"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
 const AREA_COLORS = ['var(--orange)','var(--teal)','var(--navy)','var(--brand)'];
@@ -507,6 +518,7 @@ function render(d){
   EVENTS = EVENTS.concat(guinnessEvents(d, EVENTS)).sort((a, b) => a.s - b.s);
 
   const brand = esc(d.footerSub || '해랑경희 태권도장');
+  const tel0 = ((d.contact || {}).phone || '').replace(/[^0-9+]/g, '');
   const intro = list(d.intro).map(p => `<p>${esc(p).split(brand).join(`<strong>${brand}</strong>`)}</p>`).join('');
 
   const ph = d.philosophy || {};
@@ -544,7 +556,15 @@ function render(d){
   if(list(pr.timetable).length) S.timetable = {label:'수련 시간표', short:'시간표', icon:'clock', html: sec('timetable', '수련 시간표', `
       <div class="card tt"><h4>요일 공통 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>`)};
 
-  if(list(d.faq).length) S.faq = {label:'자주 묻는 질문', icon:'help', html: sec('faq', '자주 묻는 질문', `
+  const fe = d.fee || {};
+  if(list(fe.plans).length || fe.shuttle) S.fee = {label:'회비 · 차량 안내', short:'회비·차량', icon:'won', html: sec('fee', fe.title || '회비 · 차량 안내', `
+      ${list(fe.plans).length ? `<div class="card fee"><h4>월 회비</h4>${list(fe.plans).map(p => `
+        <div class="plan"><div><b>${esc(p.name)}</b>${p.who ? `<span>${esc(p.who)}</span>` : ''}</div><strong>${esc(p.price)}</strong></div>`).join('')}
+        ${list(fe.notes).length ? `<ul class="fnotes">${list(fe.notes).map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}</div>` : ''}
+      ${fe.shuttle ? `<div class="card park">${svg('car')}<div><b>${esc(fe.shuttle)}</b>${fe.shuttleNote ? `<p>${esc(fe.shuttleNote)}</p>` : ''}</div></div>` : ''}
+      ${tel0 ? `<a class="btn-call" href="tel:${esc(tel0)}">${svg('phone')}회비·차량 전화로 문의하기</a>` : ''}`)};
+
+  if(list(d.faq).length) S.faq ={label:'자주 묻는 질문', icon:'help', html: sec('faq', '자주 묻는 질문', `
       <div class="faq">${list(d.faq).map((f,i) => `
         <details${i === 0 ? ' open' : ''}><summary>${esc(f.q)}</summary><div class="ans">
           ${list(f.points).map(p => `<div class="pt"><span class="ck">${svg('check',3)}</span><div><b>${esc(p.t)}</b>${p.d ? `<span>${esc(p.d)}</span>` : ''}</div></div>`).join('')}
@@ -603,12 +623,12 @@ function render(d){
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
     {name:'도장 소개', items:['philosophy','staff','location']},
-    {name:'수련 안내', items:['today','curriculum','program','timetable','faq']},
+    {name:'수련 안내', items:['today','curriculum','program','timetable','fee','faq']},
     {name:'도장 소식', items:['schedule','notice','gallery','press']},
     {name:'상담 문의', items:['contact']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
-  const tileIds = ['philosophy','staff','today','timetable','schedule','notice','gallery','press'].filter(id => S[id]);
+  const tileIds = ['philosophy','staff','today','timetable','fee','schedule','notice','gallery','press'].filter(id => S[id]);
   const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
   document.getElementById('app').innerHTML = `
