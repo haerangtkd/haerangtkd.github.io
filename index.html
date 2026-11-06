@@ -238,6 +238,8 @@
   .park{display:flex;gap:12px;align-items:flex-start;margin-top:14px;padding:16px 18px}
   .park svg{width:26px;height:26px;color:var(--brand);flex:none;margin-top:2px}
   .park b{font-size:15px}
+  .faq .fa{font-size:14.5px;color:#3A3533;word-break:keep-all;margin:0 0 8px}
+  .faq .fa:last-child{margin-bottom:0}
   .fee h4{font-size:15px;font-weight:900;color:var(--brand);margin-bottom:6px}
   .fee .plan{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
   .fee .plan b{display:block;font-size:16px}
@@ -575,6 +577,7 @@ function render(d){
   if(list(d.faq).length) S.faq ={label:'자주 묻는 질문', icon:'help', html: sec('faq', '자주 묻는 질문', `
       <div class="faq">${list(d.faq).map((f,i) => `
         <details${i === 0 ? ' open' : ''}><summary>${esc(f.q)}</summary><div class="ans">
+          ${list(f.a).map(t => `<p class="fa">${esc(t)}</p>`).join('')}
           ${list(f.points).map(p => `<div class="pt"><span class="ck">${svg('check',3)}</span><div><b>${esc(p.t)}</b>${p.d ? `<span>${esc(p.d)}</span>` : ''}</div></div>`).join('')}
           ${f.closing ? `<p class="closing">${esc(f.closing)}</p>` : ''}
         </div></details>`).join('')}</div>`)};

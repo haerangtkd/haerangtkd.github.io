@@ -519,9 +519,10 @@ function renderAll(){
   });
   listEditor('ed-faq', 'faq', {
     noun:'질문', title:(f) => f.q || '새 질문',
-    blank:() => ({q:'', points:[], closing:''}),
+    blank:() => ({q:'', a:[], points:[], closing:''}),
     fields:[
       {k:'q', label:'질문'},
+      {k:'a', label:'답변 (한 문단씩 한 줄에)', type:'lines'},
       {k:'points', label:'답변 항목 (한 줄에 하나)', type:'pairs', hint:'"제목 | 설명" 형식으로 적으면 제목은 굵게, 설명은 작게 보여요.'},
       {k:'closing', label:'마무리 문장', type:'textarea'}
     ]
