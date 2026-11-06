@@ -113,6 +113,11 @@
     <label class="f">인사말 카드 (한 줄 = 한 문단)</label><textarea class="tall" data-lines="intro"></textarea>
   </div></details>
 
+  <details class="card"><summary>첫 화면 사진</summary><div class="in">
+    <p class="hint">도장 이름 아래에 4초마다 넘어가는 사진이에요. 위에 있는 사진이 먼저 나와요. 제자 이름이 보이는 사진은 피해 주세요.</p>
+    <div id="ed-hero"></div>
+  </div></details>
+
   <details class="card"><summary>① 교육 철학</summary><div class="in">
     <label class="f">제목</label><input data-k="philosophy.title">
     <label class="f">질문 카드 (한 줄 = 카드 하나)</label><textarea data-lines="philosophy.questions"></textarea>
@@ -452,6 +457,12 @@ function renderAll(){
     blank:() => ({time:'', who:''}),
     fields:[{k:'time', label:'시간', half:true}, {k:'who', label:'수업 대상', half:true}]
   });
+  listEditor('ed-hero', 'heroPhotos', {
+    noun:'사진', heading:'첫 화면 사진',
+    title:(x,i) => `${i+1}번 사진`,
+    blank:() => ({image:'', alt:''}),
+    fields:[{k:'image', label:'사진', type:'photo'}, {k:'alt', label:'사진 설명 (화면에는 안 보여요)'}]
+  });
   listEditor('ed-fee', 'fee.plans', {
     noun:'회비', heading:'월 회비',
     title:(p) => p.name || '새 회비',
@@ -631,6 +642,7 @@ function tidy(){
   data.links.forEach(l => { if(!/^(https?:|tel:|mailto:)/i.test(l.url)) l.url = 'https://' + l.url; });
   if(data.staff) data.staff.members = (data.staff.members || []).filter(m => m.name || m.role);
   if(data.program) data.program.timetable = (data.program.timetable || []).filter(r => r.time || r.who);
+  data.heroPhotos = (data.heroPhotos || []).filter(x => x.image);
   if(data.fee) data.fee.plans = (data.fee.plans || []).filter(p => p.name || p.price);
   data.faq = (data.faq || []).filter(f => f.q);
   data.schedule = (data.schedule || []).filter(e => e.date && e.title).sort((a, b) => a.date.localeCompare(b.date));

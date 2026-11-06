@@ -78,6 +78,14 @@
   .ht{width:min(100%,480px);margin:0 auto;position:relative;display:flex;flex-direction:column;align-items:center;gap:14px}
   .ht img{display:block;width:100%;height:auto}
   .ht .ht-slogan{width:99%}
+  .hero:has(.hphoto){padding-bottom:40px}
+  .hero:has(.hphoto) + .wrap .intro{margin-top:16px}
+  .hphoto{position:relative;z-index:2;margin:22px auto 0;width:min(100%,480px);aspect-ratio:4/3;border-radius:18px;overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.3);border:3px solid rgba(255,255,255,.9);background:#7A0B10}
+  .hphoto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .9s}
+  .hphoto img.on{opacity:1}
+  .hphoto .dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px}
+  .hphoto .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.6);transition:width .3s}
+  .hphoto .dots i.on{background:#fff;width:18px;border-radius:3px}
   .hero .wm{position:absolute;right:-50px;bottom:-60px;width:250px;opacity:.09;pointer-events:none}
   .greet{font-size:13px;letter-spacing:.18em;opacity:.85;margin-bottom:12px}
   .hero h1{font-family:'Noto Serif KR',serif;font-weight:900;font-size:30px;line-height:1.3}
@@ -676,6 +684,7 @@ function render(d){
     <div id="homePage">
       <div class="hero">${lionW}
         <h1 class="ht"><img class="ht-title" src="img/title-white.png" alt="${brand}"><img class="ht-slogan" src="img/slogan-white.png" alt="${esc(d.slogan || '')}"></h1>
+        ${(() => { const hp = list(d.heroPhotos).filter(x => x && x.image); if(!hp.length) return ''; return `<div class="hphoto" id="hphoto">${hp.map((x,i) => `<img class="${i ? '' : 'on'}" src="${esc(x.image)}" alt="${esc(x.alt || '')}"${i ? ' loading="lazy"' : ''}>`).join('')}${hp.length > 1 ? `<div class="dots">${hp.map((_,i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}</div>`; })()}
       </div>
       <main class="wrap">
         <section class="card intro">${intro}</section>
@@ -726,7 +735,7 @@ function render(d){
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupQuick(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop();
+  setupMenu(); setupQuick(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop();
   const cb = document.getElementById('copyAddr');
   if(cb) cb.onclick = async () => {
     const txt = lo.address;
@@ -735,6 +744,19 @@ function render(d){
     cb.lastChild.textContent = '복사됐어요'; setTimeout(() => { cb.lastChild.textContent = '주소 복사'; }, 1800);
   };
   window.addEventListener('hashchange', route); route();
+}
+
+// ---------- 첫 화면 사진 ----------
+function setupHero(){
+  const box = document.getElementById('hphoto'); if(!box) return;
+  const imgs = box.querySelectorAll('img'), dots = box.querySelectorAll('.dots i');
+  if(imgs.length < 2) return;
+  let i = 0;
+  const show = n => { i = (n + imgs.length) % imgs.length; imgs.forEach((im, k) => im.classList.toggle('on', k === i)); dots.forEach((d, k) => d.classList.toggle('on', k === i)); };
+  let tm = setInterval(() => show(i + 1), 4000);
+  let x0 = null;
+  box.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, {passive:true});
+  box.addEventListener('touchend', e => { if(x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if(Math.abs(dx) > 40){ show(i + (dx < 0 ? 1 : -1)); clearInterval(tm); tm = setInterval(() => show(i + 1), 4000); } });
 }
 
 // ---------- 빠른 상담 ----------

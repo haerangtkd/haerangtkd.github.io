@@ -1,5 +1,23 @@
 {
   "slogan": "멋을 추구하나 자만하지 않고 여유가 있으나 교만하지 않은 해랑인",
+  "heroPhotos": [
+    {
+      "image": "photos/hero/hero-1.jpg",
+      "alt": "겨루기 자세를 취한 해랑경희 제자들"
+    },
+    {
+      "image": "photos/hero/hero-2.jpg",
+      "alt": "사범님과 함께하는 수업 시간"
+    },
+    {
+      "image": "photos/hero/hero-3.jpg",
+      "alt": "띠별로 모인 해랑경희 제자들"
+    },
+    {
+      "image": "photos/hero/hero-4.jpg",
+      "alt": "파란 매트 앞에서 웃는 제자들"
+    }
+  ],
   "intro": [
     "안녕하십니까, 해랑경희 태권도장입니다.",
     "태권도 수련을 통해 몸과 마음, 그리고 함께 어울리는 힘까지 건강하게 키우는 교육 기관입니다.",
