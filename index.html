@@ -29,25 +29,26 @@
   [hidden]{display:none!important}
 
   /* ---------- 상단: 로고 줄 ---------- */
-  .top{background:#fff}
-  .top .in{max-width:1080px;margin:0 auto;height:64px;display:flex;align-items:center;gap:8px;padding:0 12px 0 14px}
-  .logo{margin-right:auto;display:flex;align-items:center}
-  .logo img{height:38px;width:auto;display:block}
-  .tel{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:var(--brand);text-decoration:none}
+  .top{background:var(--brand);position:sticky;top:0;z-index:40;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+  .top .in{max-width:1080px;margin:0 auto;height:56px;display:flex;align-items:center;gap:8px;padding:0 12px 0 14px}
+  .logo{margin-right:auto;display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-weight:900;font-size:14px}
+  .logo img{height:30px;width:auto;display:block}
+  body.is-home .logo{visibility:hidden}
+  .tel{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:#fff;text-decoration:none}
   .tel svg{width:23px;height:23px}
-  .allmenu{display:flex;align-items:center;gap:6px;border:0;background:var(--brand);color:#fff;font:inherit;font-weight:900;font-size:14px;padding:9px 14px 9px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  .allmenu{display:flex;align-items:center;gap:6px;border:0;background:#fff;color:var(--brand);font:inherit;font-weight:900;font-size:14px;padding:9px 14px 9px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
   .allmenu svg{width:18px;height:18px}
   .allmenu:active{transform:scale(.96)}
 
   /* ---------- 상단: 메뉴 바 (스크롤해도 따라옴) ---------- */
-  .gnb{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .gnb{display:none;position:sticky;top:0;z-index:40;background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
   .gnb .in{max-width:1080px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 6px}
   .gnb .in::-webkit-scrollbar{display:none}
   .gnb a{flex:1 0 auto;text-align:center;text-decoration:none;font-weight:700;font-size:15px;color:#3A3533;padding:13px 12px 11px;border-bottom:3px solid transparent;white-space:nowrap}
   .gnb a.on{color:var(--brand);border-bottom-color:var(--brand)}
   @media (min-width:900px){
-    .top .in{height:78px}
-    .logo img{height:46px}
+    .top .in{height:64px}
+    .logo img{height:34px}
     .gnb .in{justify-content:center;gap:28px}
     .gnb a{flex:0 0 auto;font-size:17px;padding:16px 18px 14px}
   }
@@ -665,14 +666,10 @@ function render(d){
 
   document.getElementById('app').innerHTML = `
     <header class="top"><div class="in">
-      <a class="logo" href="#/"><img src="img/logo-header.png" alt="${brand}"></a>
+      <a class="logo" href="#/" aria-label="처음 화면으로"><img src="img/lion-white.png" alt=""><span>처음으로</span></a>
       ${tel ? `<a class="tel" href="tel:${esc(tel)}" aria-label="전화 상담">${svg('phone')}</a>` : ''}
       <button class="allmenu" id="menuBtn" type="button" aria-expanded="false">${svg('menu',2.4)}전체메뉴</button>
     </div></header>
-    <nav class="gnb" aria-label="주 메뉴"><div class="in">
-      <a href="#/" data-g="home">홈</a>
-      ${GROUPS.map(g => `<a href="#/${g.items[0]}" data-g="${esc(g.name)}">${esc(g.name)}</a>`).join('')}
-    </div></nav>
 
     <div class="drawer" id="drawer" aria-hidden="true">
       <div class="dim" data-close></div>
@@ -782,6 +779,7 @@ function route(){
   const home = !g;
   document.getElementById('homePage').hidden = !home;
   document.getElementById('subPage').hidden = home;
+  document.body.classList.toggle('is-home', home);
   document.querySelectorAll('.gnb a').forEach(a => a.classList.toggle('on', home ? a.dataset.g === 'home' : a.dataset.g === g.name));
   const on = document.querySelector('.gnb a.on'); if(on) on.scrollIntoView({block:'nearest', inline:'center'});
   if(!home){
