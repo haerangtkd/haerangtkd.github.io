@@ -420,28 +420,36 @@
   footer.foot a{color:#fff}
 
   /* 오른쪽에 떠 있는 버튼 */
-  .fab{position:fixed;right:12px;bottom:72px;z-index:35;display:flex;flex-direction:column;gap:8px}
-  .fab a{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.22);transition:transform .15s;background:#fff;color:var(--ink);border:1px solid var(--line)}
-  .fab a:active{transform:scale(.92)}
-  .fab a.f-logo{border:0;overflow:hidden}
-  .fab a.f-logo img{width:82%;height:82%;display:block;border-radius:22%}
-  .fab a.f-logo.f-kakao img{width:90%;height:90%}
-  .fab a.f-logo.f-blog{background:#000}
-  .fab a.f-logo.f-calendar{background:#fff}
-  .fab a.f-logo.f-calendar img{width:62%;height:62%;border-radius:0}
-  .fab a.f-logo.f-blog img{width:100%;height:100%;border-radius:0}
-  .ic.has-logo{background:none!important;padding:0;overflow:hidden}
-  .ic .logo-ic{width:100%;height:100%;display:block;border-radius:inherit}
-  .ic .logo-ic.lg-calendar{width:80%;height:80%;border-radius:0}
-  .fab a svg{width:21px;height:21px}
-  .fab a.f-calendar{background:#03C75A;color:#fff;border:0}
-  .fab a.f-chat{background:#03C75A;color:#fff;border:0}
-  .fab a.f-insta{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%);color:#fff;border:0}
-  .fab a.f-kakao{background:#FEE500;color:#3C1E1E;border:0}
-  .fab a.f-youtube{background:#FF0000;color:#fff;border:0}
-  .fab a.f-phone{background:var(--brand);color:#fff;border:0}
-  .fab a.f-blog,.fab a.f-book,.fab a.f-photo,.fab a.f-star{background:#03C75A;color:#fff;border:0}
-  body.lock .fab{display:none}
+  /* 빠른 상담 (오른쪽 옆에 붙은 탭 → 누르면 펼쳐짐) */
+  .qp{position:fixed;right:0;bottom:84px;z-index:35;display:flex;align-items:flex-end;transform:translateX(236px);transition:transform .28s ease}
+  .qp.open{transform:none}
+  .qp .qtab{width:42px;border:0;border-radius:14px 0 0 14px;background:var(--brand);color:#fff;font:inherit;font-weight:900;font-size:15px;line-height:1.15;padding:14px 0 10px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;box-shadow:-4px 4px 14px rgba(0,0,0,.18);margin-bottom:18px}
+  .qp .qtab .v{writing-mode:vertical-rl;letter-spacing:.12em}
+  .qp .qtab .ar{width:26px;height:26px;border-radius:50%;background:#fff;color:var(--brand);display:grid;place-items:center;transition:transform .28s}
+  .qp .qtab .ar svg{width:16px;height:16px}
+  .qp.open .qtab .ar{transform:rotate(180deg)}
+  .qp .qbox{width:236px;background:#fff;border-radius:16px 0 0 16px;box-shadow:-6px 6px 24px rgba(0,0,0,.18);padding:16px 14px 12px}
+  .qp .qbox h4{font-size:16px;font-weight:900;text-align:center;margin-bottom:10px}
+  .qp .qbox a{display:flex;align-items:center;gap:11px;padding:9px 6px;border-top:1px solid var(--line);text-decoration:none;color:var(--ink)}
+  .qp .qbox a:active{background:var(--brand-soft)}
+  .qp .qbox a b{display:block;font-size:14.5px;line-height:1.3}
+  .qp .qbox a small{display:block;font-size:12px;color:var(--muted);line-height:1.3;word-break:keep-all}
+  .qi{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;background:#fff;border:1px solid var(--line);overflow:hidden}
+  .qi svg{width:20px;height:20px}
+  .qi.f-logo{border:0}
+  .qi.f-logo img{width:82%;height:82%;display:block;border-radius:22%}
+  .qi.f-logo.f-kakao img{width:90%;height:90%}
+  .qi.f-logo.f-blog{background:#000}
+  .qi.f-logo.f-blog img{width:100%;height:100%;border-radius:0}
+  .qi.f-logo.f-calendar{background:#fff;border:1px solid var(--line)}
+  .qi.f-logo.f-calendar img{width:62%;height:62%;border-radius:0}
+  .qi.f-chat{background:#03C75A;border:0}
+  .qi.f-insta{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%);border:0}
+  .qi.f-kakao{background:#FEE500;color:#3C1E1E;border:0}
+  .qi.f-youtube{background:#FF0000;border:0}
+  .qi.f-phone{background:var(--brand);border:0}
+  .qi.f-blog,.qi.f-book,.qi.f-photo,.qi.f-star{background:#03C75A;border:0}
+  body.lock .qp{display:none}
   .totop{position:fixed;right:12px;bottom:20px;z-index:30;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer}
   .totop svg{width:22px;height:22px}
   .totop.on{opacity:.9;pointer-events:auto}
@@ -628,7 +636,7 @@ function render(d){
     {name:'상담 문의', items:['contact']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
-  const tileIds = ['philosophy','staff','today','timetable','fee','schedule','notice','gallery','press'].filter(id => S[id]);
+  const tileIds = ['philosophy','staff','timetable','fee','location','press'].filter(id => S[id]);
   const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
   document.getElementById('app').innerHTML = `
@@ -700,12 +708,14 @@ function render(d){
       const fl = list(d.links).filter(l => l.float && l.url);
       const ph = tel && ct.floatPhone !== false;
       if(!fl.length && !ph) return '';
-      return `<nav class="fab" aria-label="빠른 문의">${fl.map(l => { const lg = LOGOS[l.icon] && l.icon !== 'insta'; return `<a class="f-${esc(l.icon)}${lg ? ' f-logo' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.name)}" title="${esc(l.name)}">${lg ? `<img src="${LOGOS[l.icon]}" alt="">` : svg(l.icon, 2.2)}</a>`; }).join('')}${ph ? `<a class="f-phone" href="tel:${esc(tel)}" aria-label="전화 상담" title="전화 상담">${svg('phone', 2.2)}</a>` : ''}</nav>`;
+      const row = (cls, href, name, desc, icon, ext) => `<a href="${esc(href)}"${ext ? ' target="_blank" rel="noopener"' : ''}><span class="qi ${cls}">${icon}</span><span><b>${esc(name)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}</span></a>`;
+      return `<div class="qp" id="qp"><button class="qtab" id="qtab" type="button" aria-expanded="false" aria-controls="qbox"><span class="v">빠른상담</span><span class="ar">${svg('left',2.8)}</span></button>
+        <nav class="qbox" id="qbox" aria-label="빠른 상담"><h4>빠른 상담</h4>${fl.map(l => { const lg = LOGOS[l.icon] && l.icon !== 'insta'; return row(`f-${esc(l.icon)}${lg ? ' f-logo' : ''}`, l.url, l.name, l.desc, lg ? `<img src="${LOGOS[l.icon]}" alt="">` : svg(l.icon, 2.2), true); }).join('')}${ph ? row('f-phone', 'tel:' + tel, '전화 상담', ct.phone, svg('phone', 2.2), false) : ''}</nav></div>`;
     })()}
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop();
+  setupMenu(); setupQuick(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop();
   const cb = document.getElementById('copyAddr');
   if(cb) cb.onclick = async () => {
     const txt = lo.address;
@@ -714,6 +724,16 @@ function render(d){
     cb.lastChild.textContent = '복사됐어요'; setTimeout(() => { cb.lastChild.textContent = '주소 복사'; }, 1800);
   };
   window.addEventListener('hashchange', route); route();
+}
+
+// ---------- 빠른 상담 ----------
+function setupQuick(){
+  const qp = document.getElementById('qp'), tab = document.getElementById('qtab');
+  if(!qp) return;
+  const set = on => { qp.classList.toggle('open', on); tab.setAttribute('aria-expanded', on); };
+  tab.onclick = e => { e.stopPropagation(); set(!qp.classList.contains('open')); };
+  document.addEventListener('click', e => { if(!qp.contains(e.target)) set(false); });
+  qp.querySelectorAll('.qbox a').forEach(a => a.addEventListener('click', () => set(false)));
 }
 
 // ---------- 화면 전환 ----------
