@@ -531,9 +531,10 @@ function renderAll(){
     ]
   });
   listEditor('ed-faq', 'faq', {
-    noun:'질문', title:(f) => f.q || '새 질문',
-    blank:() => ({q:'', a:[], points:[], closing:''}),
+    noun:'질문', title:(f) => `${f.cat ? '[' + f.cat + '] ' : ''}${f.q || '새 질문'}`,
+    blank:() => ({cat:'입관 안내', q:'', a:[], points:[], closing:''}),
     fields:[
+      {k:'cat', label:'분류', type:'select', opts:[['입관 안내','입관 안내'],['회비·차량·주차','회비·차량·주차'],['심사·프로그램','심사·프로그램'],['태권도 이야기','태권도 이야기'],['기타','기타']]},
       {k:'q', label:'질문'},
       {k:'a', label:'답변 (한 문단씩 한 줄에)', type:'lines'},
       {k:'points', label:'답변 항목 (한 줄에 하나)', type:'pairs', hint:'"제목 | 설명" 형식으로 적으면 제목은 굵게, 설명은 작게 보여요.'},

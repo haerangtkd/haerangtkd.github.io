@@ -397,6 +397,17 @@
   .tag,.ev .what .tag,.up li .t .tag{display:inline-block;font-size:11.5px;font-weight:700;color:#fff;border-radius:6px;padding:1px 7px;margin-right:6px;vertical-align:1px;line-height:1.5}
 
   /* FAQ */
+  .faq details[hidden]{display:none}
+  .faqtool{margin-bottom:14px}
+  .fsearch{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:0 16px;height:50px}
+  .fsearch:focus-within{border-color:var(--brand)}
+  .fsearch svg{width:20px;height:20px;flex:none;color:var(--muted)}
+  .fsearch input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:inherit}
+  .fcats{display:flex;gap:8px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}
+  .fcats::-webkit-scrollbar{display:none}
+  .fcats button{flex:none;border:1.5px solid var(--line);background:var(--card);color:inherit;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .fcats button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .fempty{text-align:center;color:var(--muted);padding:28px 10px;font-size:14.5px;word-break:keep-all}
   .faq details{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
   .faq details + details{margin-top:10px}
   .faq summary{list-style:none;cursor:pointer;padding:18px 20px;font-weight:700;font-size:16px;display:flex;align-items:center;gap:10px}
@@ -499,6 +510,7 @@
 
 <script>
 const ICONS = {
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
   news:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h6M7 12h10M7 16h10"/>',
   blog:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
@@ -605,13 +617,22 @@ function render(d){
       ${fe.shuttle ? `<div class="card park">${svg('car')}<div><b>${esc(fe.shuttle)}</b>${fe.shuttleNote ? `<p>${esc(fe.shuttleNote)}</p>` : ''}</div></div>` : ''}
       ${tel0 ? `<a class="btn-call" href="tel:${esc(tel0)}">${svg('phone')}회비·차량 전화로 문의하기</a>` : ''}`)};
 
-  if(list(d.faq).length) S.faq ={label:'자주 묻는 질문', icon:'help', html: sec('faq', '자주 묻는 질문', `
-      <div class="faq">${list(d.faq).map((f,i) => `
-        <details${i === 0 ? ' open' : ''}><summary>${esc(f.q)}</summary><div class="ans">
+  if(list(d.faq).length){
+    const fq = list(d.faq);
+    const cats = [...new Set(fq.map(f => f.cat || '기타'))];
+    S.faq = {label:'자주 묻는 질문', icon:'help', html: sec('faq', '자주 묻는 질문', `
+      <div class="faqtool">
+        <label class="fsearch">${svg('search',2.4)}<input id="faqQ" type="search" placeholder="궁금한 내용 검색 (예: 회비, 주차)" autocomplete="off"></label>
+        ${cats.length > 1 ? `<div class="fcats" id="faqCats"><button type="button" class="on" data-c="">전체</button>${cats.map(c => `<button type="button" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
+      </div>
+      <div class="faq" id="faqList">${fq.map((f,i) => `
+        <details data-c="${esc(f.cat || '기타')}" data-t="${esc([f.q, ...list(f.a), ...list(f.points).map(p => p.t + ' ' + (p.d || '')), f.closing || '', f.cat || ''].join(' ').toLowerCase())}"${i === 0 ? ' open' : ''}><summary>${esc(f.q)}</summary><div class="ans">
           ${list(f.a).map(t => `<p class="fa">${esc(t)}</p>`).join('')}
           ${list(f.points).map(p => `<div class="pt"><span class="ck">${svg('check',3)}</span><div><b>${esc(p.t)}</b>${p.d ? `<span>${esc(p.d)}</span>` : ''}</div></div>`).join('')}
           ${f.closing ? `<p class="closing">${esc(f.closing)}</p>` : ''}
-        </div></details>`).join('')}</div>`)};
+        </div></details>`).join('')}</div>
+      <p class="fempty" id="faqEmpty" hidden>찾는 질문이 없어요. 아래 상담 문의로 편하게 물어봐 주세요.</p>`)};
+  }
 
   S.today = {label:'오늘의 운동', icon:'run', html: sec('today', '', `${workoutCard(d, false)}${focusTable(d)}${weekTable(d)}`)};
   S.schedule = {label:'도장 일정', short:'일정', icon:'calendar', html: sec('schedule', '해랑경희 일정', `
@@ -747,7 +768,7 @@ function render(d){
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupQuick(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop();
+  setupMenu(); setupQuick(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop(); setupFaq();
   const cb = document.getElementById('copyAddr');
   if(cb) cb.onclick = async () => {
     const txt = lo.address;
@@ -779,6 +800,31 @@ function setupQuick(){
   tab.onclick = e => { e.stopPropagation(); set(!qp.classList.contains('open')); };
   document.addEventListener('click', e => { if(!qp.contains(e.target)) set(false); });
   qp.querySelectorAll('.qbox a').forEach(a => a.addEventListener('click', () => set(false)));
+}
+
+// ---------- 자주 묻는 질문 검색·분류 ----------
+function setupFaq(){
+  const q = document.getElementById('faqQ'); if(!q) return;
+  const cats = document.getElementById('faqCats');
+  const items = [...document.querySelectorAll('#faqList details')];
+  let cat = '';
+  const run = () => {
+    const words = q.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let n = 0;
+    items.forEach(el => {
+      const ok = (!cat || el.dataset.c === cat) && words.every(w => el.dataset.t.includes(w));
+      el.hidden = !ok; if(ok) n++;
+      if(words.length) el.open = ok;
+    });
+    document.getElementById('faqEmpty').hidden = n > 0;
+  };
+  q.addEventListener('input', run);
+  if(cats) cats.addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    cat = b.dataset.c;
+    cats.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    run();
+  });
 }
 
 // ---------- 화면 전환 ----------
