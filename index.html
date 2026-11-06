@@ -33,7 +33,9 @@
   .top .in{max-width:1080px;margin:0 auto;height:56px;display:flex;align-items:center;gap:8px;padding:0 12px 0 14px}
   .logo{margin-right:auto;display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-weight:900;font-size:14px}
   .logo img{height:36px;width:auto;display:block}
-  body.is-home .logo{visibility:hidden}
+  .logo .lion-h{display:none}
+  body.is-home .logo .logo-full{display:none}
+  body.is-home .logo .lion-h{display:block;height:40px}
   body:not(.is-home) .top{background:#fff;border-bottom:1px solid var(--line);box-shadow:none}
   body:not(.is-home) .tel{color:var(--brand)}
   body:not(.is-home) .allmenu{background:var(--brand);color:#fff}
@@ -673,7 +675,7 @@ function render(d){
 
   document.getElementById('app').innerHTML = `
     <header class="top"><div class="in">
-      <a class="logo" href="#/" aria-label="처음 화면으로"><img src="img/logo-header.png" alt="${brand}"></a>
+      <a class="logo" href="#/" aria-label="처음 화면으로"><img class="logo-full" src="img/logo-header.png" alt="${brand}"><img class="lion-h" src="img/lion-white.png" alt="${brand}"></a>
       ${tel ? `<a class="tel" href="tel:${esc(tel)}" aria-label="전화 상담">${svg('phone')}</a>` : ''}
       <button class="allmenu" id="menuBtn" type="button" aria-expanded="false">${svg('menu',2.4)}전체메뉴</button>
     </div></header>
