@@ -668,7 +668,7 @@ function render(d){
     {name:'상담 문의', items:['contact']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
-  const tileIds = ['philosophy','staff','fee','faq','timetable','location'].filter(id => S[id]);
+  const tileIds = ['philosophy','staff','faq','fee','timetable','location'].filter(id => S[id]);
   const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
   document.getElementById('app').innerHTML = `
