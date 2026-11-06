@@ -32,8 +32,11 @@
   .top{background:var(--brand);position:sticky;top:0;z-index:40;box-shadow:0 2px 10px rgba(0,0,0,.12)}
   .top .in{max-width:1080px;margin:0 auto;height:56px;display:flex;align-items:center;gap:8px;padding:0 12px 0 14px}
   .logo{margin-right:auto;display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-weight:900;font-size:14px}
-  .logo img{height:30px;width:auto;display:block}
+  .logo img{height:36px;width:auto;display:block}
   body.is-home .logo{visibility:hidden}
+  body:not(.is-home) .top{background:#fff;border-bottom:1px solid var(--line);box-shadow:none}
+  body:not(.is-home) .tel{color:var(--brand)}
+  body:not(.is-home) .allmenu{background:var(--brand);color:#fff}
   .tel{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:#fff;text-decoration:none}
   .tel svg{width:23px;height:23px}
   .allmenu{display:flex;align-items:center;gap:6px;border:0;background:#fff;color:var(--brand);font:inherit;font-weight:900;font-size:14px;padding:9px 14px 9px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
@@ -48,7 +51,7 @@
   .gnb a.on{color:var(--brand);border-bottom-color:var(--brand)}
   @media (min-width:900px){
     .top .in{height:64px}
-    .logo img{height:34px}
+    .logo img{height:42px}
     .gnb .in{justify-content:center;gap:28px}
     .gnb a{flex:0 0 auto;font-size:17px;padding:16px 18px 14px}
   }
@@ -666,7 +669,7 @@ function render(d){
 
   document.getElementById('app').innerHTML = `
     <header class="top"><div class="in">
-      <a class="logo" href="#/" aria-label="처음 화면으로"><img src="img/lion-white.png" alt=""><span>처음으로</span></a>
+      <a class="logo" href="#/" aria-label="처음 화면으로"><img src="img/logo-header.png" alt="${brand}"></a>
       ${tel ? `<a class="tel" href="tel:${esc(tel)}" aria-label="전화 상담">${svg('phone')}</a>` : ''}
       <button class="allmenu" id="menuBtn" type="button" aria-expanded="false">${svg('menu',2.4)}전체메뉴</button>
     </div></header>
