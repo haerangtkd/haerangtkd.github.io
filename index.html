@@ -238,6 +238,7 @@
   .park{display:flex;gap:12px;align-items:flex-start;margin-top:14px;padding:16px 18px}
   .park svg{width:26px;height:26px;color:var(--brand);flex:none;margin-top:2px}
   .park b{font-size:15px}
+  .park.gift{background:var(--brand-soft);border-color:#F3D3D5}
   .faq .fa{font-size:14.5px;color:#3A3533;word-break:keep-all;margin:0 0 8px}
   .faq .fa:last-child{margin-bottom:0}
   .fee h4{font-size:15px;font-weight:900;color:var(--brand);margin-bottom:6px}
@@ -491,6 +492,7 @@ const ICONS = {
   check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   up:'<path d="m6 15 6-6 6 6"/>', left:'<path d="m15 6-6 6 6 6"/>', right:'<path d="m9 6 6 6-6 6"/>',
   menu:'<path d="M4 7h16M4 12h16M4 17h16"/>', car:'<path d="M5 17h14v-4l-2-5H7l-2 5Z"/><path d="M5 13h14"/><circle cx="8" cy="17" r="1.8"/><circle cx="16" cy="17" r="1.8"/>', copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>', plus:'<path d="M12 5v14M5 12h14"/>', pause:'<path d="M9 6v12M15 6v12"/>', play:'<path d="m8 5 11 7-11 7Z"/>', megaphone:'<path d="M3 10v4h3l8 5V5L6 10Z"/><path d="M18 9a4 4 0 0 1 0 6"/>', close:'<path d="M6 6l12 12M18 6 6 18"/>',
+  gift:'<rect x="3" y="8" width="18" height="5" rx="1"/><path d="M5 13v8h14v-8M12 8v13"/><path d="M12 8S10.5 3.5 8 4.2 7.6 8 12 8Zm0 0s1.5-4.5 4-3.8.4 3.8-4 3.8Z"/>',
   won:'<path d="M4 7l3.5 11L12 8l4.5 10L20 7"/><path d="M3 11.5h18M3 14.5h18"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
@@ -571,6 +573,7 @@ function render(d){
       ${list(fe.plans).length ? `<div class="card fee"><h4>월 회비</h4>${list(fe.plans).map(p => `
         <div class="plan"><div><b>${esc(p.name)}</b>${p.who ? `<span>${esc(p.who)}</span>` : ''}</div><strong>${esc(p.price)}</strong></div>`).join('')}
         ${list(fe.notes).length ? `<ul class="fnotes">${list(fe.notes).map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}</div>` : ''}
+      ${list(fe.referral).length ? `<div class="card park gift">${svg('gift')}<div><b>${esc(fe.referralTitle || '지인 소개 혜택')}</b>${list(fe.referral).map(t => `<p>${esc(t)}</p>`).join('')}</div></div>` : ''}
       ${fe.shuttle ? `<div class="card park">${svg('car')}<div><b>${esc(fe.shuttle)}</b>${fe.shuttleNote ? `<p>${esc(fe.shuttleNote)}</p>` : ''}</div></div>` : ''}
       ${tel0 ? `<a class="btn-call" href="tel:${esc(tel0)}">${svg('phone')}회비·차량 전화로 문의하기</a>` : ''}`)};
 
