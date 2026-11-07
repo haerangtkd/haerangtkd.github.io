@@ -204,6 +204,7 @@
   .wo .flabel + ol{padding-top:4px}
   .wo .theme + .sub{margin-bottom:8px}
   .fo td:first-child{color:var(--ink)}
+  .fo td small.wd{display:block;font-size:12.5px;font-weight:500;color:#A9A19B;margin-top:1px}
   .fo tr.now td{background:var(--brand-soft);font-weight:700}
   .fo tr.past td{color:#A9A19B}
 
@@ -1013,13 +1014,20 @@ function workoutCard(d, onHome){
     ${body}<div class="pad"></div>
   </div>`;
 }
+// 몇째 주 (그 주 월요일 기준)
+function weekLabel(dt){
+  const mon = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() - ((dt.getDay() + 6) % 7));
+  const base = mon.getMonth() === dt.getMonth() ? mon : dt;
+  const n = Math.ceil(base.getDate() / 7);
+  return `${dt.getMonth() + 1}월 ${['첫째','둘째','셋째','넷째','다섯째'][n - 1] || n + '번째'} 주`;
+}
 function focusTable(d){
   const y = TODAY.getFullYear(), m = TODAY.getMonth();
   const ms = new Date(y, m, 1), me = new Date(y, m + 1, 0);
   const rows = focusList(d).filter(f => f.s <= me && f.en >= ms);
   if(!rows.length) return '';
   return `<div class="card tt fo" style="margin-top:14px"><h4>${m + 1}월 수련 계획</h4><table>
-    ${rows.map(f => `<tr class="${f.s <= TODAY && TODAY <= f.en ? 'now' : (f.en < TODAY ? 'past' : '')}"><td>${rangeText(f)}</td><td>${esc(f.title)}</td></tr>`).join('')}</table></div>`;
+    ${rows.map(f => `<tr class="${f.s <= TODAY && TODAY <= f.en ? 'now' : (f.en < TODAY ? 'past' : '')}"><td>${+f.s === +f.en ? rangeText(f) : `${weekLabel(f.s)}<small class="wd">${rangeText(f)}</small>`}</td><td>${esc(f.title)}</td></tr>`).join('')}</table></div>`;
 }
 function weekTable(d){
   const wd = weekdayThemes(d);
