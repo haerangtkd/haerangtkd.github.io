@@ -372,6 +372,7 @@
   .goal:last-child{border-bottom:0}
   .goal b{display:block;font-size:15.5px;word-break:keep-all}
   .goal span{display:block;font-size:14px;color:var(--muted);margin-top:2px;word-break:keep-all}
+  .cu-close strong{color:var(--brand);font-weight:900;font-size:17.5px}
   .cu-close{margin:28px 4px 8px;font-size:16px;line-height:1.85;font-weight:500;text-align:center;white-space:pre-line;word-break:keep-all;color:var(--ink)}
   .closing{margin-top:14px;font-size:15px;line-height:1.75;word-break:keep-all;background:var(--brand-soft);border-radius:10px;padding:16px 18px;color:#5A1A1D}
 
@@ -641,7 +642,7 @@ function render(d){
           <h4>${esc(a.name)}</h4><p class="chips">${list(a.items).map(esc).join(' · ')}</p>
         </div>`).join('')}</div>
       ${list(cu.goals).length ? `<div class="card goals">${list(cu.goals).map(g => `<div class="goal"><b>${esc(g.title)}</b><span>${esc(g.desc)}</span></div>`).join('')}</div>` : ''}
-      ${cu.closing ? `<p class="cu-close">${esc(cu.closing)}</p>` : ''}`)};
+      ${cu.closing ? `<p class="cu-close">${esc(cu.closing).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>` : ''}`)};
 
   const pr = d.program || {};
   if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
