@@ -393,7 +393,23 @@
   .extra{padding:14px 18px 16px;border-top:1px solid var(--line)}
   .extra b{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
   .extra p{font-size:15px;line-height:1.7;word-break:keep-all}
-  .divtime{font-size:15px;font-weight:700;margin:0 2px 12px}
+  .divwrap{display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:start}
+  .vtabs{display:flex;flex-direction:column;gap:6px;position:sticky;top:72px}
+  .vtabs button{font:inherit;font-size:14px;font-weight:700;line-height:1.35;padding:14px 6px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;word-break:keep-all;text-align:center}
+  .vtabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  #divBox{min-width:0;overflow:hidden}
+  #divBox .card{margin:0}
+  #divBox .wk td{padding:11px 12px}
+  #divBox .wk td:first-child{padding-right:4px}
+  #divBox .wk h4{padding:12px 14px;font-size:14.5px}
+  #divBox .wk h4 small{display:block;margin-top:2px}
+  .slide-up{animation:slUp .38s ease}
+  .slide-down{animation:slDown .38s ease}
+  @keyframes slUp{from{opacity:0;transform:translateY(36px)}to{opacity:1;transform:none}}
+  @keyframes slDown{from{opacity:0;transform:translateY(-36px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){ .slide-up,.slide-down{animation:none} }
+  .extra p span{white-space:nowrap}
+  .divtime{font-size:14.5px;font-weight:700;padding:12px 14px 0}
   .divtime span{color:var(--brand)}
   .tt td small{display:block;font-size:13px;color:var(--muted)}
   .mapimg{display:block;width:100%;height:auto;background:#EEE9E3}
@@ -646,9 +662,9 @@ function render(d){
 
   const pr = d.program || {};
   if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
-      ${list(pr.divisions).length ? `<div class="tabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
-      <div id="divBox"></div>` : ''}
-      ${list(pr.timetable).length ? `<div class="card tt" style="margin-top:14px"><h4>전체 시간표 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}`)};
+      ${list(pr.timetable).length ? `<div class="card tt"><h4>전체 시간표 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}
+      ${list(pr.divisions).length ? `<h3 class="st" style="margin:30px 2px 12px">부서별 요일 수업</h3><div class="divwrap"><div class="vtabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name).replace('·', '·<br>')}</button>`).join('')}</div>
+      <div id="divBox"></div></div>` : ''}`)};
 
   const fe = d.fee || {};
   if(list(fe.plans).length || fe.shuttle) S.fee = {label:'회비 · 차량 안내', short:'회비·차량', icon:'won', html: sec('fee', fe.title || '회비 · 차량 안내', `
@@ -1146,19 +1162,21 @@ function setupTabs(){
   const box = document.getElementById('divBox');
   if(!box) return;
   const today = DAYS[TODAY.getDay() - 1];
+  let prev = -1;
   const show = i => {
     const v = list(D.program.divisions)[i];
-    document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', +b.dataset.div === i));
+    document.querySelectorAll('.vtabs button').forEach(b => b.classList.toggle('on', +b.dataset.div === i));
+    const dir = prev < 0 ? '' : (i > prev ? 'slide-up' : (i < prev ? 'slide-down' : '')); prev = i;
     const days = v.days || {};
     const cls = list(D.classes).find(c => c.name && (c.name === v.name || c.name.split('·').some(w => v.name.includes(w.replace(/부$/, '')))));
     box.innerHTML = `
-      ${cls && cls.time ? `<p class="divtime">수업 시간 <span>${esc(cls.time)}</span></p>` : ''}
-      <div class="card tt wk"><h4>요일별 수업${v.common ? ` <small style="font-weight:500;color:#8A6D1F">· 매일 ${esc(v.common)}</small>` : ''}</h4><table>
+      <div class="card tt wk ${dir}"><h4>${esc(v.name)}${v.common ? ` <small style="font-weight:500;color:#8A6D1F">매일 ${esc(v.common)}</small>` : ''}</h4>
+      ${cls && cls.time ? `<p class="divtime">수업 시간 <span>${esc(cls.time)}</span></p>` : ''}<table>
         ${DAYS.filter(dd => list(days[dd]).length).map(dd => { const it = list(days[dd]); const main = it.filter(x => !/^\(.*\)$/.test(x)), sub = it.filter(x => /^\(.*\)$/.test(x)).map(x => x.slice(1, -1));
           return `<tr class="${dd === today ? 'today' : ''}"><td>${dd}</td><td>${main.map(esc).join(' · ')}${sub.length ? `<small>${sub.map(esc).join(' · ')}</small>` : ''}</td></tr>`; }).join('')}
-      </table>${list(v.extra).length ? `<div class="extra"><b>추가 수련</b><p>${list(v.extra).map(esc).join(' · ')}</p></div>` : ''}</div>`;
+      </table>${list(v.extra).length ? `<div class="extra"><b>추가 수련</b><p>${list(v.extra).map(x => `<span>${esc(x)}</span>`).join(' · ')}</p></div>` : ''}</div>`;
   };
-  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => show(+b.dataset.div));
+  document.querySelectorAll('.vtabs button').forEach(b => b.onclick = () => show(+b.dataset.div));
   show(0);
 }
 
