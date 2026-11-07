@@ -763,6 +763,16 @@
   .gf-i p{margin-top:5px;font-size:14px;line-height:1.6;color:#3A3533;word-break:keep-all}
   .gf-i .gsc{text-align:left;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
   .gf-i .gsc em{display:inline-block;margin:0 6px 2px 0 !important;font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--brand);border-radius:999px;padding:1px 8px;margin-right:6px}
+  .gu-foot{margin:26px 0 6px;text-align:center;font-size:14.5px;font-weight:700;color:var(--ink);word-break:keep-all}
+  .gf-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .gf-t .n{font-size:12px;font-weight:700;color:var(--brand)}
+  .gf-t b{margin:0 !important}
+  .gf-t .how{font-style:normal;font-size:11.5px;font-weight:700;color:var(--muted);background:#F3EEE9;border-radius:999px;padding:2px 8px;margin-left:auto}
+  .gscale{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:14px;font-size:13px}
+  .gscale span{font-weight:700;color:var(--muted);margin-right:4px}
+  .gscale i{font-style:normal;font-weight:700;padding:3px 10px;border-radius:999px}
+  .gscale b{color:var(--muted)}
+  .gscale .lv1{background:#EEE6DF;color:#5A514D}.gscale .lv2{background:#F6D9DB;color:var(--brand-deep)}.gscale .lv3{background:var(--brand);color:#fff}
 </style>
 </head>
 <body>
@@ -889,12 +899,14 @@ function render(d){
       ${gp.lead ? `<p class="lead">${esc(gp.lead)}</p>` : ''}
       ${list(gp.facts).length ? `<div class="cu-sec">${list(gp.facts).map(f => `<div class="cu-row"><b>${esc(f.t)}</b><span>${esc(f.d)}</span></div>`).join('')}</div>` : ''}
       ${gu.items ? `<div class="cu-sec"><h4>분기별 종목</h4>${[['1~3월','1'],['4~6월','2'],['7~9월','3'],['10~12월','4']].filter(([, k]) => gu.items[k]).map(([m, k]) => `<div class="cu-row"><b>${m}</b><span>${esc(gu.items[k])}</span></div>`).join('')}</div>` : ''}
-      ${gp.closing ? `<p class="cu-close">${esc(gp.closing)}</p>` : ''}`)};
+      ${gp.closing ? `<p class="gu-foot">${esc(gp.closing)}</p>` : ''}`)};
   const gr = d.growth || {};
   if(gr.title || list(gr.factors).length) S.growth = {label:'분기별 성장 측정', short:'성장 측정', icon:'chart', html: sec('growth', gr.title || '분기별 성장 측정지', `
       ${gr.lead ? `<p class="lead">${esc(gr.lead)}</p>` : ''}
       ${list(gr.factors).length ? `<div class="cu-sec"><h4>${esc(gr.factorsTitle || '함께 살펴보는 성장 요소')}</h4>
-        <div class="gf">${list(gr.factors).map((x, i) => typeof x === 'string' ? `<div class="gf-i"><b>${esc(x)}</b></div>` : `<div class="gf-i"><span class="n">${pad2(i + 1)}</span><b>${esc(x.t)}</b>${x.d ? `<p>${esc(x.d)}</p>` : ''}${x.school ? `<p class="gsc"><em>학교에서는</em>${esc(x.school)}</p>` : ''}</div>`).join('')}</div></div>` : ''}
+        <div class="gf">${list(gr.factors).map((x, i) => typeof x === 'string' ? `<div class="gf-i"><b>${esc(x)}</b></div>` : `<div class="gf-i"><div class="gf-t"><span class="n">${pad2(i + 1)}</span><b>${esc(x.t)}</b>${x.how ? `<em class="how">${esc(x.how)}</em>` : ''}</div>${x.d ? `<p>${esc(x.d)}</p>` : ''}</div>`).join('')}</div>
+        ${list(gr.scale).length ? `<p class="gscale"><span>사범님 관찰</span>${list(gr.scale).map((t, i) => `<i class="lv${i + 1}">${esc(t)}</i>`).join('<b>›</b>')}</p>` : ''}</div>` : ''}
+      ${list(gr.contents).length ? `<div class="cu-sec"><h4>${esc(gr.contentsTitle || '측정지에 담기는 내용')}</h4><ul class="bt-list">${list(gr.contents).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       ${gr.closing ? `<p class="cu-close">${esc(gr.closing)}</p>` : ''}`)};
 
   const pr = d.program || {};
