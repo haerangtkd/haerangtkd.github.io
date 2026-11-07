@@ -393,7 +393,7 @@
   .cu-row span{color:#3A3533}
   .ld{margin-top:36px}
   .ld h4{font-size:18px;font-weight:900;padding-bottom:8px;border-bottom:2px solid var(--ink)}
-  .ld .ld-lead{font-size:15px;line-height:1.75;padding:14px 0;border-bottom:1px solid var(--line);word-break:keep-all}
+  .ld .ld-lead{white-space:pre-line;font-size:15px;line-height:1.75;padding:14px 0;border-bottom:1px solid var(--line);word-break:keep-all}
   .ld .cu-row b{width:60px}
   .ld .cu-row ul{list-style:none}
   .ld .cu-row li{line-height:1.7}
@@ -755,6 +755,14 @@
   .bt-list li::before{content:'';position:absolute;left:0;top:14px;width:4px;height:4px;border-radius:50%;background:var(--brand)}
   .bnf{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
   .bnf span{padding:6px 11px;border-radius:999px;background:#F3EEE9;font-size:13px;font-weight:500;word-break:keep-all}
+  .gf{display:grid;gap:10px;margin-top:12px}
+  @media (min-width:700px){ .gf{grid-template-columns:1fr 1fr} }
+  .gf-i{text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+  .gf-i .n{font-size:12px;font-weight:700;color:var(--brand)}
+  .gf-i b{display:block;font-size:16.5px;font-weight:900;margin-top:1px}
+  .gf-i p{margin-top:5px;font-size:14px;line-height:1.6;color:#3A3533;word-break:keep-all}
+  .gf-i .gsc{text-align:left;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+  .gf-i .gsc em{display:inline-block;margin:0 6px 2px 0 !important;font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--brand);border-radius:999px;padding:1px 8px;margin-right:6px}
 </style>
 </head>
 <body>
@@ -876,11 +884,17 @@ function render(d){
       ${list(ch.blocks).map(b => `<div class="cu-row"><b>${esc(b.t)}</b><span>${esc(b.d)}</span></div>`).join('')}`)};
   const bt = d.belts || {};
   if(list(bt.kup && bt.kup.belts).length || list(bt.dan).length) S.belts = {label:'띠 제도', icon:'award', html: sec('belts', bt.title || '띠 제도', beltsPage(bt))};
-  const gr = d.growth || {}, gu = d.guinness || {};
+  const gu = d.guinness || {}, gp = d.guinnessPage || {};
+  if(gu.items || gp.lead) S.guinness = {label:'해랑 기네스', icon:'award', html: sec('guinness', gp.title || '해랑 기네스', `
+      ${gp.lead ? `<p class="lead">${esc(gp.lead)}</p>` : ''}
+      ${list(gp.facts).length ? `<div class="cu-sec">${list(gp.facts).map(f => `<div class="cu-row"><b>${esc(f.t)}</b><span>${esc(f.d)}</span></div>`).join('')}</div>` : ''}
+      ${gu.items ? `<div class="cu-sec"><h4>분기별 종목</h4>${[['1~3월','1'],['4~6월','2'],['7~9월','3'],['10~12월','4']].filter(([, k]) => gu.items[k]).map(([m, k]) => `<div class="cu-row"><b>${m}</b><span>${esc(gu.items[k])}</span></div>`).join('')}</div>` : ''}
+      ${gp.closing ? `<p class="cu-close">${esc(gp.closing)}</p>` : ''}`)};
+  const gr = d.growth || {};
   if(gr.title || list(gr.factors).length) S.growth = {label:'분기별 성장 측정', short:'성장 측정', icon:'chart', html: sec('growth', gr.title || '분기별 성장 측정지', `
       ${gr.lead ? `<p class="lead">${esc(gr.lead)}</p>` : ''}
-      ${gu.items ? `<div class="cu-sec"><h4>해랑 기네스 · 분기별 종목</h4>${[['1~3월','1'],['4~6월','2'],['7~9월','3'],['10~12월','4']].filter(([, k]) => gu.items[k]).map(([m, k]) => `<div class="cu-row"><b>${m}</b><span>${esc(gu.items[k])}</span></div>`).join('')}</div>` : ''}
-      ${list(gr.factors).length ? `<div class="cu-sec"><h4>${esc(gr.factorsTitle || '함께 살펴보는 성장 요소')}</h4><div class="cu-purp2 five">${list(gr.factors).map(x => `<span>${esc(x)}</span>`).join('')}</div></div>` : ''}
+      ${list(gr.factors).length ? `<div class="cu-sec"><h4>${esc(gr.factorsTitle || '함께 살펴보는 성장 요소')}</h4>
+        <div class="gf">${list(gr.factors).map((x, i) => typeof x === 'string' ? `<div class="gf-i"><b>${esc(x)}</b></div>` : `<div class="gf-i"><span class="n">${pad2(i + 1)}</span><b>${esc(x.t)}</b>${x.d ? `<p>${esc(x.d)}</p>` : ''}${x.school ? `<p class="gsc"><em>학교에서는</em>${esc(x.school)}</p>` : ''}</div>`).join('')}</div></div>` : ''}
       ${gr.closing ? `<p class="cu-close">${esc(gr.closing)}</p>` : ''}`)};
 
   const pr = d.program || {};
@@ -968,7 +982,7 @@ function render(d){
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
     {name:'도장 소개', items:['philosophy','curriculum','staff','location']},
-    {name:'인성 · 성장', items:['character','leaders','belts','growth']},
+    {name:'해랑경희 문화', items:['character','leaders','belts','guinness','growth']},
     {name:'수련 안내', items:['program','today','fee','faq']},
     {name:'도장 소식', items:['schedule','notice','gallery','press']},
     {name:'상담 문의', items:['contact']}
