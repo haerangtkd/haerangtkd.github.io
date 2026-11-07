@@ -394,7 +394,7 @@
   .ld{margin-top:36px}
   .ld h4{font-size:18px;font-weight:900;padding-bottom:8px;border-bottom:2px solid var(--ink)}
   .ld .ld-lead{font-size:15px;line-height:1.75;padding:14px 0;border-bottom:1px solid var(--line);word-break:keep-all}
-  .ld .cu-row b{width:52px}
+  .ld .cu-row b{width:60px}
   .ld .cu-row ul{list-style:none}
   .ld .cu-row li{line-height:1.7}
   .ld .cu-row li + li{margin-top:6px}
@@ -680,7 +680,7 @@ function render(d){
   if(list(ph.questions).length || list(ph.message).length) S.philosophy = {label:'교육 철학', icon:'bulb', html: sec('philosophy', ph.title || '교육 철학', `
       ${list(ph.questions).map((q,i) => (i ? '<div class="plus">+</div>' : '') + `<div class="q ${i % 2 ? 'q2' : 'q1'}">${esc(q)}</div>`).join('')}
       ${list(ph.message).length ? `<div class="card letter">${list(ph.message).map(p => `<p>${esc(p)}</p>`).join('')}<p class="sign">감사합니다.</p></div>` : ''}
-      ${(() => { const L = d.leaders || {}; if(!list(L.groups).length) return ''; return `<div class="ld"><h4>${esc(L.title || '선범단')}</h4>${L.lead ? `<p class="ld-lead">${esc(L.lead)}</p>` : ''}${list(L.groups).map(g => `<div class="cu-row"><b>${esc(g.t)}</b><ul>${list(g.items).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div>`; })()}`)};
+      ${(() => { const L = d.leaders || {}; if(!list(L.groups).length) return ''; return `<div class="ld"><h4>${esc(L.title || '선범단')}</h4>${L.lead ? `<p class="ld-lead">${esc(L.lead)}</p>` : ''}${list(L.groups).map(g => `<div class="cu-row"><b>${esc(g.t)}</b><ul>${list(g.items).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}${L.closing ? `<p class="cu-close">${esc(L.closing)}</p>` : ''}</div>`; })()}`)};
 
   const st = d.staff || {};
   if(list(st.members).length) S.staff = {label:'지도진 소개', short:'지도진', icon:'user', html: sec('staff', st.title || '지도진 소개', `
