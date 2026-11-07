@@ -448,7 +448,8 @@ function renderAll(){
     blank:() => ({name:'', common:'', days:{월:[],화:[],수:[],목:[],금:[]}}),
     fields:[
       {k:'name', label:'부 이름 (탭 이름)', half:true}, {k:'common', label:'매일 하는 것', half:true},
-      ...DAYS.map(d => ({k:'days.' + d, label:d + '요일 (한 줄에 하나, 괄호로 감싸면 작은 글씨)', type:'lines', short:true}))
+      ...DAYS.map(d => ({k:'days.' + d, label:d + '요일 (한 줄에 하나, 괄호로 감싸면 작은 글씨)', type:'lines', short:true})),
+      {k:'extra', label:'요일표 아래 추가 수련 (한 줄에 하나, 없어도 돼요)', type:'lines', short:true}
     ]
   });
   listEditor('ed-timetable', 'program.timetable', {

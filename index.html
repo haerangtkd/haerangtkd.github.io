@@ -389,6 +389,9 @@
   .day p{font-size:12px;line-height:1.45;word-break:keep-all;color:#3A3533}
   .day p + p{margin-top:4px}
   .day p.sub{color:var(--muted);font-size:11px}
+  .extra{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+  .extra span{background:#2A2524;color:#fff;border-radius:10px;padding:12px 4px;text-align:center;font-size:12.5px;font-weight:700;line-height:1.4;word-break:keep-all;display:flex;align-items:center;justify-content:center;min-width:0}
+  .mapimg{display:block;width:100%;height:auto;background:#EEE9E3}
   .tt{padding:0;overflow:hidden}
   .tt h4{font-size:15px;font-weight:900;padding:14px 18px;background:#F6EFD9;color:#5B4612}
   .tt table{width:100%;border-collapse:collapse;font-size:14.5px}
@@ -703,7 +706,7 @@ function render(d){
     const openNow = !offToday && tm && mins >= (+tm[1]) * 60 + (+tm[2]) && mins < (+tm[3]) * 60 + (+tm[4]);
     S.location = {label: lo.title || '오시는 길', short:'오시는 길', icon:'map', html: sec('location', lo.title || '오시는 길', `
       <div class="card mapbox">
-        <iframe title="${esc(lo.name || brand)} 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${q}&hl=ko&z=17&output=embed"></iframe>
+        ${lo.mapImage ? `${lo.naver ? `<a href="${esc(lo.naver)}" target="_blank" rel="noopener">` : ''}<img class="mapimg" src="${esc(lo.mapImage)}" alt="${esc(lo.name || brand)} 오시는 길 약도: ${esc(lo.landmark || lo.address || '')}" loading="lazy">${lo.naver ? '</a>' : ''}` : `<iframe title="${esc(lo.name || brand)} 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${q}&hl=ko&z=17&output=embed"></iframe>`}
         <div class="info"><b>${esc(lo.name || brand)}</b><p>${esc(lo.address)}</p>${lo.landmark ? `<p class="lm">${svg('map')}${esc(lo.landmark)}</p>` : ''}${lo.note ? `<p class="note">${esc(lo.note)}</p>` : ''}
           <div class="mapbtns">
             ${lo.naver ? `<a class="nv" href="${esc(lo.naver)}" target="_blank" rel="noopener">${svg('map')}네이버지도</a>` : ''}
@@ -1146,7 +1149,8 @@ function setupTabs(){
       <div class="days">${DAYS.map(dd => `
         <div class="day${dd === today ? ' today' : ''}"><div class="d">${dd}</div>
           ${list((v.days || {})[dd]).map(x => `<p class="${/^\(.*\)$/.test(x) ? 'sub' : ''}">${esc(x)}</p>`).join('')}
-        </div>`).join('')}</div>`;
+        </div>`).join('')}</div>
+      ${list(v.extra).length ? `<div class="extra">${list(v.extra).map(x => `<span>${esc(x).replace(/(.{2,})(발차기|태권도)$/, '$1<wbr>$2')}</span>`).join('')}</div>` : ''}`;
   };
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => show(+b.dataset.div));
   show(0);
