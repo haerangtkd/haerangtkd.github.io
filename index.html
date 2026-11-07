@@ -607,6 +607,71 @@
   }
   #app{opacity:0;transition:opacity .25s}
   #app.ready{opacity:1}
+  /* ===== 정리 버전: 박스·색·버튼 줄이기 ===== */
+  /* 인사말: 상자 없이 글로만 */
+  .intro,.vhero + .wrap .intro,.hero:has(.hphoto) + .wrap .intro{background:none;border:0;box-shadow:none;border-radius:0;margin-top:0;padding:30px 4px 6px}
+  .intro p{font-size:15.5px;color:#3A3533}
+  .intro p:first-child{font-size:18px;font-weight:700;color:var(--ink)}
+  /* 바로가기: 테두리 없는 아이콘 줄 */
+  .shortcuts,.shortcuts.three{gap:2px;margin-top:18px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  @media (min-width:700px){ .shortcuts,.shortcuts.three{grid-template-columns:repeat(6,1fr)} }
+  .shortcuts + .seg2{border-top:0;padding-top:0;margin-top:36px}
+  .sc{background:none;border:0;border-radius:10px;padding:10px 2px 8px;font-weight:500;color:#3A3533}
+  .sc:hover{background:#F3EEE9}
+  /* 부서별 수업: 폰에서 사진 낮게, 번호는 작고 또렷하게 */
+  .classes{gap:34px}
+  .cls .media{aspect-ratio:4/3}
+  @media (min-width:700px){ .cls .media{aspect-ratio:4/5} }
+  .cls .no{font-family:inherit;font-size:13px;font-weight:700;letter-spacing:.04em;top:12px;left:12px;padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.5);text-shadow:none}
+  .cls .row{border-bottom-color:var(--line)}
+  .cls li{border-bottom:0;padding:3px 0;color:var(--muted);font-size:14.5px}
+  .cls li::before{content:'· ';}
+  /* 소식: 글씨체 하나로, 색 뱃지 대신 글자로 */
+  .wo .theme{font-family:inherit}
+  .news{padding:6px 18px 14px}
+  .news .nh{display:flex;align-items:baseline;justify-content:space-between;padding:14px 0 4px}
+  .news .nh h3{font-size:16px;font-weight:900}
+  .news .nh a{font-size:13px;font-weight:700;color:var(--muted);text-decoration:none}
+  .news .nh + ul{margin-bottom:6px}
+  .news ul{list-style:none}
+  .nup li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+  .nup li .t{flex:1;min-width:0}
+  .nup li .t b{display:block;font-size:15px;word-break:keep-all}
+  .nup li .t span{font-size:12.5px;color:var(--muted)}
+  .nnt li{position:relative;padding:9px 0 9px 12px;border-top:1px solid var(--line);font-size:14px;color:#3A3533;word-break:keep-all}
+  .nnt li::before{content:'';position:absolute;left:0;top:18px;width:4px;height:4px;border-radius:50%;background:var(--muted)}
+  .news .empty{font-size:14px;color:var(--muted);padding:8px 0}
+  /* 사진·행사 칸: 테두리 대신 여백 */
+  .twin .card{border:0;background:none;padding:4px 0}
+  .twin .mini .slides{border-radius:10px;overflow:hidden}
+  /* 상담 버튼은 맨 아래 하나 */
+  .endcta{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:36px;padding:15px;border-radius:12px;background:var(--brand);color:#fff;font-weight:700;font-size:15.5px;text-decoration:none}
+  .endcta svg{width:19px;height:19px}
+  .qp{transition:transform .28s ease,opacity .2s}
+  body.is-home:not(.past-hero) .qp{opacity:0;pointer-events:none}
+  @media (min-width:900px){ .twin:not(:has(.wide)){grid-template-columns:1fr 1fr} }
+  /* 신뢰 영역 */
+  .award{display:inline-flex;align-items:center;gap:10px;margin-bottom:16px;padding:9px 14px 9px 11px;border-radius:12px;background:var(--brand-soft);color:var(--brand-deep);text-decoration:none;line-height:1.35}
+  .award svg{width:20px;height:20px;flex:none;color:var(--brand)}
+  .award span{font-size:13.5px;font-weight:700;word-break:keep-all}
+  .award small{display:block;font-size:12px;font-weight:500;color:var(--brand)}
+  .trust{display:grid;gap:10px}
+  .tr-press{display:block;border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--line);text-decoration:none;color:inherit}
+  .tr-press img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+  .tr-press .b{padding:14px 16px 16px}
+  .tr-press .src{font-size:12.5px;font-weight:700;color:var(--brand)}
+  .tr-press h4{font-size:17px;font-weight:900;line-height:1.4;margin-top:4px;word-break:keep-all}
+  .tr-press .go{display:inline-block;margin-top:8px;font-size:14px;font-weight:700}
+  .tr-row{display:grid;gap:10px}
+  @media (min-width:560px){ .tr-row{grid-template-columns:1fr 1fr} }
+  .tr-sns{display:flex;align-items:center;gap:12px;padding:14px 14px;border-radius:12px;background:#fff;border:1px solid var(--line);text-decoration:none;color:inherit}
+  .tr-sns img{width:40px;height:40px;border-radius:10px;flex:none;object-fit:contain}
+  .tr-sns span{flex:1;min-width:0}
+  .tr-sns b{display:block;font-size:15px}
+  .tr-sns small{display:block;font-size:12.5px;color:var(--muted);word-break:keep-all}
+  .tr-sns i{color:var(--muted);display:grid}
+  .tr-sns i svg{width:18px;height:18px}
+  @media (min-width:700px){ .tr-press{display:grid;grid-template-columns:1.1fr 1fr} .tr-press img{height:100%;aspect-ratio:auto} .tr-press .b{align-self:center;padding:20px 24px} }
 </style>
 </head>
 <body>
@@ -820,25 +885,23 @@ function render(d){
         ${(() => { const hp = list(d.heroPhotos).filter(x => x && x.image); if(!hp.length) return ''; return `<div class="hphoto" id="hphoto">${hp.map((x,i) => `<img class="${i ? '' : 'on'}" src="${esc(x.image)}" alt="${esc(x.alt || '')}"${i ? ' loading="lazy"' : ''}>`).join('')}${hp.length > 1 ? `<div class="dots">${hp.map((_,i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}</div>`; })()}
       </div>`}
       <main class="wrap">
-        <section class="card intro">${intro}</section>
-        <div class="seg"><h2>처음 오셨나요?</h2><p>수업 방식부터 회비까지 한눈에 보세요</p></div>
+        <section class="intro">${awardPill(d)}${intro}</section>
         <div class="shortcuts${tileIds.length % 3 === 0 ? ' three' : ''}">
           ${tileIds.map(id => `<a class="sc" href="#/${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
-          <a class="sc sc-call" href="#/contact"><span class="ic">${svg('phone')}</span>상담 문의하기</a>
         </div>
         ${classesBlock(d)}
-        <div class="seg seg2"><h2>지금 해랑경희에서는</h2><p>오늘의 수련, 행사, 공지와 다가오는 일정</p></div>
+        ${trustBlock(d)}
+        <div class="seg seg2"><h2>해랑경희 소식</h2><p>다니는 친구들을 위한 일정과 공지</p></div>
+        ${(() => { const w = workoutCard(d, true); return w.includes(' rest"') ? '' : `<div class="home">${w}</div>`; })()}
         <div class="home">
-          ${workoutCard(d, true)}
+          ${newsCard(d)}
         </div>
         <div class="twin">
           ${photoPanel(d)}
           ${eventPanel()}
-          ${boardPanel(d)}
+          ${activePosters(d).length ? boardPanel(d, true) : ''}
         </div>
-        <div class="home">
-          ${upcomingCard()}
-        </div>
+        <a class="endcta" href="#/contact">${svg('phone')}상담 문의하기</a>
       </main>
     </div>
 
@@ -942,6 +1005,10 @@ function setupQuick(){
   if(!qp) return;
   const set = on => { qp.classList.toggle('open', on); tab.setAttribute('aria-expanded', on); };
   tab.onclick = e => { e.stopPropagation(); set(!qp.classList.contains('open')); };
+  // 첫 화면 영상(상담 예약 버튼이 있는 곳)이 보이는 동안은 빠른상담 탭을 숨김
+  const hero = document.querySelector('.vhero, .hero');
+  const chk = () => document.body.classList.toggle('past-hero', !hero || hero.getBoundingClientRect().bottom < 80);
+  window.addEventListener('scroll', chk, {passive:true}); chk();
   document.addEventListener('click', e => { if(!qp.contains(e.target)) set(false); });
   qp.querySelectorAll('.qbox a').forEach(a => a.addEventListener('click', () => set(false)));
 }
@@ -1113,10 +1180,10 @@ function posterSlide(p, i){
   const inner = `${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.title || '알림')}" ${p.url ? '' : 'data-zoom'}>` : ''}${p.title ? `<span class="cap">${esc(p.title)}</span>` : ''}`;
   return p.url ? `<a class="sl poster${i ? '' : ' on'}" href="${esc(p.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="sl poster${i ? '' : ' on'}">${inner}</div>`;
 }
-function boardPanel(d){
+function boardPanel(d, postersOnly){
   const ps = activePosters(d), nt = monthNotices(d);
   const slides = ps.map(posterSlide);
-  if(nt.list.length) slides.push(`<div class="sl text${slides.length ? '' : ' on'}"><h4>${nt.m}월 공지사항</h4><ul>${nt.list.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`);
+  if(nt.list.length && !postersOnly) slides.push(`<div class="sl text${slides.length ? '' : ' on'}"><h4>${nt.m}월 공지사항</h4><ul>${nt.list.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`);
   if(!slides.length) slides.push(`<div class="sl text on"><p class="emptybox">새 소식이 올라오면 여기에 보여요.</p></div>`);
   return `<div class="card panel slider wide">${sliderHead('알림판', slides.length, '#/notice')}<div class="slides">${slides.join('')}</div></div>`;
 }
@@ -1170,6 +1237,45 @@ function upcomingCard(){
       const label = n > 0 ? 'D-' + n : (n === 0 ? '오늘' : '진행 중');
       return `<li><span class="dday${n <= 0 ? ' now' : ''}">${label}</span><div class="t"><b><span class="tag" style="background:${EV_COLORS[e.type] || EV_COLORS['기타']}">${esc(e.type || '기타')}</span>${esc(e.title)}</b><span>${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></li>`;
     }).join('')}</ul>` : `<p class="empty">예정된 일정이 없어요.</p>`}
+  </div>`;
+}
+// 신뢰 영역: 기사 · 블로그 · 인스타 (관장님이 꼭 보여주고 싶은 3가지)
+function latestPress(d){
+  return list(d.press).filter(p => p.title && p.url).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0];
+}
+function awardPill(d){
+  const p = latestPress(d); if(!p) return '';
+  const t = p.title.replace(/^[^,]*,\s*/, '');
+  return `<a class="award" href="${esc(p.url)}" target="_blank" rel="noopener">${svg('star',2.2)}<span>${esc(t)}<small>${esc(p.source || '언론 보도')} 보도 ›</small></span></a>`;
+}
+function trustBlock(d){
+  const p = latestPress(d);
+  const ln = list(d.links);
+  const blog = ln.find(l => l.icon === 'blog'), insta = ln.find(l => l.icon === 'insta');
+  if(!p && !blog && !insta) return '';
+  const sns = (l, sub) => l ? `<a class="tr-sns" href="${esc(l.url)}" target="_blank" rel="noopener"><img src="${LOGOS[l.icon]}" alt=""><span><b>${esc(l.name)}</b><small>${esc(sub || l.desc || '')}</small></span><i>${svg('right',2.4)}</i></a>` : '';
+  return `<div class="seg seg2"><h2>해랑경희를 더 알아보기</h2><p>어떤 생각으로 가르치는지 직접 확인해 보세요</p></div>
+    <div class="trust">
+      ${p ? `<a class="tr-press" href="${esc(p.url)}" target="_blank" rel="noopener">
+        ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy">` : ''}
+        <div class="b"><span class="src">${esc(p.source || '언론 보도')}${isDate(p.date) ? ' · ' + p.date.slice(0,7).replace('-', '.') : ''}</span><h4>${esc(p.title)}</h4><span class="go">기사 읽기 ›</span></div></a>` : ''}
+      <div class="tr-row">${sns(blog, '어떤 생각으로 지도하는지')}${sns(insta, '수업 일상과 제자들 모습')}</div>
+    </div>`;
+}
+// 첫 화면용: 다가오는 일정 + 이달 공지를 한 장에 (색 뱃지 없이 차분하게)
+function newsCard(d){
+  const next = EVENTS.filter(e => e.en >= TODAY).slice(0, 3);
+  const nt = monthNotices(d);
+  const rows = next.map(e => {
+    const n = dayDiff(e.s, TODAY);
+    const label = n > 0 ? 'D-' + n : (n === 0 ? '오늘' : '진행 중');
+    return `<li><span class="dday${n <= 0 ? ' now' : ''}">${label}</span><div class="t"><b>${esc(e.title)}</b><span>${esc(e.type || '일정')} · ${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></li>`;
+  }).join('');
+  return `<div class="card news">
+    <div class="nh"><h3>다가오는 일정</h3><a href="#/schedule">전체 보기 ›</a></div>
+    ${rows ? `<ul class="nup">${rows}</ul>` : `<p class="empty">예정된 일정이 없어요.</p>`}
+    ${nt.list.length ? `<div class="nh"><h3>${nt.m}월 공지</h3><a href="#/notice">더 보기 ›</a></div>
+      <ul class="nnt">${nt.list.slice(0, 3).map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
   </div>`;
 }
 function rangeText(e){
