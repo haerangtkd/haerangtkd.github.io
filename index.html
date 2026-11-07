@@ -697,6 +697,44 @@
   .grow li b::before{content:'→ ';color:var(--brand)}
   .grow li span{color:var(--muted)}
   .cu-purp2.five{margin-top:12px}
+  /* 사진: 폴라로이드 스택 */
+  .pstack{position:relative;max-width:520px;margin:10px auto 0;touch-action:pan-y}
+  .pstack::before{content:'';display:block;padding-top:calc(84% * .75 + 64px)}
+  .pc{position:absolute;top:10px;left:8%;width:84%;margin:0;padding:9px 9px 0;background:#fff;border-radius:4px;box-shadow:0 14px 34px rgba(40,20,20,.18),0 2px 6px rgba(40,20,20,.08);opacity:0;transform:rotate(0) scale(.94);transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .45s;pointer-events:none}
+  .pc img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:2px;background:#EEE6DF}
+  .pc figcaption{padding:10px 2px 12px;font-size:12px;letter-spacing:.14em;color:#9A8F8A;font-weight:700}
+  .pc figcaption b{color:var(--brand)}
+  .pc.p2{opacity:1;z-index:1;transform:translate(-14px,10px) rotate(-6deg) scale(.96)}
+  .pc.p1{opacity:1;z-index:2;transform:translate(12px,6px) rotate(4.5deg) scale(.98)}
+  .pc.p0{opacity:1;z-index:3;transform:rotate(-1.2deg);pointer-events:auto;cursor:zoom-in}
+  .pc.out{opacity:0;z-index:4;transform:translate(-115%,30px) rotate(-16deg)}
+  .pc.outr{opacity:0;z-index:4;transform:translate(115%,30px) rotate(16deg)}
+  .ps-hint{text-align:center;font-size:12.5px;color:var(--muted);margin:6px 0 18px}
+  @media (min-width:900px){ .pstack{max-width:620px} }
+  /* 부서별 요일 수업: 요일 → 매일 → 요일별 */
+  .wcols.whead{border-bottom:0}
+  .wcols.whead .wc{padding-bottom:0}
+  .wcols.whead .wc b{margin-bottom:0}
+  .dv .every2{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 6px;background:#F3EEE9;border-bottom:1px solid var(--line)}
+  .dv .every2 span{font-size:12px;font-weight:900;color:#fff;background:var(--brand);border-radius:999px;padding:2px 9px;flex:none}
+  .wcols.wbody .wc{padding-top:12px}
+  /* 띠 제도 */
+  .bt-stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:12px}
+  .bt-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .bt-h b{font-size:18px;font-weight:900}
+  .bt-h span{font-size:13px;font-weight:700;color:var(--brand)}
+  .bt-motto{margin-top:8px;font-size:15.5px;font-weight:700;color:var(--brand-deep);word-break:keep-all}
+  .bt-desc{margin-top:6px;font-size:14.5px;line-height:1.65;color:#3A3533;word-break:keep-all}
+  .belts{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:12px 6px;margin-top:16px}
+  @media (min-width:700px){ .belts{grid-template-columns:repeat(8,1fr)} }
+  .belts li{text-align:center;font-size:12px;color:#3A3533;word-break:keep-all;line-height:1.3}
+  .belts li i{display:block;height:14px;border-radius:3px;margin-bottom:6px;border:1px solid rgba(0,0,0,.12)}
+  .belts li.kid span::after{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--brand);margin-left:3px;vertical-align:middle}
+  .bt-note{margin-top:14px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .bt-note .kd{width:5px;height:5px;border-radius:50%;background:var(--brand);flex:none}
+  .bt-belt{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13.5px;font-weight:700}
+  .bt-belt i{width:48px;height:12px;border-radius:3px;flex:none}
+  .bt-belt em{width:14px;height:14px;border-radius:50%;flex:none;margin-left:-4px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
 </style>
 </head>
 <body>
@@ -715,6 +753,7 @@ const ICONS = {
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
   heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
   chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  award:'<circle cx="12" cy="9" r="5"/><path d="m8.5 13-1.5 8 5-3 5 3-1.5-8"/>',
   star:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9Z"/>',
   chat:'<path d="M4 5h16v11H9l-5 4Z"/><path d="M8 9.5h8M8 12.5h5"/>',
   kakao:'<path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6L6.5 20l3.6-2.3c.6.1 1.2.1 1.9.1 5 0 9-3.1 9-7s-4-6.8-9-6.8Z"/>',
@@ -815,6 +854,8 @@ function render(d){
   if(ch.title || list(ch.blocks).length) S.character = {label:'인성 교육', icon:'heart', html: sec('character', ch.title || '인성 교육', `
       ${ch.lead ? `<p class="lead">${esc(ch.lead)}</p>` : ''}
       ${list(ch.blocks).map(b => `<div class="cu-row"><b>${esc(b.t)}</b><span>${esc(b.d)}</span></div>`).join('')}`)};
+  const bt = d.belts || {};
+  if(list(bt.kup && bt.kup.belts).length || list(bt.dan).length) S.belts = {label:'띠 제도', icon:'award', html: sec('belts', bt.title || '띠 제도', beltsPage(bt))};
   const gr = d.growth || {}, gu = d.guinness || {};
   if(gr.title || list(gr.factors).length) S.growth = {label:'분기별 성장 측정', short:'성장 측정', icon:'chart', html: sec('growth', gr.title || '분기별 성장 측정지', `
       ${gr.lead ? `<p class="lead">${esc(gr.lead)}</p>` : ''}
@@ -854,7 +895,7 @@ function render(d){
       <p class="fempty" id="faqEmpty" hidden>찾는 질문이 없어요. 아래 상담 문의로 편하게 물어봐 주세요.</p>`)};
   }
 
-  S.today = {label:'오늘의 운동', icon:'run', html: sec('today', '', `${workoutCard(d, false)}${focusTable(d)}${weekTable(d)}`)};
+  S.today = {label:'오늘의 운동', icon:'run', html: sec('today', '', `${workoutCard(d, false)}${focusTable(d)}`)};
   S.schedule = {label:'도장 일정', short:'일정', icon:'calendar', html: sec('schedule', '해랑경희 일정', `
       <div class="card cal" id="cal"></div>
       <div class="legend">${Object.entries(EV_COLORS).filter(([k]) => EVENTS.some(e => (EV_COLORS[e.type] ? e.type : '기타') === k)).map(([k,c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('')}</div>
@@ -906,7 +947,7 @@ function render(d){
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
     {name:'도장 소개', items:['philosophy','curriculum','staff','location']},
-    {name:'인성 · 성장', items:['character','leaders','growth']},
+    {name:'인성 · 성장', items:['character','leaders','belts','growth']},
     {name:'수련 안내', items:['program','today','fee','faq']},
     {name:'도장 소식', items:['schedule','notice','gallery','press']},
     {name:'상담 문의', items:['contact']}
@@ -988,7 +1029,7 @@ function render(d){
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupQuick(); setupVideos(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop(); setupFaq();
+  setupMenu(); setupQuick(); setupVideos(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupStack(); setupSliders(); setupTop(); setupFaq();
   const cb = document.getElementById('copyAddr');
   if(cb) cb.onclick = async () => {
     const txt = lo.address;
@@ -1019,8 +1060,7 @@ function heroVideo(d, brand){
 function classesBlock(d){
   const cs = list(d.classes).filter(c => c.name);
   if(!cs.length) return '';
-  return `<div class="seg seg2"><h2>부서별 수업</h2></div>
-    <div class="classes">${cs.map((c, i) => `
+  return `<div class="classes">${cs.map((c, i) => `
       <a class="cls rv" href="${esc(c.link || '#/program')}">
         <div class="media">${c.video ? `<video data-src="${esc(c.video)}" poster="${esc(c.poster || '')}" muted loop playsinline preload="none" aria-hidden="true"></video>` : (c.poster ? `<img src="${esc(c.poster)}" alt="" loading="lazy">` : '')}<span class="no">${pad2(i + 1)}</span></div>
         <div class="body"><div class="row"><h3>${esc(c.name)}</h3>${c.time ? `<span class="tm">${esc(c.time)}</span>` : ''}</div>
@@ -1309,13 +1349,36 @@ function trustBlock(d){
   const blog = ln.find(l => l.icon === 'blog'), insta = ln.find(l => l.icon === 'insta');
   if(!p && !blog && !insta) return '';
   const sns = (l, sub) => l ? `<a class="tr-sns" href="${esc(l.url)}" target="_blank" rel="noopener"><img src="${LOGOS[l.icon]}" alt=""><span><b>${esc(l.name)}</b><small>${esc(sub || l.desc || '')}</small></span><i>${svg('right',2.4)}</i></a>` : '';
-  return `<div class="seg seg2"><h2>해랑경희를 더 알아보기</h2></div>
+  return `<div class="seg seg2"><h2>더 알아보기</h2></div>
     <div class="trust">
       ${p ? `<a class="tr-press" href="${esc(p.url)}" target="_blank" rel="noopener">
         ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy">` : ''}
         <div class="b"><span class="src">${esc(p.source || '언론 보도')}${isDate(p.date) ? ' · ' + p.date.slice(0,7).replace('-', '.') : ''}</span><h4>${esc(p.title)}</h4><span class="go">기사 읽기 ›</span></div></a>` : ''}
       <div class="tr-row">${sns(blog, '도장 소개 요약')}${sns(insta, '수업 일상과 제자들 모습')}</div>
     </div>`;
+}
+// 띠 제도 페이지
+function beltChip(b){
+  const bg = b.s ? `linear-gradient(180deg,${b.c} 0 36%,${b.s} 36% 64%,${b.c} 64%)` : (b.c2 ? `linear-gradient(180deg,${b.c} 0 50%,${b.c2} 50%)` : b.c);
+  return `<li class="${b.kid ? 'kid' : ''}"><i style="background:${bg}"></i><span>${esc(b.n)}</span></li>`;
+}
+function beltsPage(bt){
+  const k = bt.kup || {};
+  return `${bt.lead ? `<p class="lead">${esc(bt.lead)}</p>` : ''}
+    <div class="bt-stage">
+      <div class="bt-h"><b>${esc(k.title || '유급자 과정')}</b>${k.period ? `<span>${esc(k.period)}</span>` : ''}</div>
+      ${k.motto ? `<p class="bt-motto">“${esc(k.motto)}”</p>` : ''}
+      ${k.desc ? `<p class="bt-desc">${esc(k.desc)}</p>` : ''}
+      <ol class="belts">${list(k.belts).map(beltChip).join('')}</ol>
+      ${k.note ? `<p class="bt-note"><i class="kd"></i>${esc(k.note)}</p>` : ''}
+    </div>
+    ${list(bt.dan).map(s => `<div class="bt-stage dan">
+      <div class="bt-h"><b>${esc(s.t)}</b>${s.period ? `<span>${esc(s.period)}</span>` : ''}</div>
+      ${s.motto ? `<p class="bt-motto">“${esc(s.motto)}”</p>` : ''}
+      ${s.desc ? `<p class="bt-desc">${esc(s.desc)}</p>` : ''}
+      ${s.belt ? `<p class="bt-belt"><i style="background:${s.c ? `linear-gradient(180deg,${s.c} 0 50%,#1C1A19 50%)` : '#1C1A19'}"></i>${s.patch ? `<em style="background:${s.patch}"></em>` : ''}${esc(s.belt)}</p>` : ''}
+    </div>`).join('')}
+    ${bt.closing ? `<p class="cu-close">${esc(bt.closing)}</p>` : ''}`;
 }
 // 첫 화면용: 다가오는 일정 + 이달 공지를 한 장에 (색 뱃지 없이 차분하게)
 function newsCard(d){
@@ -1383,8 +1446,9 @@ function setupTabs(){
     const cls = list(D.classes).find(c => c.name && (c.name === v.name || c.name.split('·').some(w => v.name.includes(w.replace(/부$/, '')))));
     box.innerHTML = `
       <div class="dv ${dir}"><h4>${esc(v.name)}</h4>
-      <div class="wcols">${DAYS.map(dd => `<div class="wc${dd === today ? ' today' : ''}"><b>${dd}</b>${list(days[dd]).map(x => /^\(.*\)$/.test(x) ? `<small>${esc(x.slice(1, -1))}</small>` : `<p>${esc(x)}</p>`).join('')}</div>`).join('')}</div>
-      ${v.common ? `<p class="every2">${esc(v.common)}</p>` : ''}
+      <div class="wcols whead">${DAYS.map(dd => `<div class="wc${dd === today ? ' today' : ''}"><b>${dd}</b></div>`).join('')}</div>
+      ${v.common ? `<p class="every2"><span>매일</span>${esc(v.common)}</p>` : ''}
+      <div class="wcols wbody">${DAYS.map(dd => `<div class="wc${dd === today ? ' today' : ''}">${list(days[dd]).map(x => /^\(.*\)$/.test(x) ? `<small>${esc(x.slice(1, -1))}</small>` : `<p>${esc(x)}</p>`).join('')}</div>`).join('')}</div>
       ${list(v.extra).length ? `<div class="cu-purp extra3">${list(v.extra).map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}</div>`;
   };
   document.querySelectorAll('.vtabs button').forEach(b => b.onclick = () => show(+b.dataset.div));
@@ -1394,11 +1458,36 @@ function setupTabs(){
 // ---------- 사진 ----------
 function gallery(d){
   const pics = list(d.gallery);
-  let row = pics.slice();
-  while(row.length < 8) row = row.concat(pics);
-  const imgs = row.map(p => `<img src="${esc(p)}" alt="수업 사진" decoding="async">`).join('');
-  return `<div class="marquee"><div class="track" style="--dur:${row.length * 4}s">${imgs}${imgs}</div></div>
+  if(!pics.length) return '';
+  return `<div class="pstack" aria-label="사진 넘겨보기">
+      ${pics.map((p, i) => `<figure class="pc${i === 0 ? ' p0' : i === 1 ? ' p1' : i === 2 ? ' p2' : ''}"><img src="${esc(p)}" alt="수업 사진" ${i > 3 ? 'loading="lazy"' : ''} decoding="async"><figcaption>HAERANG <b>${pad2(i + 1)}</b> / ${pad2(pics.length)}</figcaption></figure>`).join('')}
+    </div>
+    <p class="ps-hint">옆으로 넘기거나 눌러서 크게 보세요</p>
     <div class="photogrid">${pics.map(p => `<img src="${esc(p)}" alt="수업 사진" loading="lazy">`).join('')}</div>`;
+}
+function setupStack(){
+  const st = document.querySelector('.pstack');
+  if(!st) return;
+  const cs = [...st.querySelectorAll('.pc')];
+  if(cs.length < 2) return;
+  let i = 0, t, hold = false;
+  const paint = () => cs.forEach((c, k) => {
+    const r = (k - i + cs.length) % cs.length;
+    c.classList.toggle('p0', r === 0); c.classList.toggle('p1', r === 1); c.classList.toggle('p2', r === 2);
+    if(r === 3) c.querySelector('img').loading = 'eager';
+  });
+  const go = dir => {
+    const f = cs[i]; f.classList.add(dir < 0 ? 'outr' : 'out');
+    i = (i + (dir < 0 ? -1 : 1) + cs.length) % cs.length;
+    paint(); setTimeout(() => f.classList.remove('out', 'outr'), 650);
+  };
+  const loop = () => { clearInterval(t); t = setInterval(() => { if(!hold && st.isConnected && st.offsetParent) go(1); }, 3800); };
+  let x0 = null;
+  st.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; hold = true; }, {passive:true});
+  st.addEventListener('touchend', e => { hold = false; if(x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if(Math.abs(dx) > 40){ go(dx < 0 ? 1 : -1); loop(); e.preventDefault(); } }, {passive:false});
+  st.addEventListener('mouseenter', () => hold = true); st.addEventListener('mouseleave', () => hold = false);
+  st.pause = v => hold = v;
+  loop();
 }
 function setupGallery(){
   const lb = document.createElement('div');
@@ -1406,12 +1495,12 @@ function setupGallery(){
   document.body.append(lb);
   const m = document.querySelector('.marquee');
   document.getElementById('app').addEventListener('click', e => {
-    const img = e.target.closest('.marquee img, .photogrid img, img[data-zoom]');
+    const img = e.target.closest('.pstack .p0 img, .photogrid img, img[data-zoom]');
     if(!img) return;
     lb.querySelector('img').src = img.src;
-    lb.classList.add('on'); if(m) m.classList.add('paused');
+    lb.classList.add('on'); const ps = document.querySelector('.pstack'); if(ps && ps.pause) ps.pause(true);
   });
-  lb.addEventListener('click', () => { lb.classList.remove('on'); if(m) m.classList.remove('paused'); });
+  lb.addEventListener('click', () => { lb.classList.remove('on'); const ps = document.querySelector('.pstack'); if(ps && ps.pause) ps.pause(false); });
 }
 // 홈의 사진·알림판 슬라이드 (4초마다 넘어감, ‖ 로 멈춤)
 function setupSliders(){
