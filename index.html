@@ -775,6 +775,10 @@
   .gscale .lv1{background:#EEE6DF;color:#5A514D}.gscale .lv2{background:#F6D9DB;color:var(--brand-deep)}.gscale .lv3{background:var(--brand);color:#fff}
   .cu-line{display:flex;justify-content:center;align-items:center;white-space:nowrap;margin:2px 0 20px;padding:4px 0;font-size:min(15.5px,3.05vw);font-weight:700;color:var(--brand-deep)}
   .cu-line i{font-style:normal;color:#D5CBC4;margin:0 .55em;font-weight:400}
+  .grow1{display:flex;align-items:center;white-space:nowrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:min(15px,3.5vw)}
+  .grow1 em{font-style:normal;font-weight:900;color:var(--brand);margin-right:.4em}
+  .grow1 b{font-weight:700;color:var(--ink)}
+  .grow1 i{font-style:normal;color:#D5CBC4;margin:0 .5em}
 </style>
 </head>
 <body>
@@ -881,7 +885,7 @@ function render(d){
         });
         return `<div class="cu-areas">${areas.map((a, i) => `<div class="cu-area"><span class="n">${pad2(i + 1)}</span><h4>${esc(a.name)}</h4>
           <p class="learn">${list(a.items).map(esc).join(' · ')}</p>
-          ${a.gs.length ? `<ul class="grow">${a.gs.map(g => `<li><b>${esc(g.title)}</b>${g.desc ? `<span>${esc(g.desc)}</span>` : ''}</li>`).join('')}</ul>` : ''}</div>`).join('')}</div>
+          ${a.gs.length ? `<p class="grow1"><em>→</em>${a.gs.map(g => `<b>${esc(g.title)}</b>`).join('<i>|</i>')}</p>` : ''}</div>`).join('')}</div>
           ${rest.length ? `<ul class="grow">${rest.map(g => `<li><b>${esc(g.title)}</b><span>${esc(g.desc || '')}</span></li>`).join('')}</ul>` : ''}`;
       })()}
       ${cu.closing ? `<p class="cu-close">${esc(cu.closing).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>` : ''}`)};
