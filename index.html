@@ -248,6 +248,8 @@
   .mapbox .info b{display:block;font-size:17px;font-weight:900}
   .mapbox .info p{font-size:15px;margin-top:2px;word-break:keep-all}
   .mapbox .info .lm{display:flex;align-items:center;gap:5px;font-size:14px;font-weight:700;color:var(--brand);margin-top:4px}
+  .mapbox .info .pk{display:flex;align-items:center;gap:5px;font-size:14px;color:var(--muted);margin-top:4px;word-break:keep-all}
+  .mapbox .info .pk svg{width:15px;height:15px;flex:none}
   .mapbox .info .lm svg{width:15px;height:15px;flex:none}
   .hours h4{display:flex;align-items:center;justify-content:space-between}
   .hours .open{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:#E9E2DB;color:#6B6460}
@@ -395,6 +397,7 @@
   .ld .cu-row b{width:52px}
   .ld .cu-row ul{list-style:none}
   .ld .cu-row li{line-height:1.7}
+  .ld .cu-row li + li{margin-top:6px}
   .cu-close strong{color:var(--brand);font-weight:900;font-size:17.5px}
   .cu-close{margin:28px 4px 8px;font-size:16px;line-height:1.85;font-weight:500;text-align:center;white-space:pre-line;word-break:keep-all;color:var(--ink)}
   .closing{margin-top:14px;font-size:15px;line-height:1.75;word-break:keep-all;background:var(--brand-soft);border-radius:10px;padding:16px 18px;color:#5A1A1D}
@@ -767,7 +770,7 @@ function render(d){
     S.location = {label: lo.title || '오시는 길', short:'오시는 길', icon:'map', html: sec('location', lo.title || '오시는 길', `
       <div class="card mapbox">
         ${lo.mapImage ? `${lo.naver ? `<a href="${esc(lo.naver)}" target="_blank" rel="noopener">` : ''}<img class="mapimg" src="${esc(lo.mapImage)}" alt="${esc(lo.name || brand)} 오시는 길 약도: ${esc(lo.landmark || lo.address || '')}" loading="lazy">${lo.naver ? '</a>' : ''}` : `<iframe title="${esc(lo.name || brand)} 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${q}&hl=ko&z=17&output=embed"></iframe>`}
-        <div class="info"><b>${esc(lo.name || brand)}</b><p>${esc(lo.address)}</p>${lo.landmark ? `<p class="lm">${svg('map')}${esc(lo.landmark)}</p>` : ''}${lo.note ? `<p class="note">${esc(lo.note)}</p>` : ''}
+        <div class="info"><b>${esc(lo.name || brand)}</b><p>${esc(lo.address)}</p>${lo.landmark ? `<p class="lm">${svg('map')}${esc(lo.landmark)}</p>` : ''}${lo.parking ? `<p class="pk">${svg('car')}${esc(lo.parking).replace(/\s*\n\s*/g, ' ')}</p>` : ''}${lo.note ? `<p class="note">${esc(lo.note)}</p>` : ''}
           <div class="mapbtns">
             ${lo.naver ? `<a class="nv" href="${esc(lo.naver)}" target="_blank" rel="noopener">${svg('map')}네이버지도</a>` : ''}
             ${lo.kakao ? `<a class="kk" href="${esc(lo.kakao)}" target="_blank" rel="noopener">${svg('map')}카카오맵</a>` : ''}
@@ -778,7 +781,7 @@ function render(d){
       </div>
       ${Object.keys(hrs).length ? `<div class="card tt hours" style="margin-top:14px"><h4>운영 시간 ${tm || offToday ? `<span class="open ${openNow ? 'on' : ''}">${openNow ? '지금 운영 중' : (offToday ? '오늘 휴관' : '운영 시간 아님')}</span>` : `<span class="open">오늘 휴무</span>`}</h4><table>
         ${order.filter(w => hrs[w]).map(w => `<tr class="${w === todayW ? 'today' : ''}${/휴/.test(hrs[w]) ? ' off' : ''}"><td>${w}</td><td>${esc(hrs[w])}</td></tr>`).join('')}</table></div>` : ''}
-      ${lo.parking ? `<div class="card park">${svg('car')}<div><b>주차 안내</b><p>${esc(lo.parking)}</p></div></div>` : ''}`)};
+`)};
   }
 
   // 큰 메뉴 → 작은 메뉴(탭)
