@@ -284,6 +284,43 @@
   .mapbtns .wide{grid-column:1/-1}
   .mapbtns svg{width:17px;height:17px}
 
+  /* ---------- 영상 첫 화면 ---------- */
+  .vhero{position:relative;height:min(86svh,760px);min-height:520px;background:#1C1A19;overflow:hidden;color:#fff}
+  .vhero video,.vhero .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .vhero::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,10,10,.15) 0%,rgba(20,10,10,0) 30%,rgba(20,10,10,.55) 62%,rgba(20,10,10,.88) 100%)}
+  .vhero .in{position:absolute;left:0;right:0;bottom:0;z-index:2;max-width:640px;margin:0 auto;padding:0 22px 34px}
+  .vhero .kick{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.06em;color:#F3C9CB}
+  .vhero .kick::before{content:'';width:28px;height:1px;background:currentColor}
+  .vhero h1{margin-top:10px;width:min(82%,380px)}
+  .vhero h1 img{display:block;width:100%;height:auto}
+  .vhero .vt{margin-top:12px;font-size:15px;line-height:1.6;color:rgba(255,255,255,.88);word-break:keep-all;max-width:320px}
+  .vhero .btns{display:flex;gap:8px;margin-top:20px}
+  .vhero .btns a{flex:1;max-width:180px;display:flex;align-items:center;justify-content:center;height:50px;border-radius:6px;font-weight:900;font-size:15px;text-decoration:none}
+  .vhero .b1{background:var(--brand);color:#fff}
+  .vhero .b2{border:1px solid rgba(255,255,255,.55);color:#fff}
+  .vhero + .wrap .intro{margin-top:16px}
+  @media (min-width:900px){ .vhero{height:min(88vh,820px)} .vhero .in{max-width:1080px;padding:0 40px 56px} .vhero h1{width:420px} }
+
+  /* 부서별 수업 */
+  .classes{display:flex;flex-direction:column;gap:28px}
+  .cls{display:block;text-decoration:none;color:inherit}
+  .cls .media{position:relative;aspect-ratio:4/5;border-radius:8px;overflow:hidden;background:#2A2524}
+  .cls .media video,.cls .media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .cls .no{position:absolute;left:16px;top:12px;font-family:'Noto Serif KR',serif;font-weight:900;font-size:44px;line-height:1;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+  .cls .body{padding:16px 4px 0}
+  .cls .row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-bottom:1px solid var(--ink);padding-bottom:10px}
+  .cls h3{font-size:21px;font-weight:900}
+  .cls .tm{font-size:13.5px;font-weight:700;color:var(--brand);white-space:nowrap}
+  .cls ul{list-style:none;margin-top:8px}
+  .cls li{font-size:15px;padding:7px 0;border-bottom:1px solid var(--line);word-break:keep-all;color:#3A3533}
+  .cls .go{display:inline-block;margin-top:10px;font-size:14px;font-weight:700;color:var(--ink)}
+  @media (min-width:700px){ .classes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px} }
+
+  /* 스크롤하면 나타남 */
+  .rv{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+  .rv.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){ .rv{opacity:1;transform:none;transition:none} }
+
   /* ---------- 하위 페이지 ---------- */
   .pagehero{background:var(--brand);color:#fff;position:relative;overflow:hidden;padding:22px 20px 24px}
   .pagehero .in{max-width:640px;margin:0 auto;position:relative}
@@ -712,10 +749,10 @@ function render(d){
     </div>
 
     <div id="homePage">
-      <div class="hero">${lionW}
+      ${d.heroVideo && d.heroVideo.src ? heroVideo(d, brand) : `<div class="hero">${lionW}
         <h1 class="ht"><img class="ht-title" src="img/title-white.png" alt="${brand}"><img class="ht-slogan" src="img/slogan-white.png" alt="${esc(d.slogan || '')}"></h1>
         ${(() => { const hp = list(d.heroPhotos).filter(x => x && x.image); if(!hp.length) return ''; return `<div class="hphoto" id="hphoto">${hp.map((x,i) => `<img class="${i ? '' : 'on'}" src="${esc(x.image)}" alt="${esc(x.alt || '')}"${i ? ' loading="lazy"' : ''}>`).join('')}${hp.length > 1 ? `<div class="dots">${hp.map((_,i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}</div>`; })()}
-      </div>
+      </div>`}
       <main class="wrap">
         <section class="card intro">${intro}</section>
         <div class="seg"><h2>처음 오셨나요?</h2><p>수업 방식부터 회비까지 한눈에 보세요</p></div>
@@ -723,6 +760,7 @@ function render(d){
           ${tileIds.map(id => `<a class="sc" href="#/${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
           <a class="sc sc-call" href="#/contact"><span class="ic">${svg('phone')}</span>상담 문의하기</a>
         </div>
+        ${classesBlock(d)}
         <div class="seg seg2"><h2>지금 해랑경희에서는</h2><p>오늘의 수련, 행사, 공지와 다가오는 일정</p></div>
         <div class="home">
           ${workoutCard(d, true)}
@@ -766,7 +804,7 @@ function render(d){
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupQuick(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop(); setupFaq();
+  setupMenu(); setupQuick(); setupVideos(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupSliders(); setupTop(); setupFaq();
   const cb = document.getElementById('copyAddr');
   if(cb) cb.onclick = async () => {
     const txt = lo.address;
@@ -775,6 +813,45 @@ function render(d){
     cb.lastChild.textContent = '복사됐어요'; setTimeout(() => { cb.lastChild.textContent = '주소 복사'; }, 1800);
   };
   window.addEventListener('hashchange', route); route();
+}
+
+// ---------- 영상 첫 화면 · 부서별 수업 ----------
+function heroVideo(d, brand){
+  const v = d.heroVideo;
+  const book = list(d.links).find(l => l.icon === 'calendar');
+  return `<section class="vhero">
+    <video src="${esc(v.src)}" poster="${esc(v.poster || '')}" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
+    <div class="in">
+      <div class="kick">HAERANG TAEKWONDO</div>
+      <h1><img src="img/title-white.png" alt="${brand}"></h1>
+      <p class="vt">${esc(v.text || d.slogan || '')}</p>
+      <div class="btns">${book ? `<a class="b1" href="${esc(book.url)}" target="_blank" rel="noopener">상담 예약</a>` : `<a class="b1" href="#/contact">상담 문의</a>`}<a class="b2" href="#/program">수업 보기</a></div>
+    </div>
+  </section>`;
+}
+function classesBlock(d){
+  const cs = list(d.classes).filter(c => c.name);
+  if(!cs.length) return '';
+  return `<div class="seg seg2"><h2>부서별 수업</h2><p>나이와 목표에 맞춰 반을 나눠 지도합니다</p></div>
+    <div class="classes">${cs.map((c, i) => `
+      <a class="cls rv" href="${esc(c.link || '#/program')}">
+        <div class="media">${c.video ? `<video data-src="${esc(c.video)}" poster="${esc(c.poster || '')}" muted loop playsinline preload="none" aria-hidden="true"></video>` : (c.poster ? `<img src="${esc(c.poster)}" alt="" loading="lazy">` : '')}<span class="no">${pad2(i + 1)}</span></div>
+        <div class="body"><div class="row"><h3>${esc(c.name)}</h3>${c.time ? `<span class="tm">${esc(c.time)}</span>` : ''}</div>
+          <ul>${list(c.points).map(p => `<li>${esc(p)}</li>`).join('')}</ul><span class="go">자세히 보기 ›</span></div>
+      </a>`).join('')}</div>`;
+}
+// 화면에 보일 때만 영상 재생 (데이터 절약), 스크롤하면 나타남
+function setupVideos(){
+  const vids = [...document.querySelectorAll('video[data-src]')];
+  const rvs = [...document.querySelectorAll('.rv')];
+  if(!('IntersectionObserver' in window)){ vids.forEach(v => { v.src = v.dataset.src; v.play().catch(()=>{}); }); rvs.forEach(x => x.classList.add('in')); return; }
+  const vo = new IntersectionObserver(es => es.forEach(e => {
+    const v = e.target;
+    if(e.isIntersecting){ if(!v.src) v.src = v.dataset.src; v.play().catch(()=>{}); } else v.pause();
+  }), {threshold:.25});
+  vids.forEach(v => vo.observe(v));
+  const ro = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); ro.unobserve(e.target); } }), {threshold:.12});
+  rvs.forEach(x => ro.observe(x));
 }
 
 // ---------- 첫 화면 사진 ----------
