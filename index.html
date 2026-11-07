@@ -271,9 +271,16 @@
   .fee .plan b{display:block;font-size:16px}
   .fee .plan span{display:block;font-size:13px;color:var(--muted)}
   .fee .plan strong{font-size:18px;font-weight:900;white-space:nowrap}
-  .fnotes{list-style:none;margin-top:8px;padding:12px 14px;background:var(--paper);border-radius:12px}
-  .fnotes li{position:relative;padding-left:12px;font-size:13.5px;color:#3A3533;word-break:keep-all}
-  .fnotes li::before{content:'';position:absolute;left:0;top:.7em;width:4px;height:4px;border-radius:50%;background:var(--brand)}
+  .fnotes{list-style:none;margin-top:4px;padding-top:12px;border-top:1px solid var(--line)}
+  .fnotes li{font-size:13.5px;line-height:1.75;color:var(--muted);word-break:keep-all}
+  .fnotes li::before{content:'· ';color:var(--muted)}
+  .shuttle{margin:22px 4px 0;font-size:15px;line-height:1.7;word-break:keep-all}
+  .shuttle b{display:block;font-size:16px}
+  .shuttle p{color:var(--muted);font-size:14px}
+  .wo.rest{background:#EFEAE5;color:var(--ink)}
+  .wo.rest .hc-head .ic{background:#fff;color:var(--muted)}
+  .wo.rest .hc-head h2 small,.wo.rest .hc-head .more{color:var(--muted)}
+  .wo.rest .theme{white-space:pre-line;font-size:19px;line-height:1.5;color:#5A524D}
   .btn-call{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:14px;border-radius:10px;background:var(--brand);color:#fff;font-weight:900;font-size:15px;text-decoration:none}
   .btn-call svg{width:20px;height:20px}
   .park p{font-size:14.5px;color:#3A3533;word-break:keep-all}
@@ -329,11 +336,11 @@
   .crumb{font-size:12.5px;opacity:.8}
   .crumb a{text-decoration:none}
   .pagehero h2{font-family:'Noto Serif KR',serif;font-weight:900;font-size:24px;margin-top:2px}
-  .subtabs{background:#fff;border-bottom:1px solid var(--line)}
-  .subtabs .in{max-width:640px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 16px}
+  .subtabs{background:#fff;border-bottom:1px solid var(--line);overflow:hidden}
+  .subtabs .in{max-width:640px;margin:10px auto;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:4px;background:#F0ECE8;border-radius:12px;width:calc(100% - 32px)}
   .subtabs .in::-webkit-scrollbar{display:none}
-  .subtabs a{flex:none;text-decoration:none;font-size:14px;font-weight:700;padding:8px 13px;border-radius:8px;border:1px solid var(--line);color:var(--muted);background:#fff}
-  .subtabs a.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .subtabs a{flex:1 0 auto;text-align:center;text-decoration:none;font-size:14px;font-weight:600;padding:9px 10px;border-radius:9px;color:var(--muted);white-space:nowrap}
+  .subtabs a.on{background:#fff;color:var(--ink);font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.1)}
   .sec{padding-top:26px;animation:fadeUp .35s ease}
   @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   .sec > h3.st{font-family:'Noto Serif KR',serif;font-weight:900;font-size:20px;line-height:1.4;word-break:keep-all;margin-bottom:16px}
@@ -688,7 +695,7 @@ function render(d){
         <div class="plan"><div><b>${esc(p.name)}</b>${p.who ? `<span>${esc(p.who)}</span>` : ''}</div><strong>${esc(p.price)}</strong></div>`).join('')}
         ${list(fe.notes).length ? `<ul class="fnotes">${list(fe.notes).map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}</div>` : ''}
       ${list(fe.referral).length ? `<div class="card park gift">${svg('gift')}<div><b>${esc(fe.referralTitle || '지인 소개 혜택')}</b><div class="rf">${list(fe.referral).map(t => { const [a, ...b] = String(t).split('|'); return `<div class="rr"><span>${esc(a.trim())}</span><em>${esc(b.join('|').trim())}</em></div>`; }).join('')}</div></div></div>` : ''}
-      ${fe.shuttle ? `<div class="card park">${svg('car')}<div><b>${esc(fe.shuttle)}</b>${fe.shuttleNote ? `<p>${esc(fe.shuttleNote)}</p>` : ''}</div></div>` : ''}
+      ${fe.shuttle ? `<div class="shuttle"><b>${esc(fe.shuttle)}</b>${fe.shuttleNote ? `<p>${esc(fe.shuttleNote)}</p>` : ''}</div>` : ''}
       ${tel0 ? `<a class="btn-call" href="tel:${esc(tel0)}">${svg('phone')}회비·차량 전화로 문의하기</a>` : ''}`)};
 
   if(list(d.faq).length){
@@ -1001,15 +1008,16 @@ function workoutCard(d, onHome){
     const c = EV_COLORS[e.type] || EV_COLORS['기타'];
     return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
   }).join('');
-  let body;
+  let body, rest = false;
   if(off.length) body = `<div class="theme">오늘은 쉬는 날이에요</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
-  else if(weekend && !fs.length && !evRows && !items.length) body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말 보내세요. 월요일에 만나요.')}</div>`;
+  else if(weekend && !fs.length && !evRows && !items.length){ rest = true; body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말 보내세요.\n월요일에 만나요!')}</div>`; }
   else body = `
       ${fs.length ? `<div class="flabel">${fs.some(f => +f.s !== +f.en) ? '이번 주 수련' : '오늘의 수련'}</div><div class="theme">${fs.map(f => esc(f.title)).join(' · ')}</div><p class="sub">${fs.map(rangeText).join(', ')}</p>` : ''}
       ${evRows ? `<div class="focusbox">${evRows}</div>` : ''}
       ${items.length ? `<div class="flabel" style="margin-top:6px">${WEEK[dow]}요일 수업</div><ol>${items.map(i => `<li><b>${esc(i)}</b></li>`).join('')}</ol>` : ''}
       ${!fs.length && !evRows && !items.length ? `<div class="theme">오늘은 정해진 운동이 없어요</div>` : ''}`;
-  return `<div class="card hc wo">
+  if(off.length) rest = true;
+  return `<div class="card hc wo${rest ? ' rest' : ''}">
     <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2>${onHome ? `<a class="more" href="#/today">이달 수련 계획 ›</a>` : ''}</div>
     ${body}<div class="pad"></div>
   </div>`;
