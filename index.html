@@ -672,6 +672,13 @@
   .tr-sns i{color:var(--muted);display:grid}
   .tr-sns i svg{width:18px;height:18px}
   @media (min-width:700px){ .tr-press{display:grid;grid-template-columns:1.1fr 1fr} .tr-press img{height:100%;aspect-ratio:auto} .tr-press .b{align-self:center;padding:20px 24px} }
+  /* 첫 화면: 로고 문구, 수상 배지는 영상 위쪽 */
+  .vhero .vs{margin-top:14px;width:min(92%,440px)}
+  .vhero .vs img{display:block;width:100%;height:auto;opacity:.92}
+  .vhero .award{position:absolute;z-index:3;top:16px;left:16px;right:16px;margin:0 auto;max-width:max-content;background:rgba(20,10,10,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);color:#fff}
+  .vhero .award svg{color:#F6C453}
+  .vhero .award small{color:rgba(255,255,255,.8)}
+  @media (min-width:900px){ .vhero .award{left:max(40px,calc((100% - 1080px) / 2 + 40px));right:auto;top:28px;margin:0} }
 </style>
 </head>
 <body>
@@ -885,7 +892,7 @@ function render(d){
         ${(() => { const hp = list(d.heroPhotos).filter(x => x && x.image); if(!hp.length) return ''; return `<div class="hphoto" id="hphoto">${hp.map((x,i) => `<img class="${i ? '' : 'on'}" src="${esc(x.image)}" alt="${esc(x.alt || '')}"${i ? ' loading="lazy"' : ''}>`).join('')}${hp.length > 1 ? `<div class="dots">${hp.map((_,i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : ''}</div>`; })()}
       </div>`}
       <main class="wrap">
-        <section class="intro">${awardPill(d)}${intro}</section>
+        <section class="intro">${d.heroVideo && d.heroVideo.src ? '' : awardPill(d)}${intro}</section>
         <div class="shortcuts${tileIds.length % 3 === 0 ? ' three' : ''}">
           ${tileIds.map(id => `<a class="sc" href="#/${id}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
         </div>
@@ -951,13 +958,13 @@ function heroVideo(d, brand){
   const wide = v.wide && matchMedia('(min-width:768px) and (orientation:landscape)').matches;
   const src = wide ? v.wide : v.src, poster = wide ? (v.widePoster || '') : (v.poster || '');
   const book = list(d.links).find(l => l.icon === 'calendar');
-  return `<section class="vhero">
+  return `<section class="vhero">${awardPill(d)}
     <video src="${esc(src)}" poster="${esc(poster)}" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
     <div class="in">
       <div class="kick">HAERANG TAEKWONDO</div>
       <h1><img src="img/title-white.png" alt="${brand}"></h1>
-      <p class="vt">${esc(v.text || d.slogan || '')}</p>
-      <div class="btns">${book ? `<a class="b1" href="${esc(book.url)}" target="_blank" rel="noopener">상담 예약</a>` : `<a class="b1" href="#/contact">상담 문의</a>`}<a class="b2" href="#/program">수업 보기</a></div>
+      <p class="vs"><img src="img/slogan-white.png" alt="${esc(d.slogan || '')}"></p>
+      <div class="btns">${book ? `<a class="b1" href="${esc(book.url)}" target="_blank" rel="noopener">상담 예약</a>` : `<a class="b1" href="#/contact">상담 문의</a>`}<a class="b2" href="#/program">수련 안내</a></div>
     </div>
   </section>`;
 }
