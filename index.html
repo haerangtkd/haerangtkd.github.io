@@ -393,16 +393,31 @@
   .extra{padding:14px 18px 16px;border-top:1px solid var(--line)}
   .extra b{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
   .extra p{font-size:15px;line-height:1.7;word-break:keep-all}
-  .divwrap{display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:start}
-  .vtabs{display:flex;flex-direction:column;gap:6px;position:sticky;top:72px}
-  .vtabs button{font:inherit;font-size:14px;font-weight:700;line-height:1.35;padding:14px 6px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;word-break:keep-all;text-align:center}
-  .vtabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
-  #divBox{min-width:0;overflow:hidden}
-  #divBox .card{margin:0}
-  #divBox .wk td{padding:11px 12px}
-  #divBox .wk td:first-child{padding-right:4px}
-  #divBox .wk h4{padding:12px 14px;font-size:14.5px}
-  #divBox .wk h4 small{display:block;margin-top:2px}
+  .divwrap{display:block}
+  .vtabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:18px}
+  .vtabs button{flex:1;font:inherit;font-size:15px;font-weight:700;padding:12px 4px 11px;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;background:none;color:var(--muted);cursor:pointer;word-break:keep-all}
+  .vtabs button.on{color:var(--brand);border-bottom-color:var(--brand)}
+  #divBox{min-width:0;overflow:hidden;padding:0 2px}
+  .dv h4{font-size:19px;font-weight:900;padding-bottom:8px;border-bottom:2px solid var(--ink)}
+  .dv .every{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14.5px;color:#3A3533;word-break:keep-all}
+  .dv .every b{flex:none;width:28px;color:var(--muted);font-weight:700}
+  .wcols{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line)}
+  .wc{padding:12px 3px 14px;text-align:center;min-width:0}
+  .wc + .wc{border-left:1px solid var(--line)}
+  .wc b{display:block;font-family:'Noto Serif KR',serif;font-weight:900;font-size:17px;color:var(--brand);padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+  .wc p{font-size:13.5px;line-height:1.45;word-break:keep-all;color:#3A3533}
+  .wc p + p{margin-top:6px}
+  .wc small{display:block;margin-top:6px;font-size:11.5px;line-height:1.35;color:var(--muted);word-break:keep-all}
+  .wc.today{background:var(--brand-soft)}
+  .dv table{width:100%;border-collapse:collapse}
+  .dv td{padding:12px 0;border-bottom:1px solid var(--line);font-size:15px;vertical-align:top;word-break:keep-all}
+  .dv td:first-child{width:40px;color:var(--brand);font-family:'Noto Serif KR',serif;font-weight:900}
+  .dv td small{display:block;font-size:13px;color:var(--muted)}
+  .dv tr.today td{font-weight:700}
+  .dv tr.today td:first-child{text-decoration:underline;text-underline-offset:4px}
+  .dv .extra2{margin-top:20px;font-size:15px;font-weight:700;line-height:1.8;word-break:keep-all;text-align:center}
+  .dv .extra2 span{white-space:nowrap}
+  .dv .extra2 i{font-style:normal;color:var(--brand);margin:0 6px}
   .slide-up{animation:slUp .38s ease}
   .slide-down{animation:slDown .38s ease}
   @keyframes slUp{from{opacity:0;transform:translateY(36px)}to{opacity:1;transform:none}}
@@ -663,7 +678,7 @@ function render(d){
   const pr = d.program || {};
   if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
       ${list(pr.timetable).length ? `<div class="card tt"><h4>전체 시간표 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}
-      ${list(pr.divisions).length ? `<h3 class="st" style="margin:30px 2px 12px">부서별 요일 수업</h3><div class="divwrap"><div class="vtabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name).replace('·', '·<br>')}</button>`).join('')}</div>
+      ${list(pr.divisions).length ? `<h3 class="st" style="margin:30px 2px 12px">부서별 요일 수업</h3><div class="divwrap"><div class="vtabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
       <div id="divBox"></div></div>` : ''}`)};
 
   const fe = d.fee || {};
@@ -1170,11 +1185,10 @@ function setupTabs(){
     const days = v.days || {};
     const cls = list(D.classes).find(c => c.name && (c.name === v.name || c.name.split('·').some(w => v.name.includes(w.replace(/부$/, '')))));
     box.innerHTML = `
-      <div class="card tt wk ${dir}"><h4>${esc(v.name)}${v.common ? ` <small style="font-weight:500;color:#8A6D1F">매일 ${esc(v.common)}</small>` : ''}</h4>
-      ${cls && cls.time ? `<p class="divtime">수업 시간 <span>${esc(cls.time)}</span></p>` : ''}<table>
-        ${DAYS.filter(dd => list(days[dd]).length).map(dd => { const it = list(days[dd]); const main = it.filter(x => !/^\(.*\)$/.test(x)), sub = it.filter(x => /^\(.*\)$/.test(x)).map(x => x.slice(1, -1));
-          return `<tr class="${dd === today ? 'today' : ''}"><td>${dd}</td><td>${main.map(esc).join(' · ')}${sub.length ? `<small>${sub.map(esc).join(' · ')}</small>` : ''}</td></tr>`; }).join('')}
-      </table>${list(v.extra).length ? `<div class="extra"><b>추가 수련</b><p>${list(v.extra).map(x => `<span>${esc(x)}</span>`).join(' · ')}</p></div>` : ''}</div>`;
+      <div class="dv ${dir}"><h4>${esc(v.name)}</h4>
+      ${v.common ? `<div class="every"><b>매일</b><span>${esc(v.common)}</span></div>` : ''}
+      <div class="wcols">${DAYS.map(dd => `<div class="wc${dd === today ? ' today' : ''}"><b>${dd}</b>${list(days[dd]).map(x => /^\(.*\)$/.test(x) ? `<small>${esc(x.slice(1, -1))}</small>` : `<p>${esc(x)}</p>`).join('')}</div>`).join('')}</div>
+      ${list(v.extra).length ? `<p class="extra2">${list(v.extra).map(x => `<span>${esc(x)}</span>`).join('<i>·</i>')}</p>` : ''}</div>`;
   };
   document.querySelectorAll('.vtabs button').forEach(b => b.onclick = () => show(+b.dataset.div));
   show(0);
