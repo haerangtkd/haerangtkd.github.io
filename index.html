@@ -885,6 +885,7 @@ function render(d){
 
   const pr = d.program || {};
   if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
+      ${fittBlock(pr)}
       ${list(pr.timetable).length ? `<div class="card tt"><h4>전체 시간표 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}
       ${list(pr.divisions).length ? `<h3 class="st" style="margin:30px 2px 12px">부서별 요일 수업</h3><div class="divwrap"><div class="vtabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
       <div id="divBox"></div></div>` : ''}`)};
@@ -1377,16 +1378,21 @@ function trustBlock(d){
       <div class="tr-row">${sns(blog, '도장 소개 요약')}${sns(insta, '수업 일상과 제자들 모습')}</div>
     </div>`;
 }
+// 수업 · 시간표 맨 위: 해랑경희 FITT
+function fittBlock(pr){
+  const f = list(pr.fitt);
+  if(!f.length) return '';
+  return `<div class="fitt"><h4>${esc(pr.fittTitle || '해랑경희 태권도장의 FITT')}</h4>${pr.fittLead ? `<p class="bt-desc">${esc(pr.fittLead)}</p>` : ''}
+    <div class="fitt-g">${f.map(x => `<div><span class="ic">${svg(x.icon || 'clock')}</span><b>${esc(x.k)}</b><small>${esc(x.e || '')}</small><p>${esc(x.v)}</p></div>`).join('')}</div></div>`;
+}
 // 띠 제도 페이지
 function beltChip(b){
   const bg = b.s ? `linear-gradient(180deg,${b.c} 0 36%,${b.s} 36% 64%,${b.c} 64%)` : (b.c2 ? `linear-gradient(180deg,${b.c} 0 50%,${b.c2} 50%)` : b.c);
   return `<li class="${b.kid ? 'kid' : ''}"><i style="background:${bg}"></i><span>${esc(b.n)}</span></li>`;
 }
 function beltsPage(bt){
-  const k = bt.kup || {}, f = list(bt.fitt), c = bt.cert || {};
+  const k = bt.kup || {}, c = bt.cert || {};
   const tbl = (head, rows) => `<table class="bt-tbl"><tr><th>${esc(head[0])}</th>${rows.map(r => `<th>${esc(r[0])}</th>`).join('')}</tr><tr><td>${esc(head[1])}</td>${rows.map(r => `<td>${esc(r[1])}</td>`).join('')}</tr></table>`;
-  const fittHtml = f.length ? `<div class="fitt"><h4>${esc(bt.fittTitle || '해랑경희 태권도장의 FITT')}</h4>${bt.fittLead ? `<p class="bt-desc">${esc(bt.fittLead)}</p>` : ''}
-      <div class="fitt-g">${f.map(x => `<div><span class="ic">${svg(x.icon || 'clock')}</span><b>${esc(x.k)}</b><small>${esc(x.e || '')}</small><p>${esc(x.v)}</p></div>`).join('')}</div></div>` : '';
   const certHtml = c.title ? `<h3 class="st" style="margin:34px 2px 12px">${esc(c.title)}</h3>
       ${c.what ? `<div class="bt-stage"><div class="bt-h"><b>단증 · 품증이란?</b></div><p class="bt-desc">${esc(c.what)}</p>${list(c.naming).length ? `<ul class="bt-list">${list(c.naming).map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>` : ''}
       ${list(c.minPeriod).length ? `<div class="bt-stage"><div class="bt-h"><b>품/단 취득 최소 수련 기간</b></div>${tbl(['응시 품/단', '승단 수련 기간'], c.minPeriod)}${list(c.examples).length ? `<ul class="bt-list">${list(c.examples).map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>` : ''}
@@ -1394,7 +1400,7 @@ function beltsPage(bt){
       ${list(c.convert).length ? `<div class="bt-stage"><div class="bt-h"><b>품증에서 단증으로 변경</b></div><ul class="bt-list">${list(c.convert).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       ${list(c.benefits).length ? `<div class="bt-stage"><div class="bt-h"><b>단증이 있으면 좋은 점</b></div><div class="bnf">${list(c.benefits).map(x => `<span>${esc(x)}</span>`).join('')}</div></div>` : ''}
       ${c.closing ? `<p class="cu-close">${esc(c.closing)}</p>` : ''}` : '';
-  return `${fittHtml}${bt.lead ? `<p class="lead">${esc(bt.lead)}</p>` : ''}
+  return `${bt.lead ? `<p class="lead">${esc(bt.lead)}</p>` : ''}
     <div class="bt-stage">
       <div class="bt-h"><b>${esc(k.title || '유급자 과정')}</b>${k.period ? `<span>${esc(k.period)}</span>` : ''}</div>
       ${k.motto ? `<p class="bt-motto">“${esc(k.motto)}”</p>` : ''}
