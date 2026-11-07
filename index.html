@@ -679,6 +679,24 @@
   .vhero .award svg{color:#F6C453}
   .vhero .award small{color:rgba(255,255,255,.8)}
   @media (min-width:900px){ .vhero .award{left:max(40px,calc((100% - 1080px) / 2 + 40px));right:auto;top:28px;margin:0} }
+  /* 영상 높이 살짝 줄임 */
+  .vhero{height:min(72svh,640px);min-height:460px}
+  @media (min-width:900px){ .vhero{height:min(76vh,700px)} }
+  /* 교육 내용: 3개 영역 카드 */
+  .cu-purp2{display:flex;flex-wrap:wrap;gap:6px;margin:0 2px 22px}
+  .cu-purp2 span{padding:6px 12px;border-radius:999px;background:var(--brand-soft);color:var(--brand-deep);font-size:14px;font-weight:700}
+  .cu-areas{display:grid;gap:12px}
+  @media (min-width:700px){ .cu-areas{grid-template-columns:repeat(3,1fr)} }
+  .cu-area{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px}
+  .cu-area .n{font-size:12.5px;font-weight:700;color:var(--brand)}
+  .cu-area h4{font-size:18px;font-weight:900;margin-top:2px}
+  .cu-area .learn{font-size:14.5px;color:#3A3533;margin-top:6px;word-break:keep-all}
+  .grow{list-style:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .grow li{font-size:14px;padding:3px 0;word-break:keep-all}
+  .grow li b{color:var(--ink);margin-right:6px}
+  .grow li b::before{content:'→ ';color:var(--brand)}
+  .grow li span{color:var(--muted)}
+  .cu-purp2.five{margin-top:12px}
 </style>
 </head>
 <body>
@@ -695,6 +713,8 @@ const ICONS = {
   phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
   map:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+  heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   star:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9Z"/>',
   chat:'<path d="M4 5h16v11H9l-5 4Z"/><path d="M8 9.5h8M8 12.5h5"/>',
   kakao:'<path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6L6.5 20l3.6-2.3c.6.1 1.2.1 1.9.1 5 0 9-3.1 9-7s-4-6.8-9-6.8Z"/>',
@@ -751,8 +771,8 @@ function render(d){
   const ph = d.philosophy || {};
   if(list(ph.questions).length || list(ph.message).length) S.philosophy = {label:'교육 철학', icon:'bulb', html: sec('philosophy', ph.title || '교육 철학', `
       ${list(ph.questions).map((q,i) => (i ? '<div class="plus">+</div>' : '') + `<div class="q ${i % 2 ? 'q2' : 'q1'}">${esc(q)}</div>`).join('')}
-      ${list(ph.message).length ? `<div class="card letter">${list(ph.message).map(p => `<p>${esc(p)}</p>`).join('')}<p class="sign">감사합니다.</p></div>` : ''}
-      ${(() => { const L = d.leaders || {}; if(!list(L.groups).length) return ''; return `<div class="ld"><h4>${esc(L.title || '선범단')}</h4>${L.lead ? `<p class="ld-lead">${esc(L.lead)}</p>` : ''}${list(L.groups).map(g => `<div class="cu-row"><b>${esc(g.t)}</b><ul>${list(g.items).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}${L.closing ? `<p class="cu-close">${esc(L.closing)}</p>` : ''}</div>`; })()}`)};
+      ${list(ph.message).length ? `<div class="card letter">${list(ph.message).map(p => `<p>${esc(p)}</p>`).join('')}<p class="sign">감사합니다.</p></div>` : ''}`)};
+
 
   const st = d.staff || {};
   if(list(st.members).length) S.staff = {label:'지도진 소개', short:'지도진', icon:'user', html: sec('staff', st.title || '지도진 소개', `
@@ -770,10 +790,37 @@ function render(d){
 
   const cu = d.curriculum || {};
   if(list(cu.areas).length || list(cu.goals).length) S.curriculum = {label:'교육 내용', icon:'book', html: sec('curriculum', cu.title || '교육 내용', `
-      ${list(cu.purposes).length ? `<div class="cu-sec"><h4>태권도 수련의 목적</h4><div class="cu-purp">${list(cu.purposes).map(x => `<span>${esc(x)}</span>`).join('')}</div></div>` : ''}
-      ${list(cu.areas).length ? `<div class="cu-sec"><h4>교육 내용 영역</h4>${list(cu.areas).map(a => `<div class="cu-row"><b>${esc(a.name)}</b><span>${list(a.items).map(esc).join(' · ')}</span></div>`).join('')}</div>` : ''}
-      ${list(cu.goals).length ? `<div class="cu-sec"><h4>무엇을 키우나요</h4>${list(cu.goals).map(g => `<div class="cu-row"><b>${esc(g.title)}</b><span>${esc(g.desc)}</span></div>`).join('')}</div>` : ''}
+      ${list(cu.purposes).length ? `<div class="cu-purp2">${list(cu.purposes).map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+      ${(() => {
+        const norm = t => String(t || '').replace(/\s/g, '');
+        const areas = list(cu.areas).map(a => ({...a, gs: []}));
+        const rest = [];
+        list(cu.goals).forEach(g => {
+          const words = (norm(g.title) + ',' + norm(g.desc)).split(/[,·와과]/).filter(w => w.length > 1);
+          const a = areas.find(a => list(a.items).some(it => words.some(w => norm(it).includes(w) || w.includes(norm(it)))));
+          (a ? a.gs : rest).push(g);
+        });
+        return `<div class="cu-areas">${areas.map((a, i) => `<div class="cu-area"><span class="n">${pad2(i + 1)}</span><h4>${esc(a.name)}</h4>
+          <p class="learn">${list(a.items).map(esc).join(' · ')}</p>
+          ${a.gs.length ? `<ul class="grow">${a.gs.map(g => `<li><b>${esc(g.title)}</b>${g.desc ? `<span>${esc(g.desc)}</span>` : ''}</li>`).join('')}</ul>` : ''}</div>`).join('')}</div>
+          ${rest.length ? `<ul class="grow">${rest.map(g => `<li><b>${esc(g.title)}</b><span>${esc(g.desc || '')}</span></li>`).join('')}</ul>` : ''}`;
+      })()}
       ${cu.closing ? `<p class="cu-close">${esc(cu.closing).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')}</p>` : ''}`)};
+
+  // ---------- 인성 · 성장 ----------
+  const L = d.leaders || {};
+  if(list(L.groups).length) S.leaders = {label: '선범단', icon:'star', html: sec('leaders', '', `
+      <div class="ld"><h4>${esc(L.title || '선범단')}</h4>${L.lead ? `<p class="ld-lead">${esc(L.lead)}</p>` : ''}${list(L.groups).map(g => `<div class="cu-row"><b>${esc(g.t)}</b><ul>${list(g.items).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}${L.closing ? `<p class="cu-close">${esc(L.closing)}</p>` : ''}</div>`)};
+  const ch = d.character || {};
+  if(ch.title || list(ch.blocks).length) S.character = {label:'인성 교육', icon:'heart', html: sec('character', ch.title || '인성 교육', `
+      ${ch.lead ? `<p class="lead">${esc(ch.lead)}</p>` : ''}
+      ${list(ch.blocks).map(b => `<div class="cu-row"><b>${esc(b.t)}</b><span>${esc(b.d)}</span></div>`).join('')}`)};
+  const gr = d.growth || {}, gu = d.guinness || {};
+  if(gr.title || list(gr.factors).length) S.growth = {label:'분기별 성장 측정', short:'성장 측정', icon:'chart', html: sec('growth', gr.title || '분기별 성장 측정지', `
+      ${gr.lead ? `<p class="lead">${esc(gr.lead)}</p>` : ''}
+      ${gu.items ? `<div class="cu-sec"><h4>해랑 기네스 · 분기별 종목</h4>${[['1~3월','1'],['4~6월','2'],['7~9월','3'],['10~12월','4']].filter(([, k]) => gu.items[k]).map(([m, k]) => `<div class="cu-row"><b>${m}</b><span>${esc(gu.items[k])}</span></div>`).join('')}</div>` : ''}
+      ${list(gr.factors).length ? `<div class="cu-sec"><h4>${esc(gr.factorsTitle || '함께 살펴보는 성장 요소')}</h4><div class="cu-purp2 five">${list(gr.factors).map(x => `<span>${esc(x)}</span>`).join('')}</div></div>` : ''}
+      ${gr.closing ? `<p class="cu-close">${esc(gr.closing)}</p>` : ''}`)};
 
   const pr = d.program || {};
   if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
@@ -859,6 +906,7 @@ function render(d){
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
     {name:'도장 소개', items:['philosophy','curriculum','staff','location']},
+    {name:'인성 · 성장', items:['character','leaders','growth']},
     {name:'수련 안내', items:['program','today','fee','faq']},
     {name:'도장 소식', items:['schedule','notice','gallery','press']},
     {name:'상담 문의', items:['contact']}
@@ -971,7 +1019,7 @@ function heroVideo(d, brand){
 function classesBlock(d){
   const cs = list(d.classes).filter(c => c.name);
   if(!cs.length) return '';
-  return `<div class="seg seg2"><h2>부서별 수업</h2><p>나이와 목표에 맞춰 반을 나눠 지도합니다</p></div>
+  return `<div class="seg seg2"><h2>부서별 수업</h2></div>
     <div class="classes">${cs.map((c, i) => `
       <a class="cls rv" href="${esc(c.link || '#/program')}">
         <div class="media">${c.video ? `<video data-src="${esc(c.video)}" poster="${esc(c.poster || '')}" muted loop playsinline preload="none" aria-hidden="true"></video>` : (c.poster ? `<img src="${esc(c.poster)}" alt="" loading="lazy">` : '')}<span class="no">${pad2(i + 1)}</span></div>
@@ -1261,12 +1309,12 @@ function trustBlock(d){
   const blog = ln.find(l => l.icon === 'blog'), insta = ln.find(l => l.icon === 'insta');
   if(!p && !blog && !insta) return '';
   const sns = (l, sub) => l ? `<a class="tr-sns" href="${esc(l.url)}" target="_blank" rel="noopener"><img src="${LOGOS[l.icon]}" alt=""><span><b>${esc(l.name)}</b><small>${esc(sub || l.desc || '')}</small></span><i>${svg('right',2.4)}</i></a>` : '';
-  return `<div class="seg seg2"><h2>해랑경희를 더 알아보기</h2><p>어떤 생각으로 가르치는지 직접 확인해 보세요</p></div>
+  return `<div class="seg seg2"><h2>해랑경희를 더 알아보기</h2></div>
     <div class="trust">
       ${p ? `<a class="tr-press" href="${esc(p.url)}" target="_blank" rel="noopener">
         ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy">` : ''}
         <div class="b"><span class="src">${esc(p.source || '언론 보도')}${isDate(p.date) ? ' · ' + p.date.slice(0,7).replace('-', '.') : ''}</span><h4>${esc(p.title)}</h4><span class="go">기사 읽기 ›</span></div></a>` : ''}
-      <div class="tr-row">${sns(blog, '어떤 생각으로 지도하는지')}${sns(insta, '수업 일상과 제자들 모습')}</div>
+      <div class="tr-row">${sns(blog, '도장 소개 요약')}${sns(insta, '수업 일상과 제자들 모습')}</div>
     </div>`;
 }
 // 첫 화면용: 다가오는 일정 + 이달 공지를 한 장에 (색 뱃지 없이 차분하게)
