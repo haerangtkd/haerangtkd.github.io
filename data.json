@@ -25,6 +25,8 @@
   "heroVideo": {
     "src": "videos/hero.mp4",
     "poster": "videos/hero.jpg",
+    "wide": "videos/hero-wide.mp4",
+    "widePoster": "videos/hero-wide.jpg",
     "text": "땀 흘리며 함께 성장하는 곳"
   },
   "classes": [

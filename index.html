@@ -818,9 +818,12 @@ function render(d){
 // ---------- 영상 첫 화면 · 부서별 수업 ----------
 function heroVideo(d, brand){
   const v = d.heroVideo;
+  // 넓은 가로 화면(컴퓨터·태블릿 가로)에서는 가로 영상
+  const wide = v.wide && matchMedia('(min-width:768px) and (orientation:landscape)').matches;
+  const src = wide ? v.wide : v.src, poster = wide ? (v.widePoster || '') : (v.poster || '');
   const book = list(d.links).find(l => l.icon === 'calendar');
   return `<section class="vhero">
-    <video src="${esc(v.src)}" poster="${esc(v.poster || '')}" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
+    <video src="${esc(src)}" poster="${esc(poster)}" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
     <div class="in">
       <div class="kick">HAERANG TAEKWONDO</div>
       <h1><img src="img/title-white.png" alt="${brand}"></h1>
