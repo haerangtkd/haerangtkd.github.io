@@ -331,7 +331,7 @@
   .subtabs{background:#fff;border-bottom:1px solid var(--line)}
   .subtabs .in{max-width:640px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:10px 16px}
   .subtabs .in::-webkit-scrollbar{display:none}
-  .subtabs a{flex:none;text-decoration:none;font-size:14px;font-weight:700;padding:8px 16px;border-radius:8px;border:1px solid var(--line);color:var(--muted);background:#fff}
+  .subtabs a{flex:none;text-decoration:none;font-size:14px;font-weight:700;padding:8px 13px;border-radius:8px;border:1px solid var(--line);color:var(--muted);background:#fff}
   .subtabs a.on{background:var(--ink);border-color:var(--ink);color:#fff}
   .sec{padding-top:26px;animation:fadeUp .35s ease}
   @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -366,13 +366,12 @@
   .areas{display:flex;flex-direction:column;gap:10px}
   .area{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
   .area h4{font-size:16px;font-weight:900;margin-bottom:10px;color:var(--brand)}
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chips span{background:var(--brand-soft);color:var(--brand-deep);border-radius:999px;padding:4px 12px;font-size:13.5px;font-weight:500}
+  .chips{font-size:15px;color:#3A3533;line-height:1.7;word-break:keep-all}
   .goals{margin-top:14px}
-  .goal{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line)}
+  .goal{display:block;padding:12px 0;border-bottom:1px solid var(--line)}
   .goal:last-child{border-bottom:0}
-  .goal b{font-size:15.5px;flex:1;word-break:keep-all}
-  .goal span{font-size:13.5px;color:var(--brand);font-weight:700;text-align:right;word-break:keep-all;max-width:55%}
+  .goal b{display:block;font-size:15.5px;word-break:keep-all}
+  .goal span{display:block;font-size:14px;color:var(--muted);margin-top:2px;word-break:keep-all}
   .closing{margin-top:14px;font-size:15px;line-height:1.75;word-break:keep-all;background:var(--brand-soft);border-radius:10px;padding:16px 18px;color:#5A1A1D}
 
   /* 프로그램 */
@@ -389,8 +388,12 @@
   .day p{font-size:12px;line-height:1.45;word-break:keep-all;color:#3A3533}
   .day p + p{margin-top:4px}
   .day p.sub{color:var(--muted);font-size:11px}
-  .extra{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
-  .extra span{background:#2A2524;color:#fff;border-radius:10px;padding:12px 4px;text-align:center;font-size:12.5px;font-weight:700;line-height:1.4;word-break:keep-all;display:flex;align-items:center;justify-content:center;min-width:0}
+  .extra{padding:14px 18px 16px;border-top:1px solid var(--line)}
+  .extra b{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .extra p{font-size:15px;line-height:1.7;word-break:keep-all}
+  .divtime{font-size:15px;font-weight:700;margin:0 2px 12px}
+  .divtime span{color:var(--brand)}
+  .tt td small{display:block;font-size:13px;color:var(--muted)}
   .mapimg{display:block;width:100%;height:auto;background:#EEE9E3}
   .tt{padding:0;overflow:hidden}
   .tt h4{font-size:15px;font-weight:900;padding:14px 18px;background:#F6EFD9;color:#5B4612}
@@ -634,17 +637,16 @@ function render(d){
   if(list(cu.areas).length || list(cu.goals).length) S.curriculum = {label:'교육 내용', icon:'book', html: sec('curriculum', cu.title || '교육 내용', `
       <div class="areas">${list(cu.areas).map((a,i) => `
         <div class="area">
-          <h4>${esc(a.name)}</h4><div class="chips">${list(a.items).map(x => `<span>${esc(x)}</span>`).join('')}</div>
+          <h4>${esc(a.name)}</h4><p class="chips">${list(a.items).map(esc).join(' · ')}</p>
         </div>`).join('')}</div>
       ${list(cu.goals).length ? `<div class="card goals">${list(cu.goals).map(g => `<div class="goal"><b>${esc(g.title)}</b><span>${esc(g.desc)}</span></div>`).join('')}</div>` : ''}
       ${cu.closing ? `<p class="closing">${esc(cu.closing)}</p>` : ''}`)};
 
   const pr = d.program || {};
-  if(list(pr.divisions).length) S.program = {label:'수련 프로그램', short:'프로그램', icon:'book', html: sec('program', pr.title || '수련 프로그램', `
-      <div class="tabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
-      <div id="divBox"></div>`)};
-  if(list(pr.timetable).length) S.timetable = {label:'수련 시간표', short:'시간표', icon:'clock', html: sec('timetable', '수련 시간표', `
-      <div class="card tt"><h4>요일 공통 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>`)};
+  if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
+      ${list(pr.divisions).length ? `<div class="tabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
+      <div id="divBox"></div>` : ''}
+      ${list(pr.timetable).length ? `<div class="card tt" style="margin-top:14px"><h4>전체 시간표 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}`)};
 
   const fe = d.fee || {};
   if(list(fe.plans).length || fe.shuttle) S.fee = {label:'회비 · 차량 안내', short:'회비·차량', icon:'won', html: sec('fee', fe.title || '회비 · 차량 안내', `
@@ -658,7 +660,7 @@ function render(d){
   if(list(d.faq).length){
     const fq = list(d.faq);
     const cats = [...new Set(fq.map(f => f.cat || '기타'))];
-    S.faq = {label:'자주 묻는 질문', icon:'help', html: sec('faq', '자주 묻는 질문', `
+    S.faq = {label:'자주 묻는 질문', short:'FAQ', icon:'help', html: sec('faq', '자주 묻는 질문', `
       <div class="faqtool">
         <label class="fsearch">${svg('search',2.4)}<input id="faqQ" type="search" placeholder="궁금한 내용 검색 (예: 회비, 주차)" autocomplete="off"></label>
         ${cats.length > 1 ? `<div class="fcats" id="faqCats"><button type="button" class="on" data-c="">전체</button>${cats.map(c => `<button type="button" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
@@ -723,13 +725,13 @@ function render(d){
 
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
-    {name:'도장 소개', items:['philosophy','staff','location']},
-    {name:'수련 안내', items:['today','curriculum','program','timetable','fee','faq']},
+    {name:'도장 소개', items:['philosophy','curriculum','staff','location']},
+    {name:'수련 안내', items:['program','today','fee','faq']},
     {name:'도장 소식', items:['schedule','notice','gallery','press']},
     {name:'상담 문의', items:['contact']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
-  const tileIds = ['philosophy','staff','faq','fee','timetable','location'].filter(id => S[id]);
+  const tileIds = ['philosophy','staff','faq','fee','program','location'].filter(id => S[id]);
   const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
   document.getElementById('app').innerHTML = `
@@ -910,7 +912,8 @@ function setupFaq(){
 
 // ---------- 화면 전환 ----------
 function route(){
-  const id = location.hash.replace(/^#\/?/, '');
+  let id = location.hash.replace(/^#\/?/, '');
+  if(id === 'timetable'){ id = 'program'; history.replaceState(null, '', '#/program'); }
   const g = GROUPS.find(x => x.items.includes(id));
   const home = !g;
   document.getElementById('homePage').hidden = !home;
@@ -923,7 +926,7 @@ function route(){
     document.getElementById('pageTitle').textContent = g.items.length > 1 ? S[id].label : g.name;
     const tabs = document.getElementById('subtabs');
     tabs.parentElement.hidden = g.items.length < 2;
-    tabs.innerHTML = g.items.map(x => `<a href="#/${x}" class="${x === id ? 'on' : ''}">${esc(S[x].label)}</a>`).join('');
+    tabs.innerHTML = g.items.map(x => `<a href="#/${x}" class="${x === id ? 'on' : ''}">${esc(S[x].short || S[x].label)}</a>`).join('');
     document.querySelectorAll('#subPage .sec').forEach(s => s.hidden = s.dataset.id !== id);
     const t = tabs.querySelector('.on'); if(t) t.scrollIntoView({block:'nearest', inline:'center'});
   }
@@ -1144,13 +1147,14 @@ function setupTabs(){
   const show = i => {
     const v = list(D.program.divisions)[i];
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', +b.dataset.div === i));
+    const days = v.days || {};
+    const cls = list(D.classes).find(c => c.name && (c.name === v.name || c.name.split('·').some(w => v.name.includes(w.replace(/부$/, '')))));
     box.innerHTML = `
-      ${v.common ? `<p class="common">매일 <b>${esc(v.common)}</b></p>` : ''}
-      <div class="days">${DAYS.map(dd => `
-        <div class="day${dd === today ? ' today' : ''}"><div class="d">${dd}</div>
-          ${list((v.days || {})[dd]).map(x => `<p class="${/^\(.*\)$/.test(x) ? 'sub' : ''}">${esc(x)}</p>`).join('')}
-        </div>`).join('')}</div>
-      ${list(v.extra).length ? `<div class="extra">${list(v.extra).map(x => `<span>${esc(x).replace(/(.{2,})(발차기|태권도)$/, '$1<wbr>$2')}</span>`).join('')}</div>` : ''}`;
+      ${cls && cls.time ? `<p class="divtime">수업 시간 <span>${esc(cls.time)}</span></p>` : ''}
+      <div class="card tt wk"><h4>요일별 수업${v.common ? ` <small style="font-weight:500;color:#8A6D1F">· 매일 ${esc(v.common)}</small>` : ''}</h4><table>
+        ${DAYS.filter(dd => list(days[dd]).length).map(dd => { const it = list(days[dd]); const main = it.filter(x => !/^\(.*\)$/.test(x)), sub = it.filter(x => /^\(.*\)$/.test(x)).map(x => x.slice(1, -1));
+          return `<tr class="${dd === today ? 'today' : ''}"><td>${dd}</td><td>${main.map(esc).join(' · ')}${sub.length ? `<small>${sub.map(esc).join(' · ')}</small>` : ''}</td></tr>`; }).join('')}
+      </table>${list(v.extra).length ? `<div class="extra"><b>추가 수련</b><p>${list(v.extra).map(esc).join(' · ')}</p></div>` : ''}</div>`;
   };
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => show(+b.dataset.div));
   show(0);
