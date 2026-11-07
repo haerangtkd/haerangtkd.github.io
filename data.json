@@ -45,8 +45,8 @@
     {
       "name": "중고등·성인부",
       "time": "저녁 6:40 · 9:00",
-      "video": "videos/teen.mp4",
-      "poster": "videos/teen.jpg",
+      "video": "",
+      "poster": "videos/exam.jpg",
       "points": [
         "스트레칭과 태권도 기술",
         "요일별 부위 근력 운동",
@@ -56,9 +56,9 @@
     },
     {
       "name": "입시부",
-      "time": "저녁 8:00 ~",
-      "video": "",
-      "poster": "videos/exam.jpg",
+      "time": "저녁 8:00 ~ 8:50",
+      "video": "videos/teen.mp4",
+      "poster": "videos/teen.jpg",
       "points": [
         "태권도학과 진학을 목표로 하는 반",
         "태권도에 진심이고 진로를 태권도로 정하고 싶은 학생",
