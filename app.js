@@ -59,13 +59,14 @@ let D, EVENTS = [], S = {}, GROUPS = [];
 // ---------- 페이지 나누기 (검색엔진용 실제 주소) ----------
 // 메뉴 그룹마다 별도 HTML 파일이 있고, 같은 화면을 그 그룹부터 보여줌
 const PAGE_FILES = {
-  'about.html':    ['philosophy','curriculum','staff','location'],
-  'culture.html':  ['promise','character','leaders','belts','guinness','growth'],
+  'about.html':    ['philosophy','staff','press'],
+  'training.html': ['curriculum','program','belts','character','leaders','guinness'],
   'column.html':   ['column'],
-  'training.html': ['program','timetable','today','fee','faq'],
-  'news.html':     ['schedule','notice','gallery','press'],
-  'contact.html':  ['contact']
+  'contact.html':  ['contact','fee','faq','location'],
+  'news.html':     ['today','schedule','notice','gallery']
 };
+// 예전 주소로 들어와도 합쳐진 메뉴로 안내
+const ALIAS = { promise:'philosophy', growth:'guinness', timetable:'program' };
 const START = window.START_PAGE || '';          // 하위 페이지에서 처음 보여줄 메뉴
 const HERE = location.pathname.split('/').pop() || 'index.html';
 const HOME = START ? './' : '#/';
@@ -90,7 +91,9 @@ function render(d){
   const intro = list(d.intro).map(p => `<p>${esc(p).split(brand).join(`<strong>${brand}</strong>`)}</p>`).join('');
 
   const ph = d.philosophy || {};
-  if(list(ph.questions).length || list(ph.message).length) S.philosophy = {label:'교육 철학', icon:'bulb', html: sec('philosophy', ph.title || '교육 철학', `
+  if(list(ph.questions).length || list(ph.message).length) S.philosophy = {label:'교육 철학 · 약속', short:'교육 철학', icon:'bulb', html: sec('philosophy', '', `
+      ${promiseBlock(d)}
+      <h3 class="st">${esc(ph.title || '교육 철학')}</h3>
       ${list(ph.questions).map((q,i) => (i ? '<div class="plus">+</div>' : '') + `<div class="q ${i % 2 ? 'q2' : 'q1'}">${esc(q)}</div>`).join('')}
       ${list(ph.message).length ? `<div class="card letter">${list(ph.message).map(p => `<p>${esc(p)}</p>`).join('')}<p class="sign">감사합니다.</p></div>` : ''}`)};
 
@@ -110,7 +113,7 @@ function render(d){
       ${st.note ? `<p class="note">${esc(st.note)}</p>` : ''}`)};
 
   const cu = d.curriculum || {};
-  if(list(cu.areas).length || list(cu.goals).length) S.curriculum = {label:'교육 내용', icon:'book', html: sec('curriculum', cu.title || '교육 내용', `
+  if(list(cu.areas).length || list(cu.goals).length) S.curriculum = {label:'교육 내용', short:'무엇을 배우나요', icon:'book', html: sec('curriculum', cu.title || '교육 내용', `
       ${list(cu.purposes).length ? `<p class="cu-line">${list(cu.purposes).map(x => `<span>${esc(x)}</span>`).join('<i>|</i>')}</p>` : ''}
       ${(() => {
         const norm = t => String(t || '').replace(/\s/g, '');
@@ -139,22 +142,21 @@ function render(d){
   const bt = d.belts || {};
   if(list(bt.kup && bt.kup.belts).length || list(bt.dan).length) S.belts = {label:'띠 제도', icon:'award', html: sec('belts', bt.title || '띠 제도', beltsPage(bt))};
   const gu = d.guinness || {}, gp = d.guinnessPage || {};
-  if(gu.items || gp.lead) S.guinness = {label:'해랑 기네스', icon:'award', html: sec('guinness', gp.title || '해랑 기네스', `
+  if(gu.items || gp.lead) S.guinness = {label:'해랑 기네스 · 성장 측정', short:'기네스·성장', icon:'award', html: sec('guinness', gp.title || '해랑 기네스', `
       ${gp.lead ? `<p class="lead">${esc(gp.lead)}</p>` : ''}
       ${list(gp.facts).length ? `<div class="cu-sec">${list(gp.facts).map(f => `<div class="cu-row"><b>${esc(f.t)}</b><span>${esc(f.d)}</span></div>`).join('')}</div>` : ''}
       ${gu.items ? `<div class="cu-sec"><h4>분기별 종목</h4>${[['1~3월','1'],['4~6월','2'],['7~9월','3'],['10~12월','4']].filter(([, k]) => gu.items[k]).map(([m, k]) => `<div class="cu-row"><b>${m}</b><span>${esc(gu.items[k])}</span></div>`).join('')}</div>` : ''}
-      ${gp.closing ? `<p class="gu-foot">${esc(gp.closing)}</p>` : ''}`)};
-  const gr = d.growth || {};
-  if(gr.title || list(gr.factors).length) S.growth = {label:'분기별 성장 측정', short:'성장 측정', icon:'chart', html: sec('growth', gr.title || '분기별 성장 측정지', `
+      ${(() => { const gr = d.growth || {}; if(!(gr.title || list(gr.factors).length)) return gp.closing ? `<p class="gu-foot">${esc(gp.closing)}</p>` : ''; return `
+      <h3 class="st" style="margin:34px 2px 12px">${esc(gr.title || '분기별 성장 측정지')}</h3>
       ${gr.lead ? `<p class="lead">${esc(gr.lead)}</p>` : ''}
       ${list(gr.factors).length ? `<div class="cu-sec"><h4>${esc(gr.factorsTitle || '함께 살펴보는 성장 요소')}</h4>
         <div class="gf">${list(gr.factors).map((x, i) => typeof x === 'string' ? `<div class="gf-i"><b>${esc(x)}</b></div>` : `<div class="gf-i"><div class="gf-t"><span class="n">${pad2(i + 1)}</span><b>${esc(x.t)}</b>${x.how ? `<em class="how">${esc(x.how)}</em>` : ''}</div>${x.d ? `<p>${esc(x.d)}</p>` : ''}</div>`).join('')}</div>
         ${list(gr.scale).length ? `<p class="gscale"><span>사범님 관찰</span>${list(gr.scale).map((t, i) => `<i class="lv${i + 1}">${esc(t)}</i>`).join('<b>›</b>')}</p>` : ''}</div>` : ''}
       ${list(gr.contents).length ? `<div class="cu-sec"><h4>${esc(gr.contentsTitle || '측정지에 담기는 내용')}</h4><ul class="bt-list">${list(gr.contents).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-      ${gr.closing ? `<p class="cu-close">${esc(gr.closing)}</p>` : ''}`)};
+      ${gr.closing ? `<p class="cu-close">${esc(gr.closing)}</p>` : ''}`; })()}`)};
 
   const pr = d.program || {};
-  if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
+  if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'부서별 수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
       ${fittBlock(pr)}
       ${list(pr.timetable).length ? `<div class="card tt"><h4>전체 시간표 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}
       ${list(pr.divisions).length ? `<h3 class="st" style="margin:30px 2px 12px">부서별 요일 수업</h3><div class="divwrap"><div class="vtabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
@@ -193,14 +195,13 @@ function render(d){
       <div class="legend">${Object.entries(EV_COLORS).filter(([k]) => EVENTS.some(e => (EV_COLORS[e.type] ? e.type : '기타') === k)).map(([k,c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('')}</div>
       <div class="evlist" id="evlist"></div>`)};
   S.notice = {label:'알림판·공지', short:'알림판', icon:'megaphone', html: sec('notice', '', noticePage(d))};
-  if((d.promise || {}).years) S.promise = {label:'해랑경희의 약속', short:'약속', icon:'star', html: sec('promise', '', promiseBlock(d))};
   S.column = {label:'해랑경희 칼럼', short:'칼럼', icon:'book', html: sec('column', (d.columnPage || {}).title || '해랑경희 칼럼', columnPage(d))};
   S.press = {label:'보도자료', icon:'news', html: sec('press', '보도자료', pressPage(d))};
   if(list(d.gallery).length) S.gallery = {label:'사진', icon:'photo', html: sec('gallery', d.galleryTitle || '사진으로 보는 해랑경희', gallery(d))};
 
   const ct = d.contact || {};
   const tel = (ct.phone || '').replace(/[^0-9+]/g, '');
-  S.contact = {label:'상담 문의', icon:'phone', html: sec('contact', ct.title || '상담 및 문의하기', `
+  S.contact = {label:'체험 · 상담 예약', short:'체험·상담', icon:'phone', html: sec('contact', ct.title || '상담 및 문의하기', `
       ${tel ? `<a class="callbig" href="tel:${esc(tel)}">${svg('phone')}<span>${esc(ct.phone)}<small>눌러서 바로 전화 상담</small></span></a>` : ''}
       <nav class="links">${list(d.links).map(l => `
         <a class="link${l.main ? ' main' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener">
@@ -240,12 +241,11 @@ function render(d){
 
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
-    {name:'도장 소개', items:['philosophy','curriculum','staff','location']},
-    {name:'해랑경희 문화', items:['promise','character','leaders','belts','guinness','growth']},
+    {name:'해랑경희 소개', items:['philosophy','staff','press']},
+    {name:'수업 안내', items:['curriculum','program','belts','character','leaders','guinness']},
     {name:'해랑경희 칼럼', items:['column']},
-    {name:'수련 안내', items:['program','today','fee','faq']},
-    {name:'도장 소식', items:['schedule','notice','gallery','press']},
-    {name:'상담 문의', items:['contact']}
+    {name:'등록 · 상담', items:['contact','fee','faq','location']},
+    {name:'도장 소식', items:['today','schedule','notice','gallery']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
   const tileIds = ['philosophy','staff','faq','fee','program','location'].filter(id => S[id]);
@@ -349,7 +349,7 @@ function heroVideo(d, brand){
       <div class="kick">HAERANG TAEKWONDO</div>
       <h1><img src="img/title-white.png" alt="${brand}"></h1>
       <p class="vs"><img src="img/slogan-white.png" alt="${esc(d.slogan || '')}"></p>
-      <div class="btns">${book ? `<a class="b1" href="${esc(book.url)}" target="_blank" rel="noopener">상담 예약</a>` : `<a class="b1" href="${go('contact')}">상담 문의</a>`}<a class="b2" href="${go('program')}">수련 안내</a></div>
+      <div class="btns">${book ? `<a class="b1" href="${esc(book.url)}" target="_blank" rel="noopener">상담 예약</a>` : `<a class="b1" href="${go('contact')}">상담 문의</a>`}<a class="b2" href="${go('program')}">수업 안내</a></div>
     </div>
   </section>`;
 }
@@ -433,7 +433,7 @@ function setupFaq(){
 function route(){
   let id = location.hash.replace(/^#\/?/, '');
   if(!id && START) id = START;
-  if(id === 'timetable'){ id = 'program'; history.replaceState(null, '', '#/program'); }
+  if(ALIAS[id]){ id = ALIAS[id]; history.replaceState(null, '', '#/' + id); }
   const g = GROUPS.find(x => x.items.includes(id));
   const home = !g;
   document.getElementById('homePage').hidden = !home;
@@ -662,7 +662,6 @@ function promiseBlock(d){
         <div class="pm-year" aria-hidden="true"><div class="pm-yt">${ys.map(y => `<span>${esc(y.year)}</span>`).join('')}</div></div>
         <div class="pm-lines">${ys.map((y, i) => `<p class="pm-line${i === 0 ? ' on' : ''}" data-i="${i}">${String(y.text).split(' ').map((w, k) => `<span style="--k:${k}">${esc(w)}</span>`).join(' ')}</p>`).join('')}</div>
         <div class="pm-tl">${ys.map((y, i) => `<span class="pm-dot${i === 0 ? ' on' : ''}"><i></i><b>${esc(y.year)}</b></span>`).join('')}<em class="pm-bar"><u></u></em></div>
-        ${P.root ? `<p class="pm-root"><small>변하지 않는 뿌리</small>${esc(P.root)}</p>` : ''}
       </div>
     </div>
   </section>`;
@@ -672,22 +671,26 @@ function setupPromise(){
   if(!sec) return;
   const lines = [...sec.querySelectorAll('.pm-line')], dots = [...sec.querySelectorAll('.pm-dot')];
   const yt = sec.querySelector('.pm-yt'), bar = sec.querySelector('.pm-bar u'), n = lines.length;
-  let cur = -1;
+  if(!n) return;
+  const STEP = 2200, LAST = 3000;               // 한 해 보여주는 시간(ms), 마지막 해
+  let cur = -1, timer;
+  const scale = i => n > 1 ? i / (n - 1) : 1;
   const set = i => {
-    if(i === cur) return; cur = i;
-    lines.forEach((l, k) => { l.classList.toggle('on', k === i); l.classList.toggle('past', k < i); });
-    dots.forEach((t, k) => t.classList.toggle('on', k <= i));
+    cur = i; clearTimeout(timer);
+    lines.forEach((l, k) => { l.classList.toggle('on', k === i); l.classList.toggle('past', k !== i); });
+    dots.forEach((t, k) => { t.classList.toggle('on', k <= i); t.classList.toggle('now', k === i); });
     yt.style.transform = `translateY(${-i * 100 / n}%)`;
     sec.classList.toggle('last', i === n - 1);
+    const wait = i === n - 1 ? LAST : STEP;
+    // 선이 다음 해까지 계속 차오르며 움직임을 보여줌
+    bar.style.transition = 'none';
+    bar.style.transform = `scaleX(${scale(i)})`;
+    void bar.offsetWidth;
+    if(i < n - 1){ bar.style.transition = `transform ${wait}ms linear`; bar.style.transform = `scaleX(${scale(i + 1)})`; }
+    timer = setTimeout(() => { if(sec.isConnected) set((cur + 1) % n); }, wait);
   };
-  const tick = () => {
-    if(!sec.isConnected) return window.removeEventListener('scroll', tick);
-    const r = sec.getBoundingClientRect(), span = r.height - innerHeight;
-    const p = Math.min(1, Math.max(0, -r.top / (span || 1)));
-    bar.style.transform = `scaleX(${p})`;
-    set(Math.min(n - 1, Math.floor(p * n * 0.999)));
-  };
-  window.addEventListener('scroll', tick, {passive:true}); tick();
+  set(0);
+  dots.forEach((t, k) => t.addEventListener('click', () => set(k)));
 }
 function trustBlock(d){
   const p = latestPress(d);

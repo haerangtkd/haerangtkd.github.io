@@ -34,59 +34,47 @@ def p(lines):
 
 # ---------- 페이지별 본문 ----------
 def about():
-    ph, cu, st, lo = d.get('philosophy', {}), d.get('curriculum', {}), d.get('staff', {}), d.get('location', {})
+    ph, st, pm = d.get('philosophy', {}), d.get('staff', {}), d.get('promise', {}) or {}
     out = [f'<h2>{e(ph.get("title") or "교육 철학")}</h2>', p(ph.get('questions')), p(ph.get('message'))]
-    out += [f'<h2>{e(cu.get("title") or "교육 내용")}</h2>', ul(cu.get('purposes', []))]
-    for a in L(cu.get('areas')):
-        out.append(f'<h3>{e(a.get("name"))}</h3>' + ul(a.get('items', [])))
+    out += [f'<h2>{e(pm.get("title") or "해랑경희의 약속")}</h2>'] + [f'<p>{e(y.get("year"))} {e(y.get("text"))}</p>' for y in L(pm.get('years'))]
     out += [f'<h2>{e(st.get("title") or "지도진 소개")}</h2>', p(st.get('lead'))]
     for m in L(st.get('members')):
         out.append(f'<h3>{e(m.get("role"))} {e(m.get("name"))}</h3>' + ul(m.get('career', [])))
     out.append(p(st.get('note')))
-    out.append(f'<h2>{e(lo.get("title") or "오시는 길")}</h2>')
-    out.append(p([lo.get('address'), lo.get('landmark'), lo.get('parking')]))
-    hrs = lo.get('hours') or {}
-    if hrs:
-        out.append(ul([f'{k} {v}' for k, v in hrs.items()]))
-    return ''.join(out)
-
-
-def culture():
-    pm = d.get('promise', {}) or {}
-    pre = [f'<h2>{e(pm.get("title") or "해랑경희의 약속")}</h2>'] + [f'<p>{e(y.get("year"))} {e(y.get("text"))}</p>' for y in L(pm.get('years'))]
-    ch, le, bt, gp, gr = (d.get(k, {}) or {} for k in ('character', 'leaders', 'belts', 'guinnessPage', 'growth'))
-    out = pre + [f'<h2>{e(ch.get("title") or "인성 교육")}</h2>', p(ch.get('lead'))]
-    out.append(ul([f'{b.get("t")} - {b.get("d")}' for b in L(ch.get('blocks'))]))
-    out += [f'<h2>{e(le.get("title") or "선범단")}</h2>', p((le.get('lead') or '').split('\n'))]
-    for g in L(le.get('groups')):
-        out.append(f'<h3>{e(g.get("t"))}</h3>' + ul(g.get('items', [])))
-    out += [f'<h2>{e(bt.get("title") or "띠 제도")}</h2>', p(bt.get('lead'))]
-    k = bt.get('kup') or {}
-    if k:
-        out.append(f'<h3>{e(k.get("title"))}</h3>' + p([k.get('period'), k.get('desc')]))
-        out.append(ul([b.get('n') for b in L(k.get('belts'))]))
-    out += [f'<h2>{e(gp.get("title") or "해랑 기네스")}</h2>', p(gp.get('lead'))]
-    out.append(ul([f'{f.get("t")} - {f.get("d")}' for f in L(gp.get('facts'))]))
-    out += [f'<h2>{e(gr.get("title") or "분기별 성장 측정")}</h2>', p(gr.get('lead'))]
-    out.append(ul([f'{f.get("t")} ({f.get("how")}) - {f.get("d")}' for f in L(gr.get('factors'))]))
+    out.append('<h2>보도자료</h2>')
+    out.append('<ul>' + ''.join(
+        f'<li><a href="{e(x.get("url"))}" rel="noopener">{e(x.get("title"))}</a> - {e(x.get("source"))} {e(x.get("date"))}</li>'
+        for x in L(d.get('press'))) + '</ul>')
     return ''.join(out)
 
 
 def training():
-    pr, fe = d.get('program', {}), d.get('fee', {})
-    out = [f'<h2>{e(pr.get("title") or "수업 · 시간표")}</h2>']
+    cu, pr = d.get('curriculum', {}), d.get('program', {})
+    out = [f'<h2>{e(cu.get("title") or "교육 내용")}</h2>', ul(cu.get('purposes', []))]
+    for a in L(cu.get('areas')):
+        out.append(f'<h3>{e(a.get("name"))}</h3>' + ul(a.get('items', [])))
+    out += [f'<h2>{e(pr.get("title") or "수업 · 시간표")}</h2>']
     for c in L(d.get('classes')):
         out.append(f'<h3>{e(c.get("name"))} {e(c.get("time"))}</h3>' + ul(c.get('points', [])))
     for dv in L(pr.get('divisions')):
         days = dv.get('days') or {}
         out.append(f'<h3>{e(dv.get("name"))} 요일별 수업</h3>' + p(dv.get('common')) +
                    ul([f'{k}: {", ".join(v)}' for k, v in days.items()]))
-    out += [f'<h2>{e(fe.get("title") or "회비 · 차량 안내")}</h2>']
-    out.append(ul([f'{x.get("name")} ({x.get("who")}) {x.get("price")}' for x in L(fe.get('plans'))]))
-    out.append(p(L(fe.get('notes')) + [fe.get('shuttle'), fe.get('shuttleNote')]))
-    out.append('<h2>자주 묻는 질문</h2>')
-    for q in L(d.get('faq')):
-        out.append(f'<h3>{e(q.get("q"))}</h3>' + p(q.get('a')))
+    ch, le, bt, gp, gr = (d.get(k, {}) or {} for k in ('character', 'leaders', 'belts', 'guinnessPage', 'growth'))
+    out += [f'<h2>{e(bt.get("title") or "띠 제도")}</h2>', p(bt.get('lead'))]
+    k = bt.get('kup') or {}
+    if k:
+        out.append(f'<h3>{e(k.get("title"))}</h3>' + p([k.get('period'), k.get('desc')]))
+        out.append(ul([b.get('n') for b in L(k.get('belts'))]))
+    out += [f'<h2>{e(ch.get("title") or "인성 교육")}</h2>', p(ch.get('lead'))]
+    out.append(ul([f'{b.get("t")} - {b.get("d")}' for b in L(ch.get('blocks'))]))
+    out += [f'<h2>{e(le.get("title") or "선범단")}</h2>', p((le.get('lead') or '').split('\n'))]
+    for g in L(le.get('groups')):
+        out.append(f'<h3>{e(g.get("t"))}</h3>' + ul(g.get('items', [])))
+    out += [f'<h2>{e(gp.get("title") or "해랑 기네스")}</h2>', p(gp.get('lead'))]
+    out.append(ul([f'{f.get("t")} - {f.get("d")}' for f in L(gp.get('facts'))]))
+    out += [f'<h2>{e(gr.get("title") or "분기별 성장 측정")}</h2>', p(gr.get('lead'))]
+    out.append(ul([f'{f.get("t")} ({f.get("how")}) - {f.get("d")}' for f in L(gr.get('factors'))]))
     return ''.join(out)
 
 
@@ -100,25 +88,32 @@ def column():
 
 
 def news():
-    out = ['<h2>해랑경희 일정</h2>']
+    out = ['<h2>오늘의 운동</h2>', '<h2>해랑경희 일정</h2>']
     today = datetime.date.today().isoformat()
     ev = [x for x in L(d.get('schedule')) if (x.get('end') or x.get('date') or '') >= today[:8] + '01']
     out.append(ul([f'{x.get("date")} {x.get("title")} {x.get("note") or ""}'.strip() for x in ev[:20]]))
-    out.append('<h2>보도자료</h2>')
-    out.append('<ul>' + ''.join(
-        f'<li><a href="{e(x.get("url"))}" rel="noopener">{e(x.get("title"))}</a> - {e(x.get("source"))} {e(x.get("date"))}</li>'
-        for x in L(d.get('press'))) + '</ul>')
     out.append(f'<h2>{e(d.get("galleryTitle") or "사진으로 보는 해랑경희")}</h2>')
     return ''.join(out)
 
 
 def contact():
-    ct, lo = d.get('contact', {}), d.get('location', {})
+    ct, lo, fe = d.get('contact', {}), d.get('location', {}), d.get('fee', {})
     out = [f'<h2>{e(ct.get("title") or "상담 문의")}</h2>']
     out.append(p([f'전화 {ct.get("phone")}', f'대표자 {ct.get("ceo")}', f'주소 {lo.get("address")}']))
     out.append('<ul>' + ''.join(
         f'<li><a href="{e(x.get("url"))}" rel="noopener">{e(x.get("name"))}</a> - {e(x.get("desc"))}</li>'
         for x in L(d.get('links'))) + '</ul>')
+    out += [f'<h2>{e(fe.get("title") or "회비 · 차량 안내")}</h2>']
+    out.append(ul([f'{x.get("name")} ({x.get("who")}) {x.get("price")}' for x in L(fe.get('plans'))]))
+    out.append(p(L(fe.get('notes')) + [fe.get('shuttle'), fe.get('shuttleNote')]))
+    out.append('<h2>자주 묻는 질문</h2>')
+    for q in L(d.get('faq')):
+        out.append(f'<h3>{e(q.get("q"))}</h3>' + p(q.get('a')))
+    out.append(f'<h2>{e(lo.get("title") or "오시는 길")}</h2>')
+    out.append(p([lo.get('address'), lo.get('landmark'), lo.get('parking')]))
+    hrs = lo.get('hours') or {}
+    if hrs:
+        out.append(ul([f'{k} {v}' for k, v in hrs.items()]))
     return ''.join(out)
 
 
@@ -133,18 +128,16 @@ PAGES = [
     # 파일, 처음 보여줄 메뉴, 제목, 설명, 본문
     ('index.html', '', SUFFIX,
      f'{SUFFIX} - 교육 철학, 지도진, 수련 프로그램과 시간표, 일정과 오늘의 운동을 한눈에 보실 수 있습니다.', home),
-    ('about.html', 'philosophy', '도장 소개',
-     f'{NAME}의 교육 철학, 교육 내용, 전문 지도진 소개와 오시는 길을 안내합니다.', about),
-    ('culture.html', 'promise', '해랑경희 문화',
-     f'{NAME}만의 문화 - 해랑경희의 약속, 인성 교육, 선범단(先範團), 띠 제도, 해랑 기네스, 분기별 성장 측정을 소개합니다.', culture),
+    ('about.html', 'philosophy', '해랑경희 소개',
+     f'{NAME}의 교육 철학과 약속, 전문 지도진, 언론 보도를 소개합니다.', about),
+    ('training.html', 'curriculum', '수업 안내',
+     f'{NAME} 교육 내용, 부서별 수업·시간표, 띠 제도, 인성 교육, 선범단(先範團), 해랑 기네스와 분기별 성장 측정을 안내합니다.', training),
     ('column.html', 'column', '해랑경희 칼럼',
      f'{NAME}의 교육 이야기를 담은 해랑경희 칼럼입니다.', column),
-    ('training.html', 'program', '수련 안내',
-     f'{NAME} 유치부·초등부·중고등·성인부·입시부 수업 시간표, 오늘의 운동, 회비·차량 안내와 자주 묻는 질문.', training),
-    ('news.html', 'schedule', '도장 소식',
-     f'{NAME}의 일정, 알림판·공지, 사진과 보도자료를 확인하세요.', news),
-    ('contact.html', 'contact', '상담 문의',
-     f'{NAME} 상담 문의 - 전화, 네이버 예약, 톡톡, 카카오톡으로 편하게 문의하세요.', contact),
+    ('contact.html', 'contact', '등록 · 상담',
+     f'{NAME} 체험·상담 예약, 회비·차량 안내, 자주 묻는 질문, 오시는 길과 운영 시간.', contact),
+    ('news.html', 'today', '도장 소식',
+     f'{NAME} 오늘의 운동, 일정, 알림판·공지와 사진.', news),
 ]
 NAV = ''.join(f'<li><a href="{f}">{t if f != "index.html" else "홈"}</a></li>' for f, _, t, _, _ in PAGES)
 
