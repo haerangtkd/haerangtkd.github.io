@@ -338,7 +338,8 @@ function heroVideo(d, brand){
   const wide = v.wide && matchMedia('(min-width:768px) and (orientation:landscape)').matches;
   const src = wide ? v.wide : v.src, poster = wide ? (v.widePoster || '') : (v.poster || '');
   const book = list(d.links).find(l => l.icon === 'calendar');
-  return `<section class="vhero">${awardPill(d)}
+  return `<section class="vhero${wide ? '' : ' tall'}">${awardPill(d)}
+    ${wide ? '' : `<img class="vbg" src="${esc(poster)}" alt="" aria-hidden="true">`}
     <video src="${esc(src)}" poster="${esc(poster)}" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
     <div class="in">
       <div class="kick">HAERANG TAEKWONDO</div>

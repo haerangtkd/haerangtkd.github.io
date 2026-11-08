@@ -797,3 +797,11 @@
   .qp .qi.f-share{background:#3A3533;color:#fff}
   #toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:rgba(28,26,25,.92);color:#fff;font-size:14px;padding:11px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:88vw;text-align:center;word-break:keep-all}
   #toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* 세로(3:4) 첫 영상을 PC에서 볼 때: 얼굴이 잘리지 않게 영상 전체를 오른쪽에, 뒤는 흐린 배경 */
+.vhero .vbg{display:none}
+@media (min-width:768px){
+  .vhero.tall .vbg{display:block;position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(30px) brightness(.5) saturate(1.1)}
+  .vhero.tall video{left:auto;right:max(24px,calc((100% - 1080px) / 2 + 40px));width:auto;height:100%;aspect-ratio:3/4;object-fit:cover;z-index:1}
+  .vhero.tall::after{z-index:1;background:linear-gradient(90deg,rgba(20,10,10,.75) 0%,rgba(20,10,10,.35) 45%,rgba(20,10,10,0) 70%),linear-gradient(180deg,rgba(20,10,10,0) 55%,rgba(20,10,10,.6) 100%)}
+}
