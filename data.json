@@ -23,7 +23,7 @@
     }
   ],
   "heroVideo": {
-    "src": "videos/hero2.mp4",
+    "src": "videos/hero2.mp4?v=2",
     "poster": "videos/hero2.jpg",
     "text": "땀 흘리며 함께 성장하는 곳"
   },
