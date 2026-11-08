@@ -779,6 +779,23 @@
   .grow1 em{font-style:normal;font-weight:900;color:var(--brand);margin-right:.4em}
   .grow1 b{font-weight:700;color:var(--ink)}
   .grow1 i{font-style:normal;color:var(--muted);margin:0 .45em;font-weight:700}
+  .fa-after{margin-top:10px !important;font-weight:700;color:var(--brand-deep)}
+  .bn-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px}
+  .bn-head{display:flex;align-items:center;gap:14px;padding:18px;background:linear-gradient(135deg,var(--brand) 0%,var(--brand-deep) 100%);color:#fff}
+  .bn-num{font-size:44px;font-weight:900;line-height:1;letter-spacing:-.02em}
+  .bn-num::after{content:'가지';font-size:15px;font-weight:700;margin-left:2px;opacity:.85}
+  .bn-head b{display:block;font-size:18px;font-weight:900}
+  .bn-head small{display:block;font-size:13px;opacity:.85}
+  .bn-grid{display:grid;gap:0}
+  @media (min-width:700px){ .bn-grid{grid-template-columns:1fr 1fr} }
+  .bn-g{padding:14px 18px;border-top:1px solid var(--line)}
+  .bn-t{display:flex;align-items:center;gap:10px}
+  .bn-t .ic{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--brand-soft);color:var(--brand);flex:none}
+  .bn-t .ic svg{width:19px;height:19px}
+  .bn-t b{font-size:15.5px;font-weight:900}
+  .bn-t em{font-style:normal;margin-left:auto;font-size:12px;font-weight:700;color:var(--brand);background:var(--brand-soft);border-radius:999px;padding:1px 9px}
+  .bn-g ul{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-left:44px}
+  .bn-g li{font-size:13px;padding:4px 10px;border-radius:8px;background:#F6F1EC;color:#3A3533;word-break:keep-all}
 </style>
 </head>
 <body>
@@ -798,6 +815,11 @@ const ICONS = {
   heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
   chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   award:'<circle cx="12" cy="9" r="5"/><path d="m8.5 13-1.5 8 5-3 5 3-1.5-8"/>',
+  grad:'<path d="M2 9l10-5 10 5-10 5-10-5z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/>',
+  shield:'<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6l8-3z"/>',
+  bldg:'<path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-5h6v5M9 11h.01M15 11h.01"/>',
+  users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.3 4.5 2.3 4.5 5.4"/>',
+  medal:'<circle cx="12" cy="15" r="5"/><path d="M8.5 11 6 3h4l2 5 2-5h4l-2.5 8"/>',
   star:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9Z"/>',
   chat:'<path d="M4 5h16v11H9l-5 4Z"/><path d="M8 9.5h8M8 12.5h5"/>',
   kakao:'<path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6L6.5 20l3.6-2.3c.6.1 1.2.1 1.9.1 5 0 9-3.1 9-7s-4-6.8-9-6.8Z"/>',
@@ -940,10 +962,11 @@ function render(d){
         ${cats.length > 1 ? `<div class="fcats" id="faqCats"><button type="button" class="on" data-c="">전체</button>${cats.map(c => `<button type="button" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
       </div>
       <div class="faq" id="faqList">${fq.map((f,i) => `
-        <details data-c="${esc(f.cat || '기타')}" data-t="${esc([f.q, ...list(f.a), ...list(f.points).map(p => p.t + ' ' + (p.d || '')), f.closing || '', f.cat || ''].join(' ').toLowerCase())}"${i === 0 ? ' open' : ''}><summary>${esc(f.q)}</summary><div class="ans">
+        <details data-c="${esc(f.cat || '기타')}" data-t="${esc([f.q, ...list(f.a), ...list(f.points).map(p => p.t + ' ' + (p.d || '')), f.closing || '', ...list(f.after), f.cat || ''].join(' ').toLowerCase())}"${i === 0 ? ' open' : ''}><summary>${esc(f.q)}</summary><div class="ans">
           ${list(f.a).map(t => `<p class="fa">${esc(t)}</p>`).join('')}
           ${list(f.points).map(p => `<div class="pt"><span class="ck">${svg('check',3)}</span><div><b>${esc(p.t)}</b>${p.d ? `<span>${esc(p.d)}</span>` : ''}</div></div>`).join('')}
           ${f.closing ? `<p class="closing">${esc(f.closing)}</p>` : ''}
+          ${list(f.after).map(x => `<p class="fa fa-after">${esc(x)}</p>`).join('')}
         </div></details>`).join('')}</div>
       <p class="fempty" id="faqEmpty" hidden>찾는 질문이 없어요. 아래 상담 문의로 편하게 물어봐 주세요.</p>`)};
   }
@@ -1430,7 +1453,8 @@ function beltsPage(bt){
       ${list(c.minPeriod).length ? `<div class="bt-stage"><div class="bt-h"><b>품/단 취득 최소 수련 기간</b></div>${tbl(['응시 품/단', '승단 수련 기간'], c.minPeriod)}${list(c.examples).length ? `<ul class="bt-list">${list(c.examples).map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>` : ''}
       ${list(c.danAge).length ? `<div class="bt-stage"><div class="bt-h"><b>단증부터 취득할 경우</b></div>${tbl(['응시 단', '응시 자격 연령'], c.danAge)}</div>` : ''}
       ${list(c.convert).length ? `<div class="bt-stage"><div class="bt-h"><b>품증에서 단증으로 변경</b></div><ul class="bt-list">${list(c.convert).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-      ${list(c.benefits).length ? `<div class="bt-stage"><div class="bt-h"><b>단증이 있으면 좋은 점</b></div><div class="bnf">${list(c.benefits).map(x => `<span>${esc(x)}</span>`).join('')}</div></div>` : ''}
+      ${list(c.benefitGroups).length ? `<div class="bn-wrap"><div class="bn-head"><span class="bn-num">${list(c.benefitGroups).reduce((n, g) => n + list(g.items).length, 0)}</span><div><b>단증이 열어주는 길</b><small>단증 하나로 넓어지는 진학과 진로</small></div></div>
+        <div class="bn-grid">${list(c.benefitGroups).map(g => `<div class="bn-g"><div class="bn-t"><span class="ic">${svg(g.icon || 'star')}</span><b>${esc(g.t)}</b><em>${list(g.items).length}</em></div><ul>${list(g.items).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div></div>` : ''}
       ${c.closing ? `<p class="cu-close">${esc(c.closing)}</p>` : ''}` : '';
   return `${bt.lead ? `<p class="lead">${esc(bt.lead)}</p>` : ''}
     <div class="bt-stage">
