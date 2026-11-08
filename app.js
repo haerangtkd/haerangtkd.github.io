@@ -60,7 +60,8 @@ let D, EVENTS = [], S = {}, GROUPS = [];
 // 메뉴 그룹마다 별도 HTML 파일이 있고, 같은 화면을 그 그룹부터 보여줌
 const PAGE_FILES = {
   'about.html':    ['philosophy','curriculum','staff','location'],
-  'culture.html':  ['character','leaders','belts','guinness','growth'],
+  'culture.html':  ['promise','character','leaders','belts','guinness','growth'],
+  'column.html':   ['column'],
   'training.html': ['program','timetable','today','fee','faq'],
   'news.html':     ['schedule','notice','gallery','press'],
   'contact.html':  ['contact']
@@ -192,6 +193,8 @@ function render(d){
       <div class="legend">${Object.entries(EV_COLORS).filter(([k]) => EVENTS.some(e => (EV_COLORS[e.type] ? e.type : '기타') === k)).map(([k,c]) => `<span><i style="background:${c}"></i>${k}</span>`).join('')}</div>
       <div class="evlist" id="evlist"></div>`)};
   S.notice = {label:'알림판·공지', short:'알림판', icon:'megaphone', html: sec('notice', '', noticePage(d))};
+  if((d.promise || {}).years) S.promise = {label:'해랑경희의 약속', short:'약속', icon:'star', html: sec('promise', '', promiseBlock(d))};
+  S.column = {label:'해랑경희 칼럼', short:'칼럼', icon:'book', html: sec('column', (d.columnPage || {}).title || '해랑경희 칼럼', columnPage(d))};
   S.press = {label:'보도자료', icon:'news', html: sec('press', '보도자료', pressPage(d))};
   if(list(d.gallery).length) S.gallery = {label:'사진', icon:'photo', html: sec('gallery', d.galleryTitle || '사진으로 보는 해랑경희', gallery(d))};
 
@@ -238,7 +241,8 @@ function render(d){
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
     {name:'도장 소개', items:['philosophy','curriculum','staff','location']},
-    {name:'해랑경희 문화', items:['character','leaders','belts','guinness','growth']},
+    {name:'해랑경희 문화', items:['promise','character','leaders','belts','guinness','growth']},
+    {name:'해랑경희 칼럼', items:['column']},
     {name:'수련 안내', items:['program','today','fee','faq']},
     {name:'도장 소식', items:['schedule','notice','gallery','press']},
     {name:'상담 문의', items:['contact']}
@@ -277,7 +281,6 @@ function render(d){
           ${tileIds.map(id => `<a class="sc" href="${go(id)}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
         </div>
         ${classesBlock(d)}
-        ${promiseBlock(d)}
         ${trustBlock(d)}
         <div class="seg seg2"><h2>해랑경희 소식</h2><p>다니는 친구들을 위한 일정과 공지</p></div>
         ${(() => { const w = workoutCard(d, true); return w.includes(' rest"') ? '' : `<div class="home">${w}</div>`; })()}
@@ -636,6 +639,17 @@ function awardPill(d){
   const p = latestPress(d); if(!p) return '';
   const t = p.title.replace(/^[^,]*,\s*/, '');
   return `<a class="award" href="${esc(p.url)}" target="_blank" rel="noopener">${svg('star',2.2)}<span>${esc(t)}<small>${esc(p.source || '언론 보도')} 보도 ›</small></span></a>`;
+}
+// 해랑경희 칼럼
+function columnPage(d){
+  const cp = d.columnPage || {}, cs = list(d.columns).filter(c => c.title);
+  const blog = list(d.links).find(l => l.short === '해랑경희 칼럼') || list(d.links).find(l => l.icon === 'blog');
+  return `${cp.lead ? `<p class="lead">${esc(cp.lead)}</p>` : ''}
+    ${cs.length ? `<div class="col-list">${cs.map((c, i) => `<a class="col-card" href="${esc(c.url || (blog && blog.url) || '#')}" target="_blank" rel="noopener">
+        ${c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : `<span class="col-no">${pad2(cs.length - i)}</span>`}
+        <div class="b">${c.tag ? `<span class="tag">${esc(c.tag)}</span>` : ''}<h4>${esc(c.title)}</h4>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}<span class="go">${c.date ? esc(String(c.date).replace(/-/g, '.')) + ' · ' : ''}칼럼 읽기 ›</span></div></a>`).join('')}</div>`
+      : `<div class="col-empty">${svg('book', 1.8)}<p>칼럼을 준비하고 있어요.</p></div>`}
+    ${blog ? `<a class="col-more" href="${esc(blog.url)}" target="_blank" rel="noopener">${svg('book', 2.2)}블로그에서 칼럼 더 보기</a>` : ''}`;
 }
 // 해랑경희의 약속: 스크롤하면 2024 → 2025 → 2026 슬로건이 차례로 지나감
 function promiseBlock(d){

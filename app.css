@@ -835,3 +835,22 @@
 .pm-root{margin-top:34px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18);font-size:14px;line-height:1.6;color:rgba(255,255,255,.75);word-break:keep-all;max-width:520px}
 .pm-root small{display:block;font-size:11.5px;font-weight:700;letter-spacing:.1em;color:#F3C9CB;margin-bottom:2px}
 @media (prefers-reduced-motion:reduce){ .pm-line span,.pm-yt{transition:none} }
+
+/* 약속 섹션이 메뉴 페이지 안에 들어갈 때 */
+#sec-promise .pm{margin-top:-8px}
+/* 해랑경희 칼럼 */
+.col-list{display:grid;gap:12px}
+@media (min-width:700px){ .col-list{grid-template-columns:1fr 1fr} }
+.col-card{display:flex;gap:14px;align-items:stretch;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit}
+.col-card img{width:34%;object-fit:cover;flex:none}
+.col-no{display:grid;place-items:center;width:72px;flex:none;background:var(--brand);color:#fff;font-size:22px;font-weight:900}
+.col-card .b{padding:14px 14px 14px 0;min-width:0}
+.col-card .tag{font-size:12px;font-weight:700;color:var(--brand)}
+.col-card h4{font-size:16px;font-weight:900;line-height:1.4;margin-top:2px;word-break:keep-all}
+.col-card p{font-size:13.5px;color:#3A3533;margin-top:4px;line-height:1.55;word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.col-card .go{display:block;margin-top:6px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.col-empty{text-align:center;padding:34px 0;color:var(--muted)}
+.col-empty svg{width:34px;height:34px;color:var(--brand)}
+.col-empty p{margin-top:8px;font-size:14.5px}
+.col-more{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;padding:14px;border-radius:12px;background:var(--brand);color:#fff;font-weight:700;text-decoration:none}
+.col-more svg{width:18px;height:18px}

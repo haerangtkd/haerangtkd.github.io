@@ -52,8 +52,10 @@ def about():
 
 
 def culture():
+    pm = d.get('promise', {}) or {}
+    pre = [f'<h2>{e(pm.get("title") or "해랑경희의 약속")}</h2>'] + [f'<p>{e(y.get("year"))} {e(y.get("text"))}</p>' for y in L(pm.get('years'))]
     ch, le, bt, gp, gr = (d.get(k, {}) or {} for k in ('character', 'leaders', 'belts', 'guinnessPage', 'growth'))
-    out = [f'<h2>{e(ch.get("title") or "인성 교육")}</h2>', p(ch.get('lead'))]
+    out = pre + [f'<h2>{e(ch.get("title") or "인성 교육")}</h2>', p(ch.get('lead'))]
     out.append(ul([f'{b.get("t")} - {b.get("d")}' for b in L(ch.get('blocks'))]))
     out += [f'<h2>{e(le.get("title") or "선범단")}</h2>', p((le.get('lead') or '').split('\n'))]
     for g in L(le.get('groups')):
@@ -85,6 +87,15 @@ def training():
     out.append('<h2>자주 묻는 질문</h2>')
     for q in L(d.get('faq')):
         out.append(f'<h3>{e(q.get("q"))}</h3>' + p(q.get('a')))
+    return ''.join(out)
+
+
+def column():
+    cp = d.get('columnPage', {}) or {}
+    out = [f'<h2>{e(cp.get("title") or "해랑경희 칼럼")}</h2>', p(cp.get('lead'))]
+    out.append('<ul>' + ''.join(
+        f'<li><a href="{e(x.get("url"))}" rel="noopener">{e(x.get("title"))}</a> - {e(x.get("summary"))}</li>'
+        for x in L(d.get('columns'))) + '</ul>')
     return ''.join(out)
 
 
@@ -124,8 +135,10 @@ PAGES = [
      f'{SUFFIX} - 교육 철학, 지도진, 수련 프로그램과 시간표, 일정과 오늘의 운동을 한눈에 보실 수 있습니다.', home),
     ('about.html', 'philosophy', '도장 소개',
      f'{NAME}의 교육 철학, 교육 내용, 전문 지도진 소개와 오시는 길을 안내합니다.', about),
-    ('culture.html', 'character', '해랑경희 문화',
-     f'{NAME}만의 문화 - 인성 교육, 선범단(先範團), 띠 제도, 해랑 기네스, 분기별 성장 측정을 소개합니다.', culture),
+    ('culture.html', 'promise', '해랑경희 문화',
+     f'{NAME}만의 문화 - 해랑경희의 약속, 인성 교육, 선범단(先範團), 띠 제도, 해랑 기네스, 분기별 성장 측정을 소개합니다.', culture),
+    ('column.html', 'column', '해랑경희 칼럼',
+     f'{NAME}의 교육 이야기를 담은 해랑경희 칼럼입니다.', column),
     ('training.html', 'program', '수련 안내',
      f'{NAME} 유치부·초등부·중고등·성인부·입시부 수업 시간표, 오늘의 운동, 회비·차량 안내와 자주 묻는 질문.', training),
     ('news.html', 'schedule', '도장 소식',
