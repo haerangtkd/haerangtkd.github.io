@@ -1516,7 +1516,7 @@ function setupTabs(){
     box.innerHTML = `
       <div class="dv ${dir}"><h4>${esc(v.name)}</h4>
       <div class="wcols whead">${DAYS.map(dd => `<div class="wc${dd === today ? ' today' : ''}"><b>${dd}</b></div>`).join('')}</div>
-      ${v.common ? `<p class="every2"><span>매일</span>${esc(v.common)}</p>` : ''}
+      ${v.common ? `<p class="every2">${esc(v.common)}</p>` : ''}
       <div class="wcols wbody">${DAYS.map(dd => `<div class="wc${dd === today ? ' today' : ''}">${list(days[dd]).map(x => /^\(.*\)$/.test(x) ? `<small>${esc(x.slice(1, -1))}</small>` : `<p>${esc(x)}</p>`).join('')}</div>`).join('')}</div>
       ${list(v.extra).length ? `<div class="cu-purp extra3">${list(v.extra).map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}</div>`;
   };
