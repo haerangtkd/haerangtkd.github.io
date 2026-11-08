@@ -797,6 +797,19 @@
   .bn-g ul{list-style:none;display:flex;flex-wrap:wrap;gap:0 8px;margin-top:6px;padding-left:44px}
   .bn-g li{font-size:14px;line-height:1.7;color:#3A3533;word-break:keep-all}
   .bn-g li:not(:last-child)::after{content:'|';margin-left:8px;color:#D5CBC4;font-weight:400}
+  /* PC: 부서별 수업을 큰 영상 + 설명 지그재그로 */
+  @media (min-width:900px){
+    .classes{display:flex;flex-direction:column;gap:44px}
+    .cls{display:grid;grid-template-columns:1.35fr 1fr;gap:36px;align-items:center}
+    .cls:nth-child(even){grid-template-columns:1fr 1.35fr}
+    .cls:nth-child(even) .media{order:2}
+    .cls .media{aspect-ratio:4/3;border-radius:14px}
+    .cls .body{padding:0}
+    .cls h3{font-size:26px}
+    .cls li{font-size:16px;padding:4px 0}
+    .cls .tm{font-size:15px}
+  }
+  @media (min-width:1100px){ #homePage .wrap{max-width:1000px} }
 </style>
 </head>
 <body>
