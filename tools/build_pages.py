@@ -14,7 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = 'https://haerangtkd.github.io/'
 NAME = '해랑경희 태권도장'
 SUFFIX = '해랑경희 태권도장 공식 홈페이지'
-VER = datetime.date.today().strftime('%Y%m%d')
+VER = datetime.datetime.now().strftime('%Y%m%d%H%M')  # 올릴 때마다 바뀌어서 예전 파일이 남지 않음
 
 d = json.load(open(os.path.join(ROOT, 'data.json'), encoding='utf-8'))
 e = lambda s: html.escape(str(s or ''), quote=True)
