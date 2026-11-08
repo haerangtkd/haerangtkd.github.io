@@ -277,6 +277,7 @@ function render(d){
           ${tileIds.map(id => `<a class="sc" href="${go(id)}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
         </div>
         ${classesBlock(d)}
+        ${promiseBlock(d)}
         ${trustBlock(d)}
         <div class="seg seg2"><h2>해랑경희 소식</h2><p>다니는 친구들을 위한 일정과 공지</p></div>
         ${(() => { const w = workoutCard(d, true); return w.includes(' rest"') ? '' : `<div class="home">${w}</div>`; })()}
@@ -320,7 +321,7 @@ function render(d){
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupQuick(); setupVideos(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupStack(); setupSliders(); setupTop(); setupFaq();
+  setupMenu(); setupQuick(); setupVideos(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupStack(); setupPromise(); setupSliders(); setupTop(); setupFaq();
   const cb = document.getElementById('copyAddr');
   if(cb) cb.onclick = async () => {
     const txt = lo.address;
@@ -635,6 +636,44 @@ function awardPill(d){
   const p = latestPress(d); if(!p) return '';
   const t = p.title.replace(/^[^,]*,\s*/, '');
   return `<a class="award" href="${esc(p.url)}" target="_blank" rel="noopener">${svg('star',2.2)}<span>${esc(t)}<small>${esc(p.source || '언론 보도')} 보도 ›</small></span></a>`;
+}
+// 해랑경희의 약속: 스크롤하면 2024 → 2025 → 2026 슬로건이 차례로 지나감
+function promiseBlock(d){
+  const P = d.promise || {}, ys = list(P.years);
+  if(!ys.length) return '';
+  return `<section class="pm" style="--n:${ys.length}">
+    <div class="pm-stick">
+      <div class="pm-in">
+        <p class="pm-kick">${esc(P.title || '해랑경희의 약속')}</p>
+        <div class="pm-year" aria-hidden="true"><div class="pm-yt">${ys.map(y => `<span>${esc(y.year)}</span>`).join('')}</div></div>
+        <div class="pm-lines">${ys.map((y, i) => `<p class="pm-line${i === 0 ? ' on' : ''}" data-i="${i}">${String(y.text).split(' ').map((w, k) => `<span style="--k:${k}">${esc(w)}</span>`).join(' ')}</p>`).join('')}</div>
+        <div class="pm-tl">${ys.map((y, i) => `<span class="pm-dot${i === 0 ? ' on' : ''}"><i></i><b>${esc(y.year)}</b></span>`).join('')}<em class="pm-bar"><u></u></em></div>
+        ${P.root ? `<p class="pm-root"><small>변하지 않는 뿌리</small>${esc(P.root)}</p>` : ''}
+      </div>
+    </div>
+  </section>`;
+}
+function setupPromise(){
+  const sec = document.querySelector('.pm');
+  if(!sec) return;
+  const lines = [...sec.querySelectorAll('.pm-line')], dots = [...sec.querySelectorAll('.pm-dot')];
+  const yt = sec.querySelector('.pm-yt'), bar = sec.querySelector('.pm-bar u'), n = lines.length;
+  let cur = -1;
+  const set = i => {
+    if(i === cur) return; cur = i;
+    lines.forEach((l, k) => { l.classList.toggle('on', k === i); l.classList.toggle('past', k < i); });
+    dots.forEach((t, k) => t.classList.toggle('on', k <= i));
+    yt.style.transform = `translateY(${-i * 100 / n}%)`;
+    sec.classList.toggle('last', i === n - 1);
+  };
+  const tick = () => {
+    if(!sec.isConnected) return window.removeEventListener('scroll', tick);
+    const r = sec.getBoundingClientRect(), span = r.height - innerHeight;
+    const p = Math.min(1, Math.max(0, -r.top / (span || 1)));
+    bar.style.transform = `scaleX(${p})`;
+    set(Math.min(n - 1, Math.floor(p * n * 0.999)));
+  };
+  window.addEventListener('scroll', tick, {passive:true}); tick();
 }
 function trustBlock(d){
   const p = latestPress(d);

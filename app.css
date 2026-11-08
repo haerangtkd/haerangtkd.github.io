@@ -805,3 +805,33 @@
   .vhero.tall video{left:auto;right:max(24px,calc((100% - 1080px) / 2 + 40px));width:auto;height:100%;aspect-ratio:3/4;object-fit:cover;z-index:1}
   .vhero.tall::after{z-index:1;background:linear-gradient(90deg,rgba(20,10,10,.75) 0%,rgba(20,10,10,.35) 45%,rgba(20,10,10,0) 70%),linear-gradient(180deg,rgba(20,10,10,0) 55%,rgba(20,10,10,.6) 100%)}
 }
+
+/* 해랑경희의 약속 (스크롤 모션) */
+.pm{position:relative;height:calc(var(--n) * 85svh + 100svh);margin:40px calc(50% - 50vw) 0;width:100vw}
+.pm-stick{position:sticky;top:56px;height:calc(100svh - 56px);overflow:hidden;background:radial-gradient(120% 80% at 50% 0%,#B8141C 0%,var(--brand-deep) 55%,#3E0609 100%);color:#fff;display:flex;align-items:center}
+.pm-stick::before{content:'';position:absolute;inset:0;background:url(img/lion-white.png) no-repeat right -60px bottom -40px/min(70vw,520px);opacity:.06;pointer-events:none}
+.pm-in{position:relative;width:100%;max-width:880px;margin:0 auto;padding:0 26px}
+.pm-kick{font-size:14px;font-weight:700;letter-spacing:.14em;color:#F3C9CB;display:flex;align-items:center;gap:10px}
+.pm-kick::before{content:'';width:28px;height:1px;background:currentColor}
+.pm-year{height:clamp(84px,24vw,170px);overflow:hidden;margin-top:14px}
+.pm-yt{display:flex;flex-direction:column;transition:transform .8s cubic-bezier(.7,0,.2,1)}
+.pm-yt span{display:block;height:clamp(84px,24vw,170px);line-height:1;font-size:clamp(84px,24vw,170px);font-weight:900;letter-spacing:-.04em;background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,.35));-webkit-background-clip:text;background-clip:text;color:transparent}
+.pm-lines{position:relative;min-height:clamp(120px,32vw,150px);margin-top:18px}
+.pm-line{position:absolute;inset:0;font-size:clamp(22px,6vw,38px);font-weight:900;line-height:1.4;word-break:keep-all;letter-spacing:-.02em}
+.pm-line span{display:inline-block;opacity:0;transform:translateY(26px);filter:blur(6px);transition:opacity .5s,transform .6s cubic-bezier(.2,.8,.2,1),filter .5s;transition-delay:calc(var(--k) * 70ms)}
+.pm-line.on span{opacity:1;transform:none;filter:none}
+.pm-line.past span{opacity:0;transform:translateY(-22px);filter:blur(6px);transition-delay:calc(var(--k) * 30ms)}
+.pm-tl{position:relative;display:flex;justify-content:space-between;margin-top:34px;max-width:420px}
+.pm-bar{position:absolute;left:6px;right:6px;top:6px;height:2px;background:rgba(255,255,255,.2)}
+.pm-bar u{position:absolute;inset:0;background:#fff;transform-origin:left;transform:scaleX(0)}
+.pm-dot{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.pm-dot:last-of-type{align-items:flex-end}
+.pm-dot:not(:first-child):not(:last-of-type){align-items:center}
+.pm-dot i{width:14px;height:14px;border-radius:50%;background:#5C1014;border:2px solid rgba(255,255,255,.45);transition:.4s}
+.pm-dot b{font-size:13px;font-weight:700;color:rgba(255,255,255,.5);transition:.4s}
+.pm-dot.on i{background:#fff;border-color:#fff;box-shadow:0 0 0 6px rgba(255,255,255,.15)}
+.pm-dot.on b{color:#fff}
+.pm.last .pm-dot:last-of-type i{background:#F6C453;border-color:#F6C453;box-shadow:0 0 0 8px rgba(246,196,83,.22)}
+.pm-root{margin-top:34px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18);font-size:14px;line-height:1.6;color:rgba(255,255,255,.75);word-break:keep-all;max-width:520px}
+.pm-root small{display:block;font-size:11.5px;font-weight:700;letter-spacing:.1em;color:#F3C9CB;margin-bottom:2px}
+@media (prefers-reduced-motion:reduce){ .pm-line span,.pm-yt{transition:none} }
