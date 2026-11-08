@@ -621,7 +621,7 @@
   /* 부서별 수업: 폰에서 사진 낮게, 번호는 작고 또렷하게 */
   .classes{gap:34px}
   .cls .media{aspect-ratio:4/3}
-  @media (min-width:700px){ .cls .media{aspect-ratio:4/5} }
+  @media (min-width:700px){ .cls .media{aspect-ratio:4/3} }
   .cls .no{font-family:inherit;font-size:13px;font-weight:700;letter-spacing:.04em;top:12px;left:12px;padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.5);text-shadow:none}
   .cls .row{border-bottom-color:var(--line)}
   .cls li{border-bottom:0;padding:3px 0;color:var(--muted);font-size:14.5px}
@@ -680,8 +680,8 @@
   .vhero .award small{color:rgba(255,255,255,.8)}
   @media (min-width:900px){ .vhero .award{left:max(40px,calc((100% - 1080px) / 2 + 40px));right:auto;top:28px;margin:0} }
   /* 영상 높이 살짝 줄임 */
-  .vhero{height:min(72svh,640px);min-height:460px}
-  @media (min-width:900px){ .vhero{height:min(76vh,700px)} }
+  .vhero{height:auto;min-height:0;aspect-ratio:3/4;max-height:86svh}
+  @media (min-width:700px){ .vhero{aspect-ratio:2/1;max-height:none} }
   /* 교육 내용: 3개 영역 카드 */
   .cu-purp2{display:flex;flex-wrap:wrap;gap:6px;margin:0 2px 22px}
   .cu-purp2 span{padding:6px 12px;border-radius:999px;background:var(--brand-soft);color:var(--brand-deep);font-size:14px;font-weight:700}
