@@ -781,7 +781,7 @@
   "contact": {
     "title": "상담 및 문의하기",
     "phone": "010-9917-9954",
-    "floatPhone": false,
+    "floatPhone": true,
     "ceo": "이아빈"
   },
   "location": {
@@ -821,7 +821,7 @@
       "url": "https://talk.naver.com/WYCVDRR",
       "main": false,
       "short": "톡톡 문의",
-      "float": false
+      "float": true
     },
     {
       "icon": "kakao",
@@ -839,7 +839,7 @@
       "url": "https://www.instagram.com/haerang_tkd",
       "main": false,
       "short": "인스타그램",
-      "float": true
+      "float": false
     },
     {
       "icon": "blog",
@@ -848,33 +848,6 @@
       "url": "https://blog.naver.com/haerang_tkd/223781332649",
       "main": false,
       "short": "네이버 블로그",
-      "float": true
-    },
-    {
-      "icon": "photo",
-      "name": "블로그 · 도장 모습",
-      "short": "도장 모습",
-      "desc": "블로그에서 보는 도장 모습",
-      "url": "https://blog.naver.com/haerang_tkd",
-      "main": false,
-      "float": false
-    },
-    {
-      "icon": "book",
-      "name": "블로그 · 해랑경희 칼럼",
-      "short": "해랑경희 칼럼",
-      "desc": "해랑경희의 교육 이야기",
-      "url": "https://blog.naver.com/haerang_tkd",
-      "main": false,
-      "float": false
-    },
-    {
-      "icon": "star",
-      "name": "블로그 · 수련 이야기",
-      "short": "수련 이야기",
-      "desc": "수업·대회·심사 이야기",
-      "url": "https://blog.naver.com/haerang_tkd",
-      "main": false,
       "float": false
     }
   ],
