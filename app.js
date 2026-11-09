@@ -742,7 +742,7 @@ function columnPage(d){
   return `${cp.lead ? `<p class="lead">${esc(cp.lead)}</p>` : ''}
     ${cs.length ? `<div class="col-list">${cs.map((c, i) => `<a class="col-card" href="${esc(c.url || (blog && blog.url) || '#')}"${/^https?:/.test(c.url || (blog && blog.url) || '') ? ' target="_blank" rel="noopener"' : ''}>
         ${c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : `<span class="col-no">${pad2(cs.length - i)}</span>`}
-        <div class="b">${c.tag ? `<span class="tag">${esc(c.tag)}</span>` : ''}<h4>${esc(c.title)}</h4>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}<span class="go">${c.date ? esc(String(c.date).replace(/-/g, '.')) + ' · ' : ''}칼럼 읽기 ›</span></div></a>`).join('')}</div>`
+        <div class="b">${c.tag ? `<span class="tag">${esc(c.tag)}</span>` : ''}<h4>${esc(c.title)}</h4>${c.summary ? `<p>${esc(c.summary)}</p>` : ''}<span class="go">칼럼 읽기 ›</span></div></a>`).join('')}</div>`
       : `<div class="col-empty">${svg('book', 1.8)}<p>칼럼을 준비하고 있어요.</p></div>`}
     ${blog ? `<a class="col-more" href="${esc(blog.url)}" target="_blank" rel="noopener">${svg('book', 2.2)}블로그에서 칼럼 더 보기</a>` : ''}`;
 }
