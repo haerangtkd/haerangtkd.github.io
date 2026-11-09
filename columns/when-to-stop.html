@@ -99,13 +99,13 @@
   <section class="scene">
     <p class="k">핵심은 폭력을 행사하는 것이 아니라</p>
     <p class="t">언제 힘을 쓰고<br>언제 멈출지</p>
-    <p class="t or" style="margin-top:6px">판단하는 연습입니다</p>
+    <p class="t or" style="margin-top:6px"><span class="mph" data-mph><span class="m-a">싸우는 연습</span><span class="m-b">판단하는 연습</span></span>입니다</p>
   </section>
 
   <section class="scene">
-    <p class="k">태권도의 ‘태권’은 발차기와 주먹 기술,<br>‘도’는 태도를 말합니다</p>
-    <p class="t big"><span class="mph or" data-mph><span class="m-a">기술</span><span class="m-b">태도</span></span> 먼저</p>
-    <p class="t" style="margin-top:8px">연습하는 것이<br>필요하다고 보았습니다</p>
+    <p class="k">태권(발차기, 주먹 기술) 도(태도)</p>
+    <p class="t big"><span class="mph or" data-mph><span class="m-a">태권보다</span><span class="m-b">도(태도)를</span></span></p>
+    <p class="t" style="margin-top:8px">먼저 연습하는 것이<br>필요하다고 보았습니다</p>
     <img class="fl l" src="../img/brand/magnolia-white.png" alt="" style="top:46%">
   </section>
 
@@ -144,7 +144,7 @@
   <section class="scene">
     <p class="k">조금 더디고 인내하더라도<br>저희가 가장 먼저 보는 것은</p>
     <p class="t">제자가 어제보다<br>한 걸음 성장하는 일</p>
-    <p class="en">Better than before</p>
+    <p class="en">Better than <span class="mph" data-mph><span class="m-a">others</span><span class="m-b">before</span></span></p>
   </section>
 
   <section class="scene">
@@ -185,7 +185,7 @@
   var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(still || !('IntersectionObserver' in window)) return;   // 움직임 줄이기 설정이면 바뀐 단어만 보여 줌
   document.documentElement.classList.add('js');
-  var DUR = 1300, WAIT = 450;
+  var DUR = 2000, WAIT = 900;   // 바뀌는 시간, 바뀌기 전 기다리는 시간(ms)
   function blur(v){ return 'blur(' + Math.min(v, 100).toFixed(2) + 'px)'; }
   function set(el, t){
     var a = el.children[0], b = el.children[1];
