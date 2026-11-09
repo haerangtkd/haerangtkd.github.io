@@ -943,3 +943,10 @@
 .rv-c figcaption{margin-top:12px;display:flex;gap:8px;align-items:baseline;font-size:12.5px;color:var(--muted)}
 .rv-c figcaption b{color:var(--ink);font-size:13px}
 @media (min-width:640px){ .rv-row{margin:0;padding:2px 0 8px} .rv-c{flex-basis:300px} }
+
+.rv-c.long blockquote{display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden}
+.rv-c.long.open blockquote{display:block}
+.rv-c.long{cursor:pointer}
+.rv-more{margin-top:6px;font-size:12.5px;font-weight:700;color:var(--brand)}
+.rv-c.open .rv-more{display:none}
+.rv-row{align-items:flex-start}

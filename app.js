@@ -653,9 +653,9 @@ function reviewBlock(d){
   const rs = list(d.reviews).filter(r => r.text);
   if(!rs.length) return '';
   const pl = list(d.links).find(l => /리뷰|플레이스/.test(l.name || '')), more = (d.location || {}).naver;
-  return `<div class="seg seg2"><h2>학부모님 이야기</h2><p>해랑경희를 직접 겪어 보신 분들의 후기${more ? ` · <a href="${esc(more)}" target="_blank" rel="noopener">후기 더 보기 ›</a>` : ''}</p></div>
-    <div class="rv-row">${rs.map(r => `<figure class="rv-c"><span class="rv-q">“</span><blockquote>${esc(r.text)}</blockquote>
-      <figcaption>${r.who ? `<b>${esc(r.who)}</b>` : ''}${r.source ? `<span>${esc(r.source)}</span>` : ''}</figcaption></figure>`).join('')}</div>`;
+  return `<div class="seg seg2"><h2>해랑경희 후기</h2><p>학부모님과 수련생이 직접 남긴 네이버 리뷰${more ? ` · <a href="${esc(more)}" target="_blank" rel="noopener">후기 더 보기 ›</a>` : ''}</p></div>
+    <div class="rv-row">${rs.map(r => `<figure class="rv-c${String(r.text).length > 140 ? ' long' : ''}" onclick="this.classList.toggle('open')"><span class="rv-q">“</span><blockquote>${esc(r.text)}</blockquote>
+      ${String(r.text).length > 140 ? '<span class="rv-more">더보기</span>' : ''}<figcaption>${r.who ? `<b>${esc(r.who)}</b>` : ''}${r.source ? `<span>${esc(r.source)}</span>` : ''}</figcaption></figure>`).join('')}</div>`;
 }
 // 함께하는 해랑경희: 지역 업체·기관과의 협업 (관리자 ⑧-2에서 추가)
 function collabList(d){
