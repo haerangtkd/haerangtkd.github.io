@@ -492,7 +492,7 @@ function workoutCard(d, onHome){
     return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
   }).join('');
   let body, rest = false;
-  if(off.length) body = `<div class="theme">오늘은 쉬는 날이에요</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
+  if(off.length) body = `<div class="theme">오늘은 쉬는 날입니다</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
   else if(weekend && !fs.length && !evRows && !items.length){ rest = true; body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말 보내세요.\n월요일에 만나요!')}</div>`; }
   else body = `
       ${fs.length ? `<div class="flabel">${fs.some(f => +f.s !== +f.en) ? '이번 주 수련' : '오늘의 수련'}</div><div class="theme">${fs.map(f => esc(f.title)).join(' · ')}</div><p class="sub">${fs.map(rangeText).join(', ')}</p>` : ''}
@@ -639,13 +639,13 @@ function upcomingCard(){
 function whyBlock(d){
   const gp = d.guinnessPage || {}, gr = d.growth || {};
   const items = [
-    S.guinness && {id:'guinness', k:'매달 첫째 주 금요일', t: gp.title || '해랑 기네스', p:'석 달마다 종목을 하나 정해 매달 기록을 재고, 지난달 기록과 비교해요.'},
-    S.guinness && gr.title && {id:'guinness', k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님이 지켜본 아이의 모습을 한 장에 적어 집으로 보내드려요.'},
-    S.character && {id:'character', k:'매주 월요일', t:'인성 교육 · 태권웅변', p:'인성 활동지와 웅변으로 인사, 감사 표현, 자기 생각 말하기를 연습해요.'},
-    S.leaders && {id:'leaders', k:'먼저 선 · 모범 범 · 모일 단', t:'선범단(先範團)', p:'실력과 생활 태도를 지도진 모두에게 인정받은 수련생이 동생들을 가르쳐요.'}
+    S.guinness && {id:'guinness', k:'매달 첫째 주 금요일', t: gp.title || '해랑 기네스', p:'석 달마다 종목을 하나 정해 매달 기록을 재고, 지난달 기록과 비교합니다.'},
+    S.guinness && gr.title && {id:'guinness', k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님이 지켜본 아이의 모습을 한 장에 담아 학부모님께 보내드립니다.'},
+    S.character && {id:'character', k:'매주 월요일', t:'인성 교육 · 태권웅변', p:'인성 활동지와 웅변으로 인사, 감사 표현, 자기 생각 말하기를 연습합니다.'},
+    S.leaders && {id:'leaders', k:'먼저 선 · 모범 범 · 모일 단', t:'선범단(先範團)', p:'실력과 생활 태도를 지도진 모두에게 인정받은 수련생이 동생들을 가르칩니다.'}
   ].filter(Boolean);
   if(!items.length) return '';
-  return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>태권도 수업과 함께 꾸준히 하고 있는 것들이에요</p></div>
+  return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>태권도 수업과 함께 꾸준히 이어 가고 있는 활동입니다</p></div>
     <div class="deck" aria-label="해랑경희만의 수련 넘겨보기">${items.map((x, i) => `<a class="dk${i === 0 ? ' p0' : i === 1 ? ' p1' : i === 2 ? ' p2' : ''}" href="${go(x.id)}">
         <span class="dk-n">${pad2(i + 1)} <i>/ ${pad2(items.length)}</i></span>
         <small>${esc(x.k)}</small><b>${esc(x.t)}</b><p>${esc(x.p)}</p><span class="go">자세히 보기 ›</span></a>`).join('')}
@@ -663,7 +663,7 @@ function reviewBlock(d){
   if(!all.length) return '';
   const rs = [...all.filter(r => r.pick), ...all.filter(r => !r.pick)];
   const naver = (d.location || {}).naver;
-  return `<div class="seg seg2"><h2>해랑경희 후기</h2><p>네이버와 당근에 남겨 주신 후기예요</p></div>
+  return `<div class="seg seg2"><h2>해랑경희 후기</h2><p>네이버와 당근에 남겨 주신 후기입니다</p></div>
     <div class="rv-wrap"><div class="rv-row" id="rvRow">${rs.map(r => reviewCard(r)).join('')}${rs.length > 1 ? rs.map(r => reviewCard(r, true)).join('') : ''}</div>
       ${rs.length > 1 ? `<button type="button" class="rv-pp" id="rvPP" aria-label="멈춤">${svg('pause',2.6)}</button>` : ''}</div>
     ${naver ? `<a class="rv-naver" href="${esc(naver)}" target="_blank" rel="noopener"><span class="nv-n">N</span>네이버 후기 확인하기 ›</a>` : ''}`;
@@ -722,7 +722,7 @@ function collabBlock(d){
 }
 function collabPage(d){
   const cs = collabList(d);
-  return `<p class="lead">영상 협업, 합동 훈련, 제휴와 MOU까지 해랑경희와 함께하는 곳들이에요.</p>
+  return `<p class="lead">영상 협업, 합동 훈련, 제휴와 MOU까지 해랑경희와 함께하는 곳들입니다.</p>
     <div class="co-grid">${cs.map(c => collabCard(c, true)).join('')}</div>
     <a class="col-more" href="${go('contact')}">${svg('chat', 2.2)}협업 · 제휴 문의하기</a>`;
 }
