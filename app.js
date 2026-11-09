@@ -283,6 +283,7 @@ function render(d){
         </div>
         ${classesBlock(d)}
         ${whyBlock(d)}
+        ${reviewBlock(d)}
         ${trustBlock(d)}
         ${collabBlock(d)}
         <div class="seg seg2"><h2>해랑경희 소식</h2><p>다니는 친구들을 위한 일정과 공지</p></div>
@@ -646,6 +647,15 @@ function whyBlock(d){
   if(!items.length) return '';
   return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>운동만 하고 끝나지 않습니다. 성장을 기록하고 보여드립니다.</p></div>
     <div class="why">${items.map((x, i) => `<a class="why-c rv" href="${go(x.id)}"><span class="why-n">${pad2(i + 1)}</span><span class="ic">${svg(x.icon)}</span><small>${esc(x.k)}</small><b>${esc(x.t)}</b><p>${esc(x.p)}</p><span class="go">자세히 ›</span></a>`).join('')}</div>`;
+}
+// 학부모님 이야기: 실제 후기 (관리자 ⑧-3에서 추가, 없으면 안 보임)
+function reviewBlock(d){
+  const rs = list(d.reviews).filter(r => r.text);
+  if(!rs.length) return '';
+  const pl = list(d.links).find(l => /리뷰|플레이스/.test(l.name || '')), more = (d.location || {}).naver;
+  return `<div class="seg seg2"><h2>학부모님 이야기</h2><p>해랑경희를 직접 겪어 보신 분들의 후기${more ? ` · <a href="${esc(more)}" target="_blank" rel="noopener">후기 더 보기 ›</a>` : ''}</p></div>
+    <div class="rv-row">${rs.map(r => `<figure class="rv-c"><span class="rv-q">“</span><blockquote>${esc(r.text)}</blockquote>
+      <figcaption>${r.who ? `<b>${esc(r.who)}</b>` : ''}${r.source ? `<span>${esc(r.source)}</span>` : ''}</figcaption></figure>`).join('')}</div>`;
 }
 // 함께하는 해랑경희: 지역 업체·기관과의 협업 (관리자 ⑧-2에서 추가)
 function collabList(d){

@@ -214,6 +214,11 @@
     <div id="ed-collabs"></div>
   </div></details>
 
+  <details class="card"><summary>⑧-3 학부모님 이야기 (후기)</summary><div class="in">
+    <p class="hint">첫 화면 <b>학부모님 이야기</b>에 위에서부터 차례로 나와요. 네이버 리뷰 등 실제 후기를 그대로 옮겨 주세요. 하나도 없으면 첫 화면에 안 보여요.</p>
+    <div id="ed-reviews"></div>
+  </div></details>
+
   <details class="card"><summary>⑨ 자주 묻는 질문</summary><div class="in">
     <div id="ed-faq"></div>
   </div></details>
@@ -521,6 +526,15 @@ function renderAll(){
       {k:'image', label:'대표 사진 (영상 캡처 등, 없어도 돼요)', type:'photo'}
     ]
   });
+  listEditor('ed-reviews', 'reviews', {
+    noun:'후기', heading:'',
+    title:(r) => (r.text || '새 후기').slice(0, 24),
+    blank:() => ({text:'', who:'', source:'네이버 리뷰'}),
+    fields:[
+      {k:'text', label:'후기 내용', type:'textarea'},
+      {k:'who', label:'누구 (예: 초등부 학부모님)', half:true}, {k:'source', label:'출처 (예: 네이버 리뷰)', half:true}
+    ]
+  });
   listEditor('ed-press', 'press', {
     noun:'기사', heading:'',
     title:(p) => p.title || '새 기사',
@@ -670,6 +684,7 @@ function tidy(){
   (data.board || []).forEach(p => { if(p.url && !/^(https?:|tel:|mailto:|#)/i.test(p.url)) p.url = 'https://' + p.url; });
   data.press = (data.press || []).filter(p => p.title && p.url).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   data.press.forEach(p => { if(!/^https?:/i.test(p.url)) p.url = 'https://' + p.url; });
+  data.reviews = (data.reviews || []).filter(r => r.text);
   data.collabs = (data.collabs || []).filter(c => c.partner || c.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   data.collabs.forEach(c => { if(c.url && !/^https?:/i.test(c.url)) c.url = 'https://' + c.url; });
   if(data.monthly) data.monthly.focus = (data.monthly.focus || []).filter(f => f.date && f.title).sort((a, b) => a.date.localeCompare(b.date));
