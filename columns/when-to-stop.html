@@ -62,6 +62,29 @@
   .js .mph .m-b{opacity:0}
   .mph.run{filter:url(#mph-th)}
 
+  /* 강조 효과 (화면에 들어오면 한 번) */
+  .js [data-fx]{--d:.6s}
+  .js .fx-blink.on{animation:blink 1.6s var(--d) steps(1) both}
+  @keyframes blink{0%,100%{opacity:1}12%,37%{opacity:.15}25%,50%{opacity:1}}
+  .fx-grow{display:inline-block}
+  .fx-grow span{display:inline-block}
+  .js .fx-grow span{opacity:0;transform:translateY(.45em) scale(.6)}
+  .js .fx-grow.on span{animation:grow .7s calc(var(--d) + var(--i) * .11s) cubic-bezier(.2,.9,.3,1.25) forwards}
+  @keyframes grow{to{opacity:1;transform:none}}
+  .fx-line{background:linear-gradient(var(--or),var(--or)) no-repeat 0 100%/100% 3px;padding-bottom:4px}
+  .js .fx-line{background-size:0 3px;transition:background-size 1.8s var(--d) ease-in-out}
+  .js .fx-line.on{background-size:100% 3px}
+  .fx-type span{display:inline}
+  .js .fx-type span{opacity:0}
+  .js .fx-type.on span{animation:show 0s calc(var(--d) + var(--i) * .07s) forwards}
+  @keyframes show{to{opacity:1}}
+  .fx-pop{display:inline-block}
+  .js .fx-pop.on{animation:pop 1.1s var(--d) ease-in-out}
+  @keyframes pop{40%{transform:scale(1.12)}70%{transform:scale(.98)}}
+  .js .fx-glow.on{animation:glow 2.4s 2.8s ease-in-out 2}
+  @keyframes glow{50%{text-shadow:0 0 18px rgba(124,214,122,.75)}}
+  @media (prefers-reduced-motion: reduce){ .js [data-fx]{animation:none!important;transition:none!important} }
+
   .cta{padding:18vh 0 10vh}
   .btns{display:grid;gap:10px;margin:34px auto 0;max-width:340px}
   .btns a{display:flex;align-items:center;justify-content:center;gap:8px;padding:15px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15.5px;border:1px solid #3A3633}
@@ -123,31 +146,31 @@
 
   <section class="scene">
     <p class="k">존중과 배려가 필요한 운동 환경이<br>처음엔 낯설었지만, 조금씩 적응해 나갔고</p>
-    <p class="t">손부터 나가던 친구가<br>이제는 넘어진 동생에게<br><span class="mph gr" data-mph><span class="m-a"></span><span class="m-b">돕는 손</span></span>을 내미는 제자로<br>성장하였습니다</p>
+    <p class="t">손부터 나가던 친구가<br>이제는 넘어진 동생에게<br><span class="fx-glow gr" data-fx><span class="mph" data-mph><span class="m-a"></span><span class="m-b">돕는 손</span></span></span>을 내미는 제자로<br>성장하였습니다</p>
     <img class="fl r" src="../img/brand/magnolia-white.png" alt="" style="top:52%">
   </section>
 
   <section class="scene">
     <p class="k">물론 그 과정에서<br>‘제자가 힘들어한다’는 이야기도 있었지만</p>
-    <p class="t">지도진과 학부모님의<br><span class="or">합동작전</span>으로<br>순탄하지 않던 시간이<br>좋은 성장으로 이어졌습니다</p>
+    <p class="t">지도진과 학부모님의<br><span class="or fx-blink" data-fx>합동작전</span>으로<br>순탄하지 않던 시간이<br>좋은 성장으로 이어졌습니다</p>
   </section>
 
   <section class="scene">
     <p class="k">잘하는 제자도 좋지만</p>
-    <p class="t">저희는<br><span class="mph or" data-mph><span class="m-a"></span><span class="m-b">성장하는 제자</span></span>를 봅니다</p>
+    <p class="t">저희는<br><span class="or fx-grow" data-fx><span style="--i:0">성</span><span style="--i:1">장</span><span style="--i:2">하</span><span style="--i:3">는</span><span style="--i:4">&nbsp;</span><span style="--i:5">제</span><span style="--i:6">자</span></span>를 봅니다</p>
     <p class="s">성장하는 제자를 이해하고<br>기다리는 것이 중요합니다</p>
   </section>
 
   <section class="scene">
     <p class="k">성장을 기다리는 일은<br>때로 시간이 걸립니다</p>
-    <p class="t">그래서 학부모님과 지도자가<br><span class="or">함께 이해하고 기다리는</span><br>시간이 필요합니다</p>
+    <p class="t">그래서 학부모님과 지도자가<br><span class="or fx-line" data-fx>함께 이해하고 기다리는</span><br>시간이 필요합니다</p>
     <img class="fl l" src="../img/brand/magnolia-white.png" alt="" style="top:40%">
   </section>
 
   <section class="scene">
     <p class="k">조금 더디고 인내하더라도<br>저희가 가장 먼저 보는 것은</p>
     <p class="t">제자가 어제보다<br>한 걸음 성장하는 일</p>
-    <p class="en"><span class="mph" data-mph><span class="m-a"></span><span class="m-b">Better than before</span></span></p>
+    <p class="en"><span class="fx-type" data-fx><span style="--i:0">B</span><span style="--i:1">e</span><span style="--i:2">t</span><span style="--i:3">t</span><span style="--i:4">e</span><span style="--i:5">r</span><span style="--i:6">&nbsp;</span><span style="--i:7">t</span><span style="--i:8">h</span><span style="--i:9">a</span><span style="--i:10">n</span><span style="--i:11">&nbsp;</span><span style="--i:12">b</span><span style="--i:13">e</span><span style="--i:14">f</span><span style="--i:15">o</span><span style="--i:16">r</span><span style="--i:17">e</span></span></p>
   </section>
 
   <section class="scene">
@@ -164,7 +187,7 @@
 
   <section class="scene cta">
     <p class="k">지금의 모습을 함께 보고<br>도장과 잘 맞는지 확인하는</p>
-    <p class="t big or">체험 수업</p>
+    <p class="t big or"><span class="fx-pop" data-fx>체험 수업</span></p>
     <p class="s">신청은 DM 또는 도장으로<br>편하게 문의해 주세요 :)</p>
     <div class="btns">
       <a class="main" href="https://naver.me/FM9x4hfi" target="_blank" rel="noopener">네이버로 체험 수업 예약</a>
@@ -240,6 +263,21 @@
     });
   }, {threshold:[0, .9], rootMargin:'0px 0px -18% 0px'});
   els.forEach(function(el){ reset(el); io.observe(el); });
+})();
+</script>
+<script>
+// 강조 효과: 화면에 다 들어오면 시작, 화면에서 벗어나면 다시 처음 상태로
+(function(){
+  if(!('IntersectionObserver' in window)) return;
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.documentElement.classList.add('js');
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.intersectionRatio >= .9) e.target.classList.add('on');
+      else if(!e.isIntersecting) e.target.classList.remove('on');
+    });
+  }, {threshold:[0, .9], rootMargin:'0px 0px -18% 0px'});
+  [].forEach.call(document.querySelectorAll('[data-fx]'), function(el){ io.observe(el); });
 })();
 </script>
 </body>
