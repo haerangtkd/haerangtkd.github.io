@@ -59,7 +59,7 @@ let D, EVENTS = [], S = {}, GROUPS = [];
 // ---------- 페이지 나누기 (검색엔진용 실제 주소) ----------
 // 메뉴 그룹마다 별도 HTML 파일이 있고, 같은 화면을 그 그룹부터 보여줌
 const PAGE_FILES = {
-  'about.html':    ['philosophy','staff','press','collab','reviews'],
+  'about.html':    ['philosophy','staff','press','collab'],
   'training.html': ['curriculum','program','belts','character','leaders','guinness'],
   'column.html':   ['column'],
   'contact.html':  ['contact','fee','faq','location'],
@@ -197,7 +197,6 @@ function render(d){
   S.notice = {label:'알림판·공지', short:'알림판', icon:'megaphone', html: sec('notice', '', noticePage(d))};
   S.column = {label:'해랑경희 칼럼', short:'칼럼', icon:'book', html: sec('column', (d.columnPage || {}).title || '해랑경희 칼럼', columnPage(d))};
   S.press = {label:'보도자료', icon:'news', html: sec('press', '보도자료', pressPage(d))};
-  if(list(d.reviews).some(r => r.text)) S.reviews = {label:'해랑경희 후기', short:'후기', icon:'chat', html: sec('reviews', '해랑경희 후기', reviewPage(d))};
   if(collabList(d).length) S.collab = {label:'함께하는 해랑경희', short:'협업', icon:'users', html: sec('collab', '함께하는 해랑경희', collabPage(d))};
   if(list(d.gallery).length) S.gallery = {label:'사진', icon:'photo', html: sec('gallery', d.galleryTitle || '사진으로 보는 해랑경희', gallery(d))};
 
@@ -243,7 +242,7 @@ function render(d){
 
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
-    {name:'해랑경희 소개', items:['philosophy','staff','press','collab','reviews']},
+    {name:'해랑경희 소개', items:['philosophy','staff','press','collab']},
     {name:'수업 안내', items:['curriculum','program','belts','character','leaders','guinness']},
     {name:'해랑경희 칼럼', items:['column']},
     {name:'등록 · 상담', items:['contact','fee','faq','location']},
@@ -285,9 +284,8 @@ function render(d){
         ${classesBlock(d)}
         ${whyBlock(d)}
         ${reviewBlock(d)}
-        ${trustBlock(d)}
         ${collabBlock(d)}
-        <div class="seg seg2"><h2>해랑경희 소식</h2><p>다니는 친구들을 위한 일정과 공지</p></div>
+        <div class="seg seg2"><h2>해랑경희 소식</h2><p>이번 주 수련과 다가오는 일정</p></div>
         ${(() => { const w = workoutCard(d, true); return w.includes(' rest"') ? '' : `<div class="home">${w}</div>`; })()}
         <div class="home">
           ${newsCard(d)}
@@ -298,6 +296,7 @@ function render(d){
           ${activePosters(d).length ? boardPanel(d, true) : ''}
         </div>
         <a class="endcta" href="${go('contact')}">${svg('phone')}상담 문의하기</a>
+        ${trustBlock(d)}
       </main>
     </div>
 
@@ -329,7 +328,7 @@ function render(d){
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
-  setupMenu(); setupQuick(); setupVideos(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupStack(); setupPromise(); setupSliders(); setupTop(); setupFaq();
+  setupMenu(); setupQuick(); setupVideos(); setupHero(); setupTabs(); setupCalendar(); setupGallery(); setupStack(); setupPromise(); setupSliders(); setupTop(); setupFaq(); setupReviews(); setupDeck();
   const cb = document.getElementById('copyAddr');
   if(cb) cb.onclick = async () => {
     const txt = lo.address;
@@ -638,38 +637,68 @@ function upcomingCard(){
 }
 // 해랑경희만의 수련: 다른 도장과 다른 점 4가지 (수업 안내 속 내용을 첫 화면에 꺼내 보여줌)
 function whyBlock(d){
-  const gp = d.guinnessPage || {}, gr = d.growth || {}, L = d.leaders || {}, bt = d.belts || {};
+  const gp = d.guinnessPage || {}, gr = d.growth || {};
   const items = [
-    S.guinness && {id:'guinness', icon:'chart', k:'매달 기록', t: gp.title || '해랑 기네스', p:'매달 첫째 주 금요일, 체력 기록을 재고 지난 기록과 비교합니다.'},
-    S.guinness && gr.title && {id:'guinness', icon:'medal', k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님 관찰을 한 장에 담아 학부모님께 보내드립니다.'},
-    S.character && {id:'character', icon:'heart', k:'예절 · 인성', t:'인성 교육', p:'인성교육과 태권웅변으로 외면과 내면이 함께 자라도록 지도합니다.'},
-    S.leaders && {id:'leaders', icon:'star', k:'모범 · 리더십', t:'선범단(先範團)', p:'다른 사람에게 모범이 되고 선한 영향력을 주는 수련생을 키웁니다.'}
+    S.guinness && {id:'guinness', k:'매달 첫째 주 금요일', t: gp.title || '해랑 기네스', p:'석 달마다 종목을 하나 정해 매달 기록을 재고, 지난달 기록과 비교해요.'},
+    S.guinness && gr.title && {id:'guinness', k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님이 지켜본 아이의 모습을 한 장에 적어 집으로 보내드려요.'},
+    S.character && {id:'character', k:'매주 월요일', t:'인성 교육 · 태권웅변', p:'인성 활동지와 웅변으로 인사, 감사 표현, 자기 생각 말하기를 연습해요.'},
+    S.leaders && {id:'leaders', k:'먼저 선 · 모범 범 · 모일 단', t:'선범단(先範團)', p:'실력과 생활 태도를 지도진 모두에게 인정받은 수련생이 동생들을 가르쳐요.'}
   ].filter(Boolean);
   if(!items.length) return '';
-  return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>운동만 하고 끝나지 않습니다. 성장을 기록하고 보여드립니다.</p></div>
-    <div class="why">${items.map((x, i) => `<a class="why-c rv" href="${go(x.id)}"><span class="why-n">${pad2(i + 1)}</span><span class="ic">${svg(x.icon)}</span><small>${esc(x.k)}</small><b>${esc(x.t)}</b><p>${esc(x.p)}</p><span class="go">자세히 ›</span></a>`).join('')}</div>`;
+  return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>태권도 수업과 함께 꾸준히 하고 있는 것들이에요</p></div>
+    <div class="deck" aria-label="해랑경희만의 수련 넘겨보기">${items.map((x, i) => `<a class="dk${i === 0 ? ' p0' : i === 1 ? ' p1' : i === 2 ? ' p2' : ''}" href="${go(x.id)}">
+        <span class="dk-n">${pad2(i + 1)} <i>/ ${pad2(items.length)}</i></span>
+        <small>${esc(x.k)}</small><b>${esc(x.t)}</b><p>${esc(x.p)}</p><span class="go">자세히 보기 ›</span></a>`).join('')}
+    </div>
+    ${items.length > 1 ? `<div class="dk-ctrl"><button type="button" data-prev aria-label="이전">${svg('left',2.4)}</button><span class="dk-dots">${items.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</span><button type="button" data-next aria-label="다음">${svg('right',2.4)}</button></div>` : ''}`;
 }
-// 학부모님 이야기: 실제 후기 (관리자 ⑧-3에서 추가, 없으면 안 보임)
-function reviewCard(r){
+// 해랑경희 후기: 관리자 ⑧-3에서 추가 (pick 표시한 후기가 앞에), 천천히 옆으로 흘러감
+function reviewCard(r, clone){
   const long = String(r.text).length > 140;
-  return `<figure class="rv-c${long ? ' long' : ''}" onclick="this.classList.toggle('open')"><span class="rv-q">“</span><blockquote>${esc(r.text)}</blockquote>
+  return `<figure class="rv-c${long ? ' long' : ''}"${clone ? ' aria-hidden="true"' : ''}><span class="rv-q">“</span><blockquote>${esc(r.text)}</blockquote>
       ${long ? '<span class="rv-more">더보기</span>' : ''}<figcaption>${r.who ? `<b>${esc(r.who)}</b>` : ''}${r.source ? `<span>${esc(r.source)}</span>` : ''}</figcaption></figure>`;
 }
 function reviewBlock(d){
   const all = list(d.reviews).filter(r => r.text);
   if(!all.length) return '';
-  let rs = all.filter(r => r.pick); if(!rs.length) rs = all.slice(0, 5);
-  return `<div class="seg seg2"><h2>해랑경희 후기</h2><p>학부모님과 수련생이 직접 남긴 네이버·당근 후기</p></div>
-    <div class="rv-row">${rs.map(reviewCard).join('')}
-      ${all.length > rs.length ? `<a class="rv-c rv-all" href="${go('reviews')}"><b>${all.length}</b><span>후기 모두 보기 ›</span></a>` : ''}</div>`;
+  const rs = [...all.filter(r => r.pick), ...all.filter(r => !r.pick)];
+  const naver = (d.location || {}).naver;
+  return `<div class="seg seg2"><h2>해랑경희 후기</h2><p>네이버와 당근에 남겨 주신 후기예요</p></div>
+    <div class="rv-wrap"><div class="rv-row" id="rvRow">${rs.map(r => reviewCard(r)).join('')}${rs.length > 1 ? rs.map(r => reviewCard(r, true)).join('') : ''}</div>
+      ${rs.length > 1 ? `<button type="button" class="rv-pp" id="rvPP" aria-label="멈춤">${svg('pause',2.6)}</button>` : ''}</div>
+    ${naver ? `<a class="rv-naver" href="${esc(naver)}" target="_blank" rel="noopener"><span class="nv-n">N</span>네이버 후기 확인하기 ›</a>` : ''}`;
 }
-function reviewPage(d){
-  const all = list(d.reviews).filter(r => r.text), more = (d.location || {}).naver;
-  return `<p class="lead">학부모님과 수련생이 네이버와 당근에 직접 남겨 주신 후기입니다.</p>
-    <div class="rv-grid">${all.map(reviewCard).join('')}</div>
-    ${more ? `<a class="col-more" href="${esc(more)}" target="_blank" rel="noopener">${svg('chat', 2.2)}네이버에서 후기 더 보기</a>` : ''}`;
+// 후기 줄: 천천히 흐르다가, 손가락으로 만지거나 ‖ 누르거나 후기를 펼치면 멈춤
+function setupReviews(){
+  const row = document.getElementById('rvRow'), pp = document.getElementById('rvPP');
+  if(!row) return;
+  row.addEventListener('click', e => { const c = e.target.closest('.rv-c.long'); if(c) c.classList.toggle('open'); });
+  if(!pp) return;
+  const SPEED = 0.35;                              // 한 프레임에 움직이는 거리(px) — 작을수록 느림
+  let pos = row.scrollLeft, playing = !matchMedia('(prefers-reduced-motion: reduce)').matches, hold = 0, visible = false, raf = 0, idle;
+  const half = () => row.scrollWidth / 2;
+  const setPP = () => { pp.innerHTML = svg(playing ? 'pause' : 'play', 2.6); pp.setAttribute('aria-label', playing ? '멈춤' : '재생'); };
+  const tick = () => {
+    raf = 0;
+    if(!playing || hold || !visible || row.querySelector('.rv-c.open')) return;
+    pos += SPEED; if(pos >= half()) pos -= half();
+    row.scrollLeft = pos;
+    raf = requestAnimationFrame(tick);
+  };
+  const run = () => { if(!raf) raf = requestAnimationFrame(tick); };
+  const touch = () => { hold = 1; clearTimeout(idle); };
+  const release = () => { clearTimeout(idle); idle = setTimeout(() => { hold = 0; pos = row.scrollLeft; run(); }, 2500); };
+  row.addEventListener('touchstart', touch, {passive:true});
+  row.addEventListener('touchend', release);
+  row.addEventListener('mouseenter', touch); row.addEventListener('mouseleave', release);
+  row.addEventListener('scroll', () => { if(hold || !playing){ pos = row.scrollLeft; if(pos >= half()) { pos -= half(); row.scrollLeft = pos; } } }, {passive:true});
+  row.addEventListener('click', () => { if(!row.querySelector('.rv-c.open')) release(); });
+  pp.onclick = () => { playing = !playing; setPP(); pos = row.scrollLeft; run(); };
+  if('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => { visible = e.isIntersecting; run(); }), {threshold: .2}).observe(row);
+  else { visible = true; run(); }
+  setPP();
 }
-// 함께하는 해랑경희: 지역 업체·기관과의 협업 (관리자 ⑧-2에서 추가)
+// 함께하는 해랑경희: 영상 협업 · 합동 훈련 · 제휴 · MOU (관리자 ⑧-2에서 추가)
 function collabList(d){
   return list(d.collabs).filter(c => c.title || c.partner).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 }
@@ -679,24 +708,23 @@ function collabCard(c, big){
   const isReel = /instagram\.com\/(reel|p)\//.test(c.url || '');
   return `<${tag} class="co-c${big ? ' big' : ''}"${href}>
     <div class="co-m">${c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : `<div class="co-ph"><img src="img/lion-white.png" alt=""><span>×</span><b>${esc(c.partner || '')}</b></div>`}
-      ${isReel ? `<span class="co-play">${svg('insta', 2)}릴스</span>` : ''}</div>
+      ${isReel ? `<span class="co-play">${svg('insta', 2)}${/\/reel\//.test(c.url) ? '릴스' : '게시물'}</span>` : ''}</div>
     <div class="b"><span class="co-k">${esc(kind)}${isDate(c.date) ? ` · ${c.date.slice(0,7).replace('-', '.')}` : ''}</span>
-      <h4>${c.partner ? `<em>${esc(c.partner)}</em> × 해랑경희` : esc(c.title)}</h4>${c.partner && c.title ? `<p>${esc(c.title)}</p>` : ''}${big && c.summary ? `<p class="co-s">${esc(c.summary)}</p>` : ''}
-      ${c.url ? `<span class="go">${isReel ? '영상 보기' : '자세히 보기'} ›</span>` : ''}</div>
+      <h4>${c.partner ? `<em>${esc(c.partner)}</em>` : esc(c.title)}</h4>${c.partner && c.title ? `<p>${esc(c.title)}</p>` : ''}${big && c.summary ? `<p class="co-s">${esc(c.summary)}</p>` : ''}
+      ${c.url && big ? `<span class="go">${isReel ? '인스타그램에서 보기' : '자세히 보기'} ›</span>` : ''}</div>
   </${tag}>`;
 }
 function collabBlock(d){
   const cs = collabList(d);
   if(!cs.length) return '';
-  return `<div class="seg seg2"><h2>함께하는 해랑경희</h2><p>지역과 함께 만든 이야기${cs.length > 2 ? ` · <a href="${go('collab')}">전체 보기 ›</a>` : ''}</p></div>
-    <div class="co-row">${cs.slice(0, 6).map(c => collabCard(c)).join('')}
-      <a class="co-c co-ask" href="${go('contact')}"><span class="ic">${svg('chat')}</span><b>협업 제안하기</b><p>지역 가게·기관·크리에이터와<br>함께 만들고 싶어요.</p><span class="go">문의하기 ›</span></a></div>`;
+  return `<div class="seg seg2 seg-more"><h2>함께하는 해랑경희</h2><a href="${go('collab')}">전체 보기 ›</a></div>
+    <div class="co-row">${cs.slice(0, 6).map(c => collabCard(c)).join('')}</div>`;
 }
 function collabPage(d){
   const cs = collabList(d);
-  return `<p class="lead">해랑경희는 지역의 가게, 기관, 크리에이터와 함께 태권도의 즐거움을 나눕니다.</p>
+  return `<p class="lead">영상 협업, 합동 훈련, 제휴와 MOU까지 해랑경희와 함께하는 곳들이에요.</p>
     <div class="co-grid">${cs.map(c => collabCard(c, true)).join('')}</div>
-    <a class="col-more" href="${go('contact')}">${svg('chat', 2.2)}협업 제안하기</a>`;
+    <a class="col-more" href="${go('contact')}">${svg('chat', 2.2)}협업 · 제휴 문의하기</a>`;
 }
 // 신뢰 영역: 기사 · 블로그 · 인스타 (관장님이 꼭 보여주고 싶은 3가지)
 function latestPress(d){
@@ -772,13 +800,11 @@ function trustBlock(d){
   const ln = list(d.links);
   const blog = ln.find(l => l.icon === 'blog'), insta = ln.find(l => l.icon === 'insta');
   if(!p && !blog && !insta) return '';
-  const sns = (l, sub) => l ? `<a class="tr-sns" href="${esc(l.url)}" target="_blank" rel="noopener"><img src="${LOGOS[l.icon]}" alt=""><span><b>${esc(l.name)}</b><small>${esc(sub || l.desc || '')}</small></span><i>${svg('right',2.4)}</i></a>` : '';
-  return `<div class="seg seg2"><h2>더 알아보기</h2></div>
-    <div class="trust">
-      ${p ? `<a class="tr-press" href="${esc(p.url)}" target="_blank" rel="noopener">
-        ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy">` : ''}
-        <div class="b"><span class="src">${esc(p.source || '언론 보도')}${isDate(p.date) ? ' · ' + p.date.slice(0,7).replace('-', '.') : ''}</span><h4>${esc(p.title)}</h4><span class="go">기사 읽기 ›</span></div></a>` : ''}
-      <div class="tr-row">${sns(blog, '도장 소개 요약')}${sns(insta, '수업 일상과 제자들 모습')}</div>
+  const row = (href, icon, name, sub) => `<a href="${esc(href)}" target="_blank" rel="noopener">${icon}<span><b>${esc(name)}</b><small>${esc(sub)}</small></span><i>${svg('right',2.4)}</i></a>`;
+  return `<div class="more-links"><h2>더 알아보기</h2>
+      ${p ? row(p.url, `<span class="ml-ic">${svg('news', 2)}</span>`, p.source || '언론 보도', p.title) : ''}
+      ${blog ? row(blog.url, `<img src="${LOGOS.blog}" alt="">`, blog.name, '도장 소개와 칼럼') : ''}
+      ${insta ? row(insta.url, `<img src="${LOGOS.insta}" alt="">`, insta.name, '수업 일상과 제자들 모습') : ''}
     </div>`;
 }
 // 수업 · 시간표 맨 위: 해랑경희 FITT
@@ -929,6 +955,33 @@ function setupStack(){
   st.addEventListener('mouseenter', () => hold = true); st.addEventListener('mouseleave', () => hold = false);
   st.pause = v => hold = v;
   loop();
+}
+// 해랑경희만의 수련: 겹쳐진 카드, 옆으로 밀면 다음 카드
+function setupDeck(){
+  const st = document.querySelector('.deck');
+  if(!st) return;
+  const cs = [...st.querySelectorAll('.dk')], ctrl = st.nextElementSibling;
+  if(cs.length < 2) return;
+  const dots = ctrl ? [...ctrl.querySelectorAll('.dk-dots i')] : [];
+  let i = 0;
+  const paint = () => {
+    cs.forEach((c, k) => { const r = (k - i + cs.length) % cs.length; c.classList.toggle('p0', r === 0); c.classList.toggle('p1', r === 1); c.classList.toggle('p2', r === 2); c.tabIndex = r ? -1 : 0; });
+    dots.forEach((d, k) => d.classList.toggle('on', k === i));
+  };
+  const move = dir => {
+    const f = cs[i]; f.classList.add(dir < 0 ? 'outr' : 'out');
+    i = (i + (dir < 0 ? -1 : 1) + cs.length) % cs.length;
+    paint(); setTimeout(() => f.classList.remove('out', 'outr'), 550);
+  };
+  let x0 = null, y0 = null;
+  st.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+  st.addEventListener('touchend', e => {
+    if(x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if(Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy)){ move(dx < 0 ? 1 : -1); e.preventDefault(); }
+  }, {passive:false});
+  if(ctrl){ ctrl.querySelector('[data-prev]').onclick = () => move(-1); ctrl.querySelector('[data-next]').onclick = () => move(1); }
+  paint();
 }
 function setupGallery(){
   const lb = document.createElement('div');

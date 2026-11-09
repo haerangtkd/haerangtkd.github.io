@@ -891,20 +891,7 @@
 .pm-bar u{transition:none!important;animation:none!important;will-change:transform}
 
 /* ---------- 해랑경희만의 수련 ---------- */
-.why{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (min-width:900px){ .why{grid-template-columns:repeat(4,1fr)} }
-.why-c{position:relative;display:flex;flex-direction:column;gap:4px;padding:16px 14px 14px;border-radius:12px;background:#fff;border:1px solid var(--line);text-decoration:none;color:var(--ink);overflow:hidden;transition:transform .15s,border-color .15s}
-.why-c:hover{transform:translateY(-2px);border-color:var(--brand)}
-.why-c:first-child{background:var(--brand);border-color:var(--brand);color:#fff}
-.why-c:first-child small,.why-c:first-child p,.why-c:first-child .go{color:rgba(255,255,255,.82)}
-.why-c:first-child .ic{background:rgba(255,255,255,.16);color:#fff}
-.why-n{position:absolute;right:10px;top:6px;font-size:34px;font-weight:900;opacity:.08;letter-spacing:-1px}
-.why-c .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:#F7E7E7;color:var(--brand);margin-bottom:6px}
-.why-c .ic svg{width:19px;height:19px}
-.why-c small{font-size:11.5px;font-weight:700;color:var(--brand)}
-.why-c b{font-size:16px;font-weight:900;line-height:1.3;word-break:keep-all}
-.why-c p{font-size:12.5px;line-height:1.5;color:var(--muted);word-break:keep-all;flex:1}
-.why-c .go{font-size:12.5px;font-weight:700;margin-top:4px}
 
 /* ---------- 함께하는 해랑경희 ---------- */
 .seg p a{color:var(--brand);font-weight:700;text-decoration:none}
@@ -935,7 +922,7 @@
 .co-c.big .co-m{aspect-ratio:16/10}
 
 /* ---------- 학부모님 이야기 ---------- */
-.rv-row{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 8px;scrollbar-width:none}
+.rv-row{display:flex;gap:12px;overflow-x:auto;margin:0 -16px;padding:2px 16px 8px;scrollbar-width:none}
 .rv-row::-webkit-scrollbar{display:none}
 .rv-c{flex:0 0 80%;max-width:320px;scroll-snap-align:start;margin:0;display:flex;flex-direction:column;padding:18px 18px 16px;border-radius:12px;background:#fff;border:1px solid var(--line)}
 .rv-q{font-family:'Noto Serif KR',serif;font-size:42px;line-height:.8;color:var(--brand);height:22px}
@@ -951,9 +938,72 @@
 .rv-c.open .rv-more{display:none}
 .rv-row{align-items:flex-start}
 
-.rv-all{align-self:stretch;justify-content:center;align-items:center;text-align:center;gap:6px;background:var(--brand);border-color:var(--brand);color:#fff;text-decoration:none;flex-basis:44%;max-width:180px}
-.rv-all b{font-size:40px;font-weight:900;line-height:1}
-.rv-all span{font-size:14px;font-weight:700}
 .rv-grid{display:grid;gap:12px;align-items:start}
 @media (min-width:640px){ .rv-grid{grid-template-columns:1fr 1fr} }
 .rv-grid .rv-c{max-width:none}
+
+
+/* ===== 2026-11 홈 정리: 카드 줄이기 ===== */
+/* 해랑경희만의 수련: 겹쳐진 메모 카드 */
+.deck{display:grid;max-width:440px;margin:14px auto 0;padding:6px 18px 14px 4px;touch-action:pan-y}
+.dk{grid-area:1/1;display:flex;flex-direction:column;gap:6px;min-height:232px;padding:22px 22px 20px;border-radius:6px;background:#FFFDF9;color:var(--ink);text-decoration:none;
+  box-shadow:0 1px 2px rgba(40,20,20,.06),0 10px 26px rgba(40,20,20,.10);opacity:0;transform:translate(0,0) scale(.94);pointer-events:none;
+  transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .4s}
+.dk.p0{opacity:1;z-index:3;transform:none;pointer-events:auto}
+.dk.p1{opacity:1;z-index:2;transform:translate(10px,8px) rotate(2deg)}
+.dk.p2{opacity:1;z-index:1;transform:translate(18px,15px) rotate(4deg)}
+.dk.p1 > *,.dk.p2 > *{opacity:0}
+.dk.out{opacity:0;z-index:4;transform:translate(-110%,10px) rotate(-10deg)}
+.dk.outr{opacity:0;z-index:4;transform:translate(110%,10px) rotate(10deg)}
+.dk > *{transition:opacity .3s}
+.dk-n{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--brand)}
+.dk-n i{font-style:normal;color:#B9AEA8;font-weight:500}
+.dk small{margin-top:14px;font-size:13px;color:var(--muted)}
+.dk b{font-size:22px;font-weight:900;line-height:1.3;word-break:keep-all}
+.dk p{font-size:15px;line-height:1.65;color:#4A4441;word-break:keep-all;flex:1;margin-top:2px}
+.dk .go{font-size:13.5px;font-weight:700;margin-top:8px}
+.dk-ctrl{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px}
+.dk-ctrl button{width:34px;height:34px;border:0;background:none;color:var(--ink);display:grid;place-items:center;cursor:pointer;border-radius:50%}
+.dk-ctrl button:hover{background:#F1EBE5}
+.dk-ctrl svg{width:18px;height:18px}
+.dk-dots{display:flex;gap:6px}
+.dk-dots i{width:6px;height:6px;border-radius:50%;background:#D9D0C9;transition:width .3s,background .3s}
+.dk-dots i.on{width:18px;border-radius:3px;background:var(--brand)}
+@media (prefers-reduced-motion: reduce){ .dk,.dk > *{transition:none} }
+
+/* 해랑경희 후기: 천천히 흐르는 줄 */
+.rv-wrap{position:relative}
+.rv-c{border:0;box-shadow:0 1px 2px rgba(40,20,20,.05);cursor:default}
+.rv-pp{position:absolute;right:4px;top:-40px;width:32px;height:32px;border:0;border-radius:50%;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.rv-pp svg{width:16px;height:16px}
+.rv-naver{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:13px;border-radius:10px;border:1px solid #03C75A;color:#029A46;background:#fff;font-size:14.5px;font-weight:700;text-decoration:none}
+.nv-n{width:20px;height:20px;border-radius:4px;background:#03C75A;color:#fff;font-size:12px;font-weight:900;display:grid;place-items:center;font-family:Arial,sans-serif}
+
+/* 섹션 제목 오른쪽 '전체 보기' */
+.seg-more{display:flex;align-items:center;justify-content:space-between}
+.seg-more > a{font-size:13.5px;font-weight:700;color:var(--brand);text-decoration:none}
+
+/* 함께하는 해랑경희: 상자 없이 사진 + 글 */
+.co-c{background:none;border:0;border-radius:0;overflow:visible}
+.co-m{border-radius:10px;overflow:hidden}
+.co-c .b{padding:10px 2px 0}
+.co-c.big{background:#fff;border-radius:12px;overflow:hidden}
+.co-c.big .co-m{border-radius:0}
+.co-c.big .b{padding:14px 16px 16px}
+
+/* 더 알아보기: 맨 아래, 작은 목록 */
+.more-links{margin-top:40px;border-top:1px solid var(--line)}
+.more-links h2{font-size:13px;font-weight:700;color:var(--muted);margin:20px 2px 4px}
+.more-links a{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+.more-links a:last-child{border-bottom:0}
+.more-links img,.ml-ic{width:32px;height:32px;border-radius:8px;flex:none;object-fit:contain}
+.ml-ic{display:grid;place-items:center;background:#F1EBE5;color:var(--ink)}
+.ml-ic svg{width:17px;height:17px}
+.more-links span{flex:1;min-width:0}
+.more-links b{display:block;font-size:14px}
+.more-links small{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.more-links i{color:#B9AEA8;display:grid}
+.more-links i svg{width:16px;height:16px}
+.more-links .ml-ic{flex:none}
+.co-row{scroll-padding-inline:16px}
+@media (min-width:640px){ .co-row{scroll-padding-inline:0} }
