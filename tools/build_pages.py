@@ -208,6 +208,10 @@ sm = ['<?xml version="1.0" encoding="UTF-8"?>',
 for f, *_ in PAGES:
     sm.append(f'  <url>\n    <loc>{SITE if f == "index.html" else SITE + f}</loc>\n'
               f'    <lastmod>{datetime.date.today().isoformat()}</lastmod>\n  </url>')
+for x in L(d.get('columns')):          # 홈페이지 안에 올린 칼럼 페이지
+    u = str(x.get('url') or '')
+    if u and not u.startswith('http'):
+        sm.append(f'  <url>\n    <loc>{SITE + u}</loc>\n    <lastmod>{x.get("date") or datetime.date.today().isoformat()}</lastmod>\n  </url>')
 sm.append('</urlset>')
 open(os.path.join(ROOT, 'sitemap.xml'), 'w', encoding='utf-8').write('\n'.join(sm) + '\n')
 print('built:', ', '.join(x[0] for x in PAGES), '+ sitemap.xml')
