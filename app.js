@@ -156,10 +156,10 @@ function render(d){
       ${gr.closing ? `<p class="cu-close">${esc(gr.closing)}</p>` : ''}`; })()}`)};
 
   const pr = d.program || {};
-  if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'부서별 수업 · 시간표', short:'수업·시간표', icon:'clock', html: sec('program', '', `
+  if(list(pr.divisions).length || list(pr.timetable).length) S.program = {label:'수업 테마 / 시간표', short:'수업 테마/시간표', icon:'clock', html: sec('program', '', `
       ${fittBlock(pr)}
       ${list(pr.timetable).length ? `<div class="card tt"><h4>전체 시간표 · 월 ~ 금</h4><table>${list(pr.timetable).map(r => `<tr><td>${esc(r.time)}</td><td>${esc(r.who)}</td></tr>`).join('')}</table></div>` : ''}
-      ${list(pr.divisions).length ? `<h3 class="st" style="margin:30px 2px 12px">부서별 요일 수업</h3><div class="divwrap"><div class="vtabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
+      ${list(pr.divisions).length ? `<h3 class="st" style="margin:30px 2px 12px">요일별 수업 테마</h3><div class="divwrap"><div class="vtabs" role="tablist">${list(pr.divisions).map((v,i) => `<button type="button" role="tab" data-div="${i}" class="${i ? '' : 'on'}">${esc(v.name)}</button>`).join('')}</div>
       <div id="divBox"></div></div>` : ''}`)};
 
   const fe = d.fee || {};

@@ -131,7 +131,7 @@ PAGES = [
     ('about.html', 'philosophy', '해랑경희 소개',
      f'{NAME}의 교육 철학과 약속, 전문 지도진, 언론 보도를 소개합니다.', about),
     ('training.html', 'curriculum', '수업 안내',
-     f'{NAME} 교육 내용, 부서별 수업·시간표, 띠 제도, 인성 교육, 선범단(先範團), 해랑 기네스와 분기별 성장 측정을 안내합니다.', training),
+     f'{NAME} 교육 내용, 수업 테마·시간표, 띠 제도, 인성 교육, 선범단(先範團), 해랑 기네스와 분기별 성장 측정을 안내합니다.', training),
     ('column.html', 'column', '해랑경희 칼럼',
      f'{NAME}의 교육 이야기를 담은 해랑경희 칼럼입니다.', column),
     ('contact.html', 'contact', '등록 · 상담',
