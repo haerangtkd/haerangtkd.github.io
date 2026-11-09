@@ -1231,5 +1231,16 @@
     "title": "해랑경희 칼럼",
     "lead": "태권도와 교육, 그리고 제자들의 성장에 대한 해랑경희의 생각을 나눕니다."
   },
-  "columns": []
+  "columns": [],
+  "collabs": [
+    {
+      "partner": "울산 중구 별별마당",
+      "title": "별별마당과 함께 만든 인스타 홍보 영상",
+      "kind": "영상 협업",
+      "date": "",
+      "url": "https://www.instagram.com/reel/DZwyJAESwW3/",
+      "image": "",
+      "summary": ""
+    }
+  ]
 }

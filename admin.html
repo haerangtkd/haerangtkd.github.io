@@ -209,6 +209,11 @@
     <div id="ed-press"></div>
   </div></details>
 
+  <details class="card"><summary>⑧-2 함께하는 해랑경희 (협업)</summary><div class="in">
+    <p class="hint">첫 화면 <b>함께하는 해랑경희</b>와 해랑경희 소개 → 협업에 최신 날짜순으로 나와요. 인스타 릴스 주소를 넣으면 '영상 보기'로 연결돼요. 대표 사진이 없으면 사자 로고 카드로 보여요.</p>
+    <div id="ed-collabs"></div>
+  </div></details>
+
   <details class="card"><summary>⑨ 자주 묻는 질문</summary><div class="in">
     <div id="ed-faq"></div>
   </div></details>
@@ -503,6 +508,19 @@ function renderAll(){
       {k:'url', label:'누르면 열릴 주소 (없으면 비우기 · 비우면 사진이 크게 보여요)', inputmode:'url'}
     ]
   });
+  listEditor('ed-collabs', 'collabs', {
+    noun:'협업', heading:'',
+    title:(c) => c.partner || c.title || '새 협업',
+    blank:() => ({partner:'', title:'', kind:'영상 협업', date: today(), url:'', image:'', summary:''}),
+    fields:[
+      {k:'partner', label:'함께한 곳 (예: 울산 중구 별별마당)'},
+      {k:'title', label:'무엇을 했나요 (한 줄)'},
+      {k:'kind', label:'종류 (예: 영상 협업, 행사, 시범공연)', half:true}, {k:'date', label:'날짜', type:'date', half:true},
+      {k:'url', label:'영상·게시물 주소 (인스타 릴스 등)', inputmode:'url'},
+      {k:'summary', label:'소개 (없어도 돼요)', type:'textarea'},
+      {k:'image', label:'대표 사진 (영상 캡처 등, 없어도 돼요)', type:'photo'}
+    ]
+  });
   listEditor('ed-press', 'press', {
     noun:'기사', heading:'',
     title:(p) => p.title || '새 기사',
@@ -652,6 +670,8 @@ function tidy(){
   (data.board || []).forEach(p => { if(p.url && !/^(https?:|tel:|mailto:|#)/i.test(p.url)) p.url = 'https://' + p.url; });
   data.press = (data.press || []).filter(p => p.title && p.url).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   data.press.forEach(p => { if(!/^https?:/i.test(p.url)) p.url = 'https://' + p.url; });
+  data.collabs = (data.collabs || []).filter(c => c.partner || c.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  data.collabs.forEach(c => { if(c.url && !/^https?:/i.test(c.url)) c.url = 'https://' + c.url; });
   if(data.monthly) data.monthly.focus = (data.monthly.focus || []).filter(f => f.date && f.title).sort((a, b) => a.date.localeCompare(b.date));
   if(data.monthly) data.monthly.months = (data.monthly.months || []).filter(m => m.month).sort((a, b) => a.month.localeCompare(b.month));
 }

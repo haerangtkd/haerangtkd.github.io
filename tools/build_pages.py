@@ -45,6 +45,9 @@ def about():
     out.append('<ul>' + ''.join(
         f'<li><a href="{e(x.get("url"))}" rel="noopener">{e(x.get("title"))}</a> - {e(x.get("source"))} {e(x.get("date"))}</li>'
         for x in L(d.get('press'))) + '</ul>')
+    if L(d.get('collabs')):
+        out.append('<h2>함께하는 해랑경희</h2><ul>' + ''.join(
+            f'<li>{e(x.get("partner"))} - {e(x.get("title"))}</li>' for x in L(d.get('collabs'))) + '</ul>')
     return ''.join(out)
 
 

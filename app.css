@@ -889,3 +889,47 @@
 @keyframes pmPulse{0%,100%{box-shadow:0 0 0 4px rgba(255,255,255,.18)}50%{box-shadow:0 0 0 10px rgba(255,255,255,.06)}}
 @media (prefers-reduced-motion:reduce){ .pm-dot.now i{animation:none} }
 .pm-bar u{transition:none!important;animation:none!important;will-change:transform}
+
+/* ---------- 해랑경희만의 수련 ---------- */
+.why{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (min-width:900px){ .why{grid-template-columns:repeat(4,1fr)} }
+.why-c{position:relative;display:flex;flex-direction:column;gap:4px;padding:16px 14px 14px;border-radius:12px;background:#fff;border:1px solid var(--line);text-decoration:none;color:var(--ink);overflow:hidden;transition:transform .15s,border-color .15s}
+.why-c:hover{transform:translateY(-2px);border-color:var(--brand)}
+.why-c:first-child{background:var(--brand);border-color:var(--brand);color:#fff}
+.why-c:first-child small,.why-c:first-child p,.why-c:first-child .go{color:rgba(255,255,255,.82)}
+.why-c:first-child .ic{background:rgba(255,255,255,.16);color:#fff}
+.why-n{position:absolute;right:10px;top:6px;font-size:34px;font-weight:900;opacity:.08;letter-spacing:-1px}
+.why-c .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:#F7E7E7;color:var(--brand);margin-bottom:6px}
+.why-c .ic svg{width:19px;height:19px}
+.why-c small{font-size:11.5px;font-weight:700;color:var(--brand)}
+.why-c b{font-size:16px;font-weight:900;line-height:1.3;word-break:keep-all}
+.why-c p{font-size:12.5px;line-height:1.5;color:var(--muted);word-break:keep-all;flex:1}
+.why-c .go{font-size:12.5px;font-weight:700;margin-top:4px}
+
+/* ---------- 함께하는 해랑경희 ---------- */
+.seg p a{color:var(--brand);font-weight:700;text-decoration:none}
+.co-row{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 8px;scrollbar-width:none}
+.co-row::-webkit-scrollbar{display:none}
+.co-row > *{flex:0 0 72%;max-width:300px;scroll-snap-align:start}
+.co-c{display:flex;flex-direction:column;border-radius:12px;overflow:hidden;background:#fff;border:1px solid var(--line);text-decoration:none;color:inherit}
+.co-m{position:relative;aspect-ratio:4/5;background:#1C1A19}
+.co-m > img{width:100%;height:100%;object-fit:cover;display:block}
+.co-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(160deg,var(--brand),#5E0A0E);color:#fff;text-align:center;padding:18px}
+.co-ph img{width:56px;opacity:.95}
+.co-ph span{font-size:22px;font-weight:300;opacity:.7}
+.co-ph b{font-size:19px;font-weight:900;word-break:keep-all;line-height:1.3}
+.co-play{position:absolute;left:10px;bottom:10px;display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:99px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:700;backdrop-filter:blur(6px)}
+.co-play svg{width:14px;height:14px}
+.co-c .b{padding:12px 14px 14px}
+.co-k{font-size:12px;font-weight:700;color:var(--brand)}
+.co-c h4{font-size:15.5px;font-weight:900;line-height:1.35;margin-top:3px;word-break:keep-all}
+.co-c h4 em{font-style:normal}
+.co-c p{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.45;word-break:keep-all}
+.co-c .go{display:inline-block;margin-top:8px;font-size:13px;font-weight:700}
+.co-ask{justify-content:center;align-items:flex-start;gap:6px;padding:20px 18px;background:var(--paper);border-style:dashed}
+.co-ask .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:#F7E7E7;color:var(--brand)}
+.co-ask .ic svg{width:20px;height:20px}
+.co-ask b{font-size:16px;font-weight:900}
+.co-grid{display:grid;gap:14px}
+@media (min-width:640px){ .co-grid{grid-template-columns:1fr 1fr} .co-row{margin:0;padding:2px 0 8px} .co-row > *{flex-basis:240px} }
+.co-c.big .co-m{aspect-ratio:16/10}

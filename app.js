@@ -59,7 +59,7 @@ let D, EVENTS = [], S = {}, GROUPS = [];
 // ---------- 페이지 나누기 (검색엔진용 실제 주소) ----------
 // 메뉴 그룹마다 별도 HTML 파일이 있고, 같은 화면을 그 그룹부터 보여줌
 const PAGE_FILES = {
-  'about.html':    ['philosophy','staff','press'],
+  'about.html':    ['philosophy','staff','press','collab'],
   'training.html': ['curriculum','program','belts','character','leaders','guinness'],
   'column.html':   ['column'],
   'contact.html':  ['contact','fee','faq','location'],
@@ -197,6 +197,7 @@ function render(d){
   S.notice = {label:'알림판·공지', short:'알림판', icon:'megaphone', html: sec('notice', '', noticePage(d))};
   S.column = {label:'해랑경희 칼럼', short:'칼럼', icon:'book', html: sec('column', (d.columnPage || {}).title || '해랑경희 칼럼', columnPage(d))};
   S.press = {label:'보도자료', icon:'news', html: sec('press', '보도자료', pressPage(d))};
+  if(collabList(d).length) S.collab = {label:'함께하는 해랑경희', short:'협업', icon:'users', html: sec('collab', '함께하는 해랑경희', collabPage(d))};
   if(list(d.gallery).length) S.gallery = {label:'사진', icon:'photo', html: sec('gallery', d.galleryTitle || '사진으로 보는 해랑경희', gallery(d))};
 
   const ct = d.contact || {};
@@ -241,7 +242,7 @@ function render(d){
 
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
-    {name:'해랑경희 소개', items:['philosophy','staff','press']},
+    {name:'해랑경희 소개', items:['philosophy','staff','press','collab']},
     {name:'수업 안내', items:['curriculum','program','belts','character','leaders','guinness']},
     {name:'해랑경희 칼럼', items:['column']},
     {name:'등록 · 상담', items:['contact','fee','faq','location']},
@@ -281,7 +282,9 @@ function render(d){
           ${tileIds.map(id => `<a class="sc" href="${go(id)}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
         </div>
         ${classesBlock(d)}
+        ${whyBlock(d)}
         ${trustBlock(d)}
+        ${collabBlock(d)}
         <div class="seg seg2"><h2>해랑경희 소식</h2><p>다니는 친구들을 위한 일정과 공지</p></div>
         ${(() => { const w = workoutCard(d, true); return w.includes(' rest"') ? '' : `<div class="home">${w}</div>`; })()}
         <div class="home">
@@ -349,7 +352,7 @@ function heroVideo(d, brand){
       <div class="kick">HAERANG TAEKWONDO</div>
       <h1><img src="img/title-white.png" alt="${brand}"></h1>
       <p class="vs"><img src="img/slogan-white.png" alt="${esc(d.slogan || '')}"></p>
-      <div class="btns">${book ? `<a class="b1" href="${esc(book.url)}" target="_blank" rel="noopener">상담 예약</a>` : `<a class="b1" href="${go('contact')}">상담 문의</a>`}<a class="b2" href="${go('program')}">수업 안내</a></div>
+      <div class="btns">${book ? `<a class="b1" href="${esc(book.url)}" target="_blank" rel="noopener">체험수업 예약</a>` : `<a class="b1" href="${go('contact')}">체험 · 상담 문의</a>`}<a class="b2" href="${go('program')}">수업 안내</a></div>
     </div>
   </section>`;
 }
@@ -630,6 +633,48 @@ function upcomingCard(){
       return `<li><span class="dday${n <= 0 ? ' now' : ''}">${label}</span><div class="t"><b><span class="tag" style="background:${EV_COLORS[e.type] || EV_COLORS['기타']}">${esc(e.type || '기타')}</span>${esc(e.title)}</b><span>${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></li>`;
     }).join('')}</ul>` : `<p class="empty">예정된 일정이 없어요.</p>`}
   </div>`;
+}
+// 해랑경희만의 수련: 다른 도장과 다른 점 4가지 (수업 안내 속 내용을 첫 화면에 꺼내 보여줌)
+function whyBlock(d){
+  const gp = d.guinnessPage || {}, gr = d.growth || {}, L = d.leaders || {}, bt = d.belts || {};
+  const items = [
+    S.guinness && {id:'guinness', icon:'chart', k:'매달 기록', t: gp.title || '해랑 기네스', p:'매달 첫째 주 금요일, 체력 기록을 재고 지난 기록과 비교합니다.'},
+    S.guinness && gr.title && {id:'guinness', icon:'medal', k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님 관찰을 한 장에 담아 학부모님께 보내드립니다.'},
+    S.leaders && {id:'leaders', icon:'star', k:'인성 · 리더십', t:'선범단(先範團)', p:'다른 사람에게 모범이 되고 선한 영향력을 주는 수련생을 키웁니다.'},
+    S.belts && {id:'belts', icon:'award', k:'단계별 성장', t: bt.title || '띠 제도', p:'띠마다 목표를 이루며 한 단계씩 올라가는 수련 과정입니다.'}
+  ].filter(Boolean);
+  if(!items.length) return '';
+  return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>운동만 하고 끝나지 않습니다. 성장을 기록하고 보여드립니다.</p></div>
+    <div class="why">${items.map((x, i) => `<a class="why-c rv" href="${go(x.id)}"><span class="why-n">${pad2(i + 1)}</span><span class="ic">${svg(x.icon)}</span><small>${esc(x.k)}</small><b>${esc(x.t)}</b><p>${esc(x.p)}</p><span class="go">자세히 ›</span></a>`).join('')}</div>`;
+}
+// 함께하는 해랑경희: 지역 업체·기관과의 협업 (관리자 ⑧-2에서 추가)
+function collabList(d){
+  return list(d.collabs).filter(c => c.title || c.partner).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+}
+function collabCard(c, big){
+  const tag = c.url ? 'a' : 'div', href = c.url ? ` href="${esc(c.url)}" target="_blank" rel="noopener"` : '';
+  const kind = c.kind || '협업';
+  const isReel = /instagram\.com\/(reel|p)\//.test(c.url || '');
+  return `<${tag} class="co-c${big ? ' big' : ''}"${href}>
+    <div class="co-m">${c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : `<div class="co-ph"><img src="img/lion-white.png" alt=""><span>×</span><b>${esc(c.partner || '')}</b></div>`}
+      ${isReel ? `<span class="co-play">${svg('insta', 2)}릴스</span>` : ''}</div>
+    <div class="b"><span class="co-k">${esc(kind)}${isDate(c.date) ? ` · ${c.date.slice(0,7).replace('-', '.')}` : ''}</span>
+      <h4>${c.partner ? `<em>${esc(c.partner)}</em> × 해랑경희` : esc(c.title)}</h4>${c.partner && c.title ? `<p>${esc(c.title)}</p>` : ''}${big && c.summary ? `<p class="co-s">${esc(c.summary)}</p>` : ''}
+      ${c.url ? `<span class="go">${isReel ? '영상 보기' : '자세히 보기'} ›</span>` : ''}</div>
+  </${tag}>`;
+}
+function collabBlock(d){
+  const cs = collabList(d);
+  if(!cs.length) return '';
+  return `<div class="seg seg2"><h2>함께하는 해랑경희</h2><p>지역과 함께 만든 이야기${cs.length > 2 ? ` · <a href="${go('collab')}">전체 보기 ›</a>` : ''}</p></div>
+    <div class="co-row">${cs.slice(0, 6).map(c => collabCard(c)).join('')}
+      <a class="co-c co-ask" href="${go('contact')}"><span class="ic">${svg('chat')}</span><b>협업 제안하기</b><p>지역 가게·기관·크리에이터와<br>함께 만들고 싶어요.</p><span class="go">문의하기 ›</span></a></div>`;
+}
+function collabPage(d){
+  const cs = collabList(d);
+  return `<p class="lead">해랑경희는 지역의 가게, 기관, 크리에이터와 함께 태권도의 즐거움을 나눕니다.</p>
+    <div class="co-grid">${cs.map(c => collabCard(c, true)).join('')}</div>
+    <a class="col-more" href="${go('contact')}">${svg('chat', 2.2)}협업 제안하기</a>`;
 }
 // 신뢰 영역: 기사 · 블로그 · 인스타 (관장님이 꼭 보여주고 싶은 3가지)
 function latestPress(d){
