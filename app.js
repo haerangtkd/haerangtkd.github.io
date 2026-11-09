@@ -492,7 +492,7 @@ function workoutCard(d, onHome){
     return `<div class="focus"><span class="tag" style="background:${c}">${esc(e.type || '일정')}</span><b>${esc(e.title)}</b>${e.note ? `<span>${esc(e.note)}</span>` : ''}</div>`;
   }).join('');
   let body, rest = false;
-  if(off.length) body = `<div class="theme">오늘은 쉬는 날입니다</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
+  if(off.length) body = `<div class="theme">오늘은 쉬는 날이에요</div><p class="sub">${off.map(e => esc(e.title)).join(', ')}</p>`;
   else if(weekend && !fs.length && !evRows && !items.length){ rest = true; body = `<div class="theme">${esc(mo.weekendText || '즐거운 주말 보내세요.\n월요일에 만나요!')}</div>`; }
   else body = `
       ${fs.length ? `<div class="flabel">${fs.some(f => +f.s !== +f.en) ? '이번 주 수련' : '오늘의 수련'}</div><div class="theme">${fs.map(f => esc(f.title)).join(' · ')}</div><p class="sub">${fs.map(rangeText).join(', ')}</p>` : ''}
