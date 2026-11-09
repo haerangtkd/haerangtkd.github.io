@@ -673,29 +673,32 @@ function setupPromise(){
   const yt = sec.querySelector('.pm-yt'), bar = sec.querySelector('.pm-bar u'), n = lines.length;
   if(!n) return;
   const STEP = 2200, LAST = 3000;               // 한 해 보여주는 시간(ms), 마지막 해
-  let cur = 0, timer = null;
   const scale = i => n > 1 ? i / (n - 1) : 1;
-  const set = i => {
-    cur = i; clearTimeout(timer);
+  let cur = 0, t0 = 0, raf = 0, visible = false;
+  const show = i => {
+    cur = i; t0 = performance.now();
     lines.forEach((l, k) => { l.classList.toggle('on', k === i); l.classList.toggle('past', k !== i); });
     dots.forEach((t, k) => { t.classList.toggle('on', k <= i); t.classList.toggle('now', k === i); });
     yt.style.transform = `translateY(${-i * 100 / n}%)`;
     sec.classList.toggle('last', i === n - 1);
-    const wait = i === n - 1 ? LAST : STEP;
-    // 선이 지금 해에서 다음 해까지 계속 차오름 (애니메이션을 매번 처음부터 다시 시작)
-    bar.style.setProperty('--from', scale(i));
-    bar.style.setProperty('--to', scale(i < n - 1 ? i + 1 : i));
-    bar.style.setProperty('--dur', wait + 'ms');
-    bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run');
-    timer = setTimeout(() => set((cur + 1) % n), wait);
+    bar.style.transform = `scaleX(${scale(i)})`;
   };
-  const stop = () => { clearTimeout(timer); timer = null; };
-  set(0); stop();
+  // 매 프레임마다 선 길이를 직접 계산 (사파리 포함 모든 브라우저에서 같은 동작)
+  const tick = now => {
+    const wait = cur === n - 1 ? LAST : STEP, p = Math.min((now - t0) / wait, 1);
+    const to = cur < n - 1 ? scale(cur + 1) : scale(cur);
+    bar.style.transform = `scaleX(${scale(cur) + (to - scale(cur)) * p})`;
+    if(p >= 1) show((cur + 1) % n);
+    raf = visible ? requestAnimationFrame(tick) : 0;
+  };
+  const start = () => { if(raf) return; show(0); raf = requestAnimationFrame(tick); };
+  const stop = () => { cancelAnimationFrame(raf); raf = 0; };
+  show(0);
   // 화면에 보일 때마다 2024부터 시작, 안 보이면 멈춤
-  new IntersectionObserver(es => es.forEach(e => {
-    if(e.isIntersecting){ if(!timer) set(0); } else stop();
-  }), {threshold: .35}).observe(sec);
-  dots.forEach((t, k) => t.addEventListener('click', () => set(k)));
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(es => es.forEach(e => { visible = e.isIntersecting; visible ? start() : stop(); }), {threshold: .3}).observe(sec);
+  } else { visible = true; start(); }
+  dots.forEach((t, k) => t.addEventListener('click', () => show(k)));
 }
 function trustBlock(d){
   const p = latestPress(d);

@@ -888,7 +888,4 @@
 .pm-dot.now i{animation:pmPulse 1.1s ease-in-out infinite}
 @keyframes pmPulse{0%,100%{box-shadow:0 0 0 4px rgba(255,255,255,.18)}50%{box-shadow:0 0 0 10px rgba(255,255,255,.06)}}
 @media (prefers-reduced-motion:reduce){ .pm-dot.now i{animation:none} }
-/* 진행선 애니메이션: 숨겨진 탭에서 넘어와도 처음부터 다시 시작 */
-.pm-bar u{transform:scaleX(var(--from,0))}
-.pm-bar u.run{animation:pmFill var(--dur,2200ms) linear forwards}
-@keyframes pmFill{from{transform:scaleX(var(--from,0))}to{transform:scaleX(var(--to,0))}}
+.pm-bar u{transition:none!important;animation:none!important;will-change:transform}
