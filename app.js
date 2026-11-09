@@ -641,8 +641,8 @@ function whyBlock(d){
   const items = [
     S.guinness && {id:'guinness', icon:'chart', k:'매달 기록', t: gp.title || '해랑 기네스', p:'매달 첫째 주 금요일, 체력 기록을 재고 지난 기록과 비교합니다.'},
     S.guinness && gr.title && {id:'guinness', icon:'medal', k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님 관찰을 한 장에 담아 학부모님께 보내드립니다.'},
-    S.leaders && {id:'leaders', icon:'star', k:'인성 · 리더십', t:'선범단(先範團)', p:'다른 사람에게 모범이 되고 선한 영향력을 주는 수련생을 키웁니다.'},
-    S.belts && {id:'belts', icon:'award', k:'단계별 성장', t: bt.title || '띠 제도', p:'띠마다 목표를 이루며 한 단계씩 올라가는 수련 과정입니다.'}
+    S.character && {id:'character', icon:'heart', k:'매주 월요일', t:'인성 교육', p:'인성교육과 태권웅변으로 외면과 내면이 함께 자라도록 지도합니다.'},
+    S.leaders && {id:'leaders', icon:'star', k:'모범 · 리더십', t:'선범단(先範團)', p:'다른 사람에게 모범이 되고 선한 영향력을 주는 수련생을 키웁니다.'}
   ].filter(Boolean);
   if(!items.length) return '';
   return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>운동만 하고 끝나지 않습니다. 성장을 기록하고 보여드립니다.</p></div>
