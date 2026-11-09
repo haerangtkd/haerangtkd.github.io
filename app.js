@@ -59,7 +59,7 @@ let D, EVENTS = [], S = {}, GROUPS = [];
 // ---------- 페이지 나누기 (검색엔진용 실제 주소) ----------
 // 메뉴 그룹마다 별도 HTML 파일이 있고, 같은 화면을 그 그룹부터 보여줌
 const PAGE_FILES = {
-  'about.html':    ['philosophy','staff','press','collab'],
+  'about.html':    ['philosophy','staff','press','collab','reviews'],
   'training.html': ['curriculum','program','belts','character','leaders','guinness'],
   'column.html':   ['column'],
   'contact.html':  ['contact','fee','faq','location'],
@@ -197,6 +197,7 @@ function render(d){
   S.notice = {label:'알림판·공지', short:'알림판', icon:'megaphone', html: sec('notice', '', noticePage(d))};
   S.column = {label:'해랑경희 칼럼', short:'칼럼', icon:'book', html: sec('column', (d.columnPage || {}).title || '해랑경희 칼럼', columnPage(d))};
   S.press = {label:'보도자료', icon:'news', html: sec('press', '보도자료', pressPage(d))};
+  if(list(d.reviews).some(r => r.text)) S.reviews = {label:'해랑경희 후기', short:'후기', icon:'chat', html: sec('reviews', '해랑경희 후기', reviewPage(d))};
   if(collabList(d).length) S.collab = {label:'함께하는 해랑경희', short:'협업', icon:'users', html: sec('collab', '함께하는 해랑경희', collabPage(d))};
   if(list(d.gallery).length) S.gallery = {label:'사진', icon:'photo', html: sec('gallery', d.galleryTitle || '사진으로 보는 해랑경희', gallery(d))};
 
@@ -242,7 +243,7 @@ function render(d){
 
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
-    {name:'해랑경희 소개', items:['philosophy','staff','press','collab']},
+    {name:'해랑경희 소개', items:['philosophy','staff','press','collab','reviews']},
     {name:'수업 안내', items:['curriculum','program','belts','character','leaders','guinness']},
     {name:'해랑경희 칼럼', items:['column']},
     {name:'등록 · 상담', items:['contact','fee','faq','location']},
@@ -649,13 +650,24 @@ function whyBlock(d){
     <div class="why">${items.map((x, i) => `<a class="why-c rv" href="${go(x.id)}"><span class="why-n">${pad2(i + 1)}</span><span class="ic">${svg(x.icon)}</span><small>${esc(x.k)}</small><b>${esc(x.t)}</b><p>${esc(x.p)}</p><span class="go">자세히 ›</span></a>`).join('')}</div>`;
 }
 // 학부모님 이야기: 실제 후기 (관리자 ⑧-3에서 추가, 없으면 안 보임)
+function reviewCard(r){
+  const long = String(r.text).length > 140;
+  return `<figure class="rv-c${long ? ' long' : ''}" onclick="this.classList.toggle('open')"><span class="rv-q">“</span><blockquote>${esc(r.text)}</blockquote>
+      ${long ? '<span class="rv-more">더보기</span>' : ''}<figcaption>${r.who ? `<b>${esc(r.who)}</b>` : ''}${r.source ? `<span>${esc(r.source)}</span>` : ''}</figcaption></figure>`;
+}
 function reviewBlock(d){
-  const rs = list(d.reviews).filter(r => r.text);
-  if(!rs.length) return '';
-  const pl = list(d.links).find(l => /리뷰|플레이스/.test(l.name || '')), more = (d.location || {}).naver;
-  return `<div class="seg seg2"><h2>해랑경희 후기</h2><p>학부모님과 수련생이 직접 남긴 네이버·당근 후기${more ? ` · <a href="${esc(more)}" target="_blank" rel="noopener">후기 더 보기 ›</a>` : ''}</p></div>
-    <div class="rv-row">${rs.map(r => `<figure class="rv-c${String(r.text).length > 140 ? ' long' : ''}" onclick="this.classList.toggle('open')"><span class="rv-q">“</span><blockquote>${esc(r.text)}</blockquote>
-      ${String(r.text).length > 140 ? '<span class="rv-more">더보기</span>' : ''}<figcaption>${r.who ? `<b>${esc(r.who)}</b>` : ''}${r.source ? `<span>${esc(r.source)}</span>` : ''}</figcaption></figure>`).join('')}</div>`;
+  const all = list(d.reviews).filter(r => r.text);
+  if(!all.length) return '';
+  let rs = all.filter(r => r.pick); if(!rs.length) rs = all.slice(0, 5);
+  return `<div class="seg seg2"><h2>해랑경희 후기</h2><p>학부모님과 수련생이 직접 남긴 네이버·당근 후기</p></div>
+    <div class="rv-row">${rs.map(reviewCard).join('')}
+      ${all.length > rs.length ? `<a class="rv-c rv-all" href="${go('reviews')}"><b>${all.length}</b><span>후기 모두 보기 ›</span></a>` : ''}</div>`;
+}
+function reviewPage(d){
+  const all = list(d.reviews).filter(r => r.text), more = (d.location || {}).naver;
+  return `<p class="lead">학부모님과 수련생이 네이버와 당근에 직접 남겨 주신 후기입니다.</p>
+    <div class="rv-grid">${all.map(reviewCard).join('')}</div>
+    ${more ? `<a class="col-more" href="${esc(more)}" target="_blank" rel="noopener">${svg('chat', 2.2)}네이버에서 후기 더 보기</a>` : ''}`;
 }
 // 함께하는 해랑경희: 지역 업체·기관과의 협업 (관리자 ⑧-2에서 추가)
 function collabList(d){

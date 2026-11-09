@@ -950,3 +950,10 @@
 .rv-more{margin-top:6px;font-size:12.5px;font-weight:700;color:var(--brand)}
 .rv-c.open .rv-more{display:none}
 .rv-row{align-items:flex-start}
+
+.rv-all{align-self:stretch;justify-content:center;align-items:center;text-align:center;gap:6px;background:var(--brand);border-color:var(--brand);color:#fff;text-decoration:none;flex-basis:44%;max-width:180px}
+.rv-all b{font-size:40px;font-weight:900;line-height:1}
+.rv-all span{font-size:14px;font-weight:700}
+.rv-grid{display:grid;gap:12px;align-items:start}
+@media (min-width:640px){ .rv-grid{grid-template-columns:1fr 1fr} }
+.rv-grid .rv-c{max-width:none}

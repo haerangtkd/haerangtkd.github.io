@@ -215,7 +215,7 @@
   </div></details>
 
   <details class="card"><summary>⑧-3 해랑경희 후기</summary><div class="in">
-    <p class="hint">첫 화면 <b>해랑경희 후기</b>에 위에서부터 차례로 나와요. 네이버 리뷰 등 실제 후기를 그대로 옮겨 주세요. 하나도 없으면 첫 화면에 안 보여요.</p>
+    <p class="hint">첫 화면 <b>해랑경희 후기</b>에는 '첫 화면에 보이기'를 체크한 후기만 나오고, 전부는 해랑경희 소개 → 후기에 나와요. 네이버 리뷰 등 실제 후기를 그대로 옮겨 주세요. 하나도 없으면 첫 화면에 안 보여요.</p>
     <div id="ed-reviews"></div>
   </div></details>
 
@@ -531,6 +531,7 @@ function renderAll(){
     title:(r) => (r.text || '새 후기').slice(0, 24),
     blank:() => ({text:'', who:'', source:'네이버 리뷰'}),
     fields:[
+      {k:'pick', label:'첫 화면에 보이기 (나머지는 \'후기 모두 보기\'에서 보여요)', type:'check'},
       {k:'text', label:'후기 내용', type:'textarea'},
       {k:'who', label:'누구 (예: 초등부 학부모님)', half:true}, {k:'source', label:'출처 (예: 네이버 리뷰)', half:true}
     ]
