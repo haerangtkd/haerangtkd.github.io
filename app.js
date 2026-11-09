@@ -673,7 +673,7 @@ function setupPromise(){
   const yt = sec.querySelector('.pm-yt'), bar = sec.querySelector('.pm-bar u'), n = lines.length;
   if(!n) return;
   const STEP = 2200, LAST = 3000;               // 한 해 보여주는 시간(ms), 마지막 해
-  let cur = -1, timer;
+  let cur = 0, timer = null;
   const scale = i => n > 1 ? i / (n - 1) : 1;
   const set = i => {
     cur = i; clearTimeout(timer);
@@ -682,14 +682,19 @@ function setupPromise(){
     yt.style.transform = `translateY(${-i * 100 / n}%)`;
     sec.classList.toggle('last', i === n - 1);
     const wait = i === n - 1 ? LAST : STEP;
-    // 선이 다음 해까지 계속 차오르며 움직임을 보여줌
-    bar.style.transition = 'none';
-    bar.style.transform = `scaleX(${scale(i)})`;
-    void bar.offsetWidth;
-    if(i < n - 1){ bar.style.transition = `transform ${wait}ms linear`; bar.style.transform = `scaleX(${scale(i + 1)})`; }
-    timer = setTimeout(() => { if(sec.isConnected) set((cur + 1) % n); }, wait);
+    // 선이 지금 해에서 다음 해까지 계속 차오름 (애니메이션을 매번 처음부터 다시 시작)
+    bar.style.setProperty('--from', scale(i));
+    bar.style.setProperty('--to', scale(i < n - 1 ? i + 1 : i));
+    bar.style.setProperty('--dur', wait + 'ms');
+    bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run');
+    timer = setTimeout(() => set((cur + 1) % n), wait);
   };
-  set(0);
+  const stop = () => { clearTimeout(timer); timer = null; };
+  set(0); stop();
+  // 화면에 보일 때마다 2024부터 시작, 안 보이면 멈춤
+  new IntersectionObserver(es => es.forEach(e => {
+    if(e.isIntersecting){ if(!timer) set(0); } else stop();
+  }), {threshold: .35}).observe(sec);
   dots.forEach((t, k) => t.addEventListener('click', () => set(k)));
 }
 function trustBlock(d){
