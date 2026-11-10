@@ -1007,3 +1007,5 @@
 .more-links .ml-ic{flex:none}
 .co-row{scroll-padding-inline:16px}
 @media (min-width:640px){ .co-row{scroll-padding-inline:0} }
+.col-card .b{flex:1}
+.col-card h4{overflow-wrap:anywhere}
