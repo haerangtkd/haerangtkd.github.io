@@ -122,13 +122,13 @@
       share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
       insta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg>',
       tel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
-      home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>'
+      list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>'
     };
     nav0.innerHTML = '<div class="acts">'
-      + '<button type="button" class="sh">' + A.share + '<span>공유</span></button>'
-      + '<a href="https://www.instagram.com/haerang_tkd" target="_blank" rel="noopener">' + A.insta + '<span>인스타</span></a>'
-      + '<a href="tel:01099179954">' + A.tel + '<span>전화</span></a>'
-      + '<a href="../">' + A.home + '<span>홈</span></a></div>';
+      + '<button type="button" class="sh" aria-label="공유">' + A.share + '</button>'
+      + '<a href="https://www.instagram.com/haerang_tkd" target="_blank" rel="noopener" aria-label="인스타그램">' + A.insta + '</a>'
+      + '<a href="tel:01099179954" aria-label="전화">' + A.tel + '</a>'
+      + '<a href="../column.html" aria-label="칼럼 목록">' + A.list + '</a></div>';
     nav0.querySelector('.sh').onclick = function(){
       var url = location.href.split('#')[0], title = document.title;
       if(navigator.share) navigator.share({title:title, url:url}).catch(function(){});
@@ -156,8 +156,8 @@
       var go = nx || null;
       var card = go
         ? '<a class="nextep" href="' + esc(href(go)) + '">' + (go.image ? '<img src="../' + esc(go.image) + '" alt="">' : '') + '<span><b>다음화 보기</b><small>' + no(i + 1) + ' · ' + esc(go.title) + '</small></span><i>›</i></a>'
-        : '<a class="nextep" href="../column.html"><span><b>칼럼 목록 보기</b><small>다른 칼럼도 읽어 보세요</small></span><i>›</i></a>';
-      nav.insertAdjacentHTML('afterbegin', card);
+        : '<a class="nextep wait" href="../column.html"><span><b>다음화 보기</b><small>' + no(i + 1) + ' 준비 중입니다</small></span><i>›</i></a>';
+      nav.insertAdjacentHTML('beforeend', card);
       var old = nav.querySelector('.cl'); if(old) old.remove();
     }
   }).catch(function(){});
