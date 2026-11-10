@@ -26,10 +26,6 @@
   a{color:inherit}
   img,video{display:block;max-width:100%}
 
-  .bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));background:rgba(11,11,11,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-  .bar a{display:flex;align-items:center;gap:8px;text-decoration:none;font-size:14px;font-weight:700}
-  .bar img{width:30px;height:30px}
-  .bar .list{font-weight:500;color:var(--dim);font-size:13.5px}
 
   .strip{max-width:560px;margin:0 auto;padding:0 20px;text-align:center;position:relative;isolation:isolate}
   .scene{position:relative;padding:16vh 0}
@@ -97,7 +93,7 @@
 
   /* 강조 효과 */
   .fx-wobble,.fx-snap,.fx-brake{display:inline-block}
-  .js [data-fx]{--d:.6s}
+  .js [data-fx]{--d:.15s}
   .js .fx-wobble.on{animation:wobble 2.2s var(--d) ease-in-out both;transform-origin:50% 100%}
   @keyframes wobble{0%{transform:rotate(0)}15%{transform:rotate(-7deg)}30%{transform:rotate(6deg)}45%{transform:rotate(-4deg)}60%{transform:rotate(2.5deg)}75%{transform:rotate(-1deg)}100%{transform:rotate(0)}}
   .js .fx-snap{opacity:0}
@@ -107,28 +103,27 @@
   .js .fx-brake.on{animation:brake 1.1s var(--d) cubic-bezier(.15,.9,.25,1) forwards}
   @keyframes brake{0%{opacity:1;transform:translateX(-60vw) skewX(-14deg)}70%{transform:translateX(10px) skewX(8deg)}85%{transform:translateX(-3px) skewX(-2deg)}100%{opacity:1;transform:none}}
   .fx-line{background:linear-gradient(currentColor,currentColor) no-repeat 0 100%/100% 2px;padding-bottom:2px}
-  .js .fx-line{background-size:0 2px;transition:background-size 1.8s var(--d) ease-in-out}
+  .js .fx-line{background-size:0 2px;transition:background-size 1.1s var(--d) ease-in-out}
   .js .fx-line.on{background-size:100% 2px}
   .js .fx-blink.on{animation:blink 1.6s var(--d) steps(1) both}
   @keyframes blink{0%,100%{opacity:1}12%,37%{opacity:.15}25%,50%{opacity:1}}
   @media (prefers-reduced-motion: reduce){ .js [data-fx]{animation:none!important;transition:none!important;opacity:1!important;transform:none!important} }
 
-  .cnav{display:flex;align-items:center;justify-content:center;gap:16px;max-width:560px;margin:0 auto;padding:30px 20px 40px;font-size:16px;font-weight:700}
-  .cnav a{text-decoration:none;color:var(--ink)}
-  .cnav i{font-style:normal;color:#4A4642}
   .end{border-top:1px solid var(--line);padding:28px 24px calc(40px + env(safe-area-inset-bottom));text-align:center;font-size:13.5px;color:var(--dim)}
   .end a{text-decoration:none;color:var(--ink);font-weight:700}
   .end p{margin-top:14px}
 </style>
+<link rel="stylesheet" href="column.css?v=1">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <filter id="mph-th"><feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 255 -140"/></filter>
 </svg>
 
-<header class="bar">
-  <a href="../"><img src="../img/lion-white.png" alt="">해랑경희 태권도장</a>
-  <a class="list" href="../column.html">칼럼 목록</a>
+<header class="vtop">
+  <a class="back" href="../column.html" aria-label="칼럼 목록"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <span class="ttl" id="vTitle">해랑경희 칼럼</span>
+  <a class="home" href="../" aria-label="홈"><img src="../img/lion-white.png" alt=""></a>
 </header>
 
 <main class="strip">
@@ -235,6 +230,6 @@
   <a href="../">해랑경희 태권도장 홈</a>
   <p>울산 남구 돋질로251번길 38 3층</p>
 </footer>
-<script src="column.js?v=1"></script>
+<script src="column.js?v=2"></script>
 </body>
 </html>

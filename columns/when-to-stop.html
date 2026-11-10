@@ -25,10 +25,6 @@
   body{font-family:'Noto Sans KR',system-ui,-apple-system,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-x:hidden}
   a{color:inherit}
 
-  .bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));background:rgba(11,11,11,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-  .bar a{display:flex;align-items:center;gap:8px;text-decoration:none;font-size:14px;font-weight:700}
-  .bar img{width:30px;height:30px}
-  .bar .list{font-weight:500;color:var(--dim);font-size:13.5px}
 
   .strip{max-width:560px;margin:0 auto;padding:0 20px;text-align:center;position:relative;isolation:isolate}
   .scene{position:relative;padding:22vh 0}
@@ -63,7 +59,7 @@
   .mph.run{filter:url(#mph-th)}
 
   /* 강조 효과 (화면에 들어오면 한 번) */
-  .js [data-fx]{--d:.6s}
+  .js [data-fx]{--d:.15s}
   .js .fx-blink.on{animation:blink 1.6s var(--d) steps(1) both}
   @keyframes blink{0%,100%{opacity:1}12%,37%{opacity:.15}25%,50%{opacity:1}}
   .fx-grow{display:inline-block}
@@ -72,7 +68,7 @@
   .js .fx-grow.on span{animation:grow .7s calc(var(--d) + var(--i) * .11s) cubic-bezier(.2,.9,.3,1.25) forwards}
   @keyframes grow{to{opacity:1;transform:none}}
   .fx-line{background:linear-gradient(var(--or),var(--or)) no-repeat 0 100%/100% 3px;padding-bottom:4px}
-  .js .fx-line{background-size:0 3px;transition:background-size 1.8s var(--d) ease-in-out}
+  .js .fx-line{background-size:0 3px;transition:background-size 1.1s var(--d) ease-in-out}
   .js .fx-line.on{background-size:100% 3px}
   .fx-type span{display:inline}
   .js .fx-type span{opacity:0}
@@ -87,28 +83,26 @@
 
   .def{display:flex;justify-content:center;flex-wrap:wrap;gap:10px 22px;margin-bottom:26px;font-size:17px;color:#C6C0BA}
   .def b{font-size:24px;font-weight:900;margin-right:3px;color:var(--ink)}
-  .def .or b{color:var(--or)}
   .cta{padding:18vh 0 10vh}
   .btns{display:grid;gap:10px;margin:34px auto 0;max-width:340px}
   .btns a{display:flex;align-items:center;justify-content:center;gap:8px;padding:15px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15.5px;border:1px solid #3A3633}
   .btns a.main{background:var(--or);border-color:var(--or);color:#1A1208}
 
-  .cnav{display:flex;align-items:center;justify-content:center;gap:16px;max-width:560px;margin:0 auto;padding:30px 20px 40px;font-size:16px;font-weight:700}
-  .cnav a{text-decoration:none;color:var(--ink)}
-  .cnav i{font-style:normal;color:#4A4642}
   .end{border-top:1px solid var(--line);padding:28px 24px calc(40px + env(safe-area-inset-bottom));text-align:center;font-size:13.5px;color:var(--dim)}
   .end a{display:inline-block;margin:0 10px;text-decoration:none;color:var(--ink);font-weight:700}
   .end p{margin-top:14px}
 </style>
+<link rel="stylesheet" href="column.css?v=1">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <filter id="mph-th"><feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 255 -140"/></filter>
 </svg>
 
-<header class="bar">
-  <a href="../"><img src="../img/lion-white.png" alt="">해랑경희 태권도장</a>
-  <a class="list" href="../column.html">칼럼 목록</a>
+<header class="vtop">
+  <a class="back" href="../column.html" aria-label="칼럼 목록"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <span class="ttl" id="vTitle">해랑경희 칼럼</span>
+  <a class="home" href="../" aria-label="홈"><img src="../img/lion-white.png" alt=""></a>
 </header>
 
 <main class="strip">
@@ -132,7 +126,7 @@
   </section>
 
   <section class="scene">
-    <p class="def"><span><b>태권</b>(발차기, 주먹 기술)</span><span class="or"><b>도</b>(태도)</span></p>
+    <p class="def"><span><b>태권</b>(발차기, 주먹 기술)</span><span><b>도</b>(태도)</span></p>
     <p class="t big"><span class="mph or" data-mph><span class="m-a">태권보다</span><span class="m-b">도를</span></span></p>
     <p class="t" style="margin-top:8px">먼저 연습하는 것이<br>필요하다고 보았습니다</p>
     <img class="fl l" src="../img/brand/magnolia-white.png" alt="" style="top:46%">
@@ -208,6 +202,6 @@
   <p>울산 남구 돋질로251번길 38 3층</p>
 </footer>
 
-<script src="column.js?v=1"></script>
+<script src="column.js?v=2"></script>
 </body>
 </html>

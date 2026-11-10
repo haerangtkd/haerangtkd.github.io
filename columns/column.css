@@ -1,0 +1,35 @@
+/* 해랑경희 칼럼 공용: 웹툰 보기 화면처럼 위 회차 제목 · 아래 ◀ 목록 ▶ */
+.vtop{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:6px;height:52px;padding:0 8px;padding-top:env(safe-area-inset-top);box-sizing:content-box;
+  background:rgba(22,21,20,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#F3ECDF;transition:transform .25s}
+.vtop a{color:inherit;text-decoration:none}
+.vtop .back{width:40px;height:40px;display:grid;place-items:center;flex:none}
+.vtop .back svg{width:22px;height:22px}
+.vtop .ttl{flex:1;min-width:0;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vtop .ttl small{font-weight:500;color:#9C958E;margin-left:6px;font-size:14px}
+.vtop .home{width:40px;height:40px;display:grid;place-items:center;flex:none}
+.vtop .home img{width:28px;height:28px}
+
+.vbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;justify-content:flex-end;gap:4px;height:58px;padding:0 10px env(safe-area-inset-bottom);
+  background:rgba(22,21,20,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#F3ECDF;transition:transform .25s}
+.vbar .lab{margin-right:auto;font-size:13.5px;color:#9C958E;padding-left:8px}
+.vbar button,.vbar a{width:52px;height:46px;display:grid;place-items:center;background:none;border:0;color:inherit;cursor:pointer;text-decoration:none;border-radius:10px}
+.vbar svg{width:24px;height:24px}
+.vbar .off{opacity:.25;pointer-events:none}
+.vhide .vtop{transform:translateY(-110%)}
+.vhide .vbar{transform:translateY(110%)}
+
+.vlist{position:fixed;right:10px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:21;width:min(300px,calc(100vw - 20px));max-height:56vh;overflow:auto;
+  background:#24232A;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.5);display:none}
+.vlist.open{display:block}
+.vlist a{display:flex;gap:10px;align-items:baseline;padding:15px 18px;border-bottom:1px solid #2F2E36;color:#E8E3DC;text-decoration:none;font-size:15px}
+.vlist a:last-child{border-bottom:0}
+.vlist a b{flex:none;font-weight:700}
+.vlist a span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#A39D96;font-size:14px}
+.vlist a.me b,.vlist a.me span{color:#E2484F}
+
+body.viewer{padding-bottom:calc(58px + env(safe-area-inset-bottom))}
+
+/* 칼럼 끝: 이전 칼럼 | 칼럼 목록 | 다음 칼럼 */
+.cnav{display:flex;align-items:center;justify-content:center;gap:14px;max-width:560px;margin:0 auto;padding:30px 20px 40px;font-size:16px;font-weight:700}
+.cnav a{text-decoration:none;color:#F3ECDF}
+.cnav i{font-style:normal;color:#4A4642}
