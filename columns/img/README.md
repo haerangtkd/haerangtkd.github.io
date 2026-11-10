@@ -7,3 +7,4 @@
 | 3화 함께 수업 | mixed-worry, mixed-peers, mixed-together, mixed-alone, mixed-cover, mixed-belt 영상 |
 | 4화 인성교육 지향점 | char-together (photos/…55oj), char-listen (…fca6), char-talk·char-cover (…8qhn) |
 | 5화 인사는 확실하게 | bow-five, bow-cover (배꼽 인사 사진, 얼굴 보이는 노란 도복 친구 제외), greet-practice·gosu·real 영상 (블로그 화면 녹화) |
+| 6화 선범단 | leader-kit·leader-cover (임명장·키링·패치, 키링 이름 흐림), leader-three (photos/…i7eq) |
