@@ -281,6 +281,7 @@ function render(d){
         <div class="shortcuts${tileIds.length % 3 === 0 ? ' three' : ''}">
           ${tileIds.map(id => `<a class="sc" href="${go(id)}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
         </div>
+        <a class="cta-line" href="${go('contact')}">${svg('phone')}<span>상담 문의하기</span><i>›</i></a>
         ${classesBlock(d)}
         ${whyBlock(d)}
         ${reviewBlock(d)}
@@ -296,7 +297,6 @@ function render(d){
           ${eventPanel()}
           ${activePosters(d).length ? boardPanel(d, true) : ''}
         </div>
-        <a class="endcta" href="${go('contact')}">${svg('phone')}상담 문의하기</a>
         ${trustBlock(d)}
       </main>
     </div>
@@ -402,8 +402,13 @@ function setupQuick(){
   const set = on => { qp.classList.toggle('open', on); tab.setAttribute('aria-expanded', on); };
   tab.onclick = e => { e.stopPropagation(); set(!qp.classList.contains('open')); };
   // 첫 화면 영상(상담 예약 버튼이 있는 곳)이 보이는 동안은 빠른상담 탭을 숨김
-  const hero = document.querySelector('.vhero, .hero');
-  const chk = () => document.body.classList.toggle('past-hero', !hero || hero.getBoundingClientRect().bottom < 80);
+  // 홈에서는 '해랑경희 후기'까지 내려왔을 때부터 보임
+  const hero = document.querySelector('.vhero, .hero'), rv = document.getElementById('rvSec');
+  const chk = () => {
+    const onHome = hero && hero.offsetParent !== null;
+    const past = !onHome ? true : rv ? rv.getBoundingClientRect().top < innerHeight * .85 : hero.getBoundingClientRect().bottom < 80;
+    document.body.classList.toggle('past-hero', past);
+  };
   window.addEventListener('scroll', chk, {passive:true}); chk();
   document.addEventListener('click', e => { if(!qp.contains(e.target)) set(false); });
   qp.querySelectorAll('.qbox a').forEach(a => a.addEventListener('click', () => set(false)));
@@ -680,7 +685,7 @@ function reviewBlock(d){
   let rs = all.filter(r => r.home);
   if(!rs.length) rs = [...all.filter(r => r.pick), ...all.filter(r => !r.pick)].slice(0, 5);
   const naver = (d.location || {}).naver;
-  return `<div class="seg seg2 seg-more"><h2>해랑경희 후기</h2>${naver ? `<a href="${esc(naver)}" target="_blank" rel="noopener">네이버 후기 더 보기 ›</a>` : ''}</div>
+  return `<div class="seg seg2 seg-more" id="rvSec"><h2>해랑경희 후기</h2>${naver ? `<a href="${esc(naver)}" target="_blank" rel="noopener">네이버 후기 더 보기 ›</a>` : ''}</div>
     <div class="rv-wrap lite"><div class="rv-row" id="rvRow">${rs.map(r => reviewCard(r)).join('')}${rs.length > 1 ? rs.map(r => reviewCard(r, true)).join('') : ''}</div></div>`;
 }
 // 해랑경희 칼럼: 최신 3개를 가벼운 목록으로

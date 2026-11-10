@@ -1057,3 +1057,9 @@
 .wl-t em{display:block;font-style:normal;font-weight:700;color:#FF9F2E}
 .wl-t span{display:block;color:#D6D0C8;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .wo-line i{font-style:normal;color:#A39D96;font-size:20px}
+
+/* 홈 상담 문의: 상자 대신 밑줄 한 줄 (바로가기 아이콘 아래) */
+.cta-line{display:flex;align-items:center;gap:10px;margin:6px 2px 30px;padding:14px 2px;border-bottom:1.5px solid var(--ink);color:var(--ink);text-decoration:none;font-weight:700;font-size:16px}
+.cta-line svg{width:19px;height:19px;color:var(--brand)}
+.cta-line span{flex:1}
+.cta-line i{font-style:normal;font-size:20px;color:var(--brand)}
