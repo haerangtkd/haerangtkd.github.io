@@ -267,7 +267,7 @@ function render(d){
           <div class="g"><h3>홈</h3><div><a href="${HOME}" data-close>처음 화면</a></div></div>
           ${GROUPS.map(g => `<div class="g"><h3>${esc(g.name)}</h3><div>${g.items.map(id => `<a href="${go(id)}" data-close>${esc(S[id].label)}</a>`).join('')}</div></div>`).join('')}
         </div>
-        ${tel ? `<div class="pfoot"><a class="callbig" href="tel:${esc(tel)}">${svg('phone')}<span>${esc(ct.phone)}<small>전화 상담</small></span></a></div>` : ''}
+        <div class="pfoot"><a class="shareline" href="#" data-share>${svg('share', 2.2)}<span>해랑경희 공유하기<small>카톡·문자로 사이트 보내기</small></span><i>›</i></a></div>
       </div>
     </div>
 
