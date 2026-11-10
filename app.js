@@ -284,6 +284,7 @@ function render(d){
         ${classesBlock(d)}
         ${whyBlock(d)}
         ${reviewBlock(d)}
+        ${S.column ? columnBlock(d) : ''}
         ${collabBlock(d)}
         <div class="seg seg2"><h2>해랑경희 소식</h2><p>이번 주 수련과 다가오는 일정</p></div>
         ${(() => { const w = workoutCard(d, true); return w.includes(' rest"') ? '' : `<div class="home">${w}</div>`; })()}
@@ -661,23 +662,31 @@ function reviewCard(r, clone){
 function reviewBlock(d){
   const all = list(d.reviews).filter(r => r.text);
   if(!all.length) return '';
-  const rs = [...all.filter(r => r.pick), ...all.filter(r => !r.pick)];
+  // 홈에는 가볍게: home 표시한 후기만 (없으면 pick 표시한 후기 중 5개)
+  let rs = all.filter(r => r.home);
+  if(!rs.length) rs = [...all.filter(r => r.pick), ...all.filter(r => !r.pick)].slice(0, 5);
   const naver = (d.location || {}).naver;
-  return `<div class="seg seg2"><h2>해랑경희 후기</h2><p>네이버와 당근에 남겨 주신 후기입니다</p></div>
-    <div class="rv-wrap"><div class="rv-row" id="rvRow">${rs.map(r => reviewCard(r)).join('')}${rs.length > 1 ? rs.map(r => reviewCard(r, true)).join('') : ''}</div>
-      ${rs.length > 1 ? `<button type="button" class="rv-pp" id="rvPP" aria-label="멈춤">${svg('pause',2.6)}</button>` : ''}</div>
-    ${naver ? `<a class="rv-naver" href="${esc(naver)}" target="_blank" rel="noopener"><span class="nv-n">N</span>네이버 후기 확인하기 ›</a>` : ''}`;
+  return `<div class="seg seg2 seg-more"><h2>해랑경희 후기</h2>${naver ? `<a href="${esc(naver)}" target="_blank" rel="noopener">네이버 후기 더 보기 ›</a>` : ''}</div>
+    <div class="rv-wrap lite"><div class="rv-row" id="rvRow">${rs.map(r => reviewCard(r)).join('')}${rs.length > 1 ? rs.map(r => reviewCard(r, true)).join('') : ''}</div></div>`;
+}
+// 해랑경희 칼럼: 최신 3개를 가벼운 목록으로
+function columnBlock(d){
+  const cs = list(d.columns).filter(c => c.title).slice(0, 3);
+  if(!cs.length) return '';
+  return `<div class="seg seg2 seg-more"><h2>해랑경희 칼럼</h2><a href="${go('column')}">전체 보기 ›</a></div>
+    <div class="hcol">${cs.map(c => `<a href="${esc(c.url || '#')}"${/^https?:/.test(c.url || '') ? ' target="_blank" rel="noopener"' : ''}>
+      ${c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : ''}<span>${c.tag ? `<small>${esc(c.tag)}</small>` : ''}<b>${esc(c.title)}</b></span><i>›</i></a>`).join('')}</div>`;
 }
 // 후기 줄: 천천히 흐르다가, 손가락으로 만지거나 ‖ 누르거나 후기를 펼치면 멈춤
 function setupReviews(){
   const row = document.getElementById('rvRow'), pp = document.getElementById('rvPP');
   if(!row) return;
   row.addEventListener('click', e => { const c = e.target.closest('.rv-c.long'); if(c) c.classList.toggle('open'); });
-  if(!pp) return;
-  const SPEED = 0.35;                              // 한 프레임에 움직이는 거리(px) — 작을수록 느림
+  if(row.children.length < 2) return;
+  const SPEED = 0.3;                              // 한 프레임에 움직이는 거리(px) — 작을수록 느림
   let pos = row.scrollLeft, playing = !matchMedia('(prefers-reduced-motion: reduce)').matches, hold = 0, visible = false, raf = 0, idle;
   const half = () => row.scrollWidth / 2;
-  const setPP = () => { pp.innerHTML = svg(playing ? 'pause' : 'play', 2.6); pp.setAttribute('aria-label', playing ? '멈춤' : '재생'); };
+  const setPP = () => { if(!pp) return; pp.innerHTML = svg(playing ? 'pause' : 'play', 2.6); pp.setAttribute('aria-label', playing ? '멈춤' : '재생'); };
   const tick = () => {
     raf = 0;
     if(!playing || hold || !visible || row.querySelector('.rv-c.open')) return;
@@ -693,7 +702,7 @@ function setupReviews(){
   row.addEventListener('mouseenter', touch); row.addEventListener('mouseleave', release);
   row.addEventListener('scroll', () => { if(hold || !playing){ pos = row.scrollLeft; if(pos >= half()) { pos -= half(); row.scrollLeft = pos; } } }, {passive:true});
   row.addEventListener('click', () => { if(!row.querySelector('.rv-c.open')) release(); });
-  pp.onclick = () => { playing = !playing; setPP(); pos = row.scrollLeft; run(); };
+  if(pp) pp.onclick = () => { playing = !playing; setPP(); pos = row.scrollLeft; run(); };
   if('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => { visible = e.isIntersecting; run(); }), {threshold: .2}).observe(row);
   else { visible = true; run(); }
   setPP();
@@ -1006,7 +1015,7 @@ function setupSliders(){
     let playing = true, t;
     const show = n => { sl[i].classList.remove('on'); i = (n + sl.length) % sl.length; sl[i].classList.add('on'); if(cur) cur.textContent = String(i + 1).padStart(2, '0'); cap(); };
     const loop = () => { clearInterval(t); if(playing) t = setInterval(() => show(i + 1), 4000); };
-    const setPP = () => { pp.innerHTML = svg(playing ? 'pause' : 'play', 2.6); pp.setAttribute('aria-label', playing ? '멈춤' : '재생'); };
+    const setPP = () => { if(!pp) return; pp.innerHTML = svg(playing ? 'pause' : 'play', 2.6); pp.setAttribute('aria-label', playing ? '멈춤' : '재생'); };
     const pv = box.querySelector('[data-prev]'), nx = box.querySelector('[data-next]');
     if(pv) pv.onclick = () => { show(i - 1); loop(); };
     if(nx) nx.onclick = () => { show(i + 1); loop(); };

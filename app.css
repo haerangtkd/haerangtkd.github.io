@@ -1031,3 +1031,19 @@
   .classes .cls .tm{font-size:15px}
   .classes .cls li{font-size:16px}
 }
+
+/* 홈 후기: 가볍게 (작은 카드, 4줄까지만) */
+.rv-wrap.lite .rv-c{flex:0 0 68%;max-width:260px;padding:14px 16px;border:0;box-shadow:none;background:#fff}
+.rv-wrap.lite .rv-q{display:none}
+.rv-wrap.lite .rv-c blockquote{margin:0;font-size:14px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.rv-wrap.lite .rv-more{display:none}
+.rv-wrap.lite .rv-c figcaption{margin-top:8px}
+
+/* 홈 칼럼: 사진 작게 + 제목만 */
+.hcol{border-top:1px solid var(--line)}
+.hcol a{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+.hcol img{width:56px;height:56px;border-radius:8px;object-fit:cover;flex:none}
+.hcol span{flex:1;min-width:0}
+.hcol small{display:block;font-size:12px;font-weight:700;color:var(--brand)}
+.hcol b{display:block;font-size:15px;line-height:1.4;word-break:keep-all;overflow-wrap:anywhere}
+.hcol i{font-style:normal;color:var(--muted);font-size:18px}
