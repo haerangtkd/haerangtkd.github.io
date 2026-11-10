@@ -1234,6 +1234,14 @@
   },
   "columns": [
     {
+      "title": "해랑경희의 인성교육 지향점",
+      "summary": "소나기가 아니라 가랑비 같은 시간이 되어 천천히 젖어들었으면",
+      "url": "columns/character.html?v=1",
+      "image": "columns/img/char-cover.jpg?v=1",
+      "tag": "인성 교육",
+      "date": "2026-11-10"
+    },
+    {
       "title": "함께 수업, 왜 해야할까요?",
       "summary": "또래끼리 해야 안전하지 않을까요? (feat. 혼합연령수업)",
       "url": "columns/mixed-age.html?v=2",
