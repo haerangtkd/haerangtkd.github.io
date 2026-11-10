@@ -70,6 +70,26 @@
     }, {threshold:.35});
     [].forEach.call(vids, function(v){ v.muted = true; vio.observe(v); });
   }
+  // 영상 위 소리 켜기/끄기 (기본은 소리 꺼짐, 하나를 켜면 다른 영상 소리는 꺼짐)
+  var SND = {
+    off:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z" fill="currentColor"/><path d="M22 9l-6 6M16 9l6 6"/></svg>',
+    on:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>'
+  };
+  var sndBtns = [];
+  [].forEach.call(document.querySelectorAll('video'), function(v){
+    var box = v.parentNode, b = document.createElement('button');
+    b.type = 'button'; b.className = 'snd'; b.innerHTML = SND.off; b.setAttribute('aria-label', '소리 켜기');
+    var paint = function(){ b.innerHTML = v.muted ? SND.off : SND.on; b.setAttribute('aria-label', v.muted ? '소리 켜기' : '소리 끄기'); };
+    b.onclick = function(){
+      var turnOn = v.muted;
+      sndBtns.forEach(function(o){ o.v.muted = true; o.paint(); });
+      v.muted = !turnOn;
+      if(turnOn){ var p = v.play(); if(p && p.catch) p.catch(function(){}); }
+      paint();
+    };
+    sndBtns.push({v:v, paint:paint});
+    box.appendChild(b);
+  });
 
   // 웹툰 보기 화면
   var IC = {
@@ -96,6 +116,27 @@
     lastY = y;
   }, {passive:true});
 
+  var nav0 = document.getElementById('cnav');
+  if(nav0){
+    var A = {
+      share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
+      insta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg>',
+      tel:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+      home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>'
+    };
+    nav0.innerHTML = '<div class="acts">'
+      + '<button type="button" class="sh">' + A.share + '<span>공유</span></button>'
+      + '<a href="https://www.instagram.com/haerang_tkd" target="_blank" rel="noopener">' + A.insta + '<span>인스타</span></a>'
+      + '<a href="tel:01099179954">' + A.tel + '<span>전화</span></a>'
+      + '<a href="../">' + A.home + '<span>홈</span></a></div>';
+    nav0.querySelector('.sh').onclick = function(){
+      var url = location.href.split('#')[0], title = document.title;
+      if(navigator.share) navigator.share({title:title, url:url}).catch(function(){});
+      else if(navigator.clipboard) navigator.clipboard.writeText(url).then(function(){ alertLite('링크를 복사했습니다'); });
+    };
+  }
+  function alertLite(t){ var d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(function(){ d.remove(); }, 1800); }
+
   if(window.fetch) fetch('../data.json?t=' + Date.now()).then(function(r){ return r.json(); }).then(function(d){
     var eps = (d.columns || []).filter(function(c){ return c && c.title && c.url && !/^https?:/.test(c.url); }).reverse();   // 오래된 것부터
     var i = -1;
@@ -112,11 +153,12 @@
     pop.innerHTML = eps.map(function(c, k){ return '<a href="' + esc(href(c)) + '"' + (k === i ? ' class="me"' : '') + '><b>' + no(k) + '</b><span>' + esc(c.title) + '</span></a>'; }).reverse().join('');
     var nav = document.getElementById('cnav');
     if(nav){
-      var parts = [];
-      if(pv) parts.push('<a href="' + esc(href(pv)) + '">이전 칼럼</a>');
-      parts.push('<a href="../column.html">칼럼 목록</a>');
-      if(nx) parts.push('<a href="' + esc(href(nx)) + '">다음 칼럼</a>');
-      nav.innerHTML = parts.join('<i>|</i>');
+      var go = nx || null;
+      var card = go
+        ? '<a class="nextep" href="' + esc(href(go)) + '">' + (go.image ? '<img src="../' + esc(go.image) + '" alt="">' : '') + '<span><b>다음화 보기</b><small>' + no(i + 1) + ' · ' + esc(go.title) + '</small></span><i>›</i></a>'
+        : '<a class="nextep" href="../column.html"><span><b>칼럼 목록 보기</b><small>다른 칼럼도 읽어 보세요</small></span><i>›</i></a>';
+      nav.insertAdjacentHTML('afterbegin', card);
+      var old = nav.querySelector('.cl'); if(old) old.remove();
     }
   }).catch(function(){});
 })();
