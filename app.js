@@ -287,7 +287,7 @@ function render(d){
         ${S.column ? columnBlock(d) : ''}
         ${collabBlock(d)}
         <div class="seg seg2"><h2>해랑경희 소식</h2><p>이번 주 수련과 다가오는 일정</p></div>
-        ${(() => { const w = workoutCard(d, true); return w.includes(' rest"') ? '' : `<div class="home">${w}</div>`; })()}
+        ${workoutLine(d)}
         <div class="home">
           ${newsCard(d)}
         </div>
@@ -505,6 +505,20 @@ function workoutCard(d, onHome){
     <div class="hc-head"><span class="ic">${svg('run')}</span><h2>${esc(mo.title || '오늘의 운동')}<small>${krDate(TODAY)}</small></h2>${onHome ? `<a class="more" href="${go('today')}">이달 수련 계획 ›</a>` : ''}</div>
     ${body}<div class="pad"></div>
   </div>`;
+}
+// 홈용 오늘의 운동: 한 줄로 짧게 (쉬는 날·주말엔 안 보임)
+function workoutLine(d){
+  const dow = TODAY.getDay();
+  const evs = eventsOn(TODAY);
+  if(evs.some(e => e.type === '휴관')) return '';
+  const fs = focusList(d).filter(f => f.s <= TODAY && TODAY <= f.en).map(f => f.title);
+  const ev = evs.filter(e => e.type !== '휴관' && !fs.some(t => (e.title || '').includes(t) || t.includes(e.title || '-'))).map(e => e.title);
+  const items = list(weekdayThemes(d)[WEEK[dow]]);
+  if(!fs.length && !ev.length && !items.length) return '';
+  const hi = [...fs, ...ev];
+  return `<a class="wo-line" href="${go('today')}">
+    <span class="wl-h"><b>오늘의 운동</b><small>${TODAY.getMonth() + 1}.${TODAY.getDate()} ${WEEK[dow]}</small></span>
+    <span class="wl-t">${hi.length ? `<em>${hi.map(esc).join(' · ')}</em>` : ''}${items.length ? `<span>${items.map(esc).join(' · ')}</span>` : ''}</span><i>›</i></a>`;
 }
 // 몇째 주 (그 주 월요일 기준)
 function weekLabel(dt){
