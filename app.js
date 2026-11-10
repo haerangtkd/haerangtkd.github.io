@@ -167,7 +167,7 @@ function render(d){
       ${list(fe.plans).length ? `<div class="card fee"><h4>월 회비</h4>${list(fe.plans).map(p => `
         <div class="plan"><div><b>${esc(p.name)}</b>${p.who ? `<span>${esc(p.who)}</span>` : ''}</div><strong>${esc(p.price)}</strong></div>`).join('')}
         ${list(fe.notes).length ? `<ul class="fnotes">${list(fe.notes).map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}</div>` : ''}
-      ${list(fe.referral).length ? `<div class="card park gift">${svg('gift')}<div><b>${esc(fe.referralTitle || '지인 소개 혜택')}</b><div class="rf">${list(fe.referral).map(t => { const [a, ...b] = String(t).split('|'); return `<div class="rr"><span>${esc(a.trim())}</span><em>${esc(b.join('|').trim())}</em></div>`; }).join('')}</div><button class="sharebtn" type="button" data-share>${svg('share',2.2)}지인에게 해랑경희 공유하기</button></div></div>` : ''}
+      ${list(fe.referral).length ? `<div class="card park gift">${svg('gift')}<div><b>${esc(fe.referralTitle || '지인 소개 혜택')}</b><div class="rf">${list(fe.referral).map(t => { const [a, ...b] = String(t).split('|'); return `<div class="rr"><span>${esc(a.trim())}</span><em>${esc(b.join('|').trim())}</em></div>`; }).join('')}</div>${fe.referralNote ? `<p class="rf-note">${esc(fe.referralNote)}</p>` : ''}<button class="sharebtn" type="button" data-share>${svg('share',2.2)}지인에게 해랑경희 공유하기</button></div></div>` : ''}
       ${fe.shuttle ? `<div class="shuttle"><b>${esc(fe.shuttle)}</b>${fe.shuttleNote ? `<p>${esc(fe.shuttleNote)}</p>` : ''}</div>` : ''}
       ${tel0 ? `<a class="btn-call" href="tel:${esc(tel0)}">${svg('phone')}회비·차량 전화로 문의하기</a>` : ''}`)};
 
