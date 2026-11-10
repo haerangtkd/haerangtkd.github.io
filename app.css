@@ -1009,3 +1009,25 @@
 @media (min-width:640px){ .co-row{scroll-padding-inline:0} }
 .col-card .b{flex:1}
 .col-card h4{overflow-wrap:anywhere}
+
+/* 홈 부서별 수업: 왼쪽 영상 · 오른쪽 글 (상자 없이), 시간은 부서 이름 아래 */
+.classes .cls{display:grid;grid-template-columns:52% 1fr;gap:16px;align-items:center}
+.classes .cls:nth-child(even){grid-template-columns:52% 1fr}
+.classes .cls:nth-child(even) .media{order:0}
+.classes .cls .media{aspect-ratio:4/5;border-radius:12px}
+.classes .cls .no{display:none}
+.classes .cls .body{padding:0}
+.classes .cls .row{display:block;border:0;padding:0}
+.classes .cls h3{font-size:20px;line-height:1.3;word-break:keep-all}
+.classes .cls .tm{display:block;margin-top:4px;font-size:13.5px;white-space:normal}
+.classes .cls ul{margin-top:10px}
+.classes .cls li{font-size:13.5px;padding:2px 0;line-height:1.5}
+.classes .cls .go{margin-top:10px;font-size:13.5px}
+@media (min-width:700px){
+  .classes .cls{grid-template-columns:1.2fr 1fr;gap:36px}
+  .classes .cls:nth-child(even){grid-template-columns:1.2fr 1fr}
+  .classes .cls .media{aspect-ratio:4/3}
+  .classes .cls h3{font-size:26px}
+  .classes .cls .tm{font-size:15px}
+  .classes .cls li{font-size:16px}
+}
