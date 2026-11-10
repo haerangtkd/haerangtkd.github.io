@@ -80,10 +80,12 @@
   .vs ul li::before{content:'· '}
   .vs .a{background:#EAE1D2;color:#5E5650}
   .vs .b{background:var(--red);color:var(--iv)}
-  .stamp{display:inline-block;margin-top:18px;padding:8px 18px;border:2px solid var(--red);border-radius:999px;color:var(--red);font-family:var(--pen);font-size:22px;transform:rotate(-6deg)}
+  .vswrap{position:relative;padding-bottom:84px}
+  .stamp{position:absolute;right:-2px;bottom:2px;width:108px;height:108px;color:#E0232C;transform:rotate(-14deg);pointer-events:none}
+  .stamp svg{width:100%;height:100%;display:block;filter:url(#ink)}
   .js .stamp.fx-pop2{opacity:0}
-  .js .stamp.fx-pop2.on{animation:stamp .5s .2s cubic-bezier(.2,1.6,.4,1) forwards}
-  @keyframes stamp{0%{opacity:0;transform:rotate(-6deg) scale(1.8)}100%{opacity:1;transform:rotate(-6deg) scale(1)}}
+  .js .stamp.fx-pop2.on{animation:stamp .45s .25s cubic-bezier(.3,1.5,.5,1) forwards}
+  @keyframes stamp{0%{opacity:0;transform:rotate(-14deg) scale(2.2)}60%{opacity:.95}100%{opacity:.92;transform:rotate(-14deg) scale(1)}}
   .gold{list-style:none;margin:28px auto 0;max-width:380px;text-align:left}
   .gold li{margin-top:24px}
   .gold b{font-size:20px;font-weight:900}
@@ -142,6 +144,9 @@
   <a class="home" href="../" aria-label="홈"><img src="../img/lion-white.png" alt=""></a>
 </header>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="ink"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.2" result="d"/><feComponentTransfer in="n" result="m"><feFuncA type="discrete" tableValues="1 1 1 1 1 0 1 1 1 1 1 1"/></feComponentTransfer><feComposite in="d" in2="m" operator="in"/></filter>
+</svg>
 <main class="strip">
 
   <section class="scene" style="padding-top:12vh">
@@ -171,11 +176,18 @@
     <p class="t">비교가 아닌 <span class="r fx-zoom" data-fx>존중</span>을,<br>경쟁이 아닌 <span class="r fx-zoom" data-fx>협력</span>을</p>
     <p class="s" style="font-size:17px;color:#C6C0BA;line-height:1.85;margin-top:22px">비교의 부담이 아닌, 함께 어우러지며<br>건강한 사회성의 기초를 만듭니다.</p>
     <figure class="media"><img src="img/mixed-together.jpg" alt="함께 운동하는 언니와 동생" loading="lazy"></figure>
+    <div class="vswrap">
     <div class="vs">
       <div class="a"><h5>또래 생활 중심</h5><ul><li>평가받는 위치</li><li>비교와 순위</li><li>상위 소수만 남는 구조</li></ul></div>
       <div class="b"><h5>혼합연령 생활 중심</h5><ul><li>함께 성장하는 즐거움</li><li>존중과 역할 분담</li><li>관계와 배려</li></ul></div>
     </div>
-    <span class="stamp fx-pop2" data-fx>해랑경희의 선택</span>
+    <span class="stamp fx-pop2" data-fx aria-label="해랑경희의 선택"><svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="4"/>
+      <circle cx="50" cy="50" r="39" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <text x="50" y="44" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="15" fill="currentColor">해랑경희의</text>
+      <text x="50" y="66" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="21" fill="currentColor" letter-spacing="2">선택</text>
+    </svg></span>
+    </div>
   </section>
 
   <section class="scene">
@@ -192,7 +204,7 @@
   <section class="scene">
     <div class="paper">
       <p class="t">이 환경에서 우리는<br><span class="r">이렇게 성장합니다.</span></p>
-      <figure class="media" style="max-width:330px"><video data-auto muted playsinline loop preload="none" poster="img/mixed-belt.jpg"><source src="video/mixed-belt.mp4" type="video/mp4"></video></figure>
+      <figure class="media" style="max-width:400px"><video data-auto muted playsinline loop preload="none" poster="img/mixed-belt.jpg?v=2"><source src="video/mixed-belt.mp4?v=2" type="video/mp4"></video></figure>
       <ul class="chk" data-fx>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>새로운 도전에 대한 심리적 문턱</li>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>실패 후 다시 일어서는 회복 탄력성</li>
