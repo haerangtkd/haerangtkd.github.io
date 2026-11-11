@@ -148,16 +148,20 @@
   if (tts) { pickVoice(); tts.addEventListener && tts.addEventListener('voiceschanged', pickVoice); }
   function unlockSpeech() { // 아이패드·아이폰은 첫 터치 때 한 번 깨워 둬야 소리가 납니다
     if (!tts || ttsReady) return; ttsReady = true;
+    if (!/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)) return; // 깨우기는 애플 기기에서만 필요
     try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.lang = 'ko-KR'; tts.speak(u); } catch (_) {}
   }
-  function say(text) {
-    if (!tts) return false;
+  function say(text, onFail) {
+    if (!tts) { onFail && onFail(); return false; }
     try {
       if (tts.speaking || tts.pending) tts.cancel();   // 크롬은 cancel 바로 뒤의 말을 삼키는 경우가 있어 잠깐 쉬고 말함
       if (!koVoice) pickVoice();
       setTimeout(() => {
         const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; if (koVoice) u.voice = koVoice; u.rate = 0.95; u.pitch = 1.05; u.volume = 1;
+        let started = false; u.onstart = () => { started = true; };
         tts.resume(); tts.speak(u);
+        // 2.5초 안에 말을 시작하지 못하면 이 브라우저는 음성이 막혀 있는 것
+        setTimeout(() => { if (!started) { tts.cancel(); onFail && onFail(); } }, 2500);
       }, 80);
       return true;
     } catch (_) { return false; }
@@ -256,9 +260,9 @@
   $('sndTest').onclick = () => {
     unlockSpeech(); beep(true); pickVoice();
     if (!tts) { $('msg').textContent = '이 기기(브라우저)는 음성 안내를 지원하지 않습니다'; return; }
-    setTimeout(() => say('해랑경희 태권도장입니다. 소리가 잘 들립니다.'), 350);
+    setTimeout(() => say('해랑경희 태권도장입니다. 소리가 잘 들립니다.', () => { $('msg').textContent = '이 브라우저에서는 음성이 나오지 않습니다. 태블릿의 Safari·크롬이나 엣지에서 열어 주세요'; }), 350);
     $('msg').textContent = koVoice ? '음성: ' + koVoice.name : '한국어 음성이 없어 기본 음성으로 읽습니다';
-    setTimeout(() => { if ($('msg').textContent.startsWith('음성') || $('msg').textContent.startsWith('한국어')) $('msg').textContent = ''; }, 5000);
+    setTimeout(() => { if ($('msg').textContent.startsWith('음성') || $('msg').textContent.startsWith('한국어')) $('msg').textContent = ''; }, 6000);
   };
 
   // ── 태블릿 등록 ──
