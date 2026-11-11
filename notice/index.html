@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>해랑경희</title>
-<meta name="theme-color" content="#F3F1EE">
+<meta name="theme-color" content="#F6F3EF">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="해랑경희">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root{--brand:#A40F16;--brand-soft:#FBEDEE;--ink:#1C1A19;--muted:#6B6460;--bg:#F3F1EE;--card:#fff;--line:#ECE5DE;
         --navy:#1F3B63;--teal:#2E8C8A;--orange:#D9822B;--green:#1E7A46;--gold:#B7862B;--ok:#1E7A46}
@@ -197,6 +197,93 @@
   .sheet button.k{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:12px 6px;font-size:17px;font-weight:700;border-radius:12px}
   .sheet button.k.on{background:var(--brand-soft);color:var(--brand)}
   .sheet .avatar{width:40px;height:40px;font-size:16px;box-shadow:none}
+
+  /* ═════════ 2026-11 새 디자인 (위 기본 모양을 덮어씀) ═════════ */
+  :root{--brand:#A40F16;--brand-soft:#FBEEEE;--ink:#1D1B1A;--muted:#7A736E;--bg:#F6F3EF;--card:#fff;--line:#ECE6DF;--navy:#1F3B63;--green:#1E7A46;--green-soft:#E7F4EC}
+  body{font-family:'Pretendard Variable',Pretendard,system-ui,-apple-system,sans-serif;letter-spacing:-.01em;font-size:16px}
+  html,body{background:var(--bg)}
+  .card{border:1px solid var(--line);border-radius:20px}
+  .card h2{font-weight:800}
+  .btn{border-radius:14px;font-weight:700}
+  .post,.album,.att-kid,.cal,.fee-now,.tip{border:1px solid var(--line);border-radius:16px}
+  .post h3,.album h3{font-weight:700}
+  .tag{border-radius:6px;font-weight:600}
+  .tag.t-notice{background:#E9EEF6;color:var(--navy)}.tag.t-journal{background:var(--brand-soft);color:var(--brand)}.tag.t-album{background:#E4F2F1;color:#22706E}
+  .tag.pin{background:var(--brand);color:#fff}
+  .tag.k-휴관{background:#FDECEC;color:#A40F16}.tag.k-행사,.tag.k-대회{background:#E9EEF6;color:var(--navy)}.tag.k-심사{background:#FFF1DE;color:#94550B}
+  .msec{font-weight:700;font-size:13.5px}
+  #v-home{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+  .thead{position:sticky;top:0;z-index:6;background:rgba(246,243,239,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);margin:0 -16px;padding:calc(16px + env(safe-area-inset-top)) 20px 8px}
+  .thead h1{font-size:26px;font-weight:800;letter-spacing:-.03em}
+  /* 아래 탭 */
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:15;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:4px 0 calc(4px + env(safe-area-inset-bottom))}
+  #v-home[hidden]+.nav{display:none}
+  .nav .in{display:flex;max-width:560px;margin:0 auto}
+  .nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:600;color:#A39B95;padding:7px 0 5px;position:relative}
+  .nav button svg{width:25px;height:25px}
+  .nav button.on{color:var(--brand)}
+  .nav button.on svg{stroke-width:2.4}
+  .nav .dot{position:absolute;top:5px;left:calc(50% + 9px);width:8px;height:8px;border-radius:50%;background:#E5484D;border:2px solid #fff;box-sizing:content-box}
+  /* 홈 */
+  .hello{padding:calc(20px + env(safe-area-inset-top)) 4px 4px}
+  .kidbar{display:flex;align-items:center;gap:10px}
+  .kidbar .avatar{width:42px;height:42px;font-size:17px;box-shadow:none}
+  .kidbar .who b{font-size:24px;font-weight:800;letter-spacing:-.03em}
+  .kidbar .who svg{width:20px;height:20px}
+  .today-d{margin-left:auto;font-size:13px;color:var(--muted);font-weight:600;background:#fff;border:1px solid var(--line);border-radius:99px;padding:5px 11px;white-space:nowrap}
+  .hello .sub{font-size:14.5px;color:var(--muted);margin:8px 2px 0}
+  .banner{border-radius:14px}
+  .status{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 16px 18px 18px;margin-top:14px;width:100%;text-align:left}
+  .status .si{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;background:#F2EEEA;color:var(--muted);flex:0 0 auto}
+  .status .si svg{width:26px;height:26px}
+  .status.in .si{background:var(--green-soft);color:var(--green)}
+  .status.out .si{background:#E9EEF6;color:var(--navy)}
+  .status .st{flex:1;min-width:0}
+  .status b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .status small{font-size:13.5px;color:var(--muted)}
+  .status>svg{width:20px;height:20px;color:#C2BAB3;flex:0 0 auto}
+  .sec{margin-top:24px}
+  .sec h2{display:flex;align-items:center;font-size:17px;font-weight:800;padding:0 4px 9px;letter-spacing:-.02em}
+  .sec h2 button{margin-left:auto;border:0;background:none;font-size:13.5px;color:var(--muted);font-weight:600;padding:4px}
+  .list{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .list .li{display:flex;align-items:center;gap:12px;padding:14px 16px;border:0;border-top:1px solid var(--line);width:100%;background:#fff;text-align:left;font-size:15.5px}
+  .list .li:first-child{border-top:0}
+  .li .lic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;background:#F4F0EC;color:#5F5853}
+  .li .lic svg{width:20px;height:20px}
+  .li .lic.i-notice{background:#E9EEF6;color:var(--navy)}.li .lic.i-journal{background:var(--brand-soft);color:var(--brand)}.li .lic.i-album{background:#E4F2F1;color:#22706E}
+  .li .lt{flex:1;min-width:0}
+  .li .lt b{display:block;font-weight:600;line-height:1.4}
+  .li .lt small{display:block;font-size:13px;color:var(--muted);line-height:1.45;margin-top:1px}
+  .li .lt small.pre{white-space:pre-wrap}
+  .li .lt .tag{display:inline-block;margin-bottom:3px}
+  .li>svg{width:18px;height:18px;color:#C2BAB3;flex:0 0 auto}
+  .li .new{width:8px;height:8px;border-radius:50%;background:#E5484D;flex:0 0 auto}
+  .li .tm{font-size:14px;color:var(--muted)}
+  .li.danger b{color:#B42318}.li.danger .lic{background:#FDEDEC;color:#B42318}
+  .li.past{opacity:.5}
+  .li.flash{background:#FFF7E8;transition:background .3s}
+  .calm{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14.5px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 16px}
+  .calm svg{width:20px;height:20px;color:var(--green)}
+  .dchip{width:46px;flex:0 0 auto;text-align:center;border-radius:11px;background:#F6F1EC;padding:5px 0 6px;line-height:1.2}
+  .dchip small{display:block;font-size:11.5px;color:var(--muted)}
+  .dchip b{display:block;font-size:18px;font-weight:800;color:var(--ink)}
+  /* 소식 */
+  .chips.sticky{position:sticky;top:calc(58px + env(safe-area-inset-top));z-index:5;background:var(--bg);margin:0 -16px;padding:6px 16px 8px}
+  .chips button{font-weight:600}
+  .chips button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  /* 일정 달력 */
+  .cal .c{min-height:52px}
+  .cal .c.has .n{font-weight:700}
+  .cal .evs{display:flex;gap:3px}
+  .cal .evs i{width:6px;height:6px;border-radius:50%;background:var(--brand)}
+  .cal .evs i.k-행사,.cal .evs i.k-대회{background:var(--navy)}.cal .evs i.k-심사{background:#D9822B}.cal .evs i.k-휴관{background:#9A928C}
+  .list.sch{margin-top:12px}
+  .att-list.fold .li:nth-child(n+6){display:none}
+  .more-btn{display:block;width:100%;margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-size:14.5px;font-weight:600;color:var(--muted)}
+  /* 하위 화면 위 띠 */
+  .bar{background:rgba(246,243,239,.95);color:var(--ink);border-bottom:1px solid var(--line);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+  .bar .x{color:var(--ink)}
+  .bar h1{font-size:19px;font-weight:800}
 </style>
 </head>
 <body>
@@ -276,7 +363,7 @@
     </div>
     <label class="f">휴대폰 번호 뒷자리 4자리</label>
     <input class="ph" id="ph" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="1234" autocomplete="off">
-    <p class="note">아이가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원합니다. 관장님이 확인한 뒤부터 이용할 수 있고, 적은 정보는 출결과 알림에만 씁니다.</p>
+    <p class="note">아이가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원합니다. 도장에서 확인한 뒤부터 이용할 수 있고, 적은 정보는 출결과 알림에만 씁니다.</p>
     <button class="btn" id="joinBtn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
       <span>가입하고 알림 켜기</span>
@@ -285,40 +372,16 @@
   </section>
 </main>
 
-<!-- ═════════ 홈 ═════════ -->
+<!-- ═════════ 앱 화면 (아래 탭) ═════════ -->
 <main class="wrap" id="v-home" hidden>
-  <div class="home-top">
-    <div class="avatar" id="hAvatar"></div>
-    <button class="who" id="hWho"><b id="hName"></b><svg id="hSwitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
-    <button class="gear" data-go="me" aria-label="내 정보"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
-  </div>
-
-  <div class="banner" id="hPending" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>관장님 확인 중입니다. 확인이 끝나면 알림장·앨범·출석부를 볼 수 있습니다.</span></div>
-  <div class="banner" id="hNoPush" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="m2 2 20 20"/></svg><span>알림이 꺼져 있습니다.</span><button id="hPushOn">알림 켜기</button></div>
-
-  <section class="menu-card">
-    <div class="dj"><b>해랑경희 태권도장</b><span id="hRel"></span></div>
-    <div class="grid">
-      <button class="mi" data-go="journal"><span class="ic" style="background:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg></span>알림장<i class="dot" id="d-journal" hidden></i></button>
-      <button class="mi" data-go="notice"><span class="ic" style="background:var(--navy)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/><path d="M19 6a7 7 0 0 1 0 12"/></svg></span>공지사항<i class="dot" id="d-notice" hidden></i></button>
-      <button class="mi" data-go="album"><span class="ic" style="background:var(--teal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg></span>앨범<i class="dot" id="d-album" hidden></i></button>
-      <button class="mi" data-go="schedule"><span class="ic" style="background:var(--orange)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4"/></svg><span class="num" id="hDate"></span></span>일정표</button>
-      <button class="mi" data-go="attendance"><span class="ic" style="background:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4"/><path d="m8.5 14 2.5 2.5 4.5-5"/></svg></span>출석부</button>
-      <button class="mi" data-go="fee"><span class="ic" style="background:var(--gold)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m7.5 8.5 2 7 2.5-6 2.5 6 2-7"/><path d="M7 12h10"/></svg></span>회비<i class="dot" id="d-fee" hidden></i></button>
-    </div>
-  </section>
-
-  <div class="tip" id="hInstall" hidden><b class="t">앱으로 설치하면 더 편합니다</b>지금은 인터넷 화면에서 쓰고 계십니다. 홈 화면에 설치하면 앱처럼 바로 열립니다.<div class="row"><button id="hInstallBtn">설치하기</button><button id="hInstallX">닫기</button></div></div>
-  <div class="tip" id="hNotiTip" hidden><b class="t">알림이 화면 위에 안 뜨나요?</b>갤럭시는 알림이 알림창에만 쌓이게 설정돼 있는 경우가 있습니다.
-    <ol><li><b>설정</b> → <b>애플리케이션</b> → <b id="tipApp">해랑경희</b></li><li><b>알림</b> → <b>알림 카테고리</b>(또는 알림 유형)</li><li><b>팝업</b>(화면 위에 표시)과 <b>소리</b> 켜기</li></ol>
-    <div class="row"><button id="hNotiTest">테스트 알림 보내기</button><button id="hNotiX">닫기</button></div></div>
-  <button class="today" id="hToday" data-go="attendance" hidden></button>
-  <div class="upc" id="hUpc" hidden><h3>다가오는 일정</h3><ul id="hUpcList"></ul></div>
+  <header class="thead" id="tHead" hidden></header>
+  <div id="tBody"></div>
 </main>
+<nav class="nav" id="nav"></nav>
 
 <!-- ═════════ 하위 화면 ═════════ -->
 <div class="page" id="v-page" hidden>
-  <header class="bar"><button class="x" id="pClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button><h1 id="pTitle"></h1></header>
+  <header class="bar"><button class="x" id="pClose" aria-label="뒤로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button><h1 id="pTitle"></h1></header>
   <div class="wrap" id="pBody"></div>
 </div>
 
@@ -429,20 +492,47 @@
       if (!j.ok) throw new Error(j.error);
       store.set(LS, { ...(s || {}), token: j.token, children, relation: rel, phone4: ph, approved: j.approved, push: s ? s.push : !!subscription, kid: 0 });
       if (!s && !subscription) toast('가입했습니다. 알림은 꺼져 있습니다');
-      else toast(s ? (j.approved ? '저장했습니다' : '저장했습니다. 관장님이 다시 확인합니다') : '가입했습니다. 관장님 확인 후 이용할 수 있습니다');
+      else toast(s ? (j.approved ? '저장했습니다' : '저장했어요. 도장에서 다시 확인해요') : '가입했어요. 도장에서 확인한 뒤 이용할 수 있어요');
       goHome();
     } catch (e) { toast(e.message || '잠시 후 다시 시도해 주세요'); }
     finally { btn.disabled = false; }
   };
   $('joinCancel').onclick = () => goHome();
 
-  // ═════════ 홈 ═════════
+  // ═════════ 앱 화면 (아래 탭 4개: 홈 · 소식 · 일정 · 우리 아이) ═════════
+  const TABS = { home: '홈', news: '소식', schedule: '일정', kid: '우리 아이' };
+  // 예전 알림 주소(#journal 등)도 그대로 열리게
+  const LEGACY = { journal: ['news', '알림장'], notice: ['news', '공지'], album: ['news', '앨범'], attendance: ['kid'], me: ['kid'], schedule: ['schedule'], news: ['news'], kid: ['kid'], home: ['home'] };
+  const TYPE_OF = { 공지: 'notice', 알림장: 'journal', 앨범: 'album' };
+  let tab = 'home', newsF = '전체', schMonth = null, attMonth = null, news = null;
+  const IC = {
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+    news: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/><path d="M19 6a7 7 0 0 1 0 12"/></svg>',
+    schedule: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+    kid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+    notice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/></svg>',
+    journal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg>',
+    album: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>',
+    fee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M7 15h4"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>',
+    out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>',
+    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  };
+  const TYPE_LABEL = { notice: '공지', journal: '알림장', album: '앨범' };
+  const fresh = x => { const c = (home && home.counts) || {}, seen = store.get(SEEN) || {}; return c[x] > (seen[x] || 0) && (x === 'notice' || (me() || {}).approved); };
+  const markSeen = types => { const c = (home && home.counts) || {}, seen = store.get(SEEN) || {}; types.forEach(x => { if (c[x]) seen[x] = c[x]; }); store.set(SEEN, seen); drawNav(); };
+  const tbody = html => { $('tBody').innerHTML = html; watchReads(); };
+  const longDate = () => { const d = dayOf(Date.now()); return d.m + '월 ' + d.d + '일 ' + d.w + '요일'; };
+  const md = date => { const [, m, d] = date.split('-'); return { m: +m, d: +d, w: WD[new Date(date + 'T00:00:00Z').getUTCDay()] }; };
+
   async function goHome() {
     show('v-home');
     renderHome();
     try {
       const j = await post('/p/home');
-      if (j.removed) { store.set(LS, null); fillJoin(null); show('v-gate', 'g-join'); toast('등록이 해제되었습니다. 다시 가입해 주세요'); return; }
+      if (j.removed) { store.set(LS, null); fillJoin(null); show('v-gate', 'g-join'); toast('등록이 해제되었어요. 다시 가입해 주세요'); return; }
       if (!j.ok) return;
       home = j;
       const s = me();
@@ -450,61 +540,220 @@
       renderHome();
     } catch (_) {}
   }
-  function renderHome() {
-    const s = me() || {}, k = curKid();
-    $('hAvatar').textContent = initial(k);
-    $('hName').textContent = k;
-    $('hSwitch').style.display = (s.children || []).length > 1 ? '' : 'none';
-    $('hRel').textContent = s.relation ? k + ' ' + s.relation : '';
-    $('hDate').textContent = +today().slice(8);
-    $('hPending').hidden = !!s.approved || !home;
-    $('hNoPush').hidden = !home || !canPush || (s.push && Notification.permission === 'granted');
-    // 안드로이드 안내
-    $('hInstall').hidden = !(isAndroid && !standalone && !store.get('haerang-x-install'));
-    $('hNotiTip').hidden = !(isAndroid && home && s.push && !store.get('haerang-x-notitip'));
-    $('tipApp').textContent = standalone ? '해랑경희' : (/SamsungBrowser/i.test(ua) ? '삼성 인터넷' : 'Chrome');
-    // 오늘 출결
-    const t = (home && home.today && home.today[k]) || {};
-    const el = $('hToday');
-    el.className = 'today' + (t.out ? ' out' : t.in ? ' in' : '');
-    el.innerHTML = '<span class="tdot">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span><b>' +
-      (t.out ? '오늘 ' + esc(t.out) + ' 하원했습니다' : t.in ? '오늘 ' + esc(t.in) + ' 등원했습니다' : '오늘은 아직 등원 전입니다') + '</b><small>' +
-      (t.out && t.in ? '등원 ' + esc(t.in) + ' · ' : '') + '출석부 보기</small></span>';
-    el.hidden = !s.approved;
-    // 새 소식 점
-    const seen = store.get(SEEN) || {};
-    if (home && home.counts) ['journal', 'notice', 'album'].forEach(x => $('d-' + x).hidden = !(home.counts[x] > (seen[x] || 0)));
-    $('d-fee').hidden = !(home && home.fee && home.fee.kids.some(f => !f.paid) && seen.feeMonth !== home.fee.month);
-    // 다가오는 일정
-    const up = (home && home.counts && home.counts.schedule) || [];
-    $('hUpc').hidden = !up.length;
-    $('hUpcList').innerHTML = up.map(x => { const [, m, d] = x.date.split('-'); const w = WD[new Date(x.date + 'T00:00:00Z').getUTCDay()]; return '<li><span class="d">' + (+m) + '/' + (+d) + ' (' + w + ')</span><span>' + esc(x.title) + '</span></li>'; }).join('');
+  // 다른 곳에서 부르는 이름은 그대로 둠
+  function renderHome() { drawNav(); if (tab === 'home' && !$('v-home').hidden) drawHome(); }
+
+  function drawNav() {
+    $('nav').innerHTML = '<div class="in">' + Object.keys(TABS).map(t => '<button data-tab="' + t + '" class="' + (t === tab ? 'on' : '') + '">' + IC[t] + '<span>' + TABS[t] + '</span>' +
+      (t === 'news' && ['notice', 'journal', 'album'].some(fresh) ? '<i class="dot"></i>' : '') + '</button>').join('') + '</div>';
   }
-  $('hWho').onclick = () => {
+  $('nav').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); };
+
+  function showTab(name, opt = {}) {
+    if (!TABS[name]) name = 'home';
+    const again = name === tab;
+    tab = name;
+    if (opt.filter) newsF = opt.filter;
+    history.replaceState(null, '', name === 'home' ? location.pathname : '#' + name);
+    $('tHead').innerHTML = name === 'home' ? '' : '<h1>' + TABS[name] + '</h1>';
+    $('tHead').hidden = name === 'home';
+    if (!again || !opt.keep) scrollTo(0, 0);
+    $('tBody').onclick = null;
+    drawNav();
+    ({ home: drawHome, news: drawNews, schedule: drawSchedule, kid: drawKid })[name]();
+  }
+
+  // ── 홈: 오늘 상태 + 확인할 것 + 다가오는 일정 ──
+  function drawHome() {
+    const s = me() || {}, k = curKid();
+    const t = (home && home.today && home.today[k]) || {};
+    const many = (s.children || []).length > 1;
+    let h = '<div class="hello"><div class="kidbar"><span class="avatar">' + esc(initial(k)) + '</span><button class="who" id="hWho"><b>' + esc(k) + '</b>' + (many ? IC.down : '') + '</button>' +
+      '<span class="today-d">' + longDate() + '</span></div>' + (s.relation ? '<p class="sub">' + esc(k) + ' ' + esc(s.relation) + '님, 안녕하세요</p>' : '') + '</div>';
+    if (home && !s.approved) h += '<div class="banner">' + ICON_CLOCK + '<span>도장에서 확인 중이에요. 확인이 끝나면 알림장·앨범·출석 기록을 볼 수 있어요.</span></div>';
+    if (home && canPush && !(s.push && Notification.permission === 'granted')) h += '<div class="banner">' + IC.bell + '<span>알림이 꺼져 있어요. 등원·하원 알림을 받으려면 켜 주세요.</span><button id="hPushOn">알림 켜기</button></div>';
+    if (s.approved) {
+      h += '<button class="status' + (t.out ? ' out' : t.in ? ' in' : '') + '" data-go-tab="kid"><span class="si">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span class="st"><b>' +
+        (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</b><small>' +
+        (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>';
+    }
+    const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장'], ['album', '새 사진이 올라왔어요', '앨범']].filter(([x]) => fresh(x));
+    h += '<section class="sec"><h2>확인할 소식</h2>' + (items.length
+      ? '<div class="list">' + items.map(([x, label, f]) => '<button class="li" data-news="' + f + '"><span class="lic i-' + x + '">' + IC[x] + '</span><span class="lt"><b>' + label + '</b><small>' + f + '에서 보기</small></span><i class="new"></i>' + ICON.right + '</button>').join('') + '</div>'
+      : '<div class="calm">' + ICON.check + '<span>새 소식을 모두 확인했어요</span></div>') + '</section>';
+    const up = (home && home.counts && home.counts.schedule) || [];
+    h += '<section class="sec"><h2>다가오는 일정<button data-go-tab="schedule">전체 보기</button></h2>' + (up.length
+      ? '<div class="list">' + up.map(x => { const d = md(x.date); return '<div class="li"><span class="dchip"><small>' + d.m + '월</small><b>' + d.d + '</b></span><span class="lt"><b>' + esc(x.title) + '</b><small>' + d.w + '요일' + (x.kind ? ' · ' + esc(x.kind) : '') + '</small></span></div>'; }).join('') + '</div>'
+      : '<div class="calm"><span>다가오는 일정이 없어요</span></div>') + '</section>';
+    if (isAndroid && !standalone && !store.get('haerang-x-install')) h += '<div class="tip"><b class="t">앱으로 설치하면 더 편해요</b>지금은 인터넷 화면에서 쓰고 계세요. 홈 화면에 설치하면 앱처럼 바로 열려요.<div class="row"><button id="hInstallBtn">설치하기</button><button id="hInstallX">닫기</button></div></div>';
+    if (isAndroid && home && s.push && !store.get('haerang-x-notitip')) h += '<div class="tip"><b class="t">알림이 화면 위에 안 뜨나요?</b>갤럭시는 알림이 알림창에만 쌓이게 설정돼 있는 경우가 있어요.<ol><li><b>설정</b> → <b>애플리케이션</b> → <b>' + (standalone ? '해랑경희' : (/SamsungBrowser/i.test(ua) ? '삼성 인터넷' : 'Chrome')) + '</b></li><li><b>알림</b> → <b>알림 카테고리</b>(또는 알림 유형)</li><li><b>팝업</b>(화면 위에 표시)과 <b>소리</b> 켜기</li></ol><div class="row"><button id="hNotiTest">테스트 알림 보내기</button><button id="hNotiX">닫기</button></div></div>';
+    tbody(h);
+    $('tBody').onclick = async e => {
+      const g = e.target.closest('[data-go-tab]'); if (g) return showTab(g.dataset.goTab);
+      const n = e.target.closest('[data-news]'); if (n) return showTab('news', { filter: n.dataset.news });
+      if (e.target.closest('#hWho')) return pickKid();
+      if (e.target.closest('#hPushOn')) return pushOn();
+      if (e.target.closest('#hInstallBtn')) { if (installEvt) $('installBtn').onclick(); else alert(/SamsungBrowser/i.test(ua) ? '화면 아래 ≡ 메뉴 → 현재 페이지 추가 → 홈 화면을 눌러 주세요.' : '오른쪽 위 ⋮ → 앱 설치(또는 홈 화면에 추가)를 눌러 주세요.'); return; }
+      if (e.target.closest('#hInstallX')) { store.set('haerang-x-install', 1); return drawHome(); }
+      if (e.target.closest('#hNotiX')) { store.set('haerang-x-notitip', 1); return drawHome(); }
+      if (e.target.closest('#hNotiTest')) {
+        if (Notification.permission !== 'granted') return toast('알림이 꺼져 있어요');
+        const r = reg || await navigator.serviceWorker.ready;
+        setTimeout(() => r.showNotification('해랑경희 테스트', { body: '이 알림이 화면 위에 떴다면 설정이 잘 된 거예요.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test', renotify: true, vibrate: [200, 100, 200] }), 3000);
+        toast('3초 뒤에 알림이 와요. 화면 위에 뜨는지 봐 주세요');
+      }
+    };
+  }
+  const ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+
+  function pickKid(after) {
     const s = me(); if (!s || (s.children || []).length < 2) return;
     const sh = document.createElement('div'); sh.className = 'sheet';
     sh.innerHTML = '<div class="in"><h3>아이 선택</h3>' + s.children.map((c, i) => '<button class="k' + (i === (s.kid | 0) ? ' on' : '') + '" data-i="' + i + '"><span class="avatar">' + esc(initial(c)) + '</span>' + esc(c) + '</button>').join('') + '</div>';
-    sh.onclick = e => { const b = e.target.closest('button.k'); if (b) { store.set(LS, { ...me(), kid: +b.dataset.i }); renderHome(); } sh.remove(); };
+    sh.onclick = e => { const b = e.target.closest('button.k'); if (b) { store.set(LS, { ...me(), kid: +b.dataset.i }); renderHome(); if (after) after(); } sh.remove(); };
     document.body.appendChild(sh);
-  };
-  $('hInstallBtn').onclick = () => { if (installEvt) $('installBtn').onclick(); else { alert(/SamsungBrowser/i.test(ua) ? '화면 아래 ≡ 메뉴 → 현재 페이지 추가 → 홈 화면을 눌러 주세요.' : '오른쪽 위 ⋮ → 앱 설치(또는 홈 화면에 추가)를 눌러 주세요.'); } };
-  $('hInstallX').onclick = () => { store.set('haerang-x-install', 1); renderHome(); };
-  $('hNotiX').onclick = () => { store.set('haerang-x-notitip', 1); renderHome(); };
-  $('hNotiTest').onclick = async () => {
-    if (Notification.permission !== 'granted') return toast('알림이 꺼져 있습니다');
-    const r = reg || await navigator.serviceWorker.ready;
-    setTimeout(() => r.showNotification('해랑경희 테스트', { body: '이 알림이 화면 위에 떴다면 설정이 잘 된 것입니다.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test', renotify: true, vibrate: [200, 100, 200] }), 3000);
-    toast('3초 뒤에 알림이 옵니다. 화면 위에 뜨는지 봐 주세요');
-  };
-  $('hPushOn').onclick = async () => {
+  }
+  async function pushOn() {
     const sub = await subscribePush();
     if (!sub) { alert(isIOS ? '설정 → 알림 → 해랑경희에서 알림을 허용한 뒤 다시 눌러 주세요.' : '주소창의 사이트 설정에서 알림을 허용한 뒤 다시 눌러 주세요.'); return; }
-    await post('/p/push', { subscription: sub }); store.set(LS, { ...me(), push: true }); toast('알림을 켰습니다'); renderHome();
-  };
+    await post('/p/push', { subscription: sub }); store.set(LS, { ...me(), push: true }); toast('알림을 켰어요'); renderHome();
+  }
 
-  // ═════════ 하위 화면 ═════════
-  const PAGES = { journal: '알림장', notice: '공지사항', album: '앨범', schedule: '일정표', attendance: '출석부', fee: '회비', me: '내 정보' };
-  document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) openPage(b.dataset.go); });
+  // ── 소식: 공지 · 알림장 · 앨범을 한 곳에 ──
+  async function drawNews() {
+    const s = me() || {};
+    if (!news) tbody('<div class="empty">불러오는 중…</div>');
+    try {
+      const [n, j, a] = await Promise.all([post('/p/notices'), s.approved ? post('/p/journal') : null, s.approved ? post('/p/albums') : null]);
+      news = {
+        notice: (n && n.ok ? n.items : []).map(x => ({ ...x, t: 'notice' })),
+        journal: (j && j.ok ? j.items : []).map(x => ({ ...x, t: 'journal' })),
+        album: (a && a.ok ? a.items : []).map(x => ({ ...x, t: 'album' })),
+      };
+    } catch (_) { if (!news) return tbody('<div class="empty">불러오지 못했어요</div>'); }
+    if (tab !== 'news') return;
+    paintNews();
+  }
+  function paintNews() {
+    const s = me() || {};
+    const t = TYPE_OF[newsF];
+    let list = t ? news[t] : [...news.notice, ...news.journal, ...news.album];
+    const pinned = list.filter(x => x.pin && x.t === 'notice').sort((p, q) => q.at - p.at);
+    list = list.filter(x => !(x.pin && x.t === 'notice')).sort((p, q) => q.at - p.at);
+    markSeen(t ? [t] : ['notice', 'journal', 'album']);
+    const chips = '<div class="chips sticky">' + ['전체', '공지', '알림장', '앨범'].map(k => '<button class="' + (k === newsF ? 'on' : '') + '">' + k + '</button>').join('') + '</div>';
+    const card = x => x.t === 'album' ? albumCard(x) : postCard(x, { kids: x.t === 'journal', type: !t });
+    let h = chips;
+    if (!s.approved && (t === 'journal' || t === 'album')) h += '<div class="empty">도장에서 확인이 끝나면 볼 수 있어요</div>';
+    else if (!pinned.length && !list.length) h += '<div class="empty">아직 ' + (t ? newsF : '소식') + '이 없어요</div>';
+    else h += (pinned.length ? '<div class="msec">꼭 읽어 주세요</div>' + pinned.map(card).join('') : '') + grouped(list, card);
+    tbody(h);
+    loadThumbs();
+    $('tBody').onclick = e => {
+      if (expand(e)) return;
+      const c = e.target.closest('.chips button'); if (c) { newsF = c.textContent; paintNews(); scrollTo(0, 0); return; }
+      const p = e.target.closest('.ph-grid button'); if (p) { const al = news.album.find(x => x.id === +p.dataset.a); if (al) openViewer(al.photos, +p.dataset.i); }
+    };
+  }
+  function albumCard(a) {
+    const n = a.photos.length, shown = a.photos.slice(0, 6);
+    return '<section class="album" data-pid="' + (a.id | 0) + '"><div class="tags"><span class="tag t-album">앨범</span></div><h3>' + esc(a.title) + '</h3><div class="meta">' + dateText(a.at) + ' · 사진 ' + n + '장</div>' + (a.body ? '<p>' + esc(a.body) + '</p>' : '') +
+      '<div class="ph-grid n' + Math.min(n, 3) + '">' + shown.map((p, i) => '<button data-a="' + (a.id | 0) + '" data-i="' + i + '"><img data-ph="' + esc(p) + '" alt="">' + (i === 5 && n > 6 ? '<span class="more">+' + (n - 6) + '</span>' : '') + '</button>').join('') + '</div></section>';
+  }
+
+  // ── 일정: 달력 + 목록 ──
+  async function drawSchedule(month) {
+    month = schMonth = month || schMonth || thisMonth();
+    if (!$('tBody').querySelector('.cal')) tbody('<div class="empty">불러오는 중…</div>');
+    const j = await post('/p/schedule', { month }).catch(() => null);
+    if (tab !== 'schedule' || month !== schMonth) return;
+    if (!j || !j.ok) return tbody('<div class="empty">불러오지 못했어요</div>');
+    const by = {}; j.items.forEach(x => (by[x.date] = by[x.date] || []).push(x));
+    const [y, mo] = month.split('-').map(Number);
+    const first = new Date(Date.UTC(y, mo - 1, 1)).getUTCDay(), last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+    let cells = '';
+    for (let i = 0; i < first; i++) cells += '<div class="c"></div>';
+    for (let d = 1; d <= last; d++) {
+      const key = month + '-' + String(d).padStart(2, '0'), ev = by[key] || [];
+      cells += '<div class="c' + (key === today() ? ' t' : '') + (ev.length ? ' has' : '') + '"' + (ev.length ? ' data-day="' + key + '"' : '') + '><span class="n">' + d + '</span>' + (ev.length ? '<span class="evs">' + ev.slice(0, 3).map(x => '<i class="k-' + esc(x.kind || '기타') + '"></i>').join('') + '</span>' : '') + '</div>';
+    }
+    tbody('<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
+      '<div class="cal"><div class="wk">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
+      (j.items.length ? '<div class="list sch">' + j.items.map(x => {
+        const d = md(x.date), past = x.date < today();
+        return '<div class="li' + (past ? ' past' : '') + '" id="d-' + x.date + '"><span class="dchip"><small>' + d.w + '</small><b>' + d.d + '</b></span><span class="lt">' + (x.kind ? '<span class="tag k-' + esc(x.kind) + '">' + esc(x.kind) + '</span>' : '') + '<b>' + esc(x.title) + '</b>' + (x.body ? '<small class="pre">' + esc(x.body) + '</small>' : '') + '</span></div>';
+      }).join('') + '</div>' : '<div class="calm" style="margin-top:12px"><span>이 달 일정이 없어요</span></div>'));
+    $('tBody').onclick = e => {
+      const b = e.target.closest('.mhead button'); if (b) return drawSchedule(addMonth(month, +b.dataset.m));
+      const c = e.target.closest('[data-day]'); if (c) { const el = $('d-' + c.dataset.day); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); } }
+    };
+  }
+
+  // ── 우리 아이: 출석 기록 + 정보 · 설정 ──
+  async function drawKid(month) {
+    month = attMonth = month || attMonth || thisMonth();
+    const s = me() || {}, k = curKid();
+    const pushOk = canPush && s.push && Notification.permission === 'granted';
+    const kidSel = s.children.length > 1 ? '<div class="chips">' + s.children.map((c, i) => '<button data-k="' + i + '" class="' + (c === k ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' : '';
+    const settings = '<section class="sec"><h2>설정</h2><div class="list">' +
+      '<button class="li" data-x="fee"><span class="lic">' + IC.fee + '</span><span class="lt"><b>회비 안내</b></span>' + ICON.right + '</button>' +
+      '<button class="li" data-x="edit"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 수정 · 자녀 추가</b><small>' + esc(s.relation || '') + ' · 출결번호 ' + esc(s.phone4 || '') + '</small></span>' + ICON.right + '</button>' +
+      (canPush ? '<button class="li" data-x="push"><span class="lic">' + IC.bell + '</span><span class="lt"><b>알림</b><small>' + (pushOk ? '켜져 있어요 · 눌러서 확인' : '꺼져 있어요 · 눌러서 켜기') + '</small></span>' + ICON.right + '</button>' : '') +
+      '<button class="li" data-x="share"><span class="lic">' + IC.share + '</span><span class="lt"><b>가족에게 주소 보내기</b><small>다른 가족도 각자 휴대폰에서 가입하면 함께 알림을 받아요</small></span>' + ICON.right + '</button>' +
+      '<button class="li danger" data-x="leave"><span class="lic">' + IC.out + '</span><span class="lt"><b>이 휴대폰 등록 해제</b></span>' + ICON.right + '</button></div></section>';
+    const head = kidSel + '<div class="att-kid"><span class="avatar">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장 · ' + (s.approved ? '확인 완료' : '도장 확인 중') + '</small></div><span class="cnt" id="attCnt"></span></div>';
+    let att = '';
+    if (!s.approved) att = '<div class="calm" style="margin-top:12px"><span>도장에서 확인이 끝나면 출석 기록을 볼 수 있어요</span></div>';
+    else {
+      if (!$('tBody').querySelector('.cal')) tbody(head + '<div class="empty">불러오는 중…</div>' + settings);
+      const j = await post('/p/attendance', { month }).catch(() => null);
+      if (tab !== 'kid' || month !== attMonth) return;
+      if (!j || !j.ok) att = '<div class="empty">출석 기록을 불러오지 못했어요</div>';
+      else {
+        const rows = j.items.filter(x => x.name === k), by = {}; rows.forEach(r => by[r.day] = r);
+        const [y, mo] = month.split('-').map(Number);
+        const first = new Date(Date.UTC(y, mo - 1, 1)).getUTCDay(), last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+        let cells = '';
+        for (let i = 0; i < first; i++) cells += '<div class="c"></div>';
+        for (let d = 1; d <= last; d++) { const key = month + '-' + String(d).padStart(2, '0'); cells += '<div class="c' + (key === today() ? ' t' : '') + '"><span class="n">' + d + '</span>' + (by[key] ? '<span class="mk">' + ICON.check + '</span>' : '') + '</div>'; }
+        att = '<section class="sec"><h2>출석 기록</h2><div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
+          '<div class="cal"><div class="wk">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
+          (rows.length ? '<div class="list att-list' + (rows.length > 5 ? ' fold' : '') + '" style="margin-top:10px">' + rows.slice().reverse().map(r => { const d = md(r.day); return '<div class="li"><span class="lt"><b>' + d.m + '월 ' + d.d + '일 (' + d.w + ')</b></span><span class="tm">' + (r.in ? '등원 ' + esc(r.in) : '') + (r.out ? (r.in ? ' · ' : '') + '하원 ' + esc(r.out) : '') + '</span></div>'; }).join('') + '</div>' + (rows.length > 5 ? '<button class="more-btn" data-more>출석 기록 모두 보기 (' + rows.length + '일)</button>' : '') : '') + '</section>';
+        tbody(head + att + settings);
+        $('attCnt').textContent = (+month.slice(5)) + '월 ' + rows.length + '일';
+        bindKid(month);
+        return;
+      }
+    }
+    tbody(head + att + settings);
+    bindKid(month);
+  }
+  function bindKid(month) {
+    $('tBody').onclick = async e => {
+      const b = e.target.closest('.mhead button'); if (b) return drawKid(addMonth(month, +b.dataset.m));
+      const mo = e.target.closest('[data-more]'); if (mo) { mo.previousElementSibling.classList.remove('fold'); mo.remove(); return; }
+      const c = e.target.closest('.chips button[data-k]'); if (c) { store.set(LS, { ...me(), kid: +c.dataset.k }); renderHome(); return drawKid(month); }
+      const r = e.target.closest('[data-x]'); if (!r) return;
+      const x = r.dataset.x, s = me();
+      if (x === 'fee') openPage('fee');
+      if (x === 'edit') { fillJoin(me(), true); show('v-gate', 'g-join'); scrollTo(0, 0); }
+      if (x === 'share') copy();
+      if (x === 'push') {
+        if (canPush && s.push && Notification.permission === 'granted') { (reg || await navigator.serviceWorker.ready).showNotification('해랑경희', { body: '알림이 잘 오고 있어요.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test' }); return; }
+        await pushOn(); drawKid(month);
+      }
+      if (x === 'leave') {
+        if (!confirm('이 휴대폰의 등록을 해제할까요? 알림과 알림장을 더 이상 볼 수 없어요.')) return;
+        await post('/p/leave');
+        try { const sub = reg && await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (_) {}
+        store.set(LS, null); store.set(SEEN, null); store.set(RK, null); sentReads = new Set(); news = null; tab = 'home'; history.replaceState(null, '', location.pathname);
+        fillJoin(null); show('v-gate', 'g-join'); toast('등록을 해제했어요');
+      }
+    };
+  }
+
+  // ═════════ 하위 화면 (회비 안내) ═════════
+  const PAGES = { fee: '회비 안내' };
   function openPage(name, push = true) {
     if (!PAGES[name] || !me()) return;
     if (push) history.pushState({ p: name }, '', '#' + name);
@@ -513,16 +762,22 @@
     $('pBody').onclick = null;
     $('pBody').innerHTML = '<div class="empty">불러오는 중…</div>';
     const seen = store.get(SEEN) || {};
-    if (home && home.counts && home.counts[name]) seen[name] = home.counts[name];
     if (name === 'fee' && home && home.fee) seen.feeMonth = home.fee.month;
-    store.set(SEEN, seen); renderHome();
+    store.set(SEEN, seen);
     RENDER[name]();
   }
-  $('pClose').onclick = () => { if (history.state && history.state.p) history.back(); else { $('v-page').hidden = true; history.replaceState(null, '', location.pathname); } };
-  addEventListener('popstate', () => { const h = location.hash.slice(1); if (PAGES[h] && me()) openPage(h, false); else $('v-page').hidden = true; });
+  const closePage = () => { $('v-page').hidden = true; history.replaceState(null, '', tab === 'home' ? location.pathname : '#' + tab); };
+  $('pClose').onclick = () => { if (history.state && history.state.p) history.back(); else closePage(); };
+  addEventListener('popstate', () => { const h = location.hash.slice(1); if (PAGES[h] && me()) return openPage(h, false); $('v-page').hidden = true; if (LEGACY[h] && me() && !$('v-home').hidden) route(h); });
   const body = html => { $('pBody').innerHTML = html; watchReads(); };
+  // 알림·예전 주소로 들어왔을 때
+  function route(h) {
+    if (PAGES[h]) { showTab('kid'); return openPage(h, false); }
+    const r = LEGACY[h]; if (r) return showTab(r[0], r[1] ? { filter: r[1] } : {});
+    showTab('home');
+  }
 
-  // ── 읽음 기록: 게시물이 화면에 보이면 관장님 쪽에 '읽음'으로 알림 ──
+  // ── 읽음 기록: 게시물이 화면에 보이면 도장 쪽에 '읽음'으로 알림 ──
   const RK = 'haerang-read';
   let sentReads = new Set(store.get(RK) || []), readQ = new Set(), readT = null, io = null;
   function watchReads() {
@@ -532,7 +787,7 @@
       es.forEach(e => { if (e.isIntersecting) { const id = +e.target.dataset.pid; io.unobserve(e.target); if (id && !sentReads.has(id)) readQ.add(id); } });
       if (readQ.size) { clearTimeout(readT); readT = setTimeout(flushReads, 700); }
     }, { threshold: 0.01 });
-    document.querySelectorAll('#pBody [data-pid]').forEach(el => io.observe(el));
+    document.querySelectorAll('#tBody [data-pid], #pBody [data-pid]').forEach(el => io.observe(el));
   }
   async function flushReads() {
     const ids = [...readQ].slice(0, 30); ids.forEach(i => readQ.delete(i));
@@ -540,88 +795,27 @@
     if (readQ.size) readT = setTimeout(flushReads, 700);
   }
   const failed = j => {
-    if (j && j.pending) { body('<div class="empty">관장님 확인 후에 볼 수 있습니다</div>'); return true; }
-    if (!j || !j.ok) { body('<div class="empty">불러오지 못했습니다</div>'); return true; }
+    if (j && j.pending) { body('<div class="empty">도장에서 확인이 끝나면 볼 수 있어요</div>'); return true; }
+    if (!j || !j.ok) { body('<div class="empty">불러오지 못했어요</div>'); return true; }
     return false;
   };
 
   function postCard(x, opts = {}) {
     const d = dayOf(x.at);
     const mine = (me().children || []);
-    const tags = (x.pin ? '<span class="tag pin">중요</span>' : '') + (x.kind ? '<span class="tag ' + esc(x.kind) + '">' + esc(x.kind) + '</span>' : '') +
+    const tags = (opts.type && x.t ? '<span class="tag t-' + x.t + '">' + TYPE_LABEL[x.t] + '</span>' : '') + (x.pin ? '<span class="tag pin">중요</span>' : '') + (x.kind ? '<span class="tag k-' + esc(x.kind) + '">' + esc(x.kind) + '</span>' : '') +
       (opts.kids && x.target && x.target.length ? x.target.filter(t => mine.includes(t)).map(t => '<span class="tag kid">' + esc(t) + '</span>').join('') : '');
     return '<article class="post" data-pid="' + (x.id | 0) + '"><div class="day"><b>' + d.d + '</b><small>' + d.w + '요일</small></div><div class="ct">' + (tags ? '<div class="tags">' + tags + '</div>' : '') +
       '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p class="clip">' + esc(x.body) + '</p>' : '') + '<div class="meta">' + dateText(x.at) + '</div></div></article>';
   }
   function grouped(items, card) {
     let last = '', html = '';
-    for (const x of items) { const d = dayOf(x.at), key = d.y + '년 ' + d.m + '월'; if (!x.pin && key !== last) { html += '<div class="msec">' + key + '</div>'; last = key; } html += card(x); }
+    for (const x of items) { const d = dayOf(x.at), key = d.y + '년 ' + d.m + '월'; if (key !== last) { html += '<div class="msec">' + key + '</div>'; last = key; } html += card(x); }
     return html;
   }
   const expand = e => { const p = e.target.closest('.post p.clip'); if (p) { p.classList.remove('clip'); return true; } return false; };
 
   const RENDER = {
-    async journal() {
-      const j = await post('/p/journal'); if (failed(j)) return;
-      body(j.items.length ? grouped(j.items, x => postCard(x, { kids: true })) : '<div class="empty">아직 알림장이 없습니다</div>');
-      $('pBody').onclick = expand;
-    },
-    async notice() {
-      const j = await post('/p/notices'); if (failed(j)) return;
-      const kinds = ['전체', ...new Set(j.items.map(x => x.kind).filter(Boolean))];
-      let cur = '전체';
-      const draw = () => body((kinds.length > 2 ? '<div class="chips">' + kinds.map(k => '<button class="' + (k === cur ? 'on' : '') + '">' + esc(k) + '</button>').join('') + '</div>' : '') +
-        (j.items.length ? grouped(j.items.filter(x => cur === '전체' || x.kind === cur), x => postCard(x)) : '<div class="empty">아직 공지가 없습니다</div>'));
-      draw();
-      $('pBody').onclick = e => { if (expand(e)) return; const b = e.target.closest('.chips button'); if (b) { cur = b.textContent; draw(); } };
-    },
-    async album() {
-      const j = await post('/p/albums'); if (failed(j)) return;
-      if (!j.items.length) return body('<div class="empty">아직 올라온 사진이 없습니다</div>');
-      body(j.items.map((a, ai) => {
-        const n = a.photos.length, shown = a.photos.slice(0, 6);
-        return '<section class="album" data-pid="' + (a.id | 0) + '"><h3>' + esc(a.title) + '</h3><div class="meta">' + dateText(a.at) + ' · 사진 ' + n + '장</div>' + (a.body ? '<p>' + esc(a.body) + '</p>' : '') +
-          '<div class="ph-grid n' + Math.min(n, 3) + '">' + shown.map((p, i) => '<button data-a="' + ai + '" data-i="' + i + '"><img data-ph="' + esc(p) + '" alt="">' + (i === 5 && n > 6 ? '<span class="more">+' + (n - 6) + '</span>' : '') + '</button>').join('') + '</div></section>';
-      }).join(''));
-      loadThumbs();
-      $('pBody').onclick = e => { const b = e.target.closest('.ph-grid button'); if (b) openViewer(j.items[b.dataset.a].photos, +b.dataset.i); };
-    },
-    async schedule(month) {
-      month = month || thisMonth();
-      const j = await post('/p/schedule', { month }); if (failed(j)) return;
-      body('<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
-        (j.items.length ? j.items.map(x => {
-          const dt = new Date(x.date + 'T00:00:00Z'), past = x.date < today();
-          return '<article class="post"' + (past ? ' style="opacity:.55"' : '') + '><div class="day"><b>' + dt.getUTCDate() + '</b><small>' + WD[dt.getUTCDay()] + '요일</small></div><div class="ct">' +
-            (x.kind ? '<div class="tags"><span class="tag ' + esc(x.kind) + '">' + esc(x.kind) + '</span></div>' : '') + '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p>' + esc(x.body) + '</p>' : '') + '</div></article>';
-        }).join('') : '<div class="empty">이 달 일정이 없습니다</div>'));
-      $('pBody').onclick = e => { const b = e.target.closest('.mhead button'); if (b) RENDER.schedule(addMonth(month, +b.dataset.m)); };
-    },
-    async attendance(month) {
-      month = month || thisMonth();
-      const j = await post('/p/attendance', { month }); if (failed(j)) return;
-      const k = curKid(), s = me();
-      const rows = j.items.filter(x => x.name === k);
-      const by = {}; rows.forEach(r => by[r.day] = r);
-      const [y, mo] = month.split('-').map(Number);
-      const first = new Date(Date.UTC(y, mo - 1, 1)).getUTCDay(), last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
-      let cells = '';
-      for (let i = 0; i < first; i++) cells += '<div class="c"></div>';
-      for (let d = 1; d <= last; d++) {
-        const key = month + '-' + String(d).padStart(2, '0');
-        cells += '<div class="c' + (key === today() ? ' t' : '') + '"><span class="n">' + d + '</span>' + (by[key] ? '<span class="mk">' + ICON.check + '</span>' : '') + '</div>';
-      }
-      const kidSel = s.children.length > 1 ? '<div class="chips">' + s.children.map((c, i) => '<button data-k="' + i + '" class="' + (c === k ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' : '';
-      body(kidSel + '<div class="att-kid"><span class="avatar">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장</small></div><span class="cnt">출석 ' + rows.length + '일</span></div>' +
-        '<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
-        '<div class="cal"><div class="wk">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
-        '<div class="legend"><span><i></i>출석</span></div>' +
-        (rows.length ? '<ul class="alist">' + rows.slice().reverse().map(r => { const dt = new Date(r.day + 'T00:00:00Z'); return '<li><b>' + (dt.getUTCMonth() + 1) + '월 ' + dt.getUTCDate() + '일 (' + WD[dt.getUTCDay()] + ')</b><span>' + (r.in ? '등원 ' + esc(r.in) : '') + (r.out ? (r.in ? ' · ' : '') + '하원 ' + esc(r.out) : '') + '</span></li>'; }).join('') + '</ul>' : ''));
-      $('pBody').onclick = e => {
-        const b = e.target.closest('.mhead button'); if (b) return RENDER.attendance(addMonth(month, +b.dataset.m));
-        const c = e.target.closest('.chips button'); if (c) { store.set(LS, { ...me(), kid: +c.dataset.k }); renderHome(); RENDER.attendance(month); }
-      };
-    },
     async fee() {
       const j = await post('/p/fees'); if (failed(j)) return;
       const m = thisMonth(), s = me();
@@ -632,35 +826,7 @@
         (months.length ? '<div class="msec">지난 달</div><ul class="fee-hist">' + months.map(mm => '<li><span>' + mLabel(mm) + '</span><span>' + s.children.map(k => esc(k) + ' ' + (st(mm, k) ? '✓' : '–')).join(' · ') + '</span></li>').join('') + '</ul>' : ''));
       $('pBody').onclick = expand;
     },
-    async me() {
-      const s = me();
-      const pushOn = canPush && s.push && Notification.permission === 'granted';
-      body('<div class="card"><ul class="info"><li>아이<span>' + esc(s.children.join(', ')) + '</span></li><li>관계<span>' + esc(s.relation) + '</span></li><li>출결번호 (휴대폰 뒷자리)<span>' + esc(s.phone4) + '</span></li><li>관장님 확인<span>' + (s.approved ? '완료' : '확인 중') + '</span></li><li>알림<span>' + (pushOn ? '켜짐' : '꺼짐') + '</span></li></ul></div>' +
-        '<div class="rows"><button data-x="edit">정보 수정 · 자녀 추가' + ICON.right + '</button>' +
-        (canPush ? '<button data-x="push">' + (pushOn ? '알림 확인하기' : '알림 켜기') + ICON.right + '</button>' : '') +
-        '<button data-x="share">주소 복사 (가족에게 보내기)' + ICON.right + '</button>' +
-        '<button data-x="leave" class="danger">이 휴대폰 등록 해제' + ICON.right + '</button></div>' +
-        '<p class="note" style="text-align:center;margin-top:16px">할머니·할아버지 등 다른 가족도 각자 휴대폰에서 가입하면 함께 알림을 받습니다.</p>');
-      $('pBody').onclick = async e => {
-        const b = e.target.closest('button[data-x]'); if (!b) return;
-        const x = b.dataset.x;
-        if (x === 'edit') { $('v-page').hidden = true; history.replaceState(null, '', location.pathname); fillJoin(me(), true); show('v-gate', 'g-join'); scrollTo(0, 0); }
-        if (x === 'share') copy();
-        if (x === 'push') {
-          if (pushOn) { (reg || await navigator.serviceWorker.ready).showNotification('해랑경희', { body: '알림이 잘 오고 있습니다.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test' }); return; }
-          await $('hPushOn').onclick(); RENDER.me();
-        }
-        if (x === 'leave') {
-          if (!confirm('이 휴대폰의 등록을 해제할까요? 알림과 알림장을 더 이상 볼 수 없습니다.')) return;
-          await post('/p/leave');
-          try { const sub = reg && await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (_) {}
-          store.set(LS, null); store.set(SEEN, null); store.set(RK, null); sentReads = new Set(); $('v-page').hidden = true; history.replaceState(null, '', location.pathname);
-          fillJoin(null); show('v-gate', 'g-join'); toast('등록을 해제했습니다');
-        }
-      };
-    },
   };
-
   // ── 사진 ──
   const photoCache = new Map();
   function photoUrl(id, size) {
@@ -717,13 +883,14 @@
     }
     if (canPush) fetch(API + '/vapid').then(r => r.json()).then(j => vapidKey = j.publicKey).catch(() => {});
     if (!me()) { fillJoin(null); return show('v-gate', 'g-join'); }
+    const first = location.hash.slice(1);
     await goHome();
+    route(first);
     // 브라우저가 알림 구독을 새로 만든 경우 서버에 다시 알림
     if (reg && canPush && Notification.permission === 'granted') {
-      const sub = await reg.pushManager.getSubscription();
+      const sub = await reg.pushManager.getSubscription().catch(() => null);
       if (sub) post('/p/push', { subscription: sub.toJSON() }).catch(() => {});
     }
-    const h = location.hash.slice(1); if (PAGES[h] && me()) openPage(h, false);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && me() && !$('v-home').hidden && $('v-page').hidden) goHome(); });
   init().catch(e => { console.error(e); show('v-gate', 'g-unsupported'); });
