@@ -164,6 +164,9 @@
   <a class="home" href="../" aria-label="홈"><img src="../img/lion-white.png" alt=""></a>
 </header>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="ink"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.2" result="d"/><feComponentTransfer in="n" result="m"><feFuncA type="discrete" tableValues="1 1 1 1 1 0 1 1 1 1 1 1"/></feComponentTransfer><feComposite in="d" in2="m" operator="in"/></filter>
+</svg>
 <main class="strip">
 
   <section class="scene" style="padding-top:12vh">
@@ -175,7 +178,7 @@
   </section>
 
   <section class="scene">
-    <p class="t" style="font-size:clamp(22px,6vw,28px)">해랑경희에는<br><span class="r fx-zoom" data-fx>‘선범단’</span>으로<br>임명된 수련생들이 있습니다.</p>
+    <p class="t" style="font-size:clamp(22px,6vw,28px)">해랑경희에는<br><span class="r fx-snap" data-fx>‘선범단’</span>으로<br>임명된 수련생들이 있습니다.</p>
     <p class="p">동생과 친구를 가르칠 수 있는 자격을 받은 아이들입니다.</p>
     <div class="paper" style="margin-top:30px">
       <p class="p" style="margin-top:0">실력·인성·생활 태도 모두</p>
@@ -191,26 +194,34 @@
     <p class="t">왜 시작했을까</p>
     <p class="p">배우기만 하고 써 보지 않은 지식은 금방 흐려진다는 걸 직접 겪었습니다.</p>
     <p class="pen">‘내가 배운 걸 누군가에게<br>자주 설명했다면<br>어떻게 자랐을까?’</p>
-    <p class="t big" style="margin-top:28px"><span class="r fx-zoom" data-fx>‘나는 너를,<br>너는 나를 가르친다’</span></p>
-    <p class="p">서로 가르치는 아이들 사이에는 <span class="r">강한 유대감</span>이 생깁니다.</p>
+    <p class="t big" style="margin-top:28px"><span class="r fx-brake" data-fx>‘나는 너를,<br>너는 나를 가르친다’</span></p>
+    <p class="p">서로 가르치는 아이들 사이에는 <span class="r fx-line" data-fx>강한 유대감</span>이 생깁니다.</p>
     <img class="fl l" src="../img/brand/magnolia-white.png" alt="" style="top:auto;bottom:-18%">
   </section>
 
   <section class="scene">
     <figure class="media"><video data-auto muted playsinline loop preload="none" poster="img/leader-teach.jpg"><source src="video/leader-teach.mp4" type="video/mp4"></video></figure>
     <p class="p">친구들은 <span class="r">‘사범님이 인정한 친구니까 믿고 배워도 된다’</span>고 생각합니다.</p>
-    <p class="p">선범단은 <span class="r">‘어떻게 하면 쉽게 설명할까’</span> 스스로 준비합니다.</p>
+    <p class="p">선범단은 <span class="r fx-line" data-fx>‘어떻게 하면 쉽게 설명할까’</span> 스스로 준비합니다.</p>
   </section>
 
   <section class="scene">
     <div class="paper">
       <p class="k">교육학에서는 이렇게 설명합니다.</p>
+      <div class="vswrap" style="padding-bottom:112px">
       <ul class="tiers">
         <li><span>선생이 묻고 선생이 대답하면</span><b>최악의 교육</b></li>
         <li><span>선생이 묻고 학생이 대답하면</span><b>보통의 교육</b></li>
         <li><span>학생이 묻고 선생이 대답하면</span><b>보통의 교육</b></li>
-        <li class="best"><span>학생이 묻고 학생이 대답하면</span><b class="fx-zoom" data-fx>최고의 교육</b></li>
+        <li class="best"><span>학생이 묻고 학생이 대답하면</span><b class="fx-blink" data-fx>최고의 교육</b></li>
       </ul>
+      <span class="stamp fx-pop2" data-fx aria-label="해랑경희의 선택"><svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="4"/>
+        <circle cx="50" cy="50" r="39" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <text x="50" y="44" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="15" fill="currentColor">해랑경희의</text>
+        <text x="50" y="66" text-anchor="middle" font-family="Noto Sans KR, sans-serif" font-weight="900" font-size="21" fill="currentColor" letter-spacing="2">선택</text>
+      </svg></span>
+      </div>
       <p class="p">잘 배운 아이들끼리 묻고 답할 때 가장 깊이 몰입합니다.</p>
     </div>
   </section>
@@ -226,11 +237,11 @@
       </ul>
     </div>
     <div class="han3">
-      <div><strong class="fx-zoom" data-fx>先</strong><small>먼저 선</small></div>
-      <div><strong class="r fx-zoom" data-fx>範</strong><small>모범 범</small></div>
-      <div><strong class="fx-zoom" data-fx>團</strong><small>모일 단</small></div>
+      <div><strong class="fx-snap" data-fx>先</strong><small>먼저 선</small></div>
+      <div><strong class="r fx-snap" data-fx style="--d:.45s">範</strong><small>모범 범</small></div>
+      <div><strong class="fx-snap" data-fx style="--d:.75s">團</strong><small>모일 단</small></div>
     </div>
-    <p class="p">이름이 새겨진 <span class="r">키링·임명장·패치</span>를 선물로 받습니다.</p>
+    <p class="p">이름이 새겨진 <span class="r fx-line" data-fx>키링·임명장·패치</span>를 선물로 받습니다.</p>
     <img class="fl r" src="../img/brand/magnolia-white.png" alt="" style="top:auto;bottom:-14%">
   </section>
 
@@ -238,7 +249,7 @@
     <p class="p" style="margin-top:0">준비된 아이에게는 활약할 기회를,<br>아직인 아이에게는 그만큼 클 수 있는 교육을 하겠습니다.</p>
     <p class="t" style="margin-top:30px">우리 수련생들이<br><span class="r fx-zoom" data-fx>어디에 내놔도 자랑스러운<br>사회인</span>이 될 수 있도록</p>
     <p class="p">한 명 한 명 진심을 담아 교육하겠습니다.</p>
-    <p class="pen dim">감사합니다 :)</p>
+    <p class="pen dim"><span class="fx-wobble" data-fx>감사합니다 :)</span></p>
   </section>
 
 </main>
