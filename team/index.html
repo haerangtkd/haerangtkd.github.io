@@ -23,11 +23,14 @@
   input,select,textarea{font:inherit;color:var(--ink)}
   svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
   /* 위 띠 */
-  .top{position:sticky;top:0;z-index:20;background:var(--brand);color:#fff;padding:env(safe-area-inset-top) 8px 0 16px;display:flex;align-items:center;gap:2px;height:calc(58px + env(safe-area-inset-top))}
+  .top{position:sticky;top:0;z-index:20;background:#fff;color:var(--ink);padding:env(safe-area-inset-top) 8px 0 16px;display:flex;align-items:center;gap:2px;height:calc(58px + env(safe-area-inset-top))}
   #topBtns{display:flex;gap:2px}
-  .top h1{font-size:18px;font-weight:700;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top h1{font-size:24px;font-weight:900;letter-spacing:-.5px;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .top small{font-size:12px;opacity:.75;margin-right:6px}
-  .top .tb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff}
+  .top .tb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--ink)}
+  .top h1 em{font-style:normal;color:#A0A6B4;font-weight:700;margin-left:6px}
+  .top .tb.txt{width:auto;padding:0 10px;font-size:14px;font-weight:700;border:1px solid var(--line);height:32px;border-radius:99px}
+  body.chatmode .top{background:var(--brand);color:#fff}body.chatmode .top .tb{color:#fff}body.chatmode .top h1{font-size:18px;font-weight:700}
   .top .tb:active{background:rgba(255,255,255,.14)}
   .wrap{max-width:720px;margin:0 auto;padding:0 14px calc(150px + env(safe-area-inset-bottom))}
   /* 아래 탭 */
@@ -106,7 +109,7 @@
   .notice{background:var(--yel);border-radius:14px;padding:12px 14px;margin-top:12px;font-size:14.5px;display:flex;gap:10px;align-items:center}
   .notice b{flex:1;font-weight:500}
   /* 채팅 */
-  #v-chat{display:flex;flex-direction:column}
+  #v-room{display:flex;flex-direction:column}
   #nbar{position:sticky;top:calc(58px + env(safe-area-inset-top));z-index:15;margin:0 -14px}
   .nbar{background:#fff;border-bottom:1px solid var(--line);padding:9px 14px;display:flex;gap:10px;align-items:center;font-size:14px;cursor:pointer;box-shadow:0 2px 6px rgba(20,30,60,.05)}
   .nbar svg.i{color:var(--brand);width:20px;height:20px}
@@ -168,12 +171,86 @@
   body.chatmode .top{position:fixed;left:0;right:0;top:var(--vt,0px)}
   body.chatmode nav.tabs,body.chatmode .fab{display:none}
   body.chatmode .wrap{padding:0}
-  body.chatmode #v-chat{position:fixed;left:0;right:0;max-width:720px;margin:0 auto;top:calc(var(--vt,0px) + 58px + env(safe-area-inset-top));height:calc(var(--vh,100dvh) - 58px - env(safe-area-inset-top));display:flex;flex-direction:column;background:var(--paper)}
+  body.chatmode #v-room{position:fixed;left:0;right:0;max-width:720px;margin:0 auto;top:calc(var(--vt,0px) + 58px + env(safe-area-inset-top));height:calc(var(--vh,100dvh) - 58px - env(safe-area-inset-top));display:flex;flex-direction:column;background:var(--paper)}
   body.chatmode #nbar{position:static;margin:0}
   body.chatmode .msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px 14px 12px}
   body.chatmode .msgs>:first-child{margin-top:auto}
   body.chatmode .composer{position:static;margin:0;padding:6px 10px calc(8px + var(--sb,env(safe-area-inset-bottom)))}
   .hint{font-size:12.5px;color:var(--muted);margin:5px 6px 0}
+  /* 필터 알약 (플로우) */
+  .pills{display:flex;gap:8px;overflow-x:auto;padding:6px 0 8px;scrollbar-width:none}
+  .pills::-webkit-scrollbar{display:none}
+  .pills button{flex:none;border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 16px;font-size:15px;color:var(--muted);font-weight:500}
+  .pills button.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
+  /* 채팅방 목록 */
+  .room{display:flex;gap:12px;align-items:center;padding:12px 0;cursor:pointer}
+  .av.rm{width:52px;height:52px;border-radius:18px;font-size:16px}
+  .av.grp{background:var(--brand)}
+  .room .rt{flex:1;min-width:0}.room .rt b{display:block;font-size:17px;font-weight:700}.room .rt b em{font-style:normal;color:#A0A6B4;font-weight:500;font-size:14px}
+  .room .rt small{display:block;color:var(--muted);font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .room .rr{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}.room .rr small{color:#A0A6B4;font-size:12.5px}
+  .cnt{background:var(--red);color:#fff;border-radius:99px;font-size:12px;font-weight:700;padding:1px 7px;min-width:20px;text-align:center}
+  /* 업무 목록 (플로우 전체 업무) */
+  .qadd{display:flex;gap:8px;margin:4px 0 10px}
+  .grp{background:#fff;border:1px solid var(--line);border-radius:14px;margin-top:12px;overflow:hidden}
+  .gh{display:flex;align-items:center;gap:8px;background:#F7F8FA;padding:11px 14px;font-weight:700;font-size:15.5px;border-bottom:1px solid var(--line)}
+  .tk{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid #EEF0F5;cursor:pointer;position:relative}
+  .gh+.tk{border-top:0}
+  .tk .cbar{width:4px;align-self:stretch;border-radius:2px;flex:none}
+  .tk .tt{flex:1;min-width:0}.tk .tt b{display:block;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tk .tt b em{font-style:normal;color:var(--muted);font-weight:500}
+  .tk .tt small{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13.5px;margin-top:2px}
+  .tk .tt small .late{color:var(--no);font-weight:700}
+  .tk.done .tt b{color:#A5ACBA;text-decoration:line-through}
+  .st{flex:none;font-size:14px;font-weight:700;border-radius:8px;padding:4px 12px;display:inline-flex;align-items:center;gap:5px}
+  .st::before{content:'';width:8px;height:8px;border-radius:50%;background:currentColor}
+  .st.s0{background:#D9F0FC;color:#0B8BD0}.st.s1{background:#DDF3D8;color:#2E8B1E}.st.s2{background:#E6E3FA;color:#5B47C9}.st.sch2{background:#DDF3EE;color:#13806C}
+  .avs2{display:inline-flex}.avs2 .av{margin-right:-5px;border:1.5px solid #fff}
+  .av.xs{width:22px;height:22px;border-radius:50%;font-size:9.5px}
+  /* 업무 상세 */
+  .shead.lt{position:sticky;top:0;z-index:5;background:#fff;margin:0 -16px 4px;padding:calc(6px + env(safe-area-inset-top)) 8px 6px}
+  .sheet.full .shead.lt{background:#fff;color:var(--ink);border-bottom:1px solid var(--line)}
+  .shead.lt .sp{flex:1}.shead .tb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
+  .donebtn{font-size:15px;font-weight:700;color:var(--muted);padding:6px 14px;border-radius:99px;border:1px solid var(--line)}
+  .donebtn.on{background:var(--ok);border-color:var(--ok);color:#fff}
+  .ttl{width:100%;border:0;outline:0;font-size:22px;font-weight:900;padding:6px 0 10px;letter-spacing:-.3px}
+  .fr{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #EEF0F5}
+  .fr>div{flex:1;min-width:0}.fr small{display:block;font-size:13px;color:var(--muted)}.fr b{font-size:16px}
+  .fi{width:44px;height:44px;border-radius:50%;border:1.5px dashed #B9C0CE;display:grid;place-items:center;color:#6B7385;flex:none}
+  .fi.red{border:1.5px solid var(--no);color:var(--no)}
+  .fi .avs2 .av{width:20px;height:20px;font-size:8px;margin-right:-9px}
+  .stc{display:flex;gap:6px;margin-top:6px}.stc .st{opacity:.45;border:0}.stc .st.on{opacity:1;box-shadow:0 0 0 2px currentColor inset}
+  .dinp{border:0;font-size:17px;font-weight:700;padding:2px 0;background:none;color:var(--ink)}.dinp.red{color:var(--no)}
+  .cols{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.cols button{width:28px;height:28px;border-radius:50%}.cols button.on{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--ink)}
+  .sheet h4{font-size:15px;font-weight:700;margin:18px 0 8px}
+  .cl{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F0F2F6}
+  .cl span{flex:1;font-size:15.5px}.cl .ck{width:24px;height:24px;border-radius:7px;border:2px solid #B9C0CE;display:grid;place-items:center;color:#fff;font-size:13px;flex:none}
+  .cl.d .ck{background:var(--brand);border-color:var(--brand)}.cl.d span{text-decoration:line-through;color:#A5ACBA}
+  .foot .inp{flex:1;min-width:0}
+  /* 달력 (캘린더 앱처럼 칸에 색 막대) */
+  body.calmode .wrap{padding:0 0 calc(64px + env(safe-area-inset-bottom));max-width:none}
+  .tcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:28px repeat(var(--wk),minmax(84px,calc((100dvh - 58px - 28px - 66px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / var(--wk))));background:#fff;border-top:1px solid var(--line)}
+  .tcal .w{text-align:center;font-size:13px;color:var(--muted);line-height:28px;border-bottom:1px solid var(--line)}
+  .tcal .w.su,.dc.su em{color:var(--no)}.tcal .w.sa,.dc.sa em{color:#2F6FDE}
+  .dc{border-right:1px solid #EEF0F5;border-bottom:1px solid #EEF0F5;padding:3px 2px;overflow:hidden;cursor:pointer;min-width:0}
+  .dc:nth-child(7n+7){border-right:0}
+  .dc.su{background:#FFF8F8}.dc.out{opacity:.4}.dc.sel{background:var(--soft)}
+  .dc em{display:inline-grid;place-items:center;font-style:normal;font-size:13.5px;min-width:24px;height:24px;border-radius:12px;padding:0 4px;margin:0 0 2px 2px}
+  .dc em.td{background:var(--no);color:#fff!important;font-weight:700}
+  .bar{display:block;font-style:normal;color:#fff;font-size:11.5px;line-height:18px;border-radius:4px;padding:0 3px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:clip;font-weight:500}
+  .bar u{text-decoration:none;background:#fff;color:var(--ink);border-radius:3px;padding:0 2px;margin-right:2px;font-size:10.5px;font-weight:700}
+  .bar.dn{opacity:.55;text-decoration:line-through}
+  .dc .more{display:block;font-style:normal;font-size:11px;color:var(--muted);padding-left:3px}
+  /* 더보기 */
+  .greet{display:flex;align-items:center;padding:6px 0 4px}.greet small{display:block;color:var(--muted);font-size:14px}.greet b{font-size:22px;font-weight:900}
+  .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;margin:14px 0 4px}
+  .sgrid button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13.5px}
+  .sgrid button span{width:58px;height:58px;border-radius:18px;background:#EEF1F7;display:grid;place-items:center;font-size:26px}
+  .sec{background:#fff;margin:12px -14px 0;padding:16px 16px 14px}
+  .sh{display:flex;align-items:center;gap:6px;margin-bottom:8px}.sh h2{font-size:19px;font-weight:900;margin-right:auto}.sh small{color:var(--muted);font-size:13px}
+  .sh .more{color:var(--muted);font-size:14px}
+  .sbox{display:flex;justify-content:space-between;align-items:center;width:100%;border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:16px;margin-top:8px;text-align:left}
+  .sbox b{color:var(--muted);font-weight:700}
+  .sec .pin{padding:11px 0}
   /* 아래에서 올라오는 메뉴 */
   .emo{display:flex;justify-content:space-around;padding:4px 0 14px;border-bottom:1px solid var(--line);margin:0 -16px 6px}
   .emo button{font-size:30px;width:48px;height:48px;border-radius:50%}
@@ -325,8 +402,8 @@
 <div id="app" hidden>
   <header class="top"><button class="tb back" id="backBtn" hidden title="뒤로"><svg class="i" style="width:26px;height:26px"><use href="#i-back"/></svg></button><h1 id="topT">해랑 업무</h1><small id="conn"></small><span id="topBtns"></span></header>
   <main class="wrap">
-    <section id="v-home"></section>
-    <section id="v-chat" hidden><div id="nbar"></div><div class="msgs" id="msgs"></div>
+    <section id="v-chat"></section>
+    <section id="v-room" hidden><div id="nbar"></div><div class="msgs" id="msgs"></div>
       <div class="composer">
         <div class="rbar" id="rbar" hidden></div>
         <div class="tags" id="tagBar" hidden><button data-t="#일정 ">#일정</button><button data-t="#할일 ">#할일</button><button data-t="#등원 ">#등원</button><button data-t="#구매 ">#구매</button><button data-t="#행사 ">#행사</button></div>
@@ -335,22 +412,28 @@
         <input type="file" id="phIn" accept="image/*" hidden><input type="file" id="camIn" accept="image/*" capture="environment" hidden>
       </div>
     </section>
-    <section id="v-sched" hidden></section>
+    <section id="v-cal" hidden></section>
+    <section id="v-task" hidden></section>
     <section id="v-table" hidden></section>
     <section id="v-log" hidden></section>
+    <section id="v-more" hidden></section>
   </main>
   <button class="fab" id="fab" hidden title="새로 만들기"><svg class="i"><use href="#i-plus"/></svg></button>
   <nav class="tabs" id="tabs">
-    <button data-t="home" class="on"><svg class="i"><use href="#i-home"/></svg>홈</button>
-    <button data-t="chat"><svg class="i"><use href="#i-chat"/></svg>채팅<span class="dot" id="chatDot" hidden></span></button>
-    <button data-t="sched"><svg class="i"><use href="#i-cal"/></svg>일정</button>
-    <button data-t="table"><svg class="i"><use href="#i-list"/></svg>행사표</button>
+    <button data-t="chat" class="on"><svg class="i"><use href="#i-chat"/></svg>채팅<span class="dot" id="chatDot" hidden></span></button>
+    <button data-t="cal"><svg class="i"><use href="#i-proj"/></svg>프로젝트</button>
+    <button data-t="task"><svg class="i"><use href="#i-list"/></svg>업무</button>
     <button data-t="log"><svg class="i"><use href="#i-bell"/></svg>알림<span class="dot" id="logDot" hidden></span></button>
+    <button data-t="more"><svg class="i"><use href="#i-dots"/></svg>더보기</button>
   </nav>
 </div>
 <div class="toast" id="toast"></div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-proj" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="15" height="13" rx="2"/><circle cx="19.5" cy="5" r="1.2"/><path d="M3.5 10h15"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12h7"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5.5 21V4.5M5.5 4.5h11l-2.5 4 2.5 4h-11"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 10.2 12 3.5l8.5 6.7V20a.8.8 0 0 1-.8.8H15v-6.2H9v6.2H4.3a.8.8 0 0 1-.8-.8z"/></symbol>
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6a8.2 8.2 0 0 1-12 7.3L3.5 20l1.2-4.3a8.2 8.2 0 1 1 15.8-4.1z"/><path d="M8.5 10.3h7M8.5 13.5h4.5"/></symbol>
   <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.8h17M8 3v4M16 3v4"/></symbol>
@@ -420,8 +503,8 @@ function parseWhen(text, base = today()) {
 
 
 // ───── 상태 ─────
-const S = { tok: '', me: null, members: [], msgs: [], items: new Map(), comments: new Map(), pickup: new Map(), pickupDefault: {}, logs: [], notice: null, since: 0, lastMsg: 0, roster: [], tab: 'home', unread: 0, calM: today().slice(0, 7), calD: today(), tf: 'all', homeDay: today(), replyTo: null, logRead: 0, logSeen: 0 };
-try { S.logRead = +localStorage.getItem('haerang-team-logread') || 0; } catch (_) {}
+const S = { tok: '', me: null, members: [], msgs: [], items: new Map(), comments: new Map(), pickup: new Map(), pickupDefault: {}, logs: [], notice: null, since: 0, lastMsg: 0, roster: [], tab: 'chat', room: '', calM: today().slice(0, 7), calD: today(), tf: 'all', tkf: 'open', homeDay: today(), replyTo: null, logRead: 0, logSeen: 0, readAt: null };
+try { S.logRead = +localStorage.getItem('haerang-team-logread') || 0; S.readAt = JSON.parse(localStorage.getItem('haerang-team-read') || 'null'); } catch (_) {}
 const nameOf = id => (S.members.find(m => m.id === id) || {}).name || '?';
 const itemsOf = t => [...S.items.values()].filter(i => i.type === t && !i.del);
 // 사람마다 색 동그라미 (이름 뒤 두 글자)
@@ -429,6 +512,14 @@ const AVC = ['#2F6FDE', '#7C5CE0', '#E0703A', '#1F9D8B', '#D9468F', '#5B6B82', '
 const avColor = id => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AVC[h % AVC.length]; };
 const avName = n => { n = String(n || '?').replace(/님$/, ''); return n.length >= 3 ? n.slice(-2) : n; };
 const av = (mid, cls) => '<span class="av' + (cls ? ' ' + cls : '') + '" style="background:' + avColor(mid) + '">' + esc(avName(nameOf(mid))) + '</span>';
+const midOf = name => (S.members.find(m => m.name === name) || {}).id || name;
+// 채팅방: '' = 단체방, 'dm:a:b' = 1:1
+const dmRoom = id => 'dm:' + [S.me.id, id].sort().join(':');
+const roomOf = m => m.room || '';
+const roomName = r => r ? nameOf(r.split(':').slice(1).find(x => x !== S.me.id)) : '해랑경희 직원방';
+const roomMsgs = r => S.msgs.filter(m => roomOf(m) === r);
+const unreadIn = r => { const at = (S.readAt || {})[r] || 0; return S.msgs.filter(m => roomOf(m) === r && m.id > at && m.mid !== S.me.id).length; };
+function markRoomRead(r) { const l = roomMsgs(r); if (!l.length) return; S.readAt = S.readAt || {}; S.readAt[r] = l[l.length - 1].id; try { localStorage.setItem('haerang-team-read', JSON.stringify(S.readAt)); } catch (_) {} }
 
 async function api(path, body = {}) {
   try {
@@ -442,13 +533,16 @@ async function sync(first) {
   const j = await api('/api/sync', first ? {} : { since: S.since, lastMsg: S.lastMsg });
   syncing = false; if (!j.ok) return false;
   S.me = j.me; S.members = j.members; S.pickupDefault = j.pickupDefault || {};
-  let newMsg = 0, changed = false;
+  let changed = false, newIn = false;
   for (const m of j.msgs) {
-    m.rx = m.rx || {};
+    m.rx = m.rx || {}; m.room = m.room || '';
     const i = S.msgs.findIndex(x => x.id === m.id);
-    if (i >= 0) { S.msgs[i] = m; changed = true; } else { S.msgs.push(m); if (!first && m.mid !== S.me.id) newMsg++; }
+    if (i >= 0) S.msgs[i] = m; else { S.msgs.push(m); if (roomOf(m) === S.room) newIn = true; }
+    changed = true;
   }
   S.msgs.sort((a, b) => a.id - b.id); if (S.msgs.length) S.lastMsg = Math.max(S.lastMsg, S.msgs[S.msgs.length - 1].id);
+  if (!S.readAt) { S.readAt = {}; for (const m of S.msgs) S.readAt[roomOf(m)] = Math.max(S.readAt[roomOf(m)] || 0, m.id); try { localStorage.setItem('haerang-team-read', JSON.stringify(S.readAt)); } catch (_) {} }
+  if (S.tab === 'room' && !document.hidden) markRoomRead(S.room);
   for (const it of j.items) { const cur = S.items.get(it.id); if (!cur || cur.upd <= it.upd || it.del) S.items.set(it.id, it); }
   for (const c of j.comments) { const l = S.comments.get(c.item) || []; if (!l.some(x => x.id === c.id)) l.push(c); S.comments.set(c.item, l.sort((a, b) => a.at - b.at)); }
   for (const p of j.pickup) { const cur = S.pickup.get(p.day); if (!cur || (cur.upd || 0) <= p.upd) S.pickup.set(p.day, p); }
@@ -456,19 +550,20 @@ async function sync(first) {
   S.logs.sort((a, b) => a.id - b.id);
   if ('notice' in j && JSON.stringify(j.notice) !== JSON.stringify(S.notice)) { S.notice = j.notice; changed = true; }
   S.since = j.now - 2000;
-  if (newMsg && (S.tab !== 'chat' || document.hidden)) S.unread += newMsg;
-  if (first || changed || j.msgs.length || j.items.length || j.comments.length || j.pickup.length) render(newMsg > 0);
+  if (first || changed || j.items.length || j.comments.length || j.pickup.length) render(newIn);
   setBadge(); return true;
 }
+function chatUnread() { const rs = new Set(['', ...S.msgs.map(roomOf)]); let n = 0; for (const r of rs) if (!(S.tab === 'room' && r === S.room)) n += unreadIn(r); return n; }
 function setBadge() {
-  const t = today(), n = itemsOf('todo').filter(x => !x.done && (!x.due || x.due <= t)).length + S.unread;
+  if (!S.me) return;
+  const t = today(), cu = chatUnread(), n = itemsOf('todo').filter(x => !isDone(x) && (!x.due || x.due <= t) && mine(x)).length + cu;
   try { if (navigator.setAppBadge) n ? navigator.setAppBadge(n) : navigator.clearAppBadge(); } catch (_) {}
-  $('chatDot').hidden = !S.unread; $('chatDot').textContent = S.unread > 99 ? '99+' : S.unread;
-  const ln = S.logs.filter(g => g.id > S.logRead && g.mid !== (S.me || {}).id).length;
+  $('chatDot').hidden = !cu; $('chatDot').textContent = cu > 99 ? '99+' : cu;
+  const ln = S.logs.filter(g => g.id > S.logRead && g.mid !== S.me.id).length;
   $('logDot').hidden = !ln || S.tab === 'log'; $('logDot').textContent = ln > 99 ? '99+' : ln;
 }
-// 화면을 보고 있을 때만 새 내용 받기 (채팅 4초, 다른 화면 15초)
-let pollT; function poll() { clearTimeout(pollT); pollT = setTimeout(async () => { if (!document.hidden && S.tok) await sync(); poll(); }, S.tab === 'chat' ? 4000 : 15000); }
+// 화면을 보고 있을 때만 새 내용 받기 (채팅방 4초, 다른 화면 15초)
+let pollT; function poll() { clearTimeout(pollT); pollT = setTimeout(async () => { if (!document.hidden && S.tok) await sync(); poll(); }, S.tab === 'room' || S.tab === 'chat' ? 4000 : 15000); }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.tok) { sync(); poll(); } });
 if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'push') sync(); });
 
@@ -481,7 +576,88 @@ async function saveItem(it, what) {
 }
 async function delItem(it) { if (!confirm('"' + it.title + '"을(를) 지울까요?')) return false; it.del = true; render(); await api('/api/item-del', { id: it.id }); return true; }
 
-// ═════════ 홈 ═════════
+// ═════════ 업무 공통 ═════════
+const ST = ['요청', '진행', '완료'];
+const statusOf = x => ST.includes(x.status) ? x.status : (x.done ? '완료' : '요청');
+const isDone = x => statusOf(x) === '완료';
+const whosOf = x => Array.isArray(x.whos) ? x.whos : (x.who ? [x.who] : []);
+const mine = x => !whosOf(x).length || whosOf(x).includes(S.me.name);
+const COLORS = [['#D9468F', '로즈 핑크'], ['#E0703A', '오렌지'], ['#C99A1E', '머스터드'], ['#2EA36B', '초록'], ['#1F9D8B', '청록'], ['#2F6FDE', '파랑'], ['#5B6FD8', '라벤더'], ['#7C5CE0', '보라'], ['#0D326F', '남색'], ['#6B7385', '회색']];
+const itemColor = x => x.color || (x.type === 'sched' ? '#2F6FDE' : whosOf(x).length ? avColor(midOf(whosOf(x)[0])) : '#5B6FD8');
+const stPill = s => '<span class="st s' + ST.indexOf(s) + '">' + s + '</span>';
+const dueTxt = d => d ? d.slice(2, 4) + '/' + d.slice(5, 7) + '/' + d.slice(8) + ' 까지' : '기한 없음';
+const dday = d => { const n = Math.round((dObj(d) - dObj(today())) / 864e5); return n === 0 ? 'D-DAY' : n > 0 ? 'D-' + n : '지남'; };
+const dbox = (d, cls) => '<div class="dbox' + (cls ? ' ' + cls : '') + '"><small>' + d.slice(0, 4) + '-' + d.slice(5, 7) + '</small><b>' + (+d.slice(8)) + '</b></div>';
+const schLi = x => '<div class="sch" data-id="' + x.id + '">' + dbox(x.date, x.date === today() ? 'td' : '') + '<div class="t"><b>' + esc(x.title) + '</b><small>' + [wd(x.date) + '요일', timeKo(x.time) || '종일', x.memo ? esc(x.memo) : '', (S.comments.get(x.id) || []).length ? '댓글 ' + (S.comments.get(x.id) || []).length : ''].filter(Boolean).join(' · ') + '</small></div></div>';
+const openItem = it => { if (!it || it.del) return toast('지워진 항목이에요'); if (it.type === 'todo') return taskSheet(it); if (it.type === 'sched') return itemSheet(it); return openTable(it); };
+
+// ═════════ 업무 탭 (플로우 '전체 업무'처럼) ═════════
+const TKF = [['open', '진행 중'], ['mine', '내 업무'], ['due', '오늘까지'], ['done', '완료']];
+function taskRow(x) {
+  const t = today(), d = x.due, late = d && d < t && !isDone(x), cn = (S.comments.get(x.id) || []).length, ch = x.checks || [];
+  return '<div class="tk' + (isDone(x) ? ' done' : '') + '" data-id="' + x.id + '"><i class="cbar" style="background:' + itemColor(x) + '"></i><div class="tt"><b>' + esc(x.title) + (cn ? ' <em>(' + cn + ')</em>' : '') + '</b><small><span class="' + (late ? 'late' : '') + '">' + dueTxt(d) + '</span>' +
+    (ch.length ? '<span>☑ ' + ch.filter(c => c.d).length + '/' + ch.length + '</span>' : '') + (whosOf(x).length ? '<span class="avs2">' + whosOf(x).map(n => av(midOf(n), 'xs')).join('') + '</span>' : '<span>모두</span>') + '</small></div>' + stPill(statusOf(x)) + '</div>';
+}
+function renderTask() {
+  const t = today(), all = itemsOf('todo'), f = S.tkf;
+  const L = all.filter(x => f === 'done' ? isDone(x) : !isDone(x) && (f === 'open' || (f === 'mine' && mine(x)) || (f === 'due' && x.due && x.due <= t)));
+  L.sort((a, b) => f === 'done' ? (b.doneAt || b.upd) - (a.doneAt || a.upd) : (a.due || '9999').localeCompare(b.due || '9999') || a.upd - b.upd);
+  const wkEnd = addDays(t, 6 - dObj(t).getUTCDay());
+  const groups = f === 'done' ? [['완료한 업무', L]] : [['지난 업무', L.filter(x => x.due && x.due < t)], ['오늘', L.filter(x => x.due === t)], ['이번 주', L.filter(x => x.due > t && x.due <= wkEnd)], ['나중에', L.filter(x => x.due > wkEnd)], ['기한 없음', L.filter(x => !x.due)]];
+  $('v-task').innerHTML = '<div class="pills">' + TKF.map(([k, n]) => '<button data-k="' + k + '" class="' + (f === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>' +
+    '<div class="qadd"><input class="inp" id="todoIn" placeholder="업무 추가 (내일, 11/20 처럼 날짜도 돼요)"><button class="btn g" id="todoAdd">추가</button></div>' +
+    (L.length ? groups.filter(g => g[1].length).map(([n, l]) => '<div class="grp"><div class="gh">' + ic('minus', 'width:18px;height:18px') + n + ' (' + l.length + ')</div>' + l.map(taskRow).join('') + '</div>').join('') : '<p class="empty" style="margin-top:30px">' + (f === 'done' ? '완료한 업무가 없어요' : '업무가 없어요 👍') + '</p>');
+}
+$('v-task').onclick = e => {
+  const p = e.target.closest('[data-k]'); if (p) { S.tkf = p.dataset.k; return renderTask(); }
+  if (e.target.id === 'todoAdd') return addTodoFromInput();
+  const r = e.target.closest('.tk'); if (r) taskSheet(S.items.get(r.dataset.id));
+};
+$('v-task').addEventListener('keydown', e => { if (e.target.id === 'todoIn' && e.key === 'Enter' && !e.isComposing) addTodoFromInput(); });
+function addTodoFromInput() { const v = $('todoIn').value.trim(); if (!v) return; const w = parseWhen(v); saveItem({ type: 'todo', title: w.rest || v, due: w.date, status: '요청', whos: [], done: false }, '☑ 업무 추가: ' + (w.rest || v)); $('todoIn').value = ''; }
+
+// 업무 상세 (플로우·캘린더 앱 업무 화면처럼: 상태·담당자·기한·색·설명·체크리스트·댓글)
+function taskSheet(it0, isNew) {
+  if (!it0) return; const it = JSON.parse(JSON.stringify(it0)); it.whos = whosOf(it); it.checks = it.checks || []; it.status = statusOf(it); delete it.who;
+  const draw = sh => {
+    const cms = it.id ? (S.comments.get(it.id) || []) : [], late = it.due && it.due < today() && it.status !== '완료', ch = it.checks;
+    sh.querySelector('#tkB').innerHTML =
+      '<input class="ttl" id="tkT" value="' + esc(it.title) + '" placeholder="업무 제목">' +
+      '<div class="fr"><span class="fi">' + ic('flag') + '</span><div><small>상태</small><div class="stc">' + ST.map(s => '<button data-st="' + s + '" class="st s' + ST.indexOf(s) + (it.status === s ? ' on' : '') + '">' + s + '</button>').join('') + '</div></div></div>' +
+      '<div class="fr"><span class="fi">' + (it.whos.length ? '<span class="avs2">' + it.whos.map(n => av(midOf(n), 'xs')).join('') + '</span>' : ic('person')) + '</span><div><small>담당자</small><b>' + (it.whos.length ? '담당자 ' + it.whos.length + '명' : '모두') + '</b><div class="chips" style="margin-top:6px">' + S.members.map(m => '<button data-who="' + esc(m.name) + '" class="' + (it.whos.includes(m.name) ? 'on' : '') + '">' + esc(m.name) + '</button>').join('') + '</div></div></div>' +
+      '<div class="fr"><span class="fi' + (late ? ' red' : '') + '">' + ic('cal') + '</span><div><small>기한</small><input type="date" id="tkD" class="dinp' + (late ? ' red' : '') + '" value="' + esc(it.due || '') + '"></div></div>' +
+      '<div class="fr"><span class="fi" style="background:' + itemColor(it) + ';border-color:' + itemColor(it) + '"></span><div><small>색</small><div class="cols">' + COLORS.map(([c, n]) => '<button data-c="' + c + '" title="' + n + '" class="' + (it.color === c ? 'on' : '') + '" style="background:' + c + '"></button>').join('') + '</div></div></div>' +
+      '<h4>설명</h4><textarea class="inp" id="tkM" rows="3" placeholder="설명에 추가">' + esc(it.desc || '') + '</textarea>' +
+      '<h4>체크리스트 (' + ch.filter(c => c.d).length + '/' + ch.length + ')</h4>' + ch.map((c, i) => '<div class="cl' + (c.d ? ' d' : '') + '" data-i="' + i + '"><button class="ck" data-a="cd">' + (c.d ? '✓' : '') + '</button><span>' + esc(c.t) + '</span><button class="lbtn" data-a="cx">✕</button></div>').join('') +
+      '<div class="row" style="margin-top:6px"><input class="inp" id="tkC" placeholder="+ 체크리스트에 추가"><button class="btn" id="tkCa">추가</button></div>' +
+      (it.mid ? '<p class="help" style="margin-top:12px">' + esc(nameOf(it.mid)) + '님이 만듦' + (it.status === '완료' && it.doneBy ? ' · ' + esc(it.doneBy) + ' 완료' : '') + '</p>' : '') +
+      (it.id ? '<h4>댓글 ' + cms.length + '</h4>' + cmList(cms) : '');
+  };
+  sheet('<div class="shead lt"><button class="tb" data-close>' + ic('back') + '</button><span class="sp"></span>' + (!isNew ? '<button class="donebtn" id="tkDone">✓ 완료</button><button class="tb" id="tkX" title="삭제">' + ic('trash') + '</button>' : '') + '</div><div id="tkB"></div>' +
+    '<div class="foot">' + (it.id ? '<input class="inp" id="tkCm" placeholder="질문이나 댓글 입력…"><button class="btn" id="tkCo">게시</button>' : '') + '<button class="save" id="tkOk">' + (isNew ? '추가' : '저장') + '</button></div>', sh => {
+    sh.classList.add('full'); draw(sh);
+    const g = id => sh.querySelector('#' + id); const keep = () => { it.title = g('tkT').value; it.due = g('tkD').value; it.desc = g('tkM').value; };
+    const setDone = () => { it.done = it.status === '완료'; it.doneBy = it.done ? (it.doneBy || S.me.name) : ''; it.doneAt = it.done ? (it.doneAt || Date.now()) : 0; const b = g('tkDone'); if (b) b.classList.toggle('on', it.done); };
+    setDone();
+    const save = async (what, close) => { keep(); it.title = it.title.trim(); if (!it.title) return toast('제목을 적어 주세요'); setDone(); const id = await saveItem(it, what); if (id) { it.id = id; if (close) { closeSheet(); toast('저장했어요'); } } };
+    sh.addEventListener('click', async e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.st) { keep(); it.status = b.dataset.st; setDone(); draw(sh); if (it.id) save('☑ ' + it.title + ': ' + it.status); return; }
+      if (b.dataset.who != null && b.dataset.who !== undefined && b.hasAttribute('data-who')) { keep(); const n = b.dataset.who; it.whos = it.whos.includes(n) ? it.whos.filter(x => x !== n) : [...it.whos, n]; return draw(sh); }
+      if (b.dataset.c) { keep(); it.color = it.color === b.dataset.c ? '' : b.dataset.c; return draw(sh); }
+      if (b.id === 'tkCa') { keep(); const v = g('tkC').value.trim(); if (v) { it.checks.push({ t: v.slice(0, 80), d: false }); draw(sh); g('tkC').focus(); } return; }
+      const cl = b.closest('.cl'); if (cl) { keep(); const i = +cl.dataset.i; if (b.dataset.a === 'cd') it.checks[i].d = !it.checks[i].d; else it.checks.splice(i, 1); draw(sh); if (it.id && b.dataset.a === 'cd') save('☑ ' + it.title + ': ' + it.checks[i].t + (it.checks[i].d ? ' ✓' : ' 해제')); return; }
+      if (b.id === 'tkDone') { keep(); it.status = it.status === '완료' ? '진행' : '완료'; setDone(); draw(sh); return save(it.done ? '✓ 업무 완료: ' + it.title : '다시 진행: ' + it.title); }
+      if (b.id === 'tkX') { if (await delItem(it)) closeSheet(); return; }
+      if (b.id === 'tkOk') return save(isNew ? '☑ 업무 추가: ' + g('tkT').value.trim() : '☑ 업무 수정: ' + g('tkT').value.trim(), true);
+      if (b.id === 'tkCo') { const v = g('tkCm').value.trim(); if (!v) return; const j = await api('/api/comment', { item: it.id, text: v }); if (!j.ok) return toast(j.error); const l = S.comments.get(it.id) || []; l.push({ id: j.id, item: it.id, mid: S.me.id, text: v, at: j.at }); S.comments.set(it.id, l); g('tkCm').value = ''; keep(); draw(sh); render(); }
+    });
+    sh.addEventListener('keydown', e => { if (e.key !== 'Enter' || e.isComposing) return; if (e.target.id === 'tkC') g('tkCa').click(); if (e.target.id === 'tkCm') g('tkCo').click(); });
+    if (isNew) setTimeout(() => g('tkT').focus(), 60);
+  });
+}
+
+// ═════════ 더보기 (플로우 '더보기'처럼: 인사 + 바로가기 + 업무·일정 요약 + 등원) ═════════
 function pickupFor(d) {
   const p = S.pickup.get(d); if (p) return p;
   const w = wd(d); return { day: d, list: [...(S.pickupDefault[w] || [])], done: [], absent: [], memos: [], isDefault: true };
@@ -491,57 +667,46 @@ async function savePickup(p, what) {
   const j = await api('/api/pickup', { day: p.day, list: p.list, done: p.done, absent: p.absent, memos: p.memos, what });
   if (!j.ok) toast(j.error || '저장하지 못했어요');
 }
-const dday = d => { const n = Math.round((dObj(d) - dObj(today())) / 864e5); return n === 0 ? 'D-DAY' : n > 0 ? 'D-' + n : '지남'; };
-function renderHome() {
-  const t = today(), todos = itemsOf('todo');
-  const open = todos.filter(x => !x.done).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || a.upd - b.upd);
-  const doneToday = todos.filter(x => x.done && x.doneAt && dayOf(x.doneAt) === t);
-  const todoLi = x => { const late = x.due && x.due < t && !x.done; const cn = (S.comments.get(x.id) || []).length;
-    return '<li class="todo' + (x.done ? ' done' : '') + '" data-id="' + x.id + '"><button class="ck">' + (x.done ? '✓' : '') + '</button><div class="t"><b>' + esc(x.title) + '</b><small>' +
-      [x.due ? (late ? '<span class="tag r">' + md(x.due) + ' 지남</span>' : '<span class="tag' + (x.due === t ? ' y' : '') + '">' + (x.due === t ? '오늘' : md(x.due)) + '</span>') : '', x.who ? '<span class="tag g">' + esc(x.who) + '</span>' : '', x.done ? esc(x.doneBy || '') + ' 완료' : '', cn ? '<span class="tag">댓글 ' + cn + '</span>' : ''].filter(Boolean).join(' ') + '</small></div></li>'; };
-  const hd = S.homeDay, p = pickupFor(hd);
-  const kids = [...new Set([...p.list, ...p.absent])];
+const SHORT = [['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['set', '⚙️', '설정']];
+function renderMore() {
+  const t = today(), h = kNow().getUTCHours(), todos = itemsOf('todo').filter(x => !isDone(x));
   const pushOk = 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('haerang-team-push') === '1';
-  const scheds = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 13)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
-  // 상단고정: 채팅 공지 + 진행 중인 행사·물품·구매
-  const pins = [];
-  if (S.notice) pins.push('<div class="pin" data-pin="notice"><span class="k n">공지</span><span class="t">' + esc(S.notice.text) + '</span></div>');
-  for (const x of tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999')).slice(0, 4)) {
-    const c = catOf(x), st = tableStat(x);
-    pins.push('<div class="pin" data-ev="' + x.id + '"><span class="k">' + CAT[c] + '</span><span class="t">' + esc(x.title) + '</span>' + (x.date && x.date >= t ? '<span class="pill">' + dday(x.date) + '</span>' : '<span class="pill' + (st.pct >= 100 ? ' ok' : ' b') + '">' + (st.pct >= 100 ? '완료' : st.pct + '%') + '</span>') + '</div>');
-  }
-  $('v-home').innerHTML =
-    '<div class="hero"><small>해랑경희 태권도장</small><h2>해랑 업무</h2><p>' + ic('person', 'width:16px;height:16px') + S.members.length + '명 참여중</p><div class="avs">' + S.members.map(m => av(m.id, 's')).join('') + '</div></div>' +
-    (!pushOk ? '<div class="notice"><b>알림을 켜야 채팅·댓글·체크 알림이 와요</b><button class="btn g" id="pushOn">알림 켜기</button></div>' : '') +
-    (pins.length ? '<div class="card"><div class="hd" style="padding-bottom:10px"><h2>상단고정<em>' + pins.length + '</em></h2></div>' + pins.join('') + '</div>' : '') +
-    '<div class="card"><div class="hd"><h2>할 일<em>' + open.length + '</em></h2></div><div class="bd"><ul class="l" id="todoL">' + (open.length ? open.map(todoLi).join('') : '<li class="empty">할 일이 없어요 👍</li>') + doneToday.map(todoLi).join('') + '</ul>' +
-    '<div class="row" style="margin-top:8px"><input class="inp" id="todoIn" placeholder="할 일 추가 (내일, 11/20 처럼 날짜도 돼요)"><button class="btn g" id="todoAdd">추가</button></div></div></div>' +
-    '<div class="card"><div class="hd"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button><button class="lbtn" id="pkEdit">명단 수정</button></div><div class="bd">' +
+  const hd = S.homeDay, p = pickupFor(hd), kids = [...new Set([...p.list, ...p.absent])];
+  const todayS = itemsOf('sched').filter(x => x.date === t).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  const soon = itemsOf('sched').filter(x => x.date > t && x.date <= addDays(t, 13)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+  const evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+  $('v-more').innerHTML =
+    '<div class="greet"><div><small>' + (+t.slice(5, 7)) + '월 ' + (+t.slice(8)) + '일 (' + wd(t) + ')</small><b>' + (h < 11 ? '좋은 아침이에요 ☀️' : h < 18 ? '즐거운 오후예요 😊' : '오늘도 수고 많았어요 🌙') + '</b></div></div>' +
+    (!pushOk ? '<div class="notice"><b>알림을 켜야 채팅·업무 알림이 와요</b><button class="btn g" id="pushOn">알림 켜기</button></div>' : '') +
+    '<div class="sgrid">' + SHORT.map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + '</button>').join('') + '</div>' +
+    '<div class="sec"><div class="sh"><h2>업무</h2><button class="more" data-go="task">더보기 ›</button></div>' +
+    '<button class="sbox" data-tk="due">오늘까지 해야 할 업무<b>' + todos.filter(x => x.due && x.due <= t).length + ' ›</b></button><button class="sbox" data-tk="mine">내가 담당한 업무<b>' + todos.filter(x => whosOf(x).includes(S.me.name)).length + ' ›</b></button></div>' +
+    '<div class="sec"><div class="sh"><h2>오늘의 일정</h2><button class="more" data-go="cal">더보기 ›</button></div>' + (todayS.length ? todayS.map(schLi).join('') : '<p class="empty">오늘 일정이 없어요</p>') +
+    (soon.length ? '<p class="help" style="margin:10px 0 2px">다가오는 일정</p>' + soon.slice(0, 4).map(schLi).join('') : '') + '</div>' +
+    '<div class="sec" id="pkSec"><div class="sh"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button><button class="lbtn" id="pkEdit">명단 수정</button></div>' +
     (kids.length ? '<div id="pkL">' + kids.map(k => '<button class="kid' + (p.absent.includes(k) ? ' ab' : p.done.includes(k) ? ' done' : '') + '" data-k="' + esc(k) + '">' + (p.done.includes(k) ? '✓ ' : '') + esc(k) + '</button>').join('') + '</div><p class="hint" style="margin:6px 0 0">누르면 데려옴 ✓ / 길게 누르면 결석</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 아이가 없어요. 명단 수정이나 설정의 요일별 기본 명단에서 넣어 주세요.') + '</p>') +
-    (p.memos.length ? p.memos.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '') +
-    '<p class="hint" style="margin:8px 0 0">채팅에 <b>#등원 지민 결석</b>, <b>#등원 서준 데리러</b>처럼 쓰면 여기 바로 반영돼요.</p></div></div>' +
-    '<div class="card"><div class="hd"><h2>다가오는 일정</h2><button class="lbtn" data-go="sched">전체 ›</button></div><div class="bd">' + (scheds.length ? scheds.slice(0, 6).map(schLi).join('') : '<p class="empty">2주 안에 일정이 없어요</p>') + '</div></div>';
+    (p.memos.length ? p.memos.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '') + '</div>' +
+    '<div class="sec"><div class="sh"><h2>진행 중인 신청표</h2><button class="more" data-go="table">더보기 ›</button></div>' + (evs.length ? evs.slice(0, 5).map(x => { const st = tableStat(x); return '<div class="pin" data-ev="' + x.id + '"><span class="k">' + CAT[catOf(x)] + '</span><span class="t">' + esc(x.title) + '</span>' + (x.date && x.date >= t ? '<span class="pill">' + dday(x.date) + '</span>' : '<span class="pill' + (st.pct >= 100 ? ' ok' : ' b') + '">' + (st.pct >= 100 ? '완료' : st.pct + '%') + '</span>') + '</div>'; }).join('') : '<p class="empty">진행 중인 신청표가 없어요</p>') + '</div>';
 }
-const dbox = (d, cls) => '<div class="dbox' + (cls ? ' ' + cls : '') + '"><small>' + d.slice(0, 4) + '-' + d.slice(5, 7) + '</small><b>' + (+d.slice(8)) + '</b></div>';
-const schLi = x => '<div class="sch" data-id="' + x.id + '">' + dbox(x.date, x.date === today() ? 'td' : '') + '<div class="t"><b>' + esc(x.title) + '</b><small>' + [wd(x.date) + '요일', timeKo(x.time) || '종일', x.memo ? esc(x.memo) : '', (S.comments.get(x.id) || []).length ? '댓글 ' + (S.comments.get(x.id) || []).length : ''].filter(Boolean).join(' · ') + '</small></div></div>';
-$('v-home').onclick = async e => {
+$('v-more').onclick = async e => {
   if (e.target.id === 'pushOn') return enablePush();
-  if (e.target.id === 'todoAdd') return addTodoFromInput();
+  const sc = e.target.closest('[data-sc]'); if (sc) { const k = sc.dataset.sc;
+    if (k === 'pickup') return $('pkSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (k === 'table' || k === 'buy') { S.tf = k === 'buy' ? 'buy' : 'all'; return setTab('table'); }
+    if (k === 'cal') return setTab('cal'); if (k === 'mine') { S.tkf = 'mine'; return setTab('task'); }
+    if (k === 'notice') { openRoom(''); return S.notice ? jumpTo(S.notice.id) : toast('올라온 공지가 없어요. 단체방 메시지를 길게 눌러 공지로 올려요'); }
+    if (k === 'photo') return gallerySheet(); if (k === 'set') return settingsSheet(); }
   const go = e.target.closest('[data-go]'); if (go) return setTab(go.dataset.go);
-  const pn = e.target.closest('[data-pin]'); if (pn) { setTab('chat'); return jumpTo(S.notice && S.notice.id); }
+  const tk = e.target.closest('[data-tk]'); if (tk) { S.tkf = tk.dataset.tk; return setTab('task'); }
   const pe = e.target.closest('[data-ev]'); if (pe) return openTable(S.items.get(pe.dataset.ev));
-  const pd = e.target.closest('[data-pd]'); if (pd) { S.homeDay = addDays(S.homeDay, +pd.dataset.pd); return renderHome(); }
+  const pd = e.target.closest('[data-pd]'); if (pd) { S.homeDay = addDays(S.homeDay, +pd.dataset.pd); return renderMore(); }
   if (e.target.id === 'pkEdit') return pickupSheet(S.homeDay);
-  const ck = e.target.closest('.todo .ck'); if (ck) { const it = S.items.get(ck.closest('.todo').dataset.id); it.done = !it.done; it.doneBy = it.done ? S.me.name : ''; it.doneAt = it.done ? Date.now() : 0; return saveItem(it, (it.done ? '✓ 완료: ' : '다시 할 일로: ') + it.title); }
-  const td = e.target.closest('.todo .t'); if (td) return itemSheet(S.items.get(td.closest('.todo').dataset.id));
-  const sc = e.target.closest('.sch'); if (sc) return itemSheet(S.items.get(sc.dataset.id));
+  const sch = e.target.closest('.sch'); if (sch) return openItem(S.items.get(sch.dataset.id));
   const k = e.target.closest('.kid'); if (k && !k.dataset.long) { const p = pickupFor(S.homeDay), n = k.dataset.k; if (p.absent.includes(n)) { p.absent = p.absent.filter(x => x !== n); if (!p.list.includes(n)) p.list.push(n); return savePickup(p, n + ' 결석 취소'); } const done = p.done.includes(n); p.done = done ? p.done.filter(x => x !== n) : [...p.done, n]; return savePickup(p, done ? n + ' 데려옴 취소' : '✓ ' + n + ' 데려옴'); }
 };
 // 길게 누르면 결석
-let lpT; $('v-home').addEventListener('pointerdown', e => { const k = e.target.closest('.kid'); if (!k) return; delete k.dataset.long; lpT = setTimeout(() => { k.dataset.long = '1'; const p = pickupFor(S.homeDay), n = k.dataset.k; if (!p.absent.includes(n)) { p.absent.push(n); p.done = p.done.filter(x => x !== n); savePickup(p, n + ' 결석'); if (navigator.vibrate) navigator.vibrate(30); } }, 600); });
-['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('v-home').addEventListener(ev, () => clearTimeout(lpT)));
-$('v-home').addEventListener('keydown', e => { if (e.target.id === 'todoIn' && e.key === 'Enter' && !e.isComposing) addTodoFromInput(); });
-function addTodoFromInput() { const v = $('todoIn').value.trim(); if (!v) return; const w = parseWhen(v); saveItem({ type: 'todo', title: w.rest || v, due: w.date, done: false }); $('todoIn').value = ''; }
+let lpT; $('v-more').addEventListener('pointerdown', e => { const k = e.target.closest('.kid'); if (!k) return; delete k.dataset.long; lpT = setTimeout(() => { k.dataset.long = '1'; const p = pickupFor(S.homeDay), n = k.dataset.k; if (!p.absent.includes(n)) { p.absent.push(n); p.done = p.done.filter(x => x !== n); savePickup(p, n + ' 결석'); if (navigator.vibrate) navigator.vibrate(30); } }, 600); });
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('v-more').addEventListener(ev, () => clearTimeout(lpT)));
 function pickupSheet(d) {
   const p = JSON.parse(JSON.stringify(pickupFor(d)));
   sheet('<h2>' + md(d) + ' 데리러 갈 아이</h2><p class="help">이 날만 바꿔요. 매주 같은 명단은 설정 → 요일별 기본 명단에서 바꿔요.</p><div class="chips" id="pkC" style="margin-top:12px"></div><div class="row" style="margin-top:10px"><input class="inp" id="pkIn" placeholder="이름 직접 추가"><button class="btn" id="pkAdd">추가</button></div><div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="pkOk">저장</button></div>', async ov => {
@@ -554,23 +719,48 @@ function pickupSheet(d) {
   });
 }
 async function loadRoster() { if (S.roster.length) return; const j = await api('/api/roster'); if (j.ok) S.roster = j.students.sort((a, b) => a.localeCompare(b, 'ko')); }
+function gallerySheet() {
+  const ps = roomMsgs('').filter(m => m.photo).reverse();
+  sheet('<div class="grab"></div><h2>사진 <span class="help">' + ps.length + '</span></h2>' + (ps.length ? '<div class="gal">' + ps.map(m => '<img data-ph="' + m.photo + '">').join('') + '</div>' : '<p class="empty">단체방에 올린 사진이 없어요</p>'), sh => {
+    sh.querySelectorAll('img').forEach(loadPhoto); sh.onclick = e => { const im = e.target.closest('img'); if (im) viewPhoto(im.src, im.dataset.ph); };
+  });
+}
 
 // 새로 만들기 (+ 버튼)
 function createSheet() {
   sheet('<div class="grab"></div><h2>새로 만들기</h2><div class="tiles" id="crT">' +
-    [['todo', '☑', '할 일', '#E8EEF8'], ['sched', '📅', '일정', '#DDF3EE'], ['event', '🎟', '행사', '#FBE5E6'], ['goods', '👕', '물품 신청', '#E8EEF8'], ['buy', '🛒', '구매', '#FFF0DC'], ['chat', '💬', '채팅', '#EEF1F6']]
+    [['todo', '☑', '업무', '#E8EEF8'], ['sched', '📅', '일정', '#DDF3EE'], ['event', '🎟', '행사', '#FBE5E6'], ['goods', '👕', '물품 신청', '#E8EEF8'], ['buy', '🛒', '구매', '#FFF0DC']]
       .map(([k, e, n, c]) => '<button data-k="' + k + '"><span style="background:' + c + '">' + e + '</span>' + n + '</button>').join('') + '</div>', ov => {
     ov.querySelector('#crT').onclick = e => { const b = e.target.closest('button'); if (!b) return; newOf(b.dataset.k); };
   });
 }
-function newOf(k) {
-  if (k === 'todo') return itemSheet({ type: 'todo', title: '', due: '', done: false }, true);
-  if (k === 'sched') return itemSheet({ type: 'sched', title: '', date: S.tab === 'sched' ? S.calD : today(), time: '', memo: '' }, true);
+function newOf(k, day) {
+  if (k === 'todo') return taskSheet({ type: 'todo', title: '', due: day || '', status: '요청', whos: [], checks: [], done: false }, true);
+  if (k === 'sched') return itemSheet({ type: 'sched', title: '', date: day || (S.tab === 'cal' ? S.calD : today()), time: '', memo: '' }, true);
   if (k === 'event' || k === 'goods') return eventSetup({ type: 'event', kind: k === 'goods' ? 'goods' : '', title: '', date: '', base: 0, products: [], options: [], checks: [], van: false, rows: [] }, true);
   if (k === 'buy') return buySheet({ type: 'buy', title: '', rows: [] }, true);
-  closeSheet(); setTab('chat'); $('cIn').focus();
 }
-$('fab').onclick = () => createSheet();
+$('fab').onclick = () => { if (S.tab === 'chat') return newChatSheet(); if (S.tab === 'task') return newOf('todo'); if (S.tab === 'cal') return sheet('<div class="grab"></div><h2>' + md(S.calD) + '에 추가</h2><div class="tiles" id="crT"><button data-k="sched"><span style="background:#DDF3EE">📅</span>일정</button><button data-k="todo"><span style="background:#E8EEF8">☑</span>업무 (기한)</button></div>', ov => { ov.querySelector('#crT').onclick = e => { const b = e.target.closest('button'); if (b) newOf(b.dataset.k, S.calD); }; }); createSheet(); };
+
+// ═════════ 채팅방 목록 (플로우 채팅처럼) ═════════
+function renderChatList() {
+  const rooms = new Map([['', null]]);
+  for (const m of S.msgs) rooms.set(roomOf(m), m);
+  const f = S.cf || 'all';
+  const L = [...rooms.entries()].map(([r, last]) => ({ r, last, n: unreadIn(r) })).filter(x => f === 'all' || x.n).sort((a, b) => (a.r === '' ? -1 : b.r === '' ? 1 : 0) || ((b.last || {}).id || 0) - ((a.last || {}).id || 0));
+  $('v-chat').innerHTML = '<div class="pills"><button data-cf="all" class="' + (f === 'all' ? 'on' : '') + '">전체</button><button data-cf="unread" class="' + (f === 'unread' ? 'on' : '') + '">안 읽음</button></div>' +
+    (L.length ? L.map(({ r, last, n }) => '<div class="room" data-r="' + r + '">' + (r ? av(r.split(':').slice(1).find(x => x !== S.me.id), 'rm') : '<span class="av rm grp">' + ic('chat', 'width:26px;height:26px') + '</span>') +
+      '<div class="rt"><b>' + esc(roomName(r)) + (r ? '' : ' <em>' + S.members.length + '</em>') + '</b><small>' + (last ? (last.text === GONE ? '삭제된 메시지입니다' : last.photo && !last.text ? '사진' : esc(last.text)) : '대화를 시작해 보세요') + '</small></div>' +
+      '<div class="rr">' + (last ? '<small>' + (dayOf(last.at) === today() ? hm(last.at) : md(dayOf(last.at))) + '</small>' : '') + (n ? '<span class="cnt">' + (n > 99 ? '99+' : n) + '</span>' : '') + '</div></div>').join('') : '<p class="empty" style="margin-top:30px">안 읽은 채팅이 없어요</p>');
+}
+$('v-chat').onclick = e => { const c = e.target.closest('[data-cf]'); if (c) { S.cf = c.dataset.cf; return renderChatList(); } const r = e.target.closest('.room'); if (r) openRoom(r.dataset.r); };
+function openRoom(r) { S.room = r; S.replyTo = null; drawReply(); markRoomRead(r); setTab('room'); }
+function newChatSheet() {
+  const others = S.members.filter(m => m.id !== S.me.id);
+  sheet('<div class="grab"></div><h2>1:1 채팅</h2><p class="help">대화할 사람을 고르세요.</p>' + (others.length ? others.map(m => '<div class="mem" data-m="' + m.id + '" style="cursor:pointer">' + av(m.id, 'l') + '<b>' + esc(m.name) + '</b></div>').join('') : '<p class="empty">함께 쓰는 사람이 아직 없어요. 설정에서 추가해요.</p>'), sh => {
+    sh.onclick = e => { const m = e.target.closest('[data-m]'); if (m) { closeSheet(); openRoom(dmRoom(m.dataset.m)); } };
+  });
+}
 
 // ═════════ 채팅 ═════════
 const EMO = ['❤️', '👍', '✅', '😊', '😮', '😭'];
@@ -582,14 +772,14 @@ function fmtText(t) {
 const photoCache = new Map();
 const dayPill = d => d.slice(0, 4) + '-' + d.slice(5, 7) + '-' + d.slice(8) + ' (' + wd(d) + ')';
 function renderNbar() {
-  const n = S.notice;
+  const n = S.room ? null : S.notice;
   $('nbar').innerHTML = n ? '<div class="nbar" id="nb">' + ic('mega') + '<span>' + esc(n.text) + '</span><small>' + esc(n.by || '') + '</small></div>' : '';
 }
 function renderChat(scroll) {
   renderNbar();
   const box = $('msgs'), atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 160, me = S.me.id;
-  let html = S.msgs.length >= 150 && S.msgs[0].id > 1 ? '<button class="btn" id="moreMsg" style="display:block;margin:10px auto 0">이전 대화 더 보기</button>' : '', lastDay = '';
-  const L = S.msgs;
+  const L = roomMsgs(S.room);
+  let html = L.length >= 30 && !(S.noMore || {})[S.room] ? '<button class="btn" id="moreMsg" style="display:block;margin:10px auto 0">이전 대화 더 보기</button>' : '', lastDay = '';
   L.forEach((m, i) => {
     const d = dayOf(m.at); if (d !== lastDay) { html += '<div class="day">' + dayPill(d) + '</div>'; lastDay = d; }
     const prev = L[i - 1], next = L[i + 1], gone = m.text === GONE;
@@ -639,10 +829,10 @@ $('msgs').onclick = async e => {
   const tg = e.target.closest('[data-tag]'); if (tg) return goTag(tg.dataset.tag);
   const jp = e.target.closest('[data-jump]'); if (jp) return jumpTo(+jp.dataset.jump);
   const rx = e.target.closest('[data-rx]'); if (rx) return react(+row.dataset.id, rx.dataset.rx);
-  const rf = e.target.closest('[data-ref]'); if (rf) { const it = S.items.get(rf.dataset.ref); if (!it || it.del) return toast('지워진 항목이에요'); return it.type === 'event' || it.type === 'buy' ? openTable(it) : itemSheet(it); }
+  const rf = e.target.closest('[data-ref]'); if (rf) { const it = S.items.get(rf.dataset.ref); if (!it || it.del) return toast('지워진 항목이에요'); return openItem(it); }
   const mk = e.target.closest('[data-mksched]'); if (mk) { const m = S.msgs.find(x => x.id == mk.dataset.mksched); const w = parseWhen(m.text, dayOf(m.at)); return itemSheet({ type: 'sched', title: w.rest.slice(0, 60), date: w.date, time: w.time, memo: '' }, true); }
   const ph = e.target.closest('img[data-ph]'); if (ph) return viewPhoto(ph.src, ph.dataset.ph);
-  if (e.target.id === 'moreMsg') { const j = await api('/api/more-msgs', { before: S.msgs[0].id }); if (j.ok) { S.msgs = [...j.msgs.map(m => ({ ...m, rx: m.rx || {} })), ...S.msgs]; renderChat(); } }
+  if (e.target.id === 'moreMsg') { const L = roomMsgs(S.room), j = await api('/api/more-msgs', { before: L[0].id, room: S.room }); if (j.ok) { const have = new Set(S.msgs.map(m => m.id)); const add = j.msgs.filter(m => !have.has(m.id)).map(m => ({ ...m, rx: m.rx || {}, room: m.room || '' })); if (!add.length) { S.noMore = { ...(S.noMore || {}), [S.room]: 1 }; toast('더 이전 대화가 없어요'); } S.msgs = [...add, ...S.msgs].sort((a, b) => a.id - b.id); const b = $('msgs'), h = b.scrollHeight; renderChat(); b.scrollTop = b.scrollHeight - h; } }
 };
 // 말풍선 길게 누르기 → 반응·답장·공지·복사·삭제
 let mlp, mlpXY;
@@ -658,15 +848,15 @@ function msgMenu(id) {
   const mine = m.mid === S.me.id, isNotice = S.notice && S.notice.id === id, me = S.me.id;
   const act = (a, i, t, red) => '<li><button data-a="' + a + '"' + (red ? ' class="red"' : '') + '>' + ic(i) + t + '</button></li>';
   sheet('<div class="grab"></div><div class="emo">' + EMO.map(e => '<button data-e="' + e + '" class="' + (((m.rx || {})[e] || []).includes(me) ? 'on' : '') + '">' + e + '</button>').join('') + '</div><ul class="acts">' +
-    act('reply', 'reply', '답장') + (m.text ? act('copy', 'copy', '텍스트 복사') : '') + (m.text ? act('notice', 'mega', isNotice ? '공지 내리기' : '공지로 올리기') : '') +
-    (m.text ? act('todo', 'check', '할 일로 만들기') + act('sched', 'cal', '일정으로 만들기') : '') + (mine ? act('del', 'trash', '메시지 삭제(참여자 전체)', true) : '') + '</ul>', ov => {
+    act('reply', 'reply', '답장') + (m.text ? act('copy', 'copy', '텍스트 복사') : '') + (m.text && !S.room ? act('notice', 'mega', isNotice ? '공지 내리기' : '공지로 올리기') : '') +
+    (m.text ? act('todo', 'check', '업무로 만들기') + act('sched', 'cal', '일정으로 만들기') : '') + (mine ? act('del', 'trash', '메시지 삭제(참여자 전체)', true) : '') + '</ul>', ov => {
     ov.onclick = async e => {
       const eb = e.target.closest('[data-e]'); if (eb) { closeSheet(); return react(id, eb.dataset.e); }
       const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a; closeSheet();
       if (a === 'reply') { S.replyTo = m; drawReply(); return cIn.focus(); }
       if (a === 'copy') { try { await navigator.clipboard.writeText(m.text); } catch (_) { const t = document.createElement('textarea'); t.value = m.text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); } return toast('복사했어요'); }
       if (a === 'notice') { const j = await api('/api/notice', { id: isNotice ? 0 : id }); if (!j.ok) return toast(j.error || '서버를 새로 올려야 쓸 수 있어요'); S.notice = j.notice; renderChat(); return toast(isNotice ? '공지를 내렸어요' : '공지로 올렸어요'); }
-      if (a === 'todo') { const w = parseWhen(m.text.replace(/#\S+/g, '')); return itemSheet({ type: 'todo', title: (w.rest || m.text).slice(0, 80), due: w.date, done: false }, true); }
+      if (a === 'todo') { const w = parseWhen(m.text.replace(/#\S+/g, '')); return taskSheet({ type: 'todo', title: (w.rest || m.text).slice(0, 80), due: w.date, status: '요청', whos: [], checks: [], done: false }, true); }
       if (a === 'sched') { const w = parseWhen(m.text.replace(/#\S+/g, ''), dayOf(m.at)); return itemSheet({ type: 'sched', title: (w.rest || m.text).slice(0, 60), date: w.date || today(), time: w.time, memo: '' }, true); }
       if (a === 'del') { if (!confirm('이 메시지를 모두에게서 지울까요?')) return; const j = await api('/api/msg-del', { id }); if (j.ok) { m.text = GONE; m.photo = ''; m.refs = []; m.rx = {}; if (isNotice) S.notice = null; renderChat(); } else toast(j.error); }
     };
@@ -682,7 +872,7 @@ function drawReply() {
   if (r) el.innerHTML = ic('reply', 'width:18px;height:18px;color:var(--brand)') + '<span><b>' + esc(nameOf(r.mid)) + '</b>에게 답장 · ' + esc(r.text || '사진') + '</span><button class="lbtn" id="rbX">✕</button>';
 }
 $('rbar').onclick = e => { if (e.target.closest('#rbX')) { S.replyTo = null; drawReply(); } };
-function goTag(t) { if (t === '일정') setTab('sched'); else if (t === '구매') { S.tf = 'buy'; setTab('table'); } else if (t === '행사') { S.tf = 'event'; setTab('table'); } else setTab('home'); }
+function goTag(t) { if (t === '일정') setTab('cal'); else if (t === '구매') { S.tf = 'buy'; setTab('table'); } else if (t === '행사') { S.tf = 'event'; setTab('table'); } else if (t === '할일') setTab('task'); else setTab('more'); }
 $('tagBar').onclick = e => { const b = e.target.closest('button'); if (!b) return; const ta = $('cIn'); if (!ta.value.includes(b.dataset.t.trim())) ta.value = b.dataset.t + ta.value; ta.focus(); hintCompose(); };
 const cIn = $('cIn');
 cIn.oninput = () => { cIn.style.height = 'auto'; cIn.style.height = Math.min(cIn.scrollHeight, 120) + 'px'; hintCompose(); };
@@ -690,7 +880,6 @@ cIn.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing &&
 $('cSend').onclick = () => { sendMsg(); cIn.focus(); };
 $('hashBtn').onclick = () => { const t = $('tagBar'); t.hidden = !t.hidden; $('hashBtn').classList.toggle('on', !t.hidden); fitViewport(); };
 cIn.addEventListener('focus', () => setTimeout(() => { fitViewport(); toBottom(); }, 300));
-$('backBtn').onclick = () => setTab(S.prevTab && S.prevTab !== 'chat' ? S.prevTab : 'home');
 function hintCompose() {
   const v = cIn.value, h = $('cHint'), w = parseWhen(v.replace(/#\S+/g, ''));
   $('cSend').hidden = !v.trim(); $('hashBtn').hidden = !!v.trim();
@@ -706,7 +895,7 @@ async function buildFromTags(text) {
   const items = [], pickups = [], absences = [], skip = [];
   const body = text.replace(/#(일정|할일|등원|구매|행사)/g, ' ').replace(/\s+/g, ' ').trim();
   if (/#일정/.test(text)) { const w = parseWhen(body); if (w.date) items.push({ type: 'sched', title: (w.rest || '일정').slice(0, 80), date: w.date, time: w.time, memo: '' }); else skip.push('날짜를 못 찾아 일정은 등록하지 않았어요'); }
-  if (/#할일/.test(text)) { const w = parseWhen(body); items.push({ type: 'todo', title: (w.rest || body).slice(0, 80), due: w.date, done: false }); }
+  if (/#할일/.test(text)) { const w = parseWhen(body); items.push({ type: 'todo', title: (w.rest || body).slice(0, 80), due: w.date, status: '요청', whos: [], done: false }); }
   if (/#구매/.test(text)) {
     const list = itemsOf('buy').filter(b => !b.closed).sort((a, b) => b.upd - a.upd)[0] || { type: 'buy', title: '구매 목록', rows: [] };
     const add = body.split(/[,，\n]/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^(.*?)\s*(\d+)\s*(개|장|벌|박스|세트|ea)?$/); return { n: (m ? m[1] : x).slice(0, 40) || x, qty: m ? +m[2] : 1, price: '', who: '', done: false, memo: '' }; });
@@ -727,7 +916,7 @@ async function sendMsg(photo) {
   const text = cIn.value.trim(); if (!text && !photo) return;
   $('cSend').disabled = true;
   const t = await buildFromTags(text);
-  const j = await api('/api/msg', { text, photo: photo || '', reply: S.replyTo ? S.replyTo.id : 0, ...t });
+  const j = await api('/api/msg', { text, photo: photo || '', room: S.room, reply: S.replyTo ? S.replyTo.id : 0, ...t });
   $('cSend').disabled = false;
   if (!j.ok) return toast(j.error || '보내지 못했어요');
   cIn.value = ''; cIn.style.height = 'auto'; hintCompose(); S.replyTo = null; drawReply();
@@ -758,7 +947,7 @@ function searchSheet() {
   sheet('<div class="grab"></div><h2>대화 검색</h2><input class="inp" id="sq" placeholder="찾을 말" style="margin-top:10px"><div id="sr" style="margin-top:8px"></div>', ov => {
     const q = ov.querySelector('#sq'), r = ov.querySelector('#sr'); setTimeout(() => q.focus(), 50);
     q.oninput = () => { const v = q.value.trim(); if (!v) { r.innerHTML = ''; return; }
-      const hit = S.msgs.filter(m => m.text && m.text !== GONE && m.text.includes(v)).slice(-40).reverse();
+      const hit = roomMsgs(S.room).filter(m => m.text && m.text !== GONE && m.text.includes(v)).slice(-40).reverse();
       r.innerHTML = hit.length ? hit.map(m => '<div class="sres" data-id="' + m.id + '">' + esc(m.text.slice(0, 120)).split(esc(v)).join('<mark>' + esc(v) + '</mark>') + '<small>' + esc(nameOf(m.mid)) + ' · ' + md(dayOf(m.at)) + ' ' + hm(m.at) + '</small></div>').join('') : '<p class="empty">찾는 말이 없어요</p>'; };
     r.onclick = e => { const s = e.target.closest('.sres'); if (!s) return; closeSheet(); jumpTo(+s.dataset.id); };
   });
@@ -769,7 +958,8 @@ function chatDrawer() {
   sheet('<div class="drh"><button data-d="photo">' + ic('img') + '사진</button><button data-d="notice">' + ic('mega') + '공지</button><button data-d="link">' + ic('link') + '링크</button><button data-d="search">' + ic('search') + '검색</button></div>' +
     '<div class="drb" id="drb"></div><div class="drf"><button data-d="close" title="닫기">' + ic('out') + '</button><span style="flex:1"></span><button data-d="push" class="' + (pushOk ? 'on' : '') + '" title="알림">' + ic('bell') + '</button><button data-d="set" title="설정">' + ic('gear') + '</button></div>', ov => {
     const drb = ov.querySelector('#drb');
-    const home = () => { drb.innerHTML = '<h4>참여자 <em>' + S.members.length + '</em></h4>' + S.members.map(m => '<div class="mem">' + av(m.id, 'l') + '<b>' + esc(m.name) + (m.id === S.me.id ? ' (나)' : '') + '</b></div>').join('') + '<p class="help" style="margin-top:10px">사람 추가·PIN은 설정에서 해요.</p>'; };
+    const ppl = S.room ? S.members.filter(m => S.room.includes(m.id)) : S.members;
+    const home = () => { drb.innerHTML = '<h4>참여자 <em>' + ppl.length + '</em></h4>' + ppl.map(m => '<div class="mem">' + av(m.id, 'l') + '<b>' + esc(m.name) + (m.id === S.me.id ? ' (나)' : '') + '</b></div>').join('') + '<p class="help" style="margin-top:10px">사람 추가·PIN은 설정에서 해요.</p>'; };
     home();
     ov.onclick = async e => {
       const b = e.target.closest('[data-d]'); const im = e.target.closest('.gal img'); const lk = e.target.closest('.sres');
@@ -780,54 +970,62 @@ function chatDrawer() {
       if (d === 'set') return settingsSheet();
       if (d === 'search') return searchSheet();
       if (d === 'push') { if (pushOk) return toast('설정에서 알림을 끌 수 있어요'); closeSheet(); return enablePush(); }
-      if (d === 'photo') { const ps = S.msgs.filter(m => m.photo).reverse(); drb.innerHTML = '<h4>사진 <em>' + ps.length + '</em></h4>' + (ps.length ? '<div class="gal">' + ps.map(m => '<img data-ph="' + m.photo + '">').join('') + '</div>' : '<p class="empty">사진이 없어요</p>'); drb.querySelectorAll('img').forEach(loadPhoto); return; }
-      if (d === 'link') { const ls = S.msgs.filter(m => m.text && /https?:\/\//.test(m.text)).reverse(); drb.innerHTML = '<h4>링크 <em>' + ls.length + '</em></h4>' + (ls.length ? ls.map(m => '<div class="sres" data-id="' + m.id + '">' + esc(m.text.match(/https?:\/\/\S+/)[0]) + '<small>' + esc(nameOf(m.mid)) + ' · ' + md(dayOf(m.at)) + '</small></div>').join('') : '<p class="empty">링크가 없어요</p>'); return; }
-      if (d === 'notice') { const n = S.notice; drb.innerHTML = '<h4>공지</h4>' + (n ? '<div class="sres" data-id="' + n.id + '" style="border:0">' + esc(n.text) + '<small>' + esc(n.by) + ' · ' + md(dayOf(n.at)) + '</small></div><button class="big" id="nOff">공지 내리기</button>' : '<p class="empty">공지가 없어요.<br>메시지를 길게 눌러 공지로 올릴 수 있어요.</p>');
+      if (d === 'photo') { const ps = roomMsgs(S.room).filter(m => m.photo).reverse(); drb.innerHTML = '<h4>사진 <em>' + ps.length + '</em></h4>' + (ps.length ? '<div class="gal">' + ps.map(m => '<img data-ph="' + m.photo + '">').join('') + '</div>' : '<p class="empty">사진이 없어요</p>'); drb.querySelectorAll('img').forEach(loadPhoto); return; }
+      if (d === 'link') { const ls = roomMsgs(S.room).filter(m => m.text && /https?:\/\//.test(m.text)).reverse(); drb.innerHTML = '<h4>링크 <em>' + ls.length + '</em></h4>' + (ls.length ? ls.map(m => '<div class="sres" data-id="' + m.id + '">' + esc(m.text.match(/https?:\/\/\S+/)[0]) + '<small>' + esc(nameOf(m.mid)) + ' · ' + md(dayOf(m.at)) + '</small></div>').join('') : '<p class="empty">링크가 없어요</p>'); return; }
+      if (d === 'notice') { const n = S.room ? null : S.notice; drb.innerHTML = '<h4>공지</h4>' + (n ? '<div class="sres" data-id="' + n.id + '" style="border:0">' + esc(n.text) + '<small>' + esc(n.by) + ' · ' + md(dayOf(n.at)) + '</small></div><button class="big" id="nOff">공지 내리기</button>' : '<p class="empty">공지가 없어요.<br>메시지를 길게 눌러 공지로 올릴 수 있어요.</p>');
         const off = drb.querySelector('#nOff'); if (off) off.onclick = async ev => { ev.stopPropagation(); const j = await api('/api/notice', { id: 0 }); if (j.ok) { S.notice = null; render(); closeSheet(); toast('공지를 내렸어요'); } }; return; }
     };
   }, 'drawer');
 }
 
-// ═════════ 일정 ═════════
-function renderSched() {
-  const ym = S.calM, first = dObj(ym + '-01'), start = addDays(ym + '-01', -first.getUTCDay()), t = today();
-  const sch = itemsOf('sched'), todos = itemsOf('todo').filter(x => x.due && !x.done);
-  let cal = '<div class="cal">' + '일월화수목금토'.split('').map((x, i) => '<div class="w' + (i === 0 ? ' su' : i === 6 ? ' sa' : '') + '">' + x + '</div>').join('');
-  for (let i = 0; i < 42; i++) { const d = addDays(start, i); if (i >= 35 && d.slice(0, 7) !== ym) break; const n = sch.filter(x => x.date === d).length, tn = todos.filter(x => x.due === d).length, dw = i % 7;
-    cal += '<button data-d="' + d + '" class="' + (d.slice(0, 7) !== ym ? 'out ' : '') + (d === S.calD ? 'sel ' : '') + (d === t ? 'td ' : '') + (dw === 0 ? 'su' : dw === 6 ? 'sa' : '') + '"><em>' + (+d.slice(8)) + '</em><i>' + '<span></span>'.repeat(Math.min(n, 3)) + '<span class="t"></span>'.repeat(Math.min(tn, 2)) + '</i></button>'; }
-  cal += '</div>';
-  const day = sch.filter(x => x.date === S.calD).sort((a, b) => (a.time || '').localeCompare(b.time || '')), dt = todos.filter(x => x.due === S.calD);
-  $('v-sched').innerHTML = '<div class="card"><div class="calh"><button class="lbtn" data-m="-1">‹</button><h2>' + ym.slice(0, 4) + '년 ' + (+ym.slice(5)) + '월</h2><button class="lbtn" data-m="1">›</button><button class="lbtn" id="calT">오늘</button></div>' + cal + '</div>' +
-    '<div class="card"><div class="hd"><h2>' + md(S.calD) + '</h2><button class="btn g" id="schAdd" style="padding:7px 14px">+ 일정</button></div><div class="bd">' + (day.length || dt.length ? day.map(schLi).join('') + dt.map(x => '<div class="sch" data-id="' + x.id + '"><div class="dbox tdo"><small>할 일</small><b>☑</b></div><div class="t"><b>' + esc(x.title) + '</b><small>' + (x.who ? esc(x.who) : '모두') + '</small></div></div>').join('') : '<p class="empty">일정이 없어요</p>') + '</div></div>' +
-    '<p class="hint" style="margin-top:10px">채팅에 <b>#일정 11/20 3시 승급심사</b>처럼 쓰면 자동으로 들어가요.</p>';
+// ═════════ 프로젝트 = 달력 (캘린더 앱처럼 칸마다 색 막대) ═════════
+function calItems(d) {
+  const s = itemsOf('sched').filter(x => x.date === d).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  const t = itemsOf('todo').filter(x => x.due === d).sort((a, b) => (isDone(a) ? 1 : 0) - (isDone(b) ? 1 : 0));
+  return [...s, ...t];
 }
-$('v-sched').onclick = e => {
-  const m = e.target.closest('[data-m]'); if (m) { S.calM = addMonth(S.calM, +m.dataset.m); return renderSched(); }
-  if (e.target.id === 'calT') { S.calD = today(); S.calM = S.calD.slice(0, 7); return renderSched(); }
-  const d = e.target.closest('[data-d]'); if (d) { S.calD = d.dataset.d; if (S.calD.slice(0, 7) !== S.calM) S.calM = S.calD.slice(0, 7); return renderSched(); }
-  if (e.target.id === 'schAdd') return itemSheet({ type: 'sched', title: '', date: S.calD, time: '', memo: '' }, true);
-  const s = e.target.closest('.sch'); if (s) itemSheet(S.items.get(s.dataset.id));
-};
+const calBar = x => { const w = x.type === 'todo' ? whosOf(x) : [], tag = x.type === 'todo' ? (w.length ? avName(w[0]).slice(0, 1) : '☑') : (x.time ? String(+x.time.slice(0, 2) % 12 || 12) : '');
+  return '<i class="bar' + (x.type === 'todo' && isDone(x) ? ' dn' : '') + '" style="background:' + itemColor(x) + '">' + (tag ? '<u>' + esc(tag) + '</u>' : '') + esc(x.title) + '</i>'; };
+function renderCal() {
+  const ym = S.calM, first = dObj(ym + '-01'), start = addDays(ym + '-01', -first.getUTCDay()), t = today();
+  let weeks = 0; for (let i = 0; i < 42; i += 7) { if (i >= 28 && addDays(start, i).slice(0, 7) !== ym) break; weeks++; }
+  let g = '<div class="tcal" style="--wk:' + weeks + '">' + '일월화수목금토'.split('').map((x, i) => '<div class="w' + (i === 0 ? ' su' : i === 6 ? ' sa' : '') + '">' + x + '</div>').join('');
+  for (let i = 0; i < weeks * 7; i++) { const d = addDays(start, i), L = calItems(d), dw = i % 7;
+    g += '<div class="dc' + (d.slice(0, 7) !== ym ? ' out' : '') + (d === S.calD ? ' sel' : '') + (dw === 0 ? ' su' : dw === 6 ? ' sa' : '') + '" data-d="' + d + '"><em class="' + (d === t ? 'td' : '') + '">' + (+d.slice(8) === 1 ? (+d.slice(5, 7)) + '/1' : +d.slice(8)) + '</em>' + L.slice(0, 4).map(calBar).join('') + (L.length > 4 ? '<i class="more">+' + (L.length - 4) + '</i>' : '') + '</div>'; }
+  $('v-cal').innerHTML = g + '</div>';
+}
+$('v-cal').onclick = e => { const c = e.target.closest('.dc'); if (!c) return; S.calD = c.dataset.d; renderCal(); daySheet(S.calD); };
+function daySheet(d) {
+  const L = calItems(d);
+  sheet('<div class="grab"></div><div class="shead"><h2>' + (+d.slice(5, 7)) + '월 ' + (+d.slice(8)) + '일 ' + wd(d) + '요일</h2><button class="btn g" id="dsS">+ 일정</button><button class="btn" id="dsT">+ 업무</button></div>' +
+    (L.length ? L.map(x => x.type === 'todo' ? taskRow(x) : '<div class="tk" data-id="' + x.id + '"><i class="cbar" style="background:' + itemColor(x) + '"></i><div class="tt"><b>' + esc(x.title) + '</b><small><span>' + (timeKo(x.time) || '종일') + '</span>' + (x.memo ? '<span>' + esc(x.memo) + '</span>' : '') + '</small></div><span class="st sch2">일정</span></div>').join('') : '<p class="empty">일정·업무가 없어요</p>'), sh => {
+    sh.onclick = e => { if (e.target.id === 'dsS') return newOf('sched', d); if (e.target.id === 'dsT') return newOf('todo', d); const r = e.target.closest('.tk'); if (r) openItem(S.items.get(r.dataset.id)); };
+  });
+}
+// 달력 손가락으로 넘기기 (왼쪽·오른쪽)
+let swX = null; $('v-cal').addEventListener('touchstart', e => { swX = [e.touches[0].clientX, e.touches[0].clientY]; }, { passive: true });
+$('v-cal').addEventListener('touchend', e => { if (!swX) return; const dx = e.changedTouches[0].clientX - swX[0], dy = e.changedTouches[0].clientY - swX[1]; swX = null; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { S.calM = addMonth(S.calM, dx < 0 ? 1 : -1); renderCal(); topButtons('cal'); } });
 
-// 할 일·일정 상세 (수정 + 댓글)
+// 일정 상세 (수정 + 색 + 댓글) — 업무는 taskSheet
 const cmList = cms => '<ul class="cm">' + cms.map(c => '<li>' + av(c.mid, 's') + '<div><b>' + esc(nameOf(c.mid)) + '</b>' + esc(c.text) + '<small>' + md(dayOf(c.at)) + ' ' + hm(c.at) + '</small></div></li>').join('') + '</ul>';
 function itemSheet(it0, isNew) {
-  if (!it0) return; const it = { ...it0 }, sch = it.type === 'sched';
+  if (!it0) return; if (it0.type === 'todo') return taskSheet(it0, isNew);
+  const it = { ...it0 };
   const cms = it.id ? (S.comments.get(it.id) || []) : [];
-  sheet('<h2>' + (isNew ? (sch ? '일정 추가' : '할 일 추가') : sch ? '일정' : '할 일') + '</h2>' +
+  sheet('<h2>' + (isNew ? '일정 추가' : '일정') + '</h2>' +
     '<label class="f">제목</label><input class="inp" id="iT" value="' + esc(it.title) + '">' +
-    (sch ? '<div class="row" style="margin-top:12px"><input type="date" class="inp" id="iD" value="' + esc(it.date) + '"><input type="time" class="inp" id="iH" value="' + esc(it.time || '') + '"></div><label class="f">메모</label><textarea class="inp" id="iM" rows="3">' + esc(it.memo || '') + '</textarea>'
-      : '<label class="f">언제까지 (비워도 돼요)</label><input type="date" class="inp" id="iD" value="' + esc(it.due || '') + '"><label class="f">담당</label><div class="chips" id="iW">' + ['', ...S.members.map(m => m.name)].map(n => '<button data-v="' + esc(n) + '" class="' + ((it.who || '') === n ? 'on' : '') + '">' + (n ? esc(n) : '모두') + '</button>').join('') + '</div>') +
-    (it.mid ? '<p class="help" style="margin-top:10px">' + esc(nameOf(it.mid)) + '님이 만듦' + (it.done ? ' · ' + esc(it.doneBy || '') + ' 완료' : '') + '</p>' : '') +
+    '<div class="row" style="margin-top:12px"><input type="date" class="inp" id="iD" value="' + esc(it.date) + '"><input type="time" class="inp" id="iH" value="' + esc(it.time || '') + '"></div>' +
+    '<label class="f">색</label><div class="cols" id="iC2">' + COLORS.map(([c, n]) => '<button data-c="' + c + '" title="' + n + '" class="' + (it.color === c ? 'on' : '') + '" style="background:' + c + '"></button>').join('') + '</div>' +
+    '<label class="f">메모</label><textarea class="inp" id="iM" rows="3">' + esc(it.memo || '') + '</textarea>' +
+    (it.mid ? '<p class="help" style="margin-top:10px">' + esc(nameOf(it.mid)) + '님이 만듦</p>' : '') +
     (!isNew ? '<h3>댓글 ' + cms.length + '</h3>' + cmList(cms) + '<div class="row" style="margin-top:8px"><input class="inp" id="iC" placeholder="댓글 달기"><button class="btn g" id="iCo">등록</button></div>' : '') +
     '<div class="foot">' + (!isNew ? '<button class="del" id="iX">삭제</button>' : '') + '<span class="sp"></span><button data-close>닫기</button><button class="save" id="iOk">' + (isNew ? '추가' : '저장') + '</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
-    if (!sch) g('iW').onclick = e => { const b = e.target.closest('button'); if (!b) return; it.who = b.dataset.v; g('iW').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+    g('iC2').onclick = e => { const b = e.target.closest('button'); if (!b) return; it.color = it.color === b.dataset.c ? '' : b.dataset.c; g('iC2').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.c === it.color)); };
     g('iOk').onclick = async () => {
       it.title = g('iT').value.trim(); if (!it.title) return toast('제목을 적어 주세요');
-      if (sch) { it.date = g('iD').value; it.time = g('iH').value; it.memo = g('iM').value.trim(); if (!it.date) return toast('날짜를 골라 주세요'); } else it.due = g('iD').value;
-      const what = isNew ? (sch ? '📅 일정 추가: ' + md(it.date) + ' ' + it.title : '☑ 할 일 추가: ' + it.title) : (sch ? '📅 일정 수정: ' : '☑ 할 일 수정: ') + it.title;
-      if (await saveItem(it, what)) { closeSheet(); toast('저장했어요'); }
+      it.date = g('iD').value; it.time = g('iH').value; it.memo = g('iM').value.trim(); if (!it.date) return toast('날짜를 골라 주세요');
+      if (await saveItem(it, (isNew ? '📅 일정 추가: ' + md(it.date) + ' ' : '📅 일정 수정: ') + it.title)) { closeSheet(); toast('저장했어요'); }
     };
     if (isNew) setTimeout(() => g('iT').focus(), 60);
     if (!isNew) {
@@ -1004,10 +1202,9 @@ function renderLog() {
 }
 $('v-log').onclick = e => {
   const r = e.target.closest('.lg'); if (!r) return; const g = S.logs.find(x => x.id == r.dataset.id); if (!g) return;
-  if (g.kind === 'notice') { setTab('chat'); return jumpTo(+g.ref); }
-  if (g.kind === 'pickup' && g.ref) { S.homeDay = g.ref; return setTab('home'); }
-  const it = g.ref && S.items.get(g.ref); if (!it || it.del) return g.ref ? toast('지워진 항목이에요') : null;
-  if (it.type === 'event' || it.type === 'buy') return openTable(it); itemSheet(it);
+  if (g.kind === 'notice') { openRoom(''); return jumpTo(+g.ref); }
+  if (g.kind === 'pickup' && g.ref) { S.homeDay = g.ref; return setTab('more'); }
+  if (g.ref) openItem(S.items.get(g.ref));
 };
 function markLogRead() { const mx = S.logs.length ? S.logs[S.logs.length - 1].id : 0; if (mx > S.logRead) { S.logRead = mx; try { localStorage.setItem('haerang-team-logread', mx); } catch (_) {} } setBadge(); }
 
@@ -1063,30 +1260,46 @@ function sheet(html, mount, cls) {
   if (mount) mount(ov.querySelector('.sheet'));
 }
 function closeSheet(quiet, fromHist) { const o = $('ov'); if (!o) return; if (!fromHist && sheetHist) { sheetHist = false; skipPop++; history.back(); } const f = sheetOnClose; sheetOnClose = null; if (f) f(); o.remove(); document.body.style.overflow = ''; }
-const TITLES = { home: '해랑 업무', chat: '채팅', sched: '일정', table: '행사 · 물품 신청표', log: '알림' };
+const TITLES = { chat: '채팅', room: '채팅', cal: '달력', task: '업무', log: '알림', more: '더보기', table: '행사 · 물품 신청표' };
+const TABOF = { room: 'chat', table: 'more' };
 function topButtons(t) {
-  const b = (id, i, title) => '<button class="tb" id="' + id + '" title="' + title + '">' + ic(i) + '</button>';
-  $('topBtns').innerHTML = t === 'chat' ? b('tbSearch', 'search', '검색') + b('tbMenu', 'menu', '메뉴') : t === 'log' ? b('tbRead', 'check', '모두 읽음') + b('tbSet', 'gear', '설정') : b('tbSet', 'gear', '설정');
+  const b = (id, i, title, st) => '<button class="tb" id="' + id + '" title="' + title + '">' + ic(i, st) + '</button>';
+  if (t === 'cal') $('topT').innerHTML = (+S.calM.slice(0, 4)) + '년 ' + (+S.calM.slice(5)) + '월';
+  else if (t === 'task') $('topT').innerHTML = '업무 <em>' + itemsOf('todo').filter(x => !isDone(x)).length + '</em>';
+  else if (t === 'room') $('topT').textContent = roomName(S.room);
+  else $('topT').textContent = TITLES[t];
+  $('topBtns').innerHTML = t === 'room' ? b('tbSearch', 'search', '검색') + b('tbMenu', 'menu', '메뉴')
+    : t === 'cal' ? b('tbPrev', 'back', '이전 달') + '<button class="tb txt" id="tbToday">오늘</button>' + b('tbNext', 'back', '다음 달', 'transform:scaleX(-1)')
+    : t === 'log' ? b('tbRead', 'check', '모두 읽음') : t === 'more' || t === 'chat' ? b('tbSet', 'gear', '설정') : '';
 }
 $('topBtns').onclick = e => { const b = e.target.closest('button'); if (!b) return;
   if (b.id === 'tbSet') settingsSheet(); if (b.id === 'tbSearch') searchSheet(); if (b.id === 'tbMenu') chatDrawer();
+  if (b.id === 'tbPrev' || b.id === 'tbNext') { S.calM = addMonth(S.calM, b.id === 'tbNext' ? 1 : -1); renderCal(); topButtons('cal'); }
+  if (b.id === 'tbToday') { S.calD = today(); S.calM = S.calD.slice(0, 7); renderCal(); topButtons('cal'); }
   if (b.id === 'tbRead') { markLogRead(); S.logSeen = S.logRead; renderLog(); toast('모두 읽음으로 표시했어요'); } };
+$('backBtn').onclick = () => setTab(S.tab === 'room' ? 'chat' : S.tab === 'table' ? 'more' : 'chat');
 function setTab(t) {
+  if (!TITLES[t]) t = 'chat';
   if (S.tab === 'log' && t !== 'log') markLogRead();
-  if (S.tab !== t) S.prevTab = S.tab;
-  S.tab = t; document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  S.tab = t; const tb = TABOF[t] || t;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === tb));
   for (const k of Object.keys(TITLES)) $('v-' + k).hidden = k !== t;
-  $('topT').textContent = t === 'home' ? '' : TITLES[t]; topButtons(t);
-  $('fab').hidden = t !== 'home'; document.body.classList.toggle('chatmode', t === 'chat'); $('backBtn').hidden = t !== 'chat'; if (t === 'chat') fitViewport();
-  if (t === 'chat') { S.unread = 0; setBadge(); }
+  topButtons(t);
+  $('fab').hidden = !['chat', 'cal', 'task'].includes(t);
+  document.body.classList.toggle('chatmode', t === 'room'); document.body.classList.toggle('calmode', t === 'cal');
+  $('backBtn').hidden = !(t === 'room' || t === 'table');
+  if (t === 'room') { markRoomRead(S.room); fitViewport(); }
   if (t === 'log') { S.logSeen = S.logRead; }
   if (location.hash.slice(1) !== t) history.replaceState(null, '', '#' + t);
-  render(true); if (t !== 'chat') scrollTo(0, 0); poll(); setBadge();
+  render(true); if (t !== 'room') scrollTo(0, 0); poll(); setBadge();
 }
 $('tabs').onclick = e => { const b = e.target.closest('button'); if (b) setTab(b.dataset.t); };
 function render(scroll) {
   if (!S.me) return;
-  if (S.tab === 'home') renderHome(); if (S.tab === 'chat') renderChat(scroll); if (S.tab === 'sched') renderSched(); if (S.tab === 'table') renderTable(); if (S.tab === 'log') renderLog();
+  const t = S.tab, ae = document.activeElement;
+  if (ae && ae.id === 'todoIn' && t === 'task') return; // 입력 중이면 다시 그리지 않음
+  if (t === 'chat') renderChatList(); if (t === 'room') renderChat(scroll); if (t === 'cal') renderCal(); if (t === 'task') { renderTask(); topButtons('task'); }
+  if (t === 'more') renderMore(); if (t === 'table') renderTable(); if (t === 'log') renderLog();
 }
 
 // ═════════ 로그인 ═════════
@@ -1115,12 +1328,12 @@ async function loggedIn(tok) {
   S.tok = tok; try { localStorage.setItem(TOKK, tok); } catch (_) {}
   $('loginView').hidden = true;
   if (!(await sync(true))) return showLogin();
-  $('app').hidden = false; const h = location.hash.slice(1); setTab(TITLES[h] ? h : 'home'); loadRoster();
+  $('app').hidden = false; const h = location.hash.slice(1); setTab(TITLES[h] && h !== 'room' ? h : 'chat'); loadRoster();
 }
 (async () => {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   let tok = ''; try { tok = localStorage.getItem(TOKK) || ''; } catch (_) {}
-  if (tok && API) { S.tok = tok; if (await sync(true)) { $('app').hidden = false; const h = location.hash.slice(1); setTab(TITLES[h] ? h : 'home'); loadRoster(); return; } S.tok = ''; }
+  if (tok && API) { S.tok = tok; if (await sync(true)) { $('app').hidden = false; const h = location.hash.slice(1); setTab(TITLES[h] && h !== 'room' ? h : 'chat'); loadRoster(); return; } S.tok = ''; }
   showLogin();
 })();
 })();
