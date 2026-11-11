@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>해랑경희 알림</title>
-<meta name="theme-color" content="#A40F16">
+<title>해랑경희</title>
+<meta name="theme-color" content="#F3F1EE">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -14,161 +14,282 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-  :root{--brand:#A40F16;--brand-soft:#FBEDEE;--ink:#1C1A19;--muted:#6B6460;--paper:#FBF8F4;--card:#fff;--line:#ECE5DE;--ok:#1E7A46}
-  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--brand:#A40F16;--brand-soft:#FBEDEE;--ink:#1C1A19;--muted:#6B6460;--bg:#F3F1EE;--card:#fff;--line:#ECE5DE;
+        --navy:#1F3B63;--teal:#2E8C8A;--orange:#D9822B;--green:#1E7A46;--gold:#B7862B;--ok:#1E7A46}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
-  body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
-  .top{background:#fff;border-bottom:1px solid var(--line);padding:calc(12px + env(safe-area-inset-top)) 16px 12px;position:sticky;top:0;z-index:5}
-  .top .in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:10px}
-  .top img{width:38px;height:38px}
-  .top h1{font-size:18px;font-weight:900;letter-spacing:-.02em}
-  .top h1 small{display:block;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0}
-  .wrap{max-width:560px;margin:0 auto;padding:0 16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:14px}
+  html{background:var(--bg)}
+  body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+  button{font:inherit;color:inherit;cursor:pointer}
+  .wrap{max-width:560px;margin:0 auto;padding:0 16px calc(40px + env(safe-area-inset-bottom))}
+  .card{background:var(--card);border-radius:20px;padding:20px;margin-top:14px}
   .card h2{font-size:17px;font-weight:900;margin-bottom:6px}
   .card p{font-size:14.5px;color:var(--muted)}
-  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:12px;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:16px;padding:15px;margin-top:16px;cursor:pointer;text-decoration:none}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:14px;background:var(--brand);color:#fff;font-weight:700;font-size:16px;padding:15px;margin-top:16px;text-decoration:none}
   .btn:active{transform:scale(.98)}
   .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
   .btn:disabled{opacity:.5}
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1C1A19;color:#fff;font-size:14px;padding:11px 18px;border-radius:99px;z-index:90;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+  .toast.show{opacity:1}
+  .empty{font-size:14.5px;color:var(--muted);text-align:center;padding:40px 0}
+
+  /* 시작 안내 화면 */
+  .gate{padding-top:calc(30px + env(safe-area-inset-top))}
+  .brandline{display:flex;align-items:center;gap:10px;margin:6px 4px 4px}
+  .brandline img{width:42px;height:42px}
+  .brandline b{font-size:19px;font-weight:900;letter-spacing:-.02em}
   .steps{list-style:none;margin-top:14px;display:grid;gap:10px;counter-reset:s}
   .steps li{display:flex;gap:12px;align-items:flex-start;font-size:15px;counter-increment:s}
   .steps li::before{content:counter(s);flex:0 0 26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font-weight:900;font-size:13px;display:grid;place-items:center;margin-top:1px}
   .steps svg{width:18px;height:18px;vertical-align:-3px;color:#007AFF}
-  label.f{display:block;font-size:14px;font-weight:700;margin:16px 0 6px}
+
+  /* 가입 */
+  label.f{display:block;font-size:14px;font-weight:700;margin:18px 0 7px}
   .kid{display:flex;gap:8px;margin-bottom:8px}
-  .kid input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;font-size:16px;background:#fff}
-  .kid input:focus{outline:2px solid var(--brand);border-color:transparent}
-  .kid button{border:0;background:#F1ECE7;border-radius:10px;width:46px;font-size:20px;color:var(--muted);cursor:pointer}
-  .add{border:1px dashed #CFC5BC;background:none;border-radius:10px;width:100%;padding:10px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}
-  .rel{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-  .rel button{text-align:center;grid-column:span 2;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px 4px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
-  .rel button.big{grid-column:span 3;font-weight:700;padding:13px 4px}
-  .rel button:nth-child(n+3):nth-child(-n+4){grid-column:span 3}
+  .kid input,input.ph{flex:1;min-width:0;width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;font-size:16px;background:#fff}
+  input.ph{font-size:20px;letter-spacing:.3em}
+  .kid input:focus,input.ph:focus{outline:2px solid var(--brand);border-color:transparent}
+  .kid button{border:0;background:#F1ECE7;border-radius:12px;width:48px;font-size:20px;color:var(--muted)}
+  .add{border:1px dashed #CFC5BC;background:none;border-radius:12px;width:100%;padding:11px;font-size:14px;color:var(--muted)}
+  .note{font-size:12.5px;color:var(--muted);margin-top:8px}
+  .rel{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
+  .rel button{text-align:center;grid-column:span 2;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 4px;font-size:15px}
+  .rel button:nth-child(-n+4){grid-column:span 3}
+  .rel button:nth-child(-n+2){font-weight:700;padding:14px 4px}
   .rel button.on{background:var(--brand);border-color:var(--brand);color:#fff}
-  input.ph{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;font-size:20px;letter-spacing:.3em;background:#fff}
-  input.ph:focus{outline:2px solid var(--brand);border-color:transparent}
-  .chip.g{background:#F1ECE7;color:#5A524D}
-  .note{font-size:12.5px;color:var(--muted);margin-top:10px}
-  .on{display:flex;align-items:center;gap:12px}
-  .on .dot{width:44px;height:44px;border-radius:50%;background:#E6F3EC;color:var(--ok);display:grid;place-items:center;flex:0 0 auto}
-  .on .dot svg{width:24px;height:24px}
-  .wait{margin-top:14px;font-size:13.5px;background:#FFF6E5;color:#8A5A0B;border-radius:10px;padding:10px 12px}
-  .on .dot.pend{background:#FFF3DC;color:#B7791F}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
-  .chip{font-size:13px;font-weight:700;background:var(--brand-soft);color:var(--brand);border-radius:99px;padding:4px 11px}
-  .links{display:flex;gap:14px;margin-top:14px}
-  .links button{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
-  .sec{font-size:15px;font-weight:900;margin:28px 2px 4px;display:flex;align-items:center;gap:8px}
-  .list{list-style:none}
-  .item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-top:10px;scroll-margin-top:90px}
-  .item.hl{outline:2px solid var(--brand)}
-  .item .h{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-  .item .k{font-size:12px;font-weight:700;border-radius:6px;padding:2px 8px;background:#F1ECE7;color:#5A524D}
-  .k.휴관{background:#FDECEC;color:#A40F16}.k.행사{background:#E9F1FB;color:#1F3B63}.k.회비{background:#FFF3E3;color:#9A5A12}.k.등원,.k.하원{background:#E6F3EC;color:#1E7A46}
-  .item .d{font-size:12px;color:var(--muted);margin-left:auto}
-  .item b{font-size:15.5px;display:block}
-  .item p{font-size:14.5px;color:#3A3533;white-space:pre-wrap;margin-top:4px}
-  .empty{font-size:14px;color:var(--muted);text-align:center;padding:24px 0}
-  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1C1A19;color:#fff;font-size:14px;padding:11px 18px;border-radius:99px;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
-  .toast.show{opacity:1}
+
+  /* 홈 */
+  .home-top{display:flex;align-items:center;gap:12px;padding:calc(18px + env(safe-area-inset-top)) 4px 6px}
+  .avatar{width:52px;height:52px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:21px;font-weight:900;flex:0 0 auto;box-shadow:0 0 0 3px #fff}
+  .who{border:0;background:none;text-align:left;display:flex;align-items:center;gap:4px;min-width:0}
+  .who b{font-size:25px;font-weight:900;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who svg{width:22px;height:22px;color:var(--muted);flex:0 0 auto}
+  .gear{margin-left:auto;border:0;background:#fff;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+  .gear svg{width:22px;height:22px}
+  .menu-card{background:#fff;border-radius:22px;padding:20px 14px 16px;margin-top:12px}
+  .menu-card .dj{display:flex;align-items:baseline;gap:8px;padding:0 8px 4px}
+  .menu-card .dj b{font-size:19px;font-weight:900;color:var(--brand);letter-spacing:-.02em}
+  .menu-card .dj span{font-size:14px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 4px;margin-top:18px}
+  .mi{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:14.5px;font-weight:500;position:relative}
+  .ic{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;color:#fff;position:relative}
+  .ic svg{width:30px;height:30px}
+  .ic .num{position:absolute;inset:0;display:grid;place-items:center;padding-top:9px;font-size:15px;font-weight:900;color:#fff}
+  .mi .dot{position:absolute;top:-3px;right:calc(50% - 34px);width:11px;height:11px;border-radius:50%;background:#E5484D;border:2px solid #fff}
+  .mi:active .ic{transform:scale(.94)}
+  .today{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:15px 16px;margin-top:12px;border:0;width:100%;text-align:left}
+  .today .tdot{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;background:#F1ECE7;color:var(--muted)}
+  .today .tdot svg{width:22px;height:22px}
+  .today.in .tdot{background:#E6F3EC;color:var(--green)}
+  .today.out .tdot{background:#E8EEF7;color:var(--navy)}
+  .today b{display:block;font-size:15px}
+  .today small{font-size:13px;color:var(--muted)}
+  .banner{background:#FFF6E5;color:#7A5208;border-radius:16px;padding:13px 15px;font-size:14px;margin-top:12px;display:flex;gap:10px;align-items:flex-start}
+  .banner svg{width:20px;height:20px;flex:0 0 auto;margin-top:1px}
+  .banner button{margin-left:auto;border:0;background:#fff;border-radius:9px;padding:5px 10px;font-size:13px;font-weight:700;white-space:nowrap}
+  .upc{background:#fff;border-radius:18px;padding:6px 16px;margin-top:12px}
+  .upc h3{font-size:14px;font-weight:900;padding:10px 0 4px}
+  .upc li{list-style:none;display:flex;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:14.5px}
+  .upc li:first-of-type{border-top:0}
+  .upc .d{font-weight:900;color:var(--orange);min-width:62px;font-size:13.5px}
+
+  /* 하위 화면 */
+  .page{position:fixed;inset:0;background:var(--bg);z-index:20;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:slide .22s ease}
+  @keyframes slide{from{transform:translateX(30px);opacity:0}}
+  .bar{position:sticky;top:0;z-index:5;background:var(--brand);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 8px 10px;display:flex;align-items:center;gap:6px}
+  .bar .x{border:0;background:none;color:#fff;width:44px;height:44px;display:grid;place-items:center;border-radius:12px}
+  .bar .x svg{width:26px;height:26px}
+  .bar h1{font-size:21px;font-weight:900;letter-spacing:-.02em}
+  .page .wrap{padding-top:4px}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chips button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 15px;font-size:14.5px;font-weight:700;color:#5A524D}
+  .chips button.on{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
+  .post{background:#fff;border-radius:18px;padding:18px;margin-top:10px;display:flex;gap:14px}
+  .post .day{flex:0 0 46px;text-align:center}
+  .post .day b{display:block;font-size:30px;font-weight:900;line-height:1.05;letter-spacing:-.03em}
+  .post .day small{font-size:12px;color:var(--muted)}
+  .post .ct{flex:1;min-width:0}
+  .post .tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+  .tag{font-size:12px;font-weight:700;border-radius:6px;padding:2px 8px;background:#F1ECE7;color:#5A524D}
+  .tag.pin{background:var(--brand);color:#fff}
+  .tag.휴관{background:#FDECEC;color:#A40F16}.tag.행사,.tag.심사,.tag.대회{background:#E9F1FB;color:#1F3B63}.tag.kid{background:#E6F3EC;color:#1E7A46}
+  .post h3{font-size:16.5px;font-weight:700;line-height:1.4}
+  .post p{font-size:14.5px;color:#4A4441;white-space:pre-wrap;margin-top:5px;word-break:break-word}
+  .post p.clip{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .post .meta{font-size:12.5px;color:var(--muted);margin-top:8px}
+  .mhead{display:flex;align-items:center;justify-content:center;gap:18px;padding:16px 0 4px}
+  .mhead button{border:0;background:#fff;width:38px;height:38px;border-radius:50%;display:grid;place-items:center}
+  .mhead button svg{width:20px;height:20px}
+  .mhead b{font-size:19px;font-weight:900;min-width:120px;text-align:center}
+  .msec{font-size:14px;font-weight:900;color:var(--muted);padding:18px 4px 2px}
+
+  /* 앨범 */
+  .album{background:#fff;border-radius:18px;padding:18px;margin-top:10px}
+  .album h3{font-size:16.5px;font-weight:700}
+  .album .meta{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .album p{font-size:14.5px;color:#4A4441;white-space:pre-wrap;margin:-4px 0 12px}
+  .ph-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+  .ph-grid.n1{grid-template-columns:1fr}.ph-grid.n2{grid-template-columns:1fr 1fr}
+  .ph-grid button{border:0;padding:0;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#EEE9E4;position:relative}
+  .ph-grid.n1 button{aspect-ratio:4/3}
+  .ph-grid img{width:100%;height:100%;object-fit:cover;display:block}
+  .ph-grid .more{position:absolute;inset:0;background:rgba(0,0,0,.45);color:#fff;font-size:22px;font-weight:700;display:grid;place-items:center}
+  .viewer{position:fixed;inset:0;background:#000;z-index:60;display:flex;flex-direction:column}
+  .viewer .vt{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 10px 10px;color:#fff;font-size:15px}
+  .viewer .vt button{border:0;background:none;color:#fff;width:44px;height:44px;display:grid;place-items:center}
+  .viewer .vt svg{width:26px;height:26px}
+  .viewer .vi{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y}
+  .viewer img{max-width:100%;max-height:100%;object-fit:contain}
+  .viewer .vh{color:#aaa;font-size:12.5px;text-align:center;padding:8px 0 calc(14px + env(safe-area-inset-bottom))}
+
+  /* 출석부 */
+  .att-kid{display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:16px;margin-top:14px}
+  .att-kid .avatar{width:46px;height:46px;font-size:18px;box-shadow:none}
+  .att-kid b{font-size:18px;font-weight:900}
+  .att-kid small{display:block;font-size:13px;color:var(--muted)}
+  .att-kid .cnt{margin-left:auto;font-size:17px;font-weight:900;color:var(--green)}
+  .cal{background:#fff;border-radius:18px;margin-top:10px;padding:6px 6px 10px}
+  .cal .wk,.cal .days{display:grid;grid-template-columns:repeat(7,1fr)}
+  .cal .wk span{text-align:center;font-size:12.5px;color:var(--muted);padding:8px 0}
+  .cal .wk span:first-child{color:#C9504F}.cal .wk span:last-child{color:#3E6BB3}
+  .cal .c{min-height:60px;border-top:1px solid #F1ECE7;padding:5px 3px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .cal .c .n{width:24px;height:24px;display:grid;place-items:center}
+  .cal .c.t .n{background:var(--brand);color:#fff;border-radius:50%}
+  .cal .c .mk{width:24px;height:24px;border-radius:50%;background:#E6F3EC;color:var(--green);display:grid;place-items:center}
+  .cal .c .mk svg{width:15px;height:15px}
+  .legend{display:flex;gap:14px;font-size:13px;color:var(--muted);padding:12px 6px}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend i{width:14px;height:14px;border-radius:50%;background:#E6F3EC;display:inline-block}
+  .alist li{list-style:none;display:flex;justify-content:space-between;gap:10px;background:#fff;border-radius:14px;padding:12px 15px;margin-top:8px;font-size:14.5px}
+  .alist li span{color:var(--muted);text-align:right}
+
+  /* 회비 */
+  .fee-now{background:#fff;border-radius:18px;padding:18px;margin-top:14px}
+  .fee-now h3{font-size:15px;font-weight:900;margin-bottom:10px}
+  .fee-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);font-size:16px;font-weight:700}
+  .fee-row:first-of-type{border-top:0}
+  .badge{font-size:13px;font-weight:700;border-radius:99px;padding:4px 12px}
+  .badge.paid{background:#E6F3EC;color:var(--green)}
+  .badge.unpaid{background:#FFF3E3;color:#9A5A12}
+  .fee-hist li{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);font-size:14.5px}
+
+  /* 내 정보 */
+  .info li{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-top:1px solid var(--line);font-size:15px}
+  .info li:first-child{border-top:0}
+  .info li span{color:var(--muted)}
+  .rows{background:#fff;border-radius:18px;overflow:hidden;margin-top:12px}
+  .rows button{display:flex;align-items:center;width:100%;border:0;background:#fff;padding:16px 18px;font-size:15.5px;border-top:1px solid var(--line);text-align:left}
+  .rows button:first-child{border-top:0}
+  .rows button svg{width:18px;height:18px;margin-left:auto;color:#BDB4AC}
+  .rows .danger{color:#B42318}
+  .sheet{position:fixed;inset:0;z-index:70;background:rgba(20,10,10,.4);display:flex;align-items:flex-end}
+  .sheet .in{background:#fff;width:100%;border-radius:22px 22px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+  .sheet h3{font-size:16px;font-weight:900;margin:2px 4px 10px}
+  .sheet button.k{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:12px 6px;font-size:17px;font-weight:700;border-radius:12px}
+  .sheet button.k.on{background:var(--brand-soft);color:var(--brand)}
+  .sheet .avatar{width:40px;height:40px;font-size:16px;box-shadow:none}
 </style>
 </head>
 <body>
-<header class="top"><div class="in">
-  <img src="icon-192.png" alt="">
-  <h1>해랑경희 알림<small>등원·하원 · 공지 · 회비 안내</small></h1>
-</div></header>
 
-<main class="wrap">
+<!-- ═════════ 시작 안내 ═════════ -->
+<main class="wrap gate" id="v-gate" hidden>
+  <div class="brandline"><img src="icon-192.png" alt=""><b>해랑경희 태권도장</b></div>
 
-  <!-- 카카오톡·인스타그램 등 앱 안 브라우저 -->
-  <section class="card" id="v-inapp" hidden>
+  <section class="card" id="g-inapp" hidden>
     <h2>다른 브라우저에서 열어 주세요</h2>
     <p>카카오톡이나 인스타그램 안에서는 알림을 받을 수 없습니다. 아래 버튼을 누르거나, 오른쪽 위 메뉴에서 <b>다른 브라우저로 열기</b>를 선택해 주세요.</p>
     <a class="btn" id="openExternal" href="#">브라우저로 열기</a>
-    <button class="btn ghost" id="copyLink">주소 복사하기</button>
+    <button class="btn ghost copyLink">주소 복사하기</button>
   </section>
 
-  <!-- 아이폰: 홈 화면에 추가 안내 -->
-  <section class="card" id="v-ios" hidden>
-    <h2>아이폰은 홈 화면에 추가해야 합니다</h2>
-    <p>아이폰에서는 홈 화면에 추가한 뒤에 알림을 받을 수 있습니다. Safari에서 아래 순서대로 진행해 주세요.</p>
+  <section class="card" id="g-ios" hidden>
+    <h2>홈 화면에 추가해 주세요</h2>
+    <p>아이폰에서는 홈 화면에 추가해야 앱처럼 쓰고 알림도 받을 수 있습니다. Safari에서 아래 순서대로 진행해 주세요.</p>
     <ol class="steps">
       <li><span>화면 아래(또는 위)의 공유 버튼 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> 누르기</span></li>
       <li><span>메뉴를 내려서 <b>홈 화면에 추가</b> 누르기</span></li>
       <li><span>오른쪽 위 <b>추가</b> 누르기</span></li>
-      <li><span>홈 화면에 생긴 <b>해랑경희</b> 아이콘으로 다시 열기</span></li>
+      <li><span>홈 화면에 생긴 <b>해랑경희</b> 아이콘으로 열기</span></li>
     </ol>
-    <p class="note">Safari가 아닌 다른 앱(크롬, 네이버 등)에서 열었다면 주소를 복사해 Safari에서 열어 주세요.</p>
-    <button class="btn ghost" id="copyLink2">주소 복사하기</button>
+    <p class="note">Safari가 아닌 다른 앱에서 열었다면 주소를 복사해 Safari에서 열어 주세요.</p>
+    <button class="btn ghost copyLink">주소 복사하기</button>
   </section>
 
-  <!-- 지원하지 않는 기기 -->
-  <section class="card" id="v-unsupported" hidden>
-    <h2>이 기기에서는 알림을 받을 수 없습니다</h2>
-    <p id="unsupportedMsg">휴대폰 운영체제를 최신 버전으로 업데이트한 뒤 다시 열어 주세요. 아이폰은 iOS 16.4 이상이 필요합니다.</p>
+  <section class="card" id="g-unsupported" hidden>
+    <h2>이 기기에서는 쓸 수 없습니다</h2>
+    <p>휴대폰 운영체제를 최신 버전으로 업데이트한 뒤 다시 열어 주세요. 아이폰은 iOS 16.4 이상이 필요합니다.</p>
   </section>
 
-  <!-- 서버 준비 전 -->
-  <section class="card" id="v-notready" hidden>
-    <h2>알림 서비스 준비 중</h2>
+  <section class="card" id="g-notready" hidden>
+    <h2>준비 중입니다</h2>
     <p>곧 시작합니다. 조금만 기다려 주세요.</p>
   </section>
 
-  <!-- 등록 -->
-  <section class="card" id="v-register" hidden>
-    <h2 id="regTitle">알림 받기</h2>
-    <p>아래 내용을 적고 알림을 켜면 등원·하원 알림과 도장 공지를 이 휴대폰으로 받습니다.</p>
+  <!-- 가입 / 정보 수정 -->
+  <section class="card" id="g-join" hidden>
+    <h2 id="joinTitle">학부모 가입</h2>
+    <p id="joinDesc">가입하면 등원·하원 알림, 알림장, 공지, 앨범, 출석부를 이 휴대폰에서 볼 수 있습니다.</p>
     <label class="f">아이 이름</label>
     <div id="kids"></div>
     <button class="add" id="addKid" type="button">+ 형제·자매 추가</button>
     <p class="note">도장에 등록된 이름 그대로 적어 주세요.</p>
     <label class="f">아이와의 관계</label>
     <div class="rel" id="rel">
-      <button type="button" class="big">엄마</button><button type="button" class="big">아빠</button>
-      <button type="button">할머니</button><button type="button">할아버지</button><button type="button">이모</button><button type="button">고모</button><button type="button">삼촌</button>
+      <button type="button">엄마</button><button type="button">아빠</button>
+      <button type="button">할머니</button><button type="button">할아버지</button>
+      <button type="button">이모</button><button type="button">고모</button><button type="button">삼촌</button>
     </div>
     <label class="f">휴대폰 번호 뒷자리 4자리</label>
-    <input class="ph" id="ph" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="예: 1234" autocomplete="off">
-    <p class="note">아이가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원합니다. 관장님이 확인한 뒤부터 등원·하원 알림이 옵니다. 적은 정보는 알림과 출결에만 씁니다.</p>
-    <button class="btn" id="subscribe">
+    <input class="ph" id="ph" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="1234" autocomplete="off">
+    <p class="note">아이가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원합니다. 관장님이 확인한 뒤부터 이용할 수 있고, 적은 정보는 출결과 알림에만 씁니다.</p>
+    <button class="btn" id="joinBtn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-      <span>알림 켜기</span>
+      <span>가입하고 알림 켜기</span>
     </button>
-    <button class="btn ghost" id="cancelEdit" hidden>취소</button>
+    <button class="btn ghost" id="joinCancel" hidden>취소</button>
   </section>
+</main>
 
-  <!-- 등록 완료 -->
-  <section class="card" id="v-on" hidden>
-    <div class="on">
-      <div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-      <div><h2 style="margin:0">알림을 받고 있습니다</h2><p>도장에서 보내는 알림이 이 휴대폰에 옵니다.</p></div>
-    </div>
-    <p class="wait" id="waitMsg" hidden>관장님이 확인하면 등원·하원 알림이 시작됩니다. 도장 공지는 지금부터 받습니다.</p>
-    <div class="chips" id="kidChips"></div>
-    <div class="links">
-      <button id="edit">정보 수정</button>
-      <button id="test">알림 다시 확인</button>
-      <button id="off">알림 끄기</button>
-    </div>
-  </section>
-
-  <!-- 안드로이드: 홈 화면 앱 설치 -->
-  <section class="card" id="v-install" hidden>
-    <h2>홈 화면에 앱으로 추가</h2>
-    <p>홈 화면에 추가해 두면 앱처럼 바로 열 수 있습니다.</p>
-    <button class="btn ghost" id="install">홈 화면에 추가</button>
-  </section>
-
-  <div id="inboxWrap" hidden>
-    <h3 class="sec">받은 알림</h3>
-    <ul class="list" id="inbox"></ul>
+<!-- ═════════ 홈 ═════════ -->
+<main class="wrap" id="v-home" hidden>
+  <div class="home-top">
+    <div class="avatar" id="hAvatar"></div>
+    <button class="who" id="hWho"><b id="hName"></b><svg id="hSwitch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+    <button class="gear" data-go="me" aria-label="내 정보"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
   </div>
 
-  <h3 class="sec">도장 공지</h3>
-  <ul class="list" id="notices"><li class="empty">불러오는 중…</li></ul>
+  <div class="banner" id="hPending" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>관장님 확인 중입니다. 확인이 끝나면 알림장·앨범·출석부를 볼 수 있습니다.</span></div>
+  <div class="banner" id="hNoPush" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="m2 2 20 20"/></svg><span>알림이 꺼져 있습니다.</span><button id="hPushOn">알림 켜기</button></div>
+
+  <section class="menu-card">
+    <div class="dj"><b>해랑경희 태권도장</b><span id="hRel"></span></div>
+    <div class="grid">
+      <button class="mi" data-go="journal"><span class="ic" style="background:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg></span>알림장<i class="dot" id="d-journal" hidden></i></button>
+      <button class="mi" data-go="notice"><span class="ic" style="background:var(--navy)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/><path d="M19 6a7 7 0 0 1 0 12"/></svg></span>공지사항<i class="dot" id="d-notice" hidden></i></button>
+      <button class="mi" data-go="album"><span class="ic" style="background:var(--teal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg></span>앨범<i class="dot" id="d-album" hidden></i></button>
+      <button class="mi" data-go="schedule"><span class="ic" style="background:var(--orange)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4"/></svg><span class="num" id="hDate"></span></span>일정표</button>
+      <button class="mi" data-go="attendance"><span class="ic" style="background:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4"/><path d="m8.5 14 2.5 2.5 4.5-5"/></svg></span>출석부</button>
+      <button class="mi" data-go="fee"><span class="ic" style="background:var(--gold)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m7.5 8.5 2 7 2.5-6 2.5 6 2-7"/><path d="M7 12h10"/></svg></span>회비<i class="dot" id="d-fee" hidden></i></button>
+    </div>
+  </section>
+
+  <button class="today" id="hToday" data-go="attendance" hidden></button>
+  <div class="upc" id="hUpc" hidden><h3>다가오는 일정</h3><ul id="hUpcList"></ul></div>
 </main>
+
+<!-- ═════════ 하위 화면 ═════════ -->
+<div class="page" id="v-page" hidden>
+  <header class="bar"><button class="x" id="pClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button><h1 id="pTitle"></h1></header>
+  <div class="wrap" id="pBody"></div>
+</div>
+
+<div class="viewer" id="viewer" hidden>
+  <div class="vt"><button id="vClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button><span id="vCount"></span><span style="width:44px"></span></div>
+  <div class="vi" id="vImgWrap"><img id="vImg" alt=""></div>
+  <div class="vh">옆으로 넘기면 다음 사진 · 길게 눌러 저장</div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -183,23 +304,43 @@
   const isKakao = /KAKAOTALK/i.test(ua);
   const isInApp = isKakao || /Instagram|NAVER\(|FBAN|FBAV|Line\/|DaumApps|everytimeApp|; wv\)/i.test(ua);
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   const PAGE = location.origin + '/notice/';
-  const LS = 'haerang-push';
-  let vapidKey = null, reg = null;
+  const LS = 'haerang-parent', SEEN = 'haerang-seen';
+  const WD = '일월화수목금토';
+  let reg = null, vapidKey = null, home = null;
 
-  const show = (...ids) => ['v-inapp','v-ios','v-unsupported','v-notready','v-register','v-on'].forEach(v => $(v).hidden = !ids.includes(v));
-  const toast = (t) => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400); };
-  const saved = () => { try { return JSON.parse(localStorage.getItem(LS)) || null; } catch (_) { return null; } };
-  const save = v => { try { v ? localStorage.setItem(LS, JSON.stringify(v)) : localStorage.removeItem(LS); } catch (_) {} };
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-  const fmt = t => { const d = new Date(t); const n = new Date();
-    const hm = d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
-    return d.toDateString() === n.toDateString() ? '오늘 ' + hm : (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + hm; };
+  const ICON = {
+    left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>',
+    right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    door: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><circle cx="14.5" cy="12" r="1" fill="currentColor"/></svg>',
+  };
+
+  // ── 공통 ──
+  const toast = t => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600); };
+  const store = { get: k => { try { return JSON.parse(localStorage.getItem(k)) || null; } catch (_) { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} } };
+  const me = () => store.get(LS);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const post = async (path, body = {}) => (await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: (me() || {}).token, ...body }) })).json();
   const toKey = b64 => { const s = atob((b64 + '==='.slice((b64.length + 3) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(s, c => c.charCodeAt(0)); };
+  const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  const thisMonth = () => today().slice(0, 7);
+  const addMonth = (m, n) => { const [y, mo] = m.split('-').map(Number); return new Date(Date.UTC(y, mo - 1 + n, 1)).toISOString().slice(0, 7); };
+  const mLabel = m => { const [y, mo] = m.split('-'); return y + '년 ' + (+mo) + '월'; };
+  const dayOf = ts => { const d = new Date(ts + 9 * 3600e3); return { d: d.getUTCDate(), w: WD[d.getUTCDay()], m: d.getUTCMonth() + 1, y: d.getUTCFullYear() }; };
+  const dateText = ts => { const x = dayOf(ts); return x.y + '년 ' + x.m + '월 ' + x.d + '일'; };
+  const initial = n => n.length >= 2 ? n.slice(1, 2) : n;
+  const curKid = () => { const s = me() || {}; return (s.children || [])[s.kid | 0] || (s.children || [])[0] || ''; };
   const copy = async () => { try { await navigator.clipboard.writeText(PAGE); toast('주소를 복사했습니다'); } catch (_) { prompt('아래 주소를 복사해 주세요', PAGE); } };
+  document.querySelectorAll('.copyLink').forEach(b => b.onclick = copy);
 
-  // ── 아이 이름 입력칸 ──
+  function show(view, sub) {
+    ['v-gate', 'v-home'].forEach(v => $(v).hidden = v !== view);
+    if (view === 'v-gate') ['g-inapp', 'g-ios', 'g-unsupported', 'g-notready', 'g-join'].forEach(g => $(g).hidden = g !== sub);
+  }
+
+  // ═════════ 가입 ═════════
   function kidRow(v = '') {
     const row = document.createElement('div'); row.className = 'kid';
     row.innerHTML = '<input type="text" placeholder="예: 김해랑" maxlength="20" autocomplete="off"><button type="button" aria-label="삭제">×</button>';
@@ -207,151 +348,298 @@
     row.querySelector('button').onclick = () => { if ($('kids').children.length > 1) row.remove(); else row.querySelector('input').value = ''; };
     $('kids').appendChild(row);
   }
+  $('addKid').onclick = () => { if ($('kids').children.length < 6) kidRow(); };
   let rel = '';
-  $('rel').onclick = e => { const b = e.target.closest('button'); if (!b) return; rel = b.textContent; [...$('rel').children].forEach(x => x.classList.toggle('on', x === b)); };
   const setRel = r => { rel = r || ''; [...$('rel').children].forEach(x => x.classList.toggle('on', x.textContent === rel)); };
+  $('rel').onclick = e => { const b = e.target.closest('button'); if (b) setRel(b.textContent); };
   $('ph').oninput = () => { $('ph').value = $('ph').value.replace(/\D/g, '').slice(0, 4); };
-  function fillForm(s) {
+  function fillJoin(s, editing) {
     s = s || {};
     $('kids').innerHTML = ''; ((s.children && s.children.length) ? s.children : ['']).forEach(kidRow);
-    setRel(s.rel); $('ph').value = s.ph || '';
+    setRel(s.relation); $('ph').value = s.phone4 || '';
+    $('joinTitle').textContent = editing ? '정보 수정 · 자녀 추가' : '학부모 가입';
+    $('joinDesc').hidden = !!editing;
+    $('joinBtn').querySelector('span').textContent = editing ? '저장' : '가입하고 알림 켜기';
+    $('joinCancel').hidden = !editing;
   }
-  const kidNames = () => [...$('kids').querySelectorAll('input')].map(i => i.value.replace(/\s+/g, '')).filter(Boolean);
-  $('addKid').onclick = () => { if ($('kids').children.length < 6) kidRow(); };
 
-  // ── 화면 결정 ──
+  async function subscribePush() {
+    // 알림 권한 → 구독. 실패해도 가입은 진행
+    if (!canPush) return null;
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return null;
+      if (!vapidKey) vapidKey = (await (await fetch(API + '/vapid')).json()).publicKey;
+      reg = reg || await navigator.serviceWorker.register('sw.js', { scope: './' });
+      await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(vapidKey) });
+      return sub.toJSON();
+    } catch (e) { console.error(e); return null; }
+  }
+
+  $('joinBtn').onclick = async () => {
+    const children = [...$('kids').querySelectorAll('input')].map(i => i.value.replace(/\s+/g, '')).filter(Boolean);
+    const ph = $('ph').value;
+    if (!children.length) { toast('아이 이름을 적어 주세요'); return; }
+    if (!rel) { toast('아이와의 관계를 골라 주세요'); return; }
+    if (!/^\d{4}$/.test(ph)) { toast('휴대폰 번호 뒷자리 4자리를 적어 주세요'); $('ph').focus(); return; }
+    const btn = $('joinBtn'); btn.disabled = true;
+    try {
+      const s = me();
+      const subscription = s ? null : await subscribePush();
+      const j = await post('/join', { children, relation: rel, phone4: ph, subscription });
+      if (!j.ok) throw new Error(j.error);
+      store.set(LS, { ...(s || {}), token: j.token, children, relation: rel, phone4: ph, approved: j.approved, push: s ? s.push : !!subscription, kid: 0 });
+      if (!s && !subscription) toast('가입했습니다. 알림은 꺼져 있습니다');
+      else toast(s ? (j.approved ? '저장했습니다' : '저장했습니다. 관장님이 다시 확인합니다') : '가입했습니다. 관장님 확인 후 이용할 수 있습니다');
+      goHome();
+    } catch (e) { toast(e.message || '잠시 후 다시 시도해 주세요'); }
+    finally { btn.disabled = false; }
+  };
+  $('joinCancel').onclick = () => goHome();
+
+  // ═════════ 홈 ═════════
+  async function goHome() {
+    show('v-home');
+    renderHome();
+    try {
+      const j = await post('/p/home');
+      if (j.removed) { store.set(LS, null); fillJoin(null); show('v-gate', 'g-join'); toast('등록이 해제되었습니다. 다시 가입해 주세요'); return; }
+      if (!j.ok) return;
+      home = j;
+      const s = me();
+      store.set(LS, { ...s, children: j.me.children, relation: j.me.relation, phone4: j.me.phone4, approved: j.me.approved, push: j.me.push, kid: Math.min(s.kid | 0, j.me.children.length - 1) });
+      renderHome();
+    } catch (_) {}
+  }
+  function renderHome() {
+    const s = me() || {}, k = curKid();
+    $('hAvatar').textContent = initial(k);
+    $('hName').textContent = k;
+    $('hSwitch').style.display = (s.children || []).length > 1 ? '' : 'none';
+    $('hRel').textContent = s.relation ? k + ' ' + s.relation : '';
+    $('hDate').textContent = +today().slice(8);
+    $('hPending').hidden = !!s.approved || !home;
+    $('hNoPush').hidden = !home || !canPush || (s.push && Notification.permission === 'granted');
+    // 오늘 출결
+    const t = (home && home.today && home.today[k]) || {};
+    const el = $('hToday');
+    el.className = 'today' + (t.out ? ' out' : t.in ? ' in' : '');
+    el.innerHTML = '<span class="tdot">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span><b>' +
+      (t.out ? '오늘 ' + esc(t.out) + ' 하원했습니다' : t.in ? '오늘 ' + esc(t.in) + ' 등원했습니다' : '오늘은 아직 등원 전입니다') + '</b><small>' +
+      (t.out && t.in ? '등원 ' + esc(t.in) + ' · ' : '') + '출석부 보기</small></span>';
+    el.hidden = !s.approved;
+    // 새 소식 점
+    const seen = store.get(SEEN) || {};
+    if (home && home.counts) ['journal', 'notice', 'album'].forEach(x => $('d-' + x).hidden = !(home.counts[x] > (seen[x] || 0)));
+    $('d-fee').hidden = !(home && home.fee && home.fee.kids.some(f => !f.paid) && seen.feeMonth !== home.fee.month);
+    // 다가오는 일정
+    const up = (home && home.counts && home.counts.schedule) || [];
+    $('hUpc').hidden = !up.length;
+    $('hUpcList').innerHTML = up.map(x => { const [, m, d] = x.date.split('-'); const w = WD[new Date(x.date + 'T00:00:00Z').getUTCDay()]; return '<li><span class="d">' + (+m) + '/' + (+d) + ' (' + w + ')</span><span>' + esc(x.title) + '</span></li>'; }).join('');
+  }
+  $('hWho').onclick = () => {
+    const s = me(); if (!s || (s.children || []).length < 2) return;
+    const sh = document.createElement('div'); sh.className = 'sheet';
+    sh.innerHTML = '<div class="in"><h3>아이 선택</h3>' + s.children.map((c, i) => '<button class="k' + (i === (s.kid | 0) ? ' on' : '') + '" data-i="' + i + '"><span class="avatar">' + esc(initial(c)) + '</span>' + esc(c) + '</button>').join('') + '</div>';
+    sh.onclick = e => { const b = e.target.closest('button.k'); if (b) { store.set(LS, { ...me(), kid: +b.dataset.i }); renderHome(); } sh.remove(); };
+    document.body.appendChild(sh);
+  };
+  $('hPushOn').onclick = async () => {
+    const sub = await subscribePush();
+    if (!sub) { alert(isIOS ? '설정 → 알림 → 해랑경희에서 알림을 허용한 뒤 다시 눌러 주세요.' : '주소창의 사이트 설정에서 알림을 허용한 뒤 다시 눌러 주세요.'); return; }
+    await post('/p/push', { subscription: sub }); store.set(LS, { ...me(), push: true }); toast('알림을 켰습니다'); renderHome();
+  };
+
+  // ═════════ 하위 화면 ═════════
+  const PAGES = { journal: '알림장', notice: '공지사항', album: '앨범', schedule: '일정표', attendance: '출석부', fee: '회비', me: '내 정보' };
+  document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) openPage(b.dataset.go); });
+  function openPage(name, push = true) {
+    if (!PAGES[name] || !me()) return;
+    if (push) history.pushState({ p: name }, '', '#' + name);
+    $('pTitle').textContent = PAGES[name];
+    $('v-page').hidden = false; $('v-page').scrollTop = 0;
+    $('pBody').onclick = null;
+    $('pBody').innerHTML = '<div class="empty">불러오는 중…</div>';
+    const seen = store.get(SEEN) || {};
+    if (home && home.counts && home.counts[name]) seen[name] = home.counts[name];
+    if (name === 'fee' && home && home.fee) seen.feeMonth = home.fee.month;
+    store.set(SEEN, seen); renderHome();
+    RENDER[name]();
+  }
+  $('pClose').onclick = () => { if (history.state && history.state.p) history.back(); else { $('v-page').hidden = true; history.replaceState(null, '', location.pathname); } };
+  addEventListener('popstate', () => { const h = location.hash.slice(1); if (PAGES[h] && me()) openPage(h, false); else $('v-page').hidden = true; });
+  const body = html => { $('pBody').innerHTML = html; };
+  const failed = j => {
+    if (j && j.pending) { body('<div class="empty">관장님 확인 후에 볼 수 있습니다</div>'); return true; }
+    if (!j || !j.ok) { body('<div class="empty">불러오지 못했습니다</div>'); return true; }
+    return false;
+  };
+
+  function postCard(x, opts = {}) {
+    const d = dayOf(x.at);
+    const mine = (me().children || []);
+    const tags = (x.pin ? '<span class="tag pin">중요</span>' : '') + (x.kind ? '<span class="tag ' + esc(x.kind) + '">' + esc(x.kind) + '</span>' : '') +
+      (opts.kids && x.target && x.target.length ? x.target.filter(t => mine.includes(t)).map(t => '<span class="tag kid">' + esc(t) + '</span>').join('') : '');
+    return '<article class="post"><div class="day"><b>' + d.d + '</b><small>' + d.w + '요일</small></div><div class="ct">' + (tags ? '<div class="tags">' + tags + '</div>' : '') +
+      '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p class="clip">' + esc(x.body) + '</p>' : '') + '<div class="meta">' + dateText(x.at) + '</div></div></article>';
+  }
+  function grouped(items, card) {
+    let last = '', html = '';
+    for (const x of items) { const d = dayOf(x.at), key = d.y + '년 ' + d.m + '월'; if (!x.pin && key !== last) { html += '<div class="msec">' + key + '</div>'; last = key; } html += card(x); }
+    return html;
+  }
+  const expand = e => { const p = e.target.closest('.post p.clip'); if (p) { p.classList.remove('clip'); return true; } return false; };
+
+  const RENDER = {
+    async journal() {
+      const j = await post('/p/journal'); if (failed(j)) return;
+      body(j.items.length ? grouped(j.items, x => postCard(x, { kids: true })) : '<div class="empty">아직 알림장이 없습니다</div>');
+      $('pBody').onclick = expand;
+    },
+    async notice() {
+      const j = await post('/p/notices'); if (failed(j)) return;
+      const kinds = ['전체', ...new Set(j.items.map(x => x.kind).filter(Boolean))];
+      let cur = '전체';
+      const draw = () => body((kinds.length > 2 ? '<div class="chips">' + kinds.map(k => '<button class="' + (k === cur ? 'on' : '') + '">' + esc(k) + '</button>').join('') + '</div>' : '') +
+        (j.items.length ? grouped(j.items.filter(x => cur === '전체' || x.kind === cur), x => postCard(x)) : '<div class="empty">아직 공지가 없습니다</div>'));
+      draw();
+      $('pBody').onclick = e => { if (expand(e)) return; const b = e.target.closest('.chips button'); if (b) { cur = b.textContent; draw(); } };
+    },
+    async album() {
+      const j = await post('/p/albums'); if (failed(j)) return;
+      if (!j.items.length) return body('<div class="empty">아직 올라온 사진이 없습니다</div>');
+      body(j.items.map((a, ai) => {
+        const n = a.photos.length, shown = a.photos.slice(0, 6);
+        return '<section class="album"><h3>' + esc(a.title) + '</h3><div class="meta">' + dateText(a.at) + ' · 사진 ' + n + '장</div>' + (a.body ? '<p>' + esc(a.body) + '</p>' : '') +
+          '<div class="ph-grid n' + Math.min(n, 3) + '">' + shown.map((p, i) => '<button data-a="' + ai + '" data-i="' + i + '"><img data-ph="' + esc(p) + '" alt="">' + (i === 5 && n > 6 ? '<span class="more">+' + (n - 6) + '</span>' : '') + '</button>').join('') + '</div></section>';
+      }).join(''));
+      loadThumbs();
+      $('pBody').onclick = e => { const b = e.target.closest('.ph-grid button'); if (b) openViewer(j.items[b.dataset.a].photos, +b.dataset.i); };
+    },
+    async schedule(month) {
+      month = month || thisMonth();
+      const j = await post('/p/schedule', { month }); if (failed(j)) return;
+      body('<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
+        (j.items.length ? j.items.map(x => {
+          const dt = new Date(x.date + 'T00:00:00Z'), past = x.date < today();
+          return '<article class="post"' + (past ? ' style="opacity:.55"' : '') + '><div class="day"><b>' + dt.getUTCDate() + '</b><small>' + WD[dt.getUTCDay()] + '요일</small></div><div class="ct">' +
+            (x.kind ? '<div class="tags"><span class="tag ' + esc(x.kind) + '">' + esc(x.kind) + '</span></div>' : '') + '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p>' + esc(x.body) + '</p>' : '') + '</div></article>';
+        }).join('') : '<div class="empty">이 달 일정이 없습니다</div>'));
+      $('pBody').onclick = e => { const b = e.target.closest('.mhead button'); if (b) RENDER.schedule(addMonth(month, +b.dataset.m)); };
+    },
+    async attendance(month) {
+      month = month || thisMonth();
+      const j = await post('/p/attendance', { month }); if (failed(j)) return;
+      const k = curKid(), s = me();
+      const rows = j.items.filter(x => x.name === k);
+      const by = {}; rows.forEach(r => by[r.day] = r);
+      const [y, mo] = month.split('-').map(Number);
+      const first = new Date(Date.UTC(y, mo - 1, 1)).getUTCDay(), last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+      let cells = '';
+      for (let i = 0; i < first; i++) cells += '<div class="c"></div>';
+      for (let d = 1; d <= last; d++) {
+        const key = month + '-' + String(d).padStart(2, '0');
+        cells += '<div class="c' + (key === today() ? ' t' : '') + '"><span class="n">' + d + '</span>' + (by[key] ? '<span class="mk">' + ICON.check + '</span>' : '') + '</div>';
+      }
+      const kidSel = s.children.length > 1 ? '<div class="chips">' + s.children.map((c, i) => '<button data-k="' + i + '" class="' + (c === k ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' : '';
+      body(kidSel + '<div class="att-kid"><span class="avatar">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장</small></div><span class="cnt">출석 ' + rows.length + '일</span></div>' +
+        '<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
+        '<div class="cal"><div class="wk">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
+        '<div class="legend"><span><i></i>출석</span></div>' +
+        (rows.length ? '<ul class="alist">' + rows.slice().reverse().map(r => { const dt = new Date(r.day + 'T00:00:00Z'); return '<li><b>' + (dt.getUTCMonth() + 1) + '월 ' + dt.getUTCDate() + '일 (' + WD[dt.getUTCDay()] + ')</b><span>' + (r.in ? '등원 ' + esc(r.in) : '') + (r.out ? (r.in ? ' · ' : '') + '하원 ' + esc(r.out) : '') + '</span></li>'; }).join('') + '</ul>' : ''));
+      $('pBody').onclick = e => {
+        const b = e.target.closest('.mhead button'); if (b) return RENDER.attendance(addMonth(month, +b.dataset.m));
+        const c = e.target.closest('.chips button'); if (c) { store.set(LS, { ...me(), kid: +c.dataset.k }); renderHome(); RENDER.attendance(month); }
+      };
+    },
+    async fee() {
+      const j = await post('/p/fees'); if (failed(j)) return;
+      const m = thisMonth(), s = me();
+      const st = (mm, k) => (j.status.find(x => x.month === mm && x.name === k) || {}).paid;
+      const months = [...new Set(j.status.map(x => x.month))].filter(x => x < m).slice(0, 12);
+      body('<div class="fee-now"><h3>' + mLabel(m) + ' 회비</h3>' + s.children.map(k => '<div class="fee-row"><span>' + esc(k) + '</span><span class="badge ' + (st(m, k) ? 'paid">납부 완료' : 'unpaid">납부 전') + '</span></div>').join('') + '</div>' +
+        (j.items.length ? '<div class="msec">회비 안내</div>' + j.items.map(x => postCard(x, { kids: true })).join('') : '') +
+        (months.length ? '<div class="msec">지난 달</div><ul class="fee-hist">' + months.map(mm => '<li><span>' + mLabel(mm) + '</span><span>' + s.children.map(k => esc(k) + ' ' + (st(mm, k) ? '✓' : '–')).join(' · ') + '</span></li>').join('') + '</ul>' : ''));
+      $('pBody').onclick = expand;
+    },
+    async me() {
+      const s = me();
+      const pushOn = canPush && s.push && Notification.permission === 'granted';
+      body('<div class="card"><ul class="info"><li>아이<span>' + esc(s.children.join(', ')) + '</span></li><li>관계<span>' + esc(s.relation) + '</span></li><li>출결번호 (휴대폰 뒷자리)<span>' + esc(s.phone4) + '</span></li><li>관장님 확인<span>' + (s.approved ? '완료' : '확인 중') + '</span></li><li>알림<span>' + (pushOn ? '켜짐' : '꺼짐') + '</span></li></ul></div>' +
+        '<div class="rows"><button data-x="edit">정보 수정 · 자녀 추가' + ICON.right + '</button>' +
+        (canPush ? '<button data-x="push">' + (pushOn ? '알림 확인하기' : '알림 켜기') + ICON.right + '</button>' : '') +
+        '<button data-x="share">주소 복사 (가족에게 보내기)' + ICON.right + '</button>' +
+        '<button data-x="leave" class="danger">이 휴대폰 등록 해제' + ICON.right + '</button></div>' +
+        '<p class="note" style="text-align:center;margin-top:16px">할머니·할아버지 등 다른 가족도 각자 휴대폰에서 가입하면 함께 알림을 받습니다.</p>');
+      $('pBody').onclick = async e => {
+        const b = e.target.closest('button[data-x]'); if (!b) return;
+        const x = b.dataset.x;
+        if (x === 'edit') { $('v-page').hidden = true; history.replaceState(null, '', location.pathname); fillJoin(me(), true); show('v-gate', 'g-join'); scrollTo(0, 0); }
+        if (x === 'share') copy();
+        if (x === 'push') {
+          if (pushOn) { (reg || await navigator.serviceWorker.ready).showNotification('해랑경희', { body: '알림이 잘 오고 있습니다.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test' }); return; }
+          await $('hPushOn').onclick(); RENDER.me();
+        }
+        if (x === 'leave') {
+          if (!confirm('이 휴대폰의 등록을 해제할까요? 알림과 알림장을 더 이상 볼 수 없습니다.')) return;
+          await post('/p/leave');
+          try { const sub = reg && await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (_) {}
+          store.set(LS, null); store.set(SEEN, null); $('v-page').hidden = true; history.replaceState(null, '', location.pathname);
+          fillJoin(null); show('v-gate', 'g-join'); toast('등록을 해제했습니다');
+        }
+      };
+    },
+  };
+
+  // ── 사진 ──
+  const photoCache = new Map();
+  function photoUrl(id, size) {
+    const key = id + ':' + size;
+    if (!photoCache.has(key)) photoCache.set(key, post('/p/photo', { id, size }).then(j => j.ok ? 'data:image/jpeg;base64,' + j.data : '').catch(() => ''));
+    return photoCache.get(key);
+  }
+  function loadThumbs() { document.querySelectorAll('img[data-ph]').forEach(async img => { img.src = await photoUrl(img.dataset.ph, 'thumb'); }); }
+  let vList = [], vIdx = 0;
+  function openViewer(list, i) { vList = list; vIdx = i; $('viewer').hidden = false; showV(); }
+  async function showV() {
+    const i = vIdx; $('vCount').textContent = (i + 1) + ' / ' + vList.length;
+    $('vImg').src = await photoUrl(vList[i], 'thumb');
+    const u = await photoUrl(vList[i], 'full'); if (u && i === vIdx) $('vImg').src = u;
+  }
+  $('vClose').onclick = () => { $('viewer').hidden = true; };
+  let sx = 0;
+  $('vImgWrap').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+  $('vImgWrap').addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) { const n = vIdx + (dx < 0 ? 1 : -1); if (n >= 0 && n < vList.length) { vIdx = n; showV(); } } });
+
+  // ═════════ 시작 ═════════
   async function init() {
-    loadNotices(); loadInbox();
     if (isInApp) {
-      show('v-inapp');
+      show('v-gate', 'g-inapp');
       $('openExternal').href = isKakao ? 'kakaotalk://web/openExternal?url=' + encodeURIComponent(PAGE)
         : isAndroid ? 'intent://' + PAGE.replace(/^https:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end' : PAGE;
       if (!isKakao && !isAndroid) $('openExternal').hidden = true;
       return;
     }
-    if (isIOS && !standalone) { show('v-ios'); return; }
-    if (!supported) { show('v-unsupported'); return; }
-    if (!API) { show('v-notready'); return; }
-
-    reg = await navigator.serviceWorker.register('sw.js', { scope: './' });
-    fetch(API + '/vapid').then(r => r.json()).then(j => vapidKey = j.publicKey).catch(() => {});
-    const sub = await reg.pushManager.getSubscription();
-    const s = saved();
-    if (sub && Notification.permission === 'granted' && s) { renderOn(s.children, s.approved); resync(sub, s.children); }
-    else { fillForm(s); show('v-register'); }
-    navigator.serviceWorker.addEventListener('message', () => loadInbox());
-  }
-
-  function renderOn(children, approved) {
-    const s = saved() || {};
-    $('kidChips').innerHTML = children.map(c => '<span class="chip">' + esc(c) + '</span>').join('') + (s.rel ? '<span class="chip g">' + esc(s.rel) + ' · ' + esc(s.ph || '') + '</span>' : '');
-    if (approved === undefined) approved = !!s.approved;
-    $('waitMsg').hidden = approved;
-    $('v-on').querySelector('.dot').classList.toggle('pend', !approved);
-    $('v-on').querySelector('h2').textContent = approved ? '알림을 받고 있습니다' : '관장님 확인 중입니다';
-    show('v-on');
-  }
-
-  // 서버 기록이 지워졌을 경우를 대비해 열 때마다 다시 등록
-  function resync(sub, children) {
-    const s = saved() || {};
-    fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children, relation: s.rel, phone4: s.ph, resync: true }) })
-      .then(r => r.json()).then(j => {
-        if (!j.ok) return;
-        if (j.removed) { fillForm(s); $('regTitle').textContent = '다시 등록해 주세요'; show('v-register'); return; }
-        const n = { children: j.children, rel: j.relation, ph: j.phone4, approved: !!j.approved };
-        save(n); renderOn(n.children, n.approved);
-      }).catch(() => {});
-  }
-
-  $('subscribe').onclick = async () => {
-    const children = kidNames();
-    if (!children.length) { toast('아이 이름을 적어 주세요'); $('kids').querySelector('input').focus(); return; }
-    if (!rel) { toast('아이와의 관계를 골라 주세요'); return; }
-    const ph = $('ph').value;
-    if (!/^\d{4}$/.test(ph)) { toast('휴대폰 번호 뒷자리 4자리를 적어 주세요'); $('ph').focus(); return; }
-    const btn = $('subscribe'); btn.disabled = true;
-    try {
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        toast('알림이 허용되지 않았습니다');
-        alert('알림이 꺼져 있습니다.\n\n' + (isIOS ? '설정 → 알림 → 해랑경희에서 알림을 켠 뒤 다시 눌러 주세요.' : '주소창 왼쪽 자물쇠(또는 사이트 설정) → 알림을 허용으로 바꾼 뒤 다시 눌러 주세요.'));
-        return;
-      }
-      if (!vapidKey) vapidKey = (await (await fetch(API + '/vapid')).json()).publicKey;
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(vapidKey) });
-      const r = await fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children, relation: rel, phone4: ph }) });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error || '등록 실패');
-      save({ children, rel, ph, approved: !!j.approved });
-      renderOn(children, !!j.approved);
-      toast(j.approved ? '저장했습니다' : '알림을 켰습니다. 관장님 확인 후 등원·하원 알림이 옵니다');
-    } catch (e) {
-      toast('잠시 후 다시 시도해 주세요');
-      console.error(e);
-    } finally { btn.disabled = false; }
-  };
-
-  $('edit').onclick = () => {
-    fillForm(saved());
-    $('regTitle').textContent = '등록 정보 수정'; $('subscribe').querySelector('span').textContent = '저장';
-    $('cancelEdit').hidden = false; show('v-register');
-  };
-  $('cancelEdit').onclick = () => { const s = saved(); if (s) renderOn(s.children); };
-
-  $('test').onclick = async () => {
-    if (Notification.permission !== 'granted') { toast('휴대폰 설정에서 알림이 꺼져 있습니다'); return; }
-    await reg.showNotification('해랑경희', { body: '알림이 잘 오고 있습니다.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test' });
-  };
-
-  $('off').onclick = async () => {
-    if (!confirm('알림을 끄면 등원·하원 알림과 공지를 받을 수 없습니다. 끌까요?')) return;
-    const sub = await reg.pushManager.getSubscription();
-    if (sub) {
-      await fetch(API + '/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => {});
-      await sub.unsubscribe().catch(() => {});
+    if (isIOS && !standalone) return show('v-gate', 'g-ios');
+    if (!API) return show('v-gate', 'g-notready');
+    if ('serviceWorker' in navigator) {
+      reg = await navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => null);
+      navigator.serviceWorker.addEventListener('message', () => { if ($('v-page').hidden) goHome(); });
     }
-    const s = saved(); save(null);
-    fillForm(s);
-    $('regTitle').textContent = '알림 받기'; $('subscribe').querySelector('span').textContent = '알림 켜기'; $('cancelEdit').hidden = true;
-    show('v-register'); toast('알림을 껐습니다');
-  };
-
-  $('copyLink').onclick = copy; $('copyLink2').onclick = copy;
-
-  // ── 공지 목록 ──
-  async function loadNotices() {
-    const ul = $('notices');
-    if (!API) { ul.innerHTML = '<li class="empty">아직 공지가 없습니다</li>'; return; }
-    try {
-      const j = await (await fetch(API + '/notices', { cache: 'no-store' })).json();
-      const list = j.notices || [];
-      ul.innerHTML = list.length ? list.map(n =>
-        '<li class="item" id="n-' + esc(n.id) + '"><div class="h"><span class="k ' + esc(n.kind) + '">' + esc(n.kind) + '</span><span class="d">' + fmt(n.at) + '</span></div><b>' + esc(n.title) + '</b>' + (n.body ? '<p>' + esc(n.body) + '</p>' : '') + '</li>'
-      ).join('') : '<li class="empty">아직 공지가 없습니다</li>';
-      if (location.hash) { const el = document.querySelector(location.hash.replace(/[^#\w-]/g, '')); if (el) { el.classList.add('hl'); el.scrollIntoView({ behavior: 'smooth' }); } }
-    } catch (_) { ul.innerHTML = '<li class="empty">공지를 불러오지 못했습니다</li>'; }
+    if (canPush) fetch(API + '/vapid').then(r => r.json()).then(j => vapidKey = j.publicKey).catch(() => {});
+    if (!me()) { fillJoin(null); return show('v-gate', 'g-join'); }
+    await goHome();
+    // 브라우저가 알림 구독을 새로 만든 경우 서버에 다시 알림
+    if (reg && canPush && Notification.permission === 'granted') {
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) post('/p/push', { subscription: sub.toJSON() }).catch(() => {});
+    }
+    const h = location.hash.slice(1); if (PAGES[h] && me()) openPage(h, false);
   }
-
-  // ── 이 휴대폰이 받은 알림 (등원·하원 포함) ──
-  async function loadInbox() {
-    try {
-      const c = await caches.open('haerang-inbox'); const r = await c.match('/notice/__inbox');
-      const list = r ? (await r.json()).filter(x => ['등원', '하원', '회비'].includes(x.kind)).slice(0, 10) : [];
-      $('inboxWrap').hidden = !list.length;
-      $('inbox').innerHTML = list.map(n => '<li class="item"><div class="h"><span class="k ' + esc(n.kind) + '">' + esc(n.kind) + '</span><span class="d">' + fmt(n.at) + '</span></div><b>' + esc(n.title) + '</b>' + (n.body ? '<p>' + esc(n.body) + '</p>' : '') + '</li>').join('');
-    } catch (_) {}
-  }
-
-  // ── 안드로이드 홈 화면 설치 ──
-  let deferred = null;
-  addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!standalone) $('v-install').hidden = false; });
-  $('install').onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $('v-install').hidden = true; };
-  addEventListener('hashchange', loadNotices);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadNotices(); loadInbox(); } });
-
-  init().catch(e => { console.error(e); show('v-unsupported'); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && me() && !$('v-home').hidden && $('v-page').hidden) goHome(); });
+  init().catch(e => { console.error(e); show('v-gate', 'g-unsupported'); });
 })();
 </script>
 </body>
