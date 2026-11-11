@@ -74,6 +74,7 @@ async function route(path, req, env, ctx) {
   // ═════════ 로그인 전 ═════════
   if (path === '/api/vapid') return json({ ok: true, publicKey: (await getVapid(env)).publicKey });
   if (path === '/api/members') {
+    await importTeachers(env);
     const m = await all(env, 'SELECT id, name FROM members ORDER BY created');
     return json({ ok: true, members: m, needSetup: !m.length });
   }
@@ -281,6 +282,15 @@ function itemStmt(env, it, me) {
   const s = JSON.stringify(d); if (s.length > 60000) return null;
   const id = str(it.id, 40) || rid(8), upd = Date.now();
   return { id, type, title: d.title, upd, stmt: q(env, 'INSERT INTO items (id, type, data, upd, del, mid) VALUES (?, ?, ?, ?, 0, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd, del = 0', id, type, s, upd, me.id) };
+}
+// 출석부 사범님을 업무 앱 사람으로 (이름이 없으면 추가, 출석부와 같은 PIN). 10분에 한 번만 확인
+async function importTeachers(env) {
+  const k = await one(env, "SELECT v FROM kv WHERE k = 'tImport'"); if (k && Date.now() - Number(k.v) < 600000) return;
+  await run(env, "INSERT INTO kv (k, v) VALUES ('tImport', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now()));
+  const r = await attSync(env, '/sync/teachers', {}); if (!r.ok || !Array.isArray(r.teachers)) return;
+  const have = new Set((await all(env, 'SELECT name FROM members')).map(x => x.name)), st = [];
+  for (const t of r.teachers) if (t.name && !have.has(t.name) && t.salt && t.pin) { st.push(q(env, 'INSERT INTO members (id, name, salt, pin, created) VALUES (?, ?, ?, ?, ?)', rid(8), str(t.name, 12), t.salt, t.pin, Date.now())); have.add(t.name); }
+  if (st.length) await env.DB.batch(st);
 }
 function fixMsg(m) { return { ...m, refs: J(m.refs, []), reply: J(m.reply, null), rx: J(m.rx, {}) }; }
 async function addLog(env, mid, kind, text, ref) {
