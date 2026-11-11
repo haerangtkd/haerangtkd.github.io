@@ -1,7 +1,7 @@
 # 해랑경희 태권도장 저장소 정리본
 
 이 저장소(`haerangtkd/haerangtkd.github.io`) 하나에 **홈페이지 + 앱 3개**가 들어 있다. 화면은 GitHub Pages, 서버는 Cloudflare Workers(무료)로 돌아간다.
-다른 계정·다른 사람이 이어서 작업할 때 이 문서부터 읽는다. (2026-11-11 기준)
+다른 계정·다른 사람이 이어서 작업할 때 이 문서부터 읽는다. (2026-11-11 기준, 업무 앱 개편 반영)
 
 > ⚠️ 공개 저장소다. 비밀번호·연결 키(SYNC_KEY) 값은 여기에 적지 않는다. 값은 Cloudflare 설정에만 있다.
 
@@ -26,7 +26,7 @@
 | `/notice/admin.html` | 학부모 알림 앱 관리 화면 | 관장님 | 〃 |
 | `/notice/kiosk.html` | 출결 태블릿 (아이가 번호 4자리 누름) | 도장 입구 태블릿 | 〃 |
 | `/attendance/` | **해랑 출석부** (남색 아이콘) | 사범님만 | `haerang-attendance` · `haerang-att` |
-| `/team/` | **해랑 업무** 직원용 협업툴 (초록 아이콘) | 직원 3~4명 | `haerang-team` · `haerang-team` |
+| `/team/` | **해랑 업무** 직원용 협업툴 (남색 #0D326F 아이콘, 플로우 느낌) | 직원 3~4명 | `haerang-team` · `haerang-team` |
 
 - Cloudflare 계정: Worker 주소는 `https://<이름>.labkhu.workers.dev` (계정 ID `71ae15bc88fd598c3458fc253303a0f1`)
 - 각 앱의 서버 주소는 그 폴더의 `config.js`에 있다.
@@ -77,13 +77,20 @@
 - 백업 JSON은 예전 앱 형식과 같음(`students, att{day:{r,p,w}}, absences, trials, history, closed`) → 서로 불러오기 가능. 원생 90명·출결 1,923건을 옮겨서 예전 앱과 숫자가 같은 것 확인함.
 
 ### 3-3. 해랑 업무 `team/` (플로우·FamilyLog 대체)
+- 2026-11-11 개편: 색 `#0D326F`(남색), 플로우 모바일 느낌. 아래 탭 5개 **홈 · 채팅 · 일정 · 행사표 · 알림**.
+  - 홈: 남색 머리(참여자 동그라미) → 상단고정(채팅 공지 + 진행 중 신청표, D-day/진행률) → 할 일 → 등원·픽업 → 다가오는 일정(달력 아이콘 모양). 오른쪽 아래 + 버튼 = 새로 만들기(할 일·일정·행사·물품 신청·구매·채팅).
+  - 채팅: 날짜 알약, 사람마다 색 동그라미, 이어 보낸 말은 묶음. 말풍선 길게 누르기 → 반응 6개(❤️👍✅😊😮😭)·답장·텍스트 복사·공지로 올리기·할 일/일정으로 만들기·삭제(전체). [+] → 카메라·사진·할 일·일정·공지 보기. 오른쪽 위 ≡ 서랍 → 사진·공지·링크·검색, 참여자, 알림·설정. 공지는 채팅 위에 띠로 고정.
+  - 행사표: 예전 '해랑경희 행사 신청표' 모양 — 필터(전체·행사·물품·구매·완료) + [+ 만들기], 연도·월로 묶고 '날짜 없음' 따로, 카드(종류 뱃지·D-day·신청/결제/미결제 또는 주문/결제·지급·미결제·진행 막대, 다 되면 초록). 물품 신청표는 행사표와 같은 구조에 `kind:'goods'`. 상세에서 [완료로] → `closed`.
+  - 알림 탭: 신청표 알림처럼 누가·무엇을 했는지 기록(이름 동그라미 + 종류 뱃지). 채팅은 빼고 기록. 읽은 위치는 기기마다(localStorage).
+  - 큰 회사용(AI 미팅노트·메일·전자결재·조직도)은 넣지 않기로 함.
 - 로그인: 사람마다 이름 + PIN (출석부와 따로). 맨 처음 들어온 사람이 첫 계정을 만듦(관리자 비밀번호 없음).
 - 홈: 할 일(맨 위) → 등원·픽업표(요일별 기본 명단 + 날짜별, 누르면 데려옴 ✓, 길게 누르면 결석, 메모) → 다가오는 일정 → 행사·구매.
 - 채팅: 사진, 해시태그 `#일정 #할일 #등원 #구매 #행사` (예: `#일정 11/20 3시 승급심사` 자동 등록). 날짜만 있는 말엔 [일정으로 등록] 버튼. 날짜 해석은 `parseWhen()`(11/20, 11월 20일, 20일, 내일, 다음주 화요일, 3시=오후 3시 등).
 - 일정 달력, 행사 인원표(예전 '행사 신청표' 구조: 품목·금액 합산, 선택 항목, 체크 칸, 결제확인·지급·하원차, 대기자, 비회원), 물품 구매표, 모든 항목에 댓글.
 - 알림: 채팅·댓글·체크·수정 전부 웹 푸시(본인 제외). 아이폰은 홈 화면에 추가한 앱에서 알림 켜기. 앱 아이콘 숫자 = 남은 할 일 + 새 채팅. (진짜 홈 화면 위젯은 웹앱이라 불가)
 - 새 내용은 화면을 보고 있을 때만 받아옴(채팅 4초, 그 외 15초) → 무료 한도 절약.
-- 테이블: `members, sessions, subs(푸시), msgs, items(id, type todo/sched/event/buy, data JSON, upd, del), comments, pickup(day, data), photos, kv(vapid, pickupDefault), fails`. `/api/sync?since=`로 바뀐 것만 받음.
+- 테이블: `members, sessions, subs(푸시), msgs(+reply, rx 반응 JSON, upd), items(id, type todo/sched/event/buy, data JSON, upd, del), comments, pickup(day, data), photos, logs(알림 기록: mid, kind, text, ref, at · 90일), kv(vapid, pickupDefault, notice 채팅 공지), fails`. `/api/sync?since=`로 바뀐 것만 받음(반응·삭제된 메시지는 msgs.upd로). 새 칸은 서버가 처음 돌 때 ALTER로 자동 추가.
+- API 추가: `/api/msg-react {id,e}`, `/api/notice {id|0}`, `/api/msg`에 `reply`.
 
 ### 3-4. 홈페이지
 - 화면은 `app.js`가 `data.json`을 읽어 그림. 메뉴 페이지는 `python3 tools/build_pages.py`로 생성(네이버 검색용 본문 포함).
@@ -95,6 +102,7 @@
 
 - **화면(HTML)**: `main`에 push하면 GitHub Pages가 1~2분 뒤 반영.
 - **서버(Worker)**: Cloudflare 대시보드 → Worker → Edit code에 `*/worker/worker.js` 붙여넣고 Deploy. 표는 처음 실행 때 자동 생성.
+- 클라우드 작업 공간에서 GitHub에 바로 push가 막힐 때(새 계정): 크롬에서 저장소 zip을 받아 고친 뒤, GitHub 웹 '파일 올리기'(`/upload/main/<폴더>`)로 올려 커밋한다.
 - Claude가 직접 배포할 때(이번에 쓴 방법): 사용자 크롬(Claude in Chrome 확장)에서 Cloudflare 대시보드에 로그인된 탭을 열고, 그 탭에서 JS로 대시보드 API를 부른다.
   - `PUT /api/v4/accounts/<계정ID>/workers/scripts/<이름>` (multipart: `metadata` + `worker.js`, `main_module:'worker.js'`)
   - 코드만 바꿀 땐 metadata에 **`keep_bindings: ['secret_text','d1','service']`** 를 꼭 넣는다 (안 넣으면 비밀번호·DB 연결이 지워짐).
