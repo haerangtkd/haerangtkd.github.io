@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────
 // 필요한 설정 (Cloudflare 대시보드 → 이 Worker → 설정)
 //   1) D1 데이터베이스 바인딩: 변수 이름 DB  (출석부 전용 데이터베이스 haerang-att)
-//   2) 비밀 변수(Secret) ADMIN_PASSWORD : 관장님 비밀번호 — 사범님 추가, 백업 복원, 초기화에 씀
+//   2) 비밀 변수(Secret) ADMIN_PASSWORD : 관장님 비밀번호 — 맨 처음 설정(첫 사범님 만들기)에만 씀
 //   3) 비밀 변수(Secret) SYNC_KEY       : 알림 서버와 같은 값 — 태블릿 등원 연동, 명단 비교에 씀
 //   4) (선택) 서비스 바인딩 NOTICE → haerang-push : 학부모님께 출석 보내기에 씀
 // 표(테이블)는 처음 실행될 때 자동으로 만듭니다.
@@ -114,8 +114,8 @@ async function route(path, req, env) {
   }
 
   // ═════════ 관장님 비밀번호가 필요한 일 ═════════
-  if (path.startsWith('/api/admin/')) {
-    const e = await checkAdmin(env, ip, b.password); if (e) return e;
+  if (path.startsWith('/api/admin/')) { // 로그인한 사범님(PIN)이면 됨. 관장님 비밀번호로도 가능
+    if (!(await auth(env, b.tok))) { const e = await checkAdmin(env, ip, b.password); if (e) return e; }
     if (path === '/api/admin/check') return json({ ok: true });
     if (path === '/api/admin/teacher-add') return json(await addTeacher(env, b.name, b.pin));
     if (path === '/api/admin/teacher-pin') {
