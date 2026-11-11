@@ -241,6 +241,7 @@
   .bar.dn{opacity:.55;text-decoration:line-through}
   .dc .more{display:block;font-style:normal;font-size:11px;color:var(--muted);padding-left:3px}
   /* 대시보드 숫자 칸 */
+  .joinq .mem .btn{padding:7px 14px}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
   .kpis button{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 6px 9px;display:flex;flex-direction:column;align-items:center;gap:1px}
   .kpis small{font-size:12px;color:var(--muted);white-space:nowrap}
@@ -547,6 +548,7 @@ async function sync(first) {
   syncing = false; if (!j.ok) return false;
   S.me = j.me; S.members = j.members; S.pickupDefault = j.pickupDefault || {};
   let changed = false, newIn = false;
+  const jn = JSON.stringify(j.joins || []); if (jn !== JSON.stringify(S.joins || [])) { S.joins = j.joins || []; changed = true; }
   for (const m of j.msgs) {
     m.rx = m.rx || {}; m.room = m.room || '';
     const i = S.msgs.findIndex(x => x.id === m.id);
@@ -561,6 +563,7 @@ async function sync(first) {
   for (const p of j.pickup) { const cur = S.pickup.get(p.day); if (!cur || (cur.upd || 0) <= p.upd) S.pickup.set(p.day, p); }
   for (const g of (j.logs || [])) if (!S.logs.some(x => x.id === g.id)) { S.logs.push(g); changed = true; }
   S.logs.sort((a, b) => a.id - b.id);
+  if (first && !S.logRead && S.logs.length) { S.logRead = S.logs[S.logs.length - 1].id; try { localStorage.setItem('haerang-team-logread', S.logRead); } catch (_) {} } // 처음 쓰는 기기는 예전 기록을 새 알림으로 세지 않음
   if ('notice' in j && JSON.stringify(j.notice) !== JSON.stringify(S.notice)) { S.notice = j.notice; changed = true; }
   S.since = j.now - 2000;
   if (first || changed || j.items.length || j.comments.length || j.pickup.length) render(newIn);
@@ -701,6 +704,7 @@ function renderHome() {
   $('v-home').innerHTML =
     '<div class="greet"><div><small>' + (+t.slice(5, 7)) + '월 ' + (+t.slice(8)) + '일 ' + wd(t) + '요일</small><b>' + (h < 11 ? '좋은 아침이에요 ☀️' : h < 18 ? '즐거운 오후예요 😊' : '오늘도 수고 많았어요 🌙') + '</b></div></div>' +
     (!pushOk ? '<div class="notice"><b>알림을 켜야 채팅·업무 알림이 와요</b><button class="btn g" id="pushOn">알림 켜기</button></div>' : '') +
+    ((S.joins || []).length ? '<div class="sec joinq"><div class="sh"><h2>들어오려는 사람</h2></div>' + S.joins.map(x => '<div class="mem"><span class="av l" style="background:#9AA1B0">' + esc(avName(x.name)) + '</span><b>' + esc(x.name) + '</b><button class="btn g" data-jok="' + x.id + '">승인</button><button class="btn" data-jno="' + x.id + '">거절</button></div>').join('') + '<p class="help">직원이면 승인해 주세요. 승인하면 그 사람 이름으로 들어가져요.</p></div>' : '') +
     '<div class="kpis"><button data-go="task" data-tk="due"><small>오늘 할 일</small><b>' + todayT.length + '</b>' + (late ? '<em class="r">지난 ' + late + '</em>' : '<em>완료 ' + doneToday.length + '</em>') + '</button>' +
     '<button data-go="table"><small>진행 중 행사</small><b>' + evs.length + '</b><em>' + (evs.find(x => x.date && x.date >= t) ? dday(evs.find(x => x.date && x.date >= t).date) + ' ' + esc(evs.find(x => x.date && x.date >= t).title).slice(0, 6) : '&nbsp;') + '</em></button>' +
     '<button data-scroll="pkSec"><small>오늘 등원</small><b>' + kidsD + '<span>/' + kidsN + '</span></b><em>' + (p.absent.length ? '결석 ' + p.absent.length : '&nbsp;') + '</em></button>' +
@@ -719,6 +723,7 @@ async function onPickupClick(e, view) {
 }
 $('v-home').onclick = async e => {
   if (e.target.id === 'pushOn') return enablePush();
+  const jk = e.target.closest('[data-jok],[data-jno]'); if (jk) { const ok = !!jk.dataset.jok, id = jk.dataset.jok || jk.dataset.jno; if (!ok && !confirm('거절할까요?')) return; const r = await api(ok ? '/api/join-ok' : '/api/join-no', { id }); toast(r.ok ? (ok ? r.name + '님이 들어왔어요' : '거절했어요') : r.error); S.joins = (S.joins || []).filter(x => x.id !== id); await sync(); return render(); }
   if (e.target.id === 'todoAdd') { const v = $('todoIn').value.trim(); if (!v) return; const w = parseWhen(v); saveItem({ type: 'todo', title: w.rest || v, due: w.date || today(), status: '요청', whos: [], done: false }, '☑ 업무 추가: ' + (w.rest || v)); $('todoIn').value = ''; return; }
   const sc = e.target.closest('[data-scroll]'); if (sc) return $(sc.dataset.scroll).scrollIntoView({ behavior: 'smooth', block: 'start' });
   const go = e.target.closest('[data-go]'); if (go) { if (go.dataset.tk) S.tkf = go.dataset.tk; if (go.dataset.go === 'table') S.tf = 'all'; return setTab(go.dataset.go); }
@@ -1364,15 +1369,37 @@ async function showLogin() {
     $('suOk').onclick = async () => { const r = await fetch(API + '/api/setup', { method: 'POST', body: JSON.stringify({ name: $('suN').value, pin: $('suP').value }) }).then(r => r.json()).catch(() => ({ error: '연결 실패' })); if (!r.ok) { $('suMsg').textContent = r.error; return; } loggedIn(r.tok); };
     return;
   }
-  let mid = j.members.length === 1 ? j.members[0].id : '', pin = '';
+  let jid = ''; try { jid = localStorage.getItem('haerang-team-join') || ''; } catch (_) {}
+  if (jid) return joinWait(jid);
+  let mid = '', pin = '';
   try { mid = localStorage.getItem('haerang-team-last') || mid; } catch (_) {}
   if (!j.members.some(m => m.id === mid)) mid = '';
-  body.innerHTML = '<p>이름을 고르고 PIN을 눌러 주세요.</p><div class="chips" id="lgT">' + j.members.map(m => '<button data-v="' + m.id + '" class="' + (m.id === mid ? 'on' : '') + '">' + esc(m.name) + '</button>').join('') + '</div><div class="dots" id="lgD"></div><div class="msg" id="lgM"></div><div class="keys" id="lgP">' + '123456789'.split('').map(n => '<button data-n="' + n + '">' + n + '</button>').join('') + '<button data-n="ok" style="font-size:16px">확인</button><button data-n="0">0</button><button data-n="del" style="font-size:16px">지우기</button></div>';
+  body.innerHTML = '<p>이름을 고르고 PIN을 눌러 주세요.</p><div class="chips" id="lgT">' + j.members.map(m => '<button data-v="' + m.id + '" class="' + (m.id === mid ? 'on' : '') + '">' + esc(m.name) + '</button>').join('') + '</div><div class="dots" id="lgD"></div><div class="msg" id="lgM"></div><div class="keys" id="lgP">' + '123456789'.split('').map(n => '<button data-n="' + n + '">' + n + '</button>').join('') + '<button data-n="ok" style="font-size:16px">확인</button><button data-n="0">0</button><button data-n="del" style="font-size:16px">지우기</button></div><button class="big" id="joinBtn" style="margin-top:22px">내 이름이 없어요 · 처음 들어가기</button>';
+  $('joinBtn').onclick = () => joinForm();
   const dots = () => { $('lgD').innerHTML = Array.from({ length: Math.max(4, pin.length) }, (_, i) => '<i class="' + (i < pin.length ? 'on' : '') + '"></i>').join(''); }; dots();
   $('lgT').onclick = e => { const b = e.target.closest('button'); if (!b) return; mid = b.dataset.v; $('lgT').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); $('lgM').textContent = ''; };
   const go = async () => { if (!mid) { $('lgM').textContent = '이름을 먼저 골라 주세요'; return; } const r = await fetch(API + '/api/login', { method: 'POST', body: JSON.stringify({ mid, pin }) }).then(r => r.json()).catch(() => ({ error: '서버에 연결하지 못했어요' })); if (!r.ok) { $('lgM').textContent = r.error; pin = ''; dots(); return; } try { localStorage.setItem('haerang-team-last', mid); } catch (_) {} loggedIn(r.tok); };
   $('lgP').onclick = e => { const b = e.target.closest('button'); if (!b) return; const n = b.dataset.n; if (n === 'del') pin = pin.slice(0, -1); else if (n === 'ok') return go(); else if (pin.length < 6) pin += n; dots(); if (pin.length === 6) go(); };
   document.onkeydown = e => { if ($('loginView').hidden) return; if (/^\d$/.test(e.key) && pin.length < 6) { pin += e.key; dots(); } else if (e.key === 'Backspace') { pin = pin.slice(0, -1); dots(); } else if (e.key === 'Enter') go(); };
+}
+// 처음 쓰는 사람: 내 이름·PIN으로 요청 → 다른 사람이 승인하면 바로 들어가짐
+function joinForm() {
+  document.onkeydown = null;
+  $('loginBody').innerHTML = '<p>내 이름과 PIN을 정해 주세요.<br>직원이 승인하면 바로 들어가져요.</p><div style="text-align:left;margin-top:18px"><input class="inp" id="jnN" placeholder="이름 (예: 이아빈)"><input class="inp" id="jnP" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="PIN (숫자 4~6자리)" style="margin-top:10px"><button class="big g" id="jnOk" style="margin-top:14px">들어가기 요청</button><button class="big" id="jnBack">뒤로</button><div class="msg" id="jnMsg"></div></div>';
+  $('jnBack').onclick = () => showLogin();
+  $('jnOk').onclick = async () => { const r = await fetch(API + '/api/join-request', { method: 'POST', body: JSON.stringify({ name: $('jnN').value, pin: $('jnP').value }) }).then(r => r.json()).catch(() => ({ error: '서버에 연결하지 못했어요' })); if (!r.ok) { $('jnMsg').textContent = r.error || '요청하지 못했어요'; return; } try { localStorage.setItem('haerang-team-join', r.id); } catch (_) {} joinWait(r.id); };
+}
+let joinT;
+function joinWait(id) {
+  $('loginBody').innerHTML = '<p style="margin-top:20px">승인을 기다리고 있어요 ⏳<br>다른 직원 앱의 <b>대시보드</b>에서 승인하면 바로 들어가져요.</p><button class="big" id="jnCancel" style="margin-top:24px">요청 취소</button>';
+  $('jnCancel').onclick = () => { clearTimeout(joinT); try { localStorage.removeItem('haerang-team-join'); } catch (_) {} showLogin(); };
+  const check = async () => {
+    const r = await fetch(API + '/api/join-status', { method: 'POST', body: JSON.stringify({ id }) }).then(r => r.json()).catch(() => null);
+    if (r && r.status === 'ok') { try { localStorage.removeItem('haerang-team-join'); } catch (_) {} toast(r.name + '님, 어서 오세요!'); return loggedIn(r.tok); }
+    if (r && (r.status === 'no' || r.status === 'none' || r.status === 'done')) { try { localStorage.removeItem('haerang-team-join'); } catch (_) {} $('loginBody').innerHTML = '<p style="margin-top:20px">요청이 받아들여지지 않았어요.</p><button class="big" id="jnRe">처음으로</button>'; $('jnRe').onclick = () => showLogin(); return; }
+    clearTimeout(joinT); joinT = setTimeout(check, 5000);
+  };
+  check();
 }
 async function loggedIn(tok) {
   S.tok = tok; try { localStorage.setItem(TOKK, tok); } catch (_) {}
