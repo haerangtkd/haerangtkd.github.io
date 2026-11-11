@@ -9,6 +9,7 @@
 // 표(테이블)는 처음 실행될 때 자동으로 만듭니다.
 // ─────────────────────────────────────────────
 
+const MAX_FAIL = 5, LOCK_MS = 60 * 1000; // 5번 틀리면 1분 잠금
 const SESSION_DAYS = 180; // 이 기간 동안 한 번도 안 열면 다시 PIN
 const PERIODS = [['2', 14 * 60], ['3', 15 * 60], ['4', 16 * 60], ['5', 17 * 60], ['6', 18 * 60 + 40], ['8', 20 * 60], ['9', 21 * 60]];
 
@@ -106,9 +107,9 @@ async function route(path, req, env) {
   }
   if (path === '/api/login') {
     const f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', ip);
-    if (f && f.until > Date.now()) return json({ ok: false, error: '여러 번 틀려 15분 동안 잠겼습니다' }, 429);
+    if (f && f.until > Date.now()) return json({ ok: false, error: lockMsg(f.until) }, 429);
     const t = await one(env, 'SELECT * FROM teachers WHERE id = ?', str(b.tid, 40));
-    if (!t || !(await sameText(await pinHash(t.salt, b.pin), t.pin))) { await fail(env, ip, f); return json({ ok: false, error: 'PIN이 맞지 않습니다' }, 401); }
+    if (!t || !(await sameText(await pinHash(t.salt, b.pin), t.pin))) { const n = await fail(env, ip, f); return json({ ok: false, error: failMsg('PIN이 맞지 않아요', n) }, 401); }
     if (f) await run(env, 'DELETE FROM fails WHERE ip = ?', ip);
     return json({ ok: true, ...(await newSession(env, t.id)), name: t.name });
   }
@@ -355,14 +356,17 @@ async function auth(env, tok) {
 }
 async function checkAdmin(env, ip, password) {
   const f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', ip);
-  if (f && f.until > Date.now()) return json({ ok: false, error: '여러 번 틀려 15분 동안 잠겼습니다' }, 429);
-  if (!env.ADMIN_PASSWORD || !(await sameText(password || '', env.ADMIN_PASSWORD))) { await fail(env, ip, f); return json({ ok: false, error: '관장님 비밀번호가 맞지 않습니다' }, 401); }
+  if (f && f.until > Date.now()) return json({ ok: false, error: lockMsg(f.until) }, 429);
+  if (!env.ADMIN_PASSWORD || !(await sameText(password || '', env.ADMIN_PASSWORD))) { const n = await fail(env, ip, f); return json({ ok: false, error: failMsg('관장님 비밀번호가 맞지 않습니다', n) }, 401); }
   return null;
 }
-async function fail(env, ip, f) { // 10번 틀리면 15분 잠금
+async function fail(env, ip, f) { // MAX_FAIL번 틀리면 LOCK_MS 동안 잠금, 잠금이 풀리면 처음부터 다시 셈
   const n = (f && f.until && f.until <= Date.now() ? 0 : (f ? f.n : 0)) + 1;
-  await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', ip, n, n >= 10 ? Date.now() + 15 * 60000 : 0);
+  await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', ip, n, n >= MAX_FAIL ? Date.now() + LOCK_MS : 0);
+  return n;
 }
+function failMsg(m, n) { return n >= MAX_FAIL ? MAX_FAIL + '번 틀려서 1분 동안 잠겼어요. 1분 뒤에 다시 해 주세요' : m + ' (' + n + '/' + MAX_FAIL + '번 틀림)'; }
+function lockMsg(until) { return MAX_FAIL + '번 틀려서 잠겼어요. ' + Math.max(1, Math.ceil((until - Date.now()) / 1000)) + '초 뒤에 다시 해 주세요'; }
 async function pinHash(salt, pin) { return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', enc(salt + ':' + String(pin || ''))))); }
 async function sameText(a, b) {
   const [x, y] = await Promise.all([a, b].map(v => crypto.subtle.digest('SHA-256', enc(String(v)))));
