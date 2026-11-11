@@ -10,6 +10,7 @@
 
 const SITE = 'https://haerangtkd.github.io';
 const BATCH = 6;                // 무료 요금제 CPU 한도(요청당 10ms) 안에서 한 번에 보낼 기기 수 — 나머지는 관리 화면이 나눠서 다시 부름
+const MIN_STAY = 30 * 60 * 1000; // 등원 후 이 시간이 지나야 태블릿에서 하원 가능 (30분)
 const RELATIONS = ['엄마', '아빠', '할머니', '할아버지', '이모', '고모', '삼촌'];
 const POST_TYPES = ['notice', 'journal', 'schedule', 'album', 'fee'];
 
@@ -30,6 +31,8 @@ let ready = false;
 async function setup(env) {
   if (ready) return;
   await env.DB.batch(SCHEMA.map(s => env.DB.prepare(s)));
+  // 나중에 추가한 칸: 등원 시각(숫자). 이미 있으면 무시
+  try { await env.DB.prepare('ALTER TABLE att ADD COLUMN tin_at INTEGER').run(); } catch (_) {}
   ready = true;
 }
 
@@ -150,10 +153,10 @@ async function route(path, req, env) {
       const code = String(b.code || '').replace(/\D/g, '');
       const today = kstDay(new Date());
       const kids = (await all(env, 'SELECT name, codes FROM kids')).filter(k => J(k.codes, []).includes(code)).map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko'));
-      const att = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', today);
-      return json({ ok: true, kids: kids.map(n => { const a = att.find(x => x.name === n) || {}; return { name: n, in: a.tin || null, out: a.tout || null }; }) });
+      const att = await all(env, 'SELECT name, tin, tout, tin_at FROM att WHERE day = ?', today);
+      return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: kids.map(n => { const a = att.find(x => x.name === n) || {}; return { name: n, in: a.tin || null, out: a.tout || null, inAt: a.tin_at || null, outFrom: a.tin_at ? kstTime(new Date(a.tin_at + MIN_STAY)) : null }; }) });
     }
-    if (path === '/kiosk/check') return json(await checkIn(env, b.name, b.act));
+    if (path === '/kiosk/check') return json(await checkIn(env, b.name, b.act, true));
   }
 
   // ═════════ 관장님 전용 ═════════
@@ -324,15 +327,19 @@ async function photo(env, id, size) {
 }
 
 // ─────────── 등원·하원 (태블릿·관리 화면 공통) ───────────
-async function checkIn(env, name, act) {
+async function checkIn(env, name, act, kiosk) {
   if (act !== 'in' && act !== 'out') return { ok: false, error: 'act' };
   if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', String(name || '')))) return { ok: false, error: '명단에 없는 아이입니다' };
   const now = new Date(), t = kstTime(now), day = kstDay(now);
-  if (act === 'in') await run(env, 'INSERT INTO att (day, name, tin, tout) VALUES (?, ?, ?, NULL) ON CONFLICT(day, name) DO UPDATE SET tin = excluded.tin, tout = NULL', day, name, t);
+  if (act === 'out' && kiosk) { // 태블릿에서는 등원하고 30분이 지나야 하원 (관리 화면은 관장님이 언제든 가능)
+    const a = await one(env, 'SELECT tin_at, tout FROM att WHERE day = ? AND name = ?', day, name);
+    if (a && a.tin_at && !a.tout && now.getTime() - a.tin_at < MIN_STAY) return { ok: false, early: true, error: '등원하고 30분이 지나야 하원할 수 있습니다. ' + kstTime(new Date(a.tin_at + MIN_STAY)) + '부터 누를 수 있습니다' };
+  }
+  if (act === 'in') await run(env, 'INSERT INTO att (day, name, tin, tout, tin_at) VALUES (?, ?, ?, NULL, ?) ON CONFLICT(day, name) DO UPDATE SET tin = excluded.tin, tout = NULL, tin_at = excluded.tin_at', day, name, t, now.getTime());
   else await run(env, 'INSERT INTO att (day, name, tin, tout) VALUES (?, ?, NULL, ?) ON CONFLICT(day, name) DO UPDATE SET tout = excluded.tout', day, name, t);
   const body = act === 'in' ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.' : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
   const r = await send(env, { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name], view: 'attendance' });
-  return { ok: true, time: t, sent: r.sent || 0, total: r.total || 0 };
+  return { ok: true, time: t, at: now.getTime(), sent: r.sent || 0, total: r.total || 0 };
 }
 function kst(d) { return new Date(d.getTime() + 9 * 3600 * 1000); }
 function kstDay(d) { return kst(d).toISOString().slice(0, 10); }

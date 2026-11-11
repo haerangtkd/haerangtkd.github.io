@@ -50,6 +50,9 @@
   .kid .out{background:var(--out)}
   .kid button.dim{background:#E9E3DD;color:#8A837E}
   .kid button:disabled{opacity:.4}
+  .kid button.wait{background:#E9E3DD;color:#A79F98;font-size:clamp(15px,2.2vh,20px);line-height:1.25}
+  .kid button.wait small{display:block;font-size:.72em;font-weight:700}
+  #pickTitle.err{color:var(--brand)}
   .back{border:0;background:#fff;border-radius:14px;padding:14px 30px;font:inherit;font-size:clamp(17px,2.4vh,21px);font-weight:700;color:var(--muted);cursor:pointer}
 
   /* 완료 */
@@ -120,7 +123,7 @@
   const $ = id => document.getElementById(id);
   const TK = 'haerang-kiosk-token';
   let token = ''; try { token = localStorage.getItem(TK) || ''; } catch (_) {}
-  let code = '', found = [], idle = null, busy = false;
+  let code = '', found = [], idle = null, busy = false, skew = 0, minStay = 30 * 60000;
 
   const screens = ['s-setup', 's-pad', 's-pick', 's-done'];
   const show = id => screens.forEach(s => $(s).hidden = s !== id);
@@ -135,6 +138,20 @@
   // 시계
   const tick = () => { const d = new Date(); $('clock').textContent = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + '일월화수목금토'[d.getDay()] + '요일  ' + d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }); };
   tick(); setInterval(tick, 10000);
+
+  // ── 안내 음성 ("○○○ 학생이 등원하였습니다") ──
+  const tts = 'speechSynthesis' in window ? window.speechSynthesis : null;
+  let koVoice = null, ttsReady = false;
+  function pickVoice() { if (!tts) return; const vs = tts.getVoices(); koVoice = vs.find(v => /^ko/i.test(v.lang) && /yuna|유나|google|female|heami|sunhi/i.test(v.name)) || vs.find(v => /^ko/i.test(v.lang)) || null; }
+  if (tts) { pickVoice(); tts.addEventListener && tts.addEventListener('voiceschanged', pickVoice); }
+  function unlockSpeech() { // 아이패드·아이폰은 첫 터치 때 한 번 깨워 둬야 소리가 납니다
+    if (!tts || ttsReady) return; ttsReady = true;
+    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.lang = 'ko-KR'; tts.speak(u); } catch (_) {}
+  }
+  function say(text) {
+    if (!tts) return;
+    try { tts.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; if (koVoice) u.voice = koVoice; u.rate = 0.95; u.pitch = 1.05; u.volume = 1; tts.speak(u); } catch (_) {}
+  }
 
   // 짧은 효과음
   let ac = null;
@@ -159,7 +176,7 @@
   // ── 번호 입력 ──
   $('pad').addEventListener('click', async e => {
     const b = e.target.closest('button'); if (!b || busy) return;
-    keepAwake(); $('msg').textContent = '';
+    keepAwake(); unlockSpeech(); $('msg').textContent = '';
     if (b.dataset.k === 'clear') code = '';
     else if (b.dataset.k === 'back') code = code.slice(0, -1);
     else if (code.length < 4) code += b.textContent;
@@ -174,34 +191,44 @@
       if (j.relogin) return toSetup(j.error);
       if (!j.ok) throw new Error(j.error);
       if (!j.kids.length) { beep(false); $('msg').textContent = '없는 번호입니다. 다시 눌러 주세요'; $('dots').classList.add('shake'); setTimeout(() => $('dots').classList.remove('shake'), 400); code = ''; setTimeout(drawDots, 350); return; }
+      skew = (j.now || Date.now()) - Date.now(); if (j.minStay) minStay = j.minStay;
       found = j.kids; drawKids(); show('s-pick'); resetIdle();
     } catch (_) { $('msg').textContent = '인터넷 연결을 확인해 주세요'; code = ''; drawDots(); }
     finally { busy = false; }
   }
 
   // ── 이름 + 등원/하원 ──
-  function drawKids() {
-    $('pickTitle').textContent = found.length > 1 ? '내 이름을 찾아서 눌러 주세요' : '등원인지 하원인지 눌러 주세요';
+  // 등원하고 30분이 안 지났으면 하원 버튼을 잠금
+  const hm = ts => { const d = new Date(ts + 9 * 3600e3), h = d.getUTCHours(), m = d.getUTCMinutes(); return (h < 12 ? '오전 ' : '오후 ') + ((h % 12) || 12) + '시' + (m ? ' ' + m + '분' : ''); };
+  const tooEarly = k => k.in && !k.out && k.inAt && (Date.now() + skew) - k.inAt < minStay;
+  function drawKids(msg) {
+    $('pickTitle').textContent = msg || (found.length > 1 ? '내 이름을 찾아서 눌러 주세요' : '등원인지 하원인지 눌러 주세요');
+    $('pickTitle').classList.toggle('err', !!msg);
     $('kids').innerHTML = found.map((k, i) => {
-      const next = k.in && !k.out ? 'out' : 'in';   // 오늘 등원했으면 하원을 크게
+      const early = tooEarly(k);
+      const next = k.in && !k.out && !early ? 'out' : 'in';   // 등원하고 30분 지났으면 하원을 크게
       const st = k.out ? '오늘 ' + k.out + ' 하원' : k.in ? '오늘 ' + k.in + ' 등원' : '';
       return '<div class="kid"><div class="nm"><b>' + esc(k.name) + '</b>' + (st ? '<small class="ok">' + esc(st) + '</small>' : '') + '</div>' +
-        '<button class="in' + (next === 'in' ? '' : ' dim') + '" data-i="' + i + '" data-a="in">등원</button>' +
-        '<button class="out' + (next === 'out' ? '' : ' dim') + '" data-i="' + i + '" data-a="out">하원</button></div>';
+        '<button class="in' + (next === 'in' && !early ? '' : ' dim') + '" data-i="' + i + '" data-a="in">등원</button>' +
+        (early ? '<button class="out wait" data-i="' + i + '" data-a="out" data-wait="1">하원<small>' + esc(k.outFrom || '') + '부터</small></button>'
+               : '<button class="out' + (next === 'out' ? '' : ' dim') + '" data-i="' + i + '" data-a="out">하원</button>') + '</div>';
     }).join('');
   }
   $('kids').addEventListener('click', async e => {
     const b = e.target.closest('button'); if (!b || busy) return;
     const k = found[b.dataset.i], act = b.dataset.a;
+    if (b.dataset.wait) { beep(false); drawKids('등원하고 30분이 지나야 하원할 수 있습니다 (' + (k.outFrom || '') + '부터)'); say('등원하고 30분이 지나야 하원할 수 있습니다'); resetIdle(); return; }
     if (act === 'in' && k.in && !k.out && !confirm(k.name + ' 학생은 오늘 이미 등원했습니다. 다시 등원할까요?')) return;
     if (act === 'out' && k.out && !confirm(k.name + ' 학생은 오늘 이미 하원했습니다. 다시 하원할까요?')) return;
     busy = true; $('kids').querySelectorAll('button').forEach(x => x.disabled = true);
     try {
       const j = await post('/kiosk/check', { token, name: k.name, act });
       if (j.relogin) return toSetup(j.error);
+      if (j.early) { beep(false); drawKids(j.error); return; }
       if (!j.ok) throw new Error(j.error);
-      k[act] = j.time; if (act === 'in') k.out = null;
+      k[act] = j.time; if (act === 'in') { k.out = null; k.inAt = j.at; k.outFrom = hm(j.at + minStay); }
       beep(true);
+      setTimeout(() => say(k.name + ' 학생이 ' + (act === 'in' ? '등원' : '하원') + '하였습니다.'), 350);
       $('s-done').className = 'screen ' + act;
       $('doneTitle').textContent = k.name + (act === 'in' ? ' 등원!' : ' 하원!');
       $('doneSub').textContent = act === 'in' ? '오늘도 힘차게 수련합시다' : '오늘도 수고했습니다. 조심히 가세요';
@@ -211,7 +238,7 @@
         // 형제·자매가 남아 있으면 이름 화면으로, 아니면 처음으로
         if (found.length > 1 && found.some(x => act === 'in' ? !x.in || x.out : !x.out)) { drawKids(); show('s-pick'); resetIdle(); }
         else home();
-      }, 2600);
+      }, 3400);
     } catch (err) { alert('처리하지 못했습니다. ' + (err.message || '')); drawKids(); }
     finally { busy = false; }
   });
