@@ -45,6 +45,8 @@ async function setup(env) {
   const cols = ((await env.DB.prepare('PRAGMA table_info(msgs)').all()).results || []).map(c => c.name);
   for (const a of ALTERS) if (!cols.includes(a.split(' ')[5])) { try { await env.DB.prepare(a).run(); } catch (_) {} }
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS msgs_upd ON msgs (upd)').run();
+  const mcols = ((await env.DB.prepare('PRAGMA table_info(members)').all()).results || []).map(c => c.name);
+  if (!mcols.includes('asrc')) { try { await env.DB.prepare('ALTER TABLE members ADD COLUMN asrc TEXT').run(); } catch (_) {} } // 출석부 PIN(암호화 값)을 마지막으로 가져온 것
   ready = true;
 }
 
@@ -109,7 +111,8 @@ async function route(path, req, env, ctx) {
   if (path === '/api/login') {
     const f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', ip);
     if (f && f.until > Date.now()) return json({ ok: false, error: MAX_FAIL + '번 틀려서 잠겼어요. ' + Math.ceil((f.until - Date.now()) / 1000) + '초 뒤에 다시 해 주세요' }, 429);
-    const m = await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
+    let m = await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
+    if (m && !(await sameText(await pinHash(m.salt, b.pin), m.pin))) { await importTeachers(env, true).catch(() => {}); m = await one(env, 'SELECT * FROM members WHERE id = ?', m.id); } // 출석부에서 막 바꾼 PIN일 수 있음
     if (!m || !(await sameText(await pinHash(m.salt, b.pin), m.pin))) {
       const n = (f && f.until && f.until <= Date.now() ? 0 : (f ? f.n : 0)) + 1;
       await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', ip, n, n >= MAX_FAIL ? Date.now() + LOCK_MS : 0);
@@ -322,13 +325,18 @@ function itemStmt(env, it, me) {
   const id = str(it.id, 40) || rid(8), upd = Date.now();
   return { id, type, title: d.title, upd, stmt: q(env, 'INSERT INTO items (id, type, data, upd, del, mid) VALUES (?, ?, ?, ?, 0, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd, del = 0', id, type, s, upd, me.id) };
 }
-// 출석부 사범님을 업무 앱 사람으로 (이름이 없으면 추가, 출석부와 같은 PIN). 10분에 한 번만 확인
-async function importTeachers(env) {
-  const k = await one(env, "SELECT v FROM kv WHERE k = 'tImport'"); if (k && Date.now() - Number(k.v) < 600000) return;
+// 출석부 사범님을 업무 앱 사람으로 (이름이 없으면 추가, 출석부와 같은 PIN). 10분에 한 번만 확인 (force면 바로)
+// 출석부에서 PIN을 바꾸면 업무 앱 PIN도 따라 바뀜 (asrc = 마지막으로 가져온 출석부 PIN 값). 업무 앱에서 따로 바꾼 PIN은 출석부 PIN이 다시 바뀔 때까지 그대로.
+async function importTeachers(env, force) {
+  const k = await one(env, "SELECT v FROM kv WHERE k = 'tImport'"); if (!force && k && Date.now() - Number(k.v) < 600000) return;
   const r = await attSync(env, '/sync/teachers', {}); if (!r.ok || !Array.isArray(r.teachers)) return;
   await run(env, "INSERT INTO kv (k, v) VALUES ('tImport', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now()));
-  const have = new Set((await all(env, 'SELECT name FROM members')).map(x => x.name)), st = [];
-  for (const t of r.teachers) if (t.name && !have.has(t.name) && t.salt && t.pin) { st.push(q(env, 'INSERT INTO members (id, name, salt, pin, created) VALUES (?, ?, ?, ?, ?)', rid(8), str(t.name, 12), t.salt, t.pin, Date.now())); have.add(t.name); }
+  const mem = new Map((await all(env, 'SELECT id, name, asrc FROM members')).map(x => [x.name, x])), st = [];
+  for (const t of r.teachers) {
+    if (!t.name || !t.salt || !t.pin) continue; const src = t.salt + ':' + t.pin, m = mem.get(t.name);
+    if (!m) { st.push(q(env, 'INSERT INTO members (id, name, salt, pin, created, asrc) VALUES (?, ?, ?, ?, ?, ?)', rid(8), str(t.name, 12), t.salt, t.pin, Date.now(), src)); mem.set(t.name, { asrc: src }); }
+    else if (m.asrc !== src) st.push(q(env, 'UPDATE members SET salt = ?, pin = ?, asrc = ? WHERE id = ?', t.salt, t.pin, src, m.id));
+  }
   if (st.length) await env.DB.batch(st);
 }
 // 공유: '' 모두 / 'members' 만든 사람+담당자 / 'private' 만든 사람만
