@@ -112,7 +112,8 @@
   /* 시트 */
   .ov{position:fixed;inset:0;background:rgba(20,30,28,.42);z-index:50;display:flex;align-items:flex-end;justify-content:center}
   .sheet{background:#fff;width:100%;max-width:720px;max-height:94vh;overflow:auto;border-radius:24px 24px 0 0;padding:20px 16px calc(18px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;animation:up .16s ease-out}
-  .sheet.full{max-height:100vh;height:100vh;border-radius:0;padding-top:calc(14px + env(safe-area-inset-top))}
+  .sheet.full{max-height:100vh;height:100vh;border-radius:0;padding-top:0}
+  .sheet.full .shead{position:sticky;top:0;z-index:5;background:#fff;margin:0 -16px 8px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line)}
   @keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
   .sheet h2{font-size:21px;font-weight:900;margin-bottom:4px}
   .sheet h3{font-size:15px;font-weight:900;margin:20px 0 8px}
@@ -530,7 +531,7 @@ function eventSetup(ev0, isNew) {
       ev.checks = g('eC').value.split(/[,，]/).map(x => x.trim()).filter(Boolean);
       ev.van = g('eV').checked; ev.rows = ev.rows || [];
       const id = await saveItem(ev, isNew ? '🎟 행사표 만듦: ' + ev.title : '🎟 ' + ev.title + ' 설정 수정');
-      if (id) { closeSheet(); eventSheet(S.items.get(id)); }
+      if (id) eventSheet(S.items.get(id));
     };
   });
 }
@@ -662,15 +663,18 @@ async function enablePush() {
 
 // ═════════ 공통 ═════════
 let sheetOnClose = null;
+let sheetHist = false, skipPop = 0;
+window.addEventListener('popstate', () => { if (skipPop) { skipPop--; return; } if (sheetHist) { sheetHist = false; closeSheet(false, true); } });
 function sheet(html, mount) {
-  closeSheet(true);
+  closeSheet(true, true);
+  if (!sheetHist) { history.pushState({ sheet: 1 }, ''); sheetHist = true; } // 휴대폰 뒤로 가기로 닫기
   const ov = document.createElement('div'); ov.className = 'ov'; ov.id = 'ov';
   ov.innerHTML = '<div class="sheet">' + html + '</div>';
   ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-close]')) closeSheet(); });
   document.body.appendChild(ov); document.body.style.overflow = 'hidden';
   if (mount) mount(ov.querySelector('.sheet'));
 }
-function closeSheet(quiet) { const o = $('ov'); if (!o) return; const f = sheetOnClose; sheetOnClose = null; if (f) f(); o.remove(); document.body.style.overflow = ''; }
+function closeSheet(quiet, fromHist) { const o = $('ov'); if (!o) return; if (!fromHist && sheetHist) { sheetHist = false; skipPop++; history.back(); } const f = sheetOnClose; sheetOnClose = null; if (f) f(); o.remove(); document.body.style.overflow = ''; }
 const TITLES = { home: '해랑 업무', chat: '채팅', sched: '일정', table: '행사 · 구매' };
 function setTab(t) {
   S.tab = t; document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
