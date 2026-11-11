@@ -340,7 +340,7 @@ async function api(path, body = {}, quiet) {
     return { ok: false, error: e.message === 'Failed to fetch' ? '인터넷 연결을 확인해 주세요' : e.message };
   } finally { if (!quiet && --pending <= 0) { pending = 0; if ($('savePill').textContent !== '저장 안 됨') setSave('ok'); } }
 }
-// 관장님 비밀번호: 사범님 공간에서 이 기기에 한 번만 넣으면 기억 (틀리면 다시 물어봄)
+// 관리자 비밀번호: 사범님 공간에서 이 기기에 한 번만 넣으면 기억 (틀리면 다시 물어봄)
 const ADK = 'haerang-att-admin';
 const getAdmin = () => { try { return localStorage.getItem(ADK) || ''; } catch (_) { return ''; } };
 const setAdmin = v => { try { v ? localStorage.setItem(ADK, v) : localStorage.removeItem(ADK); } catch (_) {} };
@@ -973,7 +973,7 @@ $('spaceBtn').onclick = () => {
   const ym = S.month || today().slice(0, 7), yr = today().slice(0, 4);
   const locked = !getAdmin();
   sheet('<h2>사범님 공간</h2><p class="help">' + esc(S.me.name) + ' 사범님으로 들어와 있어요.</p>' +
-    (false ? '<div style="border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px;background:#FCFAF9"><b>관장님 비밀번호</b><p class="help">이 기기에서 처음 한 번만 넣으면 돼요. 관장님 메뉴(사범님 추가, 백업 불러오기, 초기화)를 쓸 때 필요해요.</p><div class="row2" style="margin-top:8px"><input class="inp" id="adPw" type="password" autocomplete="new-password" name="haerang-admin-pw" placeholder="관장님 비밀번호"><button class="sbtn red" id="adOk">확인</button></div><p class="help" id="adMsg" style="color:var(--no)"></p></div>' : '') +
+    (false ? '<div style="border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px;background:#FCFAF9"><b>관리자 비밀번호</b><p class="help">이 기기에서 처음 한 번만 넣으면 돼요. 관리자 메뉴(사범님 추가, 백업 불러오기, 초기화)를 쓸 때 필요해요.</p><div class="row2" style="margin-top:8px"><input class="inp" id="adPw" type="password" autocomplete="new-password" name="haerang-admin-pw" placeholder="관리자 비밀번호"><button class="sbtn red" id="adOk">확인</button></div><p class="help" id="adMsg" style="color:var(--no)"></p></div>' : '') +
     '<h3>파일로 보관하기</h3><button class="big" data-x="csvS">원생 명단 내려받기 (CSV)</button><button class="big" data-x="csvM">' + ymLabel(ym) + ' 출결 기록 내려받기 (CSV)</button><button class="big" data-x="pdf">' + ymLabel(ym) + ' 출석부 가로 PDF</button>' +
     '<h3>한 번에 전부 받기</h3><button class="big" data-x="csvY">' + yr + '년 전체 출결 받기 (CSV)</button><button class="big red" data-x="bak">백업 파일 받기 (전체 데이터)</button>' +
     '<h3>내 PIN</h3><button class="big" data-x="pin">PIN 바꾸기</button><button class="big" data-x="out">로그아웃</button>' +
@@ -985,9 +985,9 @@ $('spaceBtn').onclick = () => {
     if (ad) ad.onclick = async () => {
       const pw = ov.querySelector('#adPw').value; if (!pw) return;
       const j = await api('/api/admin/check', { password: pw });
-      if (j.ok) { setAdmin(pw); toast('관장님 메뉴를 열었어요'); $('spaceBtn').click(); } else ov.querySelector('#adMsg').textContent = j.error || '비밀번호가 맞지 않아요';
+      if (j.ok) { setAdmin(pw); toast('관리자 메뉴를 열었어요'); $('spaceBtn').click(); } else ov.querySelector('#adMsg').textContent = j.error || '비밀번호가 맞지 않아요';
     };
-    const needAdmin = () => { if (getAdmin()) return false; toast('위에 관장님 비밀번호를 먼저 넣어 주세요'); const el = ov.querySelector('#adPw'); if (el) el.focus(); return true; };
+    const needAdmin = () => { if (getAdmin()) return false; toast('위에 관리자 비밀번호를 먼저 넣어 주세요'); const el = ov.querySelector('#adPw'); if (el) el.focus(); return true; };
     ov.onclick = async e => {
       const b = e.target.closest('[data-x]'); if (!b) return; const x = b.dataset.x;
       if (x === 'csvS') downloadCsv('원생명단_' + today() + '.csv', studentCsv());
@@ -1140,7 +1140,7 @@ async function showLogin() {
   const j = await fetch(API + '/api/teachers', { method: 'POST', body: '{}' }).then(r => r.json()).catch(() => null);
   if (!j) { body.innerHTML = '<p>서버에 연결하지 못했어요. 인터넷을 확인하고 새로고침해 주세요.</p>'; return; }
   if (j.needSetup) {
-    body.innerHTML = '<p>처음 한 번만 설정해요.</p><div style="text-align:left;margin-top:18px"><label class="f" style="font-size:14px;color:var(--muted)">관장님 비밀번호 (서버에 넣은 ADMIN_PASSWORD)</label><input class="inp" id="suPw" type="password" autocomplete="new-password" name="haerang-admin-pw"><label class="f" style="font-size:14px;color:var(--muted);margin-top:12px;display:block">내 이름</label><input class="inp" id="suN" placeholder="예: 김사범"><label class="f" style="font-size:14px;color:var(--muted);margin-top:12px;display:block">내 PIN (숫자 4~6자리)</label><input class="inp" id="suP" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"><button class="big red" id="suOk" style="margin-top:18px">시작하기</button><div class="msg" id="suMsg"></div></div>';
+    body.innerHTML = '<p>처음 한 번만 설정해요.</p><div style="text-align:left;margin-top:18px"><label class="f" style="font-size:14px;color:var(--muted)">관리자 비밀번호 (서버에 넣은 ADMIN_PASSWORD)</label><input class="inp" id="suPw" type="password" autocomplete="new-password" name="haerang-admin-pw"><label class="f" style="font-size:14px;color:var(--muted);margin-top:12px;display:block">내 이름</label><input class="inp" id="suN" placeholder="예: 김사범"><label class="f" style="font-size:14px;color:var(--muted);margin-top:12px;display:block">내 PIN (숫자 4~6자리)</label><input class="inp" id="suP" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"><button class="big red" id="suOk" style="margin-top:18px">시작하기</button><div class="msg" id="suMsg"></div></div>';
     $('suOk').onclick = async () => { const r = await fetch(API + '/api/setup', { method: 'POST', body: JSON.stringify({ password: $('suPw').value, name: $('suN').value, pin: $('suP').value }) }).then(r => r.json()).catch(() => ({ error: '연결 실패' })); if (!r.ok) { $('suMsg').textContent = r.error; return; } loggedIn(r.tok); };
     return;
   }
@@ -1178,6 +1178,13 @@ async function loggedIn(tok) {
   showLogin();
 })();
 })();
+</script>
+<script>
+/* 해랑 업무 앱에서 열었을 때만 '업무로' 버튼 (업무 앱으로 돌아가기) */
+(function () { try { if (sessionStorage.getItem('haerang-from-team') !== '1') return; } catch (_) { return; }
+  var b = document.createElement('a'); b.href = '/team/'; b.textContent = '‹ 업무';
+  b.setAttribute('style', 'position:fixed;left:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:4;background:#0D326F;color:#fff;font:700 14px/1 system-ui,sans-serif;padding:10px 14px;border-radius:99px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.18)');
+  document.body.appendChild(b); })();
 </script>
 </body>
 </html>

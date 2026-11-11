@@ -1,8 +1,9 @@
 {
   "name": "해랑 업무",
   "short_name": "해랑 업무",
+  "id": "/team/",
   "start_url": "./",
-  "scope": "./",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F3F5F9",
   "theme_color": "#0D326F",
