@@ -287,7 +287,7 @@
   .tb.bell{position:relative}.tb.bell .dot{top:2px;left:auto;right:0}
   /* 더보기 */
   .greet{display:flex;align-items:center;padding:6px 0 4px}.greet small{display:block;color:var(--muted);font-size:14px}.greet b{font-size:22px;font-weight:900}
-  .apps{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 2px}.apps button{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E1E6EF;border-radius:14px;padding:10px 12px;font-size:14.5px;font-weight:700;text-align:left}.apps button span{font-size:20px}.apps button em{margin-left:auto;color:#9AA1B0;font-style:normal}
+  .apps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 2px}.apps button{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #E1E6EF;border-radius:14px;padding:10px 8px;font-size:14px;white-space:nowrap;font-weight:700;text-align:left}.apps button span{font-size:20px}.apps button em{margin-left:auto;color:#9AA1B0;font-style:normal}
   .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;margin:14px 0 4px}
   .sgrid button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13.5px}
   .sgrid button span{width:58px;height:58px;border-radius:18px;background:#EEF1F7;display:grid;place-items:center;font-size:26px}
@@ -829,10 +829,10 @@ async function savePickup(p, what) {
   if (!j.ok) toast(j.error || '저장하지 못했어요');
 }
 // 다른 앱 바로 열기 (같은 사이트 안 다른 화면, 따로 불러와서 업무 앱이 무거워지지 않음)
-const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'] };
+const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['🏆', '기네스', '/team/guinness.html'] };
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
+const SHORT = [['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['appGns', '🏆', '기네스'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
