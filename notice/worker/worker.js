@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────
 
 const SITE = 'https://haerangtkd.github.io';
-const BATCH = 40;               // 무료 요금제 외부 요청 한도(50) 안에서 한 번에 보낼 기기 수
+const BATCH = 6;                // 무료 요금제 CPU 한도(요청당 10ms) 안에서 한 번에 보낼 기기 수 — 나머지는 관리 화면이 나눠서 다시 부름
 const RELATIONS = ['엄마', '아빠', '할머니', '할아버지', '이모', '고모', '삼촌'];
 const POST_TYPES = ['notice', 'journal', 'schedule', 'album', 'fee'];
 
@@ -321,13 +321,16 @@ async function send(env, b) {
   const total = subs.length;
   const slice = subs.slice(offset, offset + BATCH);
   const vapid = await getVapid(env);
+  const auths = new Map(); // 같은 푸시 회사(구글·애플 등)에는 서명 하나를 같이 씀
   const view = /^[a-z]+$/.test(b.view || '') ? b.view : '';
   const payload = JSON.stringify({ title, body, kind: String(b.kind || ''), url: SITE + '/notice/' + (view ? '#' + view : ''), tag: (b.tag || view || 'n') + '-' + Date.now() });
 
   let sent = 0, failed = 0, removed = 0;
   await Promise.all(slice.map(async s => {
     try {
-      const res = await webPush({ endpoint: s.ep, p256dh: s.p256, auth: s.auth }, payload, vapid);
+      const aud = new URL(s.ep).origin;
+      if (!auths.has(aud)) auths.set(aud, vapidHeader(s.ep, vapid));
+      const res = await webPush({ endpoint: s.ep, p256dh: s.p256, auth: s.auth }, payload, await auths.get(aud));
       if (res.status === 404 || res.status === 410) { await run(env, 'UPDATE parents SET ep = NULL WHERE id = ?', s.id); removed++; }
       else if (res.ok) sent++;
       else failed++;
@@ -394,7 +397,7 @@ async function encryptPayload(p256dhB64, authB64, text) {
   return cat(header, ct);
 }
 
-async function webPush(sub, text, vapid) {
+async function webPush(sub, text, authHeader) {
   const body = await encryptPayload(sub.p256dh, sub.auth, text);
   return fetch(sub.endpoint, {
     method: 'POST',
@@ -403,7 +406,7 @@ async function webPush(sub, text, vapid) {
       'Content-Encoding': 'aes128gcm',
       TTL: '86400',
       Urgency: 'high',
-      Authorization: await vapidHeader(sub.endpoint, vapid),
+      Authorization: authHeader,
     },
     body,
   });

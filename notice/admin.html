@@ -408,7 +408,7 @@
   $('nFile').onchange = async e => {
     const files = [...e.target.files].slice(0, 30 - photos.length); e.target.value = '';
     for (const f of files) {
-      try { const full = await shrink(f, 1600, 0.8), thumb = await shrink(f, 480, 0.72); photos.push({ full, thumb }); drawPhotos(); }
+      try { const full = await shrink(f, 1280, 0.76), thumb = await shrink(f, 400, 0.7); photos.push({ full, thumb }); drawPhotos(); }
       catch (_) { toast('읽을 수 없는 사진이 있습니다'); }
     }
   };
