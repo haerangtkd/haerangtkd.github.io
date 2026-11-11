@@ -1,5 +1,5 @@
 // 해랑 업무 — 홈 화면 설치 + 알림 (범위: /team/ 만)
-const CACHE = 'haerang-team-v1';
+const CACHE = 'haerang-team-v2';
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', 'config.js', 'icon-192.png']))); });
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
