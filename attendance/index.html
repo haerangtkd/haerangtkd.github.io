@@ -214,6 +214,7 @@
           <div class="row2"><button class="sbtn" id="tClosed">이 날 휴관</button><button class="sbtn" id="tMakeup">+ 보강 추가</button></div>
         </div>
         <div id="tTrials"></div>
+        <div id="tMis"></div>
         <div class="lh"><label class="ck" style="padding:0;margin-right:auto;color:var(--ink)"><input type="checkbox" id="tAll"> 전체 선택</label><small id="tInfo"></small></div>
         <ul class="list" id="tList"></ul>
         <div id="tOff"></div>
@@ -351,12 +352,19 @@ async function loadMonth(ym, force) {
   const j = await api('/api/att', { ym }, true);
   if (!j.ok) return;
   for (const d of monthDays(ym)) S.att.delete(d);
-  for (const r of j.rows) { if (!S.att.has(r.day)) S.att.set(r.day, new Map()); S.att.get(r.day).set(r.sid, r); }
+  for (const r of j.rows) { if (!S.att.has(r.day)) S.att.set(r.day, new Map()); S.att.get(r.day).set(r.sid, r); if (r.tin && (!S.firstTin || r.day < S.firstTin)) S.firstTin = r.day; }
   for (const k of [...S.ab.keys()]) if (k.split('|')[1].startsWith(ym)) S.ab.delete(k);
   for (const a of j.absences) S.ab.set(abKey(a.sid, a.date), a.why || '');
   S.months.add(ym);
 }
 function applyRows(day, rows) { const m = new Map(); for (const r of rows) m.set(r.sid, r); S.att.set(day, m); }
+// 출석부와 태블릿 기록이 다른지: 'xin' 결석인데 태블릿 등원 / 'notab' 출석인데 태블릿 안 누름
+function mismatch(s, d, c) {
+  const r = c.r; if (!S.firstTin || d < S.firstTin || d > today()) return '';
+  if (c.k === 'x' && r && r.tin) return 'xin';
+  if (c.k === 'o' && r && !r.tin && r.who !== '예전 출석부' && r.who !== '태블릿') return 'notab';
+  return '';
+}
 
 // ───────── 원생 계산 ─────────
 function grade(s, day = today()) {
@@ -415,7 +423,10 @@ function renderToday() {
   const tt = S.trials.filter(t => t.date === d);
   $('tTrials').innerHTML = tt.length ? '<div class="lh pink"><b>이 날 체험 수업</b><small>' + tt.map(t => esc(t.name) + (t.per ? ' ' + esc(t.per) + '시부' : '')).join(', ') + '</small></div>' : '';
   const q = $('tQ').value;
-  const shown = list.filter(s => matchG(s, S.grp.t) && matchQ(s, q) && (!f || (f === 'u' ? !['o', 'x'].includes(cells.get(s.id).k) : cells.get(s.id).k === f)));
+  const mis = list.filter(s => mismatch(s, d, cells.get(s.id)));
+  $('tMis').innerHTML = mis.length ? '<button class="lh pink" id="tMisB" style="width:100%;text-align:left"><b style="color:var(--brand)">태블릿 기록과 다름 ' + mis.length + '명</b><small>' + (f === 'm' ? '전체 보기' : '눌러서 보기') + '</small></button>' : '';
+  if (f === 'm' && !mis.length) S.tFilter = '';
+  const shown = list.filter(s => matchG(s, S.grp.t) && matchQ(s, q) && (!S.tFilter || (S.tFilter === 'm' ? mis.includes(s) : S.tFilter === 'u' ? !['o', 'x'].includes(cells.get(s.id).k) : cells.get(s.id).k === S.tFilter)));
   const active = S.students.filter(s => s.status !== '퇴관' && !(s.status === '휴원'));
   const off = active.filter(s => !list.includes(s)).sort(byName);
   $('tInfo').textContent = wd(d) + '요일 · ' + list.length + '명' + (off.length ? ' (안 오는 ' + off.length + ')' : '') + ' · 가나다순';
@@ -436,7 +447,11 @@ function rowHtml(s, c) {
   else if (c.k === 'x' && c.w) tags.push('<span class="tag red">' + esc(c.w) + '</span>');
   if (!scheduled(s, d) && dayMap(d).has(s.id)) tags.push('<span class="tag blue">보강</span>');
   if (tempOn(s, d)) tags.push('<span class="tag yel">임시변경</span>');
-  if (c.r && c.r.who && c.r.at) tags.push('<span class="tag">' + esc(c.r.who) + ' ' + stamp(c.r.at).split(' ')[1] + '</span>');
+  const mm = mismatch(s, d, c);
+  if (mm === 'xin') tags.push('<span class="tag red">결석인데 태블릿 등원 ' + esc(c.r.tin) + '</span>');
+  else if (mm === 'notab') tags.push('<span class="tag yel">태블릿 안 누름 · 등원 알림 안 감</span>');
+  else if (c.r && c.r.tin) tags.push('<span class="tag grn">태블릿 ' + esc(c.r.tin) + '</span>');
+  if (c.r && c.r.who && c.r.at && c.r.who !== '태블릿') tags.push('<span class="tag">' + esc(c.r.who) + ' ' + stamp(c.r.at).split(' ')[1] + '</span>');
   let h = '<li data-id="' + s.id + '"><div class="st"><input type="checkbox" class="cb"' + (S.sel.has(s.id) ? ' checked' : '') + '><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc(g.label) + ' · ' + esc(daysLabel(daysOn(s, d))) + '</small>' + (tags.length ? '<div>' + tags.join('') + '</div>' : '') + '</div><div class="acts">' +
     '<button class="ab' + (c.k === 'o' ? ' o' : '') + '" data-a="o">출석</button><button class="ab' + (c.k === 'x' ? ' x' : '') + '" data-a="x">결석</button><button class="ab" data-a="t">임시변경</button></div></div>';
   if (c.k === 'o') { const ps = (c.p || '').split('/'); h += '<div class="pers" data-p><span>시간부</span>' + PER.map(p => '<button class="' + (ps.includes(p) ? 'on' : '') + '" data-p="' + p + '">' + p + '</button>').join('') + '</div>'; }
@@ -483,6 +498,7 @@ function guessP(s, d) {
   return Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || '';
 }
 $('tOff').onclick = e => { const b = e.target.closest('[data-mk]'); if (b) { const s = stById(b.dataset.mk); setAtt([{ sid: s.id, r: 'o', p: guessP(s, S.day), mk: 1 }]); toast(s.name + ' 보강 출석으로 넣었어요'); } };
+$('tMis').onclick = e => { if (e.target.closest('#tMisB')) { S.tFilter = S.tFilter === 'm' ? '' : 'm'; renderToday(); } };
 $('tStats').onclick = e => { const b = e.target.closest('.stat'); if (b) { S.tFilter = S.tFilter === b.dataset.f ? '' : b.dataset.f; renderToday(); } };
 $('tAll').onchange = e => { const q = $('tQ').value; const list = todayList().filter(s => matchG(s, S.grp.t) && matchQ(s, q)); list.forEach(s => e.target.checked ? S.sel.add(s.id) : S.sel.delete(s.id)); renderToday(); };
 $('tQ').oninput = () => renderToday();
@@ -712,10 +728,11 @@ async function calendarSheet(s, ym) {
     if (d <= t && sch && c.k !== 'closed') { tot++; if (c.k === 'o') o++; if (c.k === 'x') x++; }
     html += '<button data-d="' + d + '" class="' + cls + (d === t ? ' td' : '') + '">' + (+d.slice(8)) + '<small>' + esc(sub) + '</small></button>';
   }
-  html += '</div><p class="help" style="margin-top:10px">이번 달 오늘까지: 출석 ' + o + ' · 결석 ' + x + (tot ? ' · 출석률 ' + Math.round(o / tot * 1000) / 10 + '%' : '') + '</p><div class="foot"><span class="sp"></span><button data-close>닫기</button></div>';
+  html += '</div><p class="help" style="margin-top:10px">이번 달 오늘까지: 출석 ' + o + ' · 결석 ' + x + (tot ? ' · 출석률 ' + Math.round(o / tot * 1000) / 10 + '%' : '') + '</p><button class="big line" id="cSend">학부모님께 출석 보내기</button><p class="help">학부모님이 출석을 물어보실 때만 눌러 주세요. 보내기 전에 내용을 확인하고 고칠 수 있어요.</p><div class="foot"><span class="sp"></span><button data-close>닫기</button></div>';
   sheet(html, ov => {
     ov.querySelector('#cP').onclick = () => calendarSheet(s, addMonth(ym, -1));
     ov.querySelector('#cN').onclick = () => calendarSheet(s, addMonth(ym, 1));
+    ov.querySelector('#cSend').onclick = () => sendParentSheet(s, ym);
     ov.querySelector('.cal').onclick = async e => {
       const b = e.target.closest('[data-d]'); if (!b) return; const d = b.dataset.d;
       if (d < t) { closeSheet(); goDay(d); return; }
@@ -723,6 +740,20 @@ async function calendarSheet(s, ym) {
       if (S.ab.has(k)) { if (!confirm(md(d) + ' 결석 예정을 지울까요?')) return; S.ab.delete(k); await api('/api/absence-set', { remove: [{ sid: s.id, date: d }] }); }
       else { const w = await askReason(s.name + ' ' + md(d) + ' 결석 예정', ''); if (w === null) return calendarSheet(s, ym); S.ab.set(k, w); await api('/api/absence-set', { add: [{ sid: s.id, date: d, why: w }] }); }
       render(); calendarSheet(s, ym);
+    };
+  });
+}
+
+function sendParentSheet(s, ym) {
+  const t = today(), last = ym === t.slice(0, 7) ? t : monthDays(ym).slice(-1)[0];
+  const days = monthDays(ym).filter(d => d <= last), os = days.filter(d => cell(s, d).k === 'o'), xs = days.filter(d => cell(s, d).k === 'x');
+  const title = s.name + ' 학생 ' + (+ym.slice(5)) + '월 출석 안내';
+  const body = (+last.slice(5, 7)) + '월 ' + (+last.slice(8)) + '일까지 출석 ' + os.length + '일' + (xs.length ? ', 결석 ' + xs.length + '일 (' + xs.map(md).join(', ') + ')' : ', 결석 없음') + '입니다.\n' + (os.length ? '출석한 날: ' + os.map(d => +d.slice(8) + '일').join(', ') : '');
+  sheet('<h2>학부모님께 출석 보내기</h2><p class="help">' + esc(s.name) + ' 학생 보호자 앱으로 알림이 가요. 결석 사유는 넣지 않았어요. 필요하면 고쳐서 보내 주세요.</p><label class="f">제목</label><input class="inp" id="npT" value="' + esc(title) + '"><label class="f">내용</label><textarea class="inp" id="npB" rows="5">' + esc(body) + '</textarea><p class="help" id="npM"></p><div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="npOk">보내기</button></div>', ov => {
+    ov.querySelector('#npOk').onclick = async () => {
+      const b = ov.querySelector('#npOk'); b.disabled = true; b.textContent = '보내는 중…';
+      const j = await api('/api/notify-parent', { sid: s.id, title: ov.querySelector('#npT').value, body: ov.querySelector('#npB').value });
+      if (j.ok) { closeSheet(); toast('보호자 ' + j.sent + '명에게 보냈어요'); } else { ov.querySelector('#npM').textContent = j.error || '보내지 못했어요'; b.disabled = false; b.textContent = '다시 보내기'; }
     };
   });
 }

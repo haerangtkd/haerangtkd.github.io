@@ -5,6 +5,7 @@
 //   1) D1 데이터베이스 바인딩: 변수 이름 DB  (출석부 전용 데이터베이스 haerang-att)
 //   2) 비밀 변수(Secret) ADMIN_PASSWORD : 관장님 비밀번호 — 사범님 추가, 백업 복원, 초기화에 씀
 //   3) 비밀 변수(Secret) SYNC_KEY       : 알림 서버와 같은 값 — 태블릿 등원 연동, 명단 비교에 씀
+//   4) (선택) 서비스 바인딩 NOTICE → haerang-push : 학부모님께 출석 보내기에 씀
 // 표(테이블)는 처음 실행될 때 자동으로 만듭니다.
 // ─────────────────────────────────────────────
 
@@ -27,6 +28,7 @@ let ready = false;
 async function setup(env) {
   if (ready) return;
   await env.DB.batch(SCHEMA.map(s => env.DB.prepare(s)));
+  try { await env.DB.prepare('ALTER TABLE att ADD COLUMN tin TEXT').run(); } catch (_) {} // 태블릿 등원 시각
   ready = true;
 }
 
@@ -76,9 +78,14 @@ async function route(path, req, env) {
       const k = new Date(at + 9 * 3600e3), day = k.toISOString().slice(0, 10), min = k.getUTCHours() * 60 + k.getUTCMinutes();
       const per = periodFor(min);
       const s = st[0];
-      const cur = await one(env, 'SELECT p FROM att WHERE day = ? AND sid = ?', day, s.id);
+      const tin = String(k.getUTCHours()).padStart(2, '0') + ':' + String(k.getUTCMinutes()).padStart(2, '0');
+      const cur = await one(env, 'SELECT r, p FROM att WHERE day = ? AND sid = ?', day, s.id);
+      if (cur && cur.r === 'x') { // 사범님이 결석으로 해 둔 아이는 바꾸지 않고 태블릿 시각만 남김 → 출석부에 '기록 다름'으로 표시
+        await run(env, 'UPDATE att SET tin = ? WHERE day = ? AND sid = ?', tin, day, s.id);
+        return json({ ok: true, day, period: per, mismatch: true });
+      }
       const p = cleanP([cur && cur.p, per].filter(Boolean).join('/'));
-      await run(env, "INSERT INTO att (day, sid, r, p, w, mk, who, at) VALUES (?, ?, 'o', ?, '', 0, '태블릿', ?) ON CONFLICT(day, sid) DO UPDATE SET r = 'o', p = excluded.p, w = '', who = '태블릿', at = excluded.at", day, s.id, p, Date.now());
+      await run(env, "INSERT INTO att (day, sid, r, p, w, mk, who, at, tin) VALUES (?, ?, 'o', ?, '', 0, '태블릿', ?, ?) ON CONFLICT(day, sid) DO UPDATE SET r = 'o', p = excluded.p, w = '', who = '태블릿', at = excluded.at, tin = excluded.tin", day, s.id, p, Date.now(), tin);
       return json({ ok: true, day, period: per });
     }
     return json({ ok: false, error: 'not found' }, 404);
@@ -164,9 +171,9 @@ async function route(path, req, env) {
 
   if (path === '/api/att') {
     let rows;
-    if (/^\d{4}$/.test(String(b.year || ''))) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at FROM att WHERE day LIKE ?', b.year + '-%');
-    else if (/^\d{4}-\d{2}$/.test(String(b.ym || ''))) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at FROM att WHERE day LIKE ?', b.ym + '-%');
-    else if (isDay(b.day)) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at FROM att WHERE day = ?', b.day);
+    if (/^\d{4}$/.test(String(b.year || ''))) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day LIKE ?', b.year + '-%');
+    else if (/^\d{4}-\d{2}$/.test(String(b.ym || ''))) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day LIKE ?', b.ym + '-%');
+    else if (isDay(b.day)) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day = ?', b.day);
     else return json({ ok: false, error: '기간을 확인해 주세요' });
     const ym = b.ym || (b.day ? b.day.slice(0, 7) : null);
     const ab = ym ? await all(env, 'SELECT sid, date, why FROM absences WHERE date LIKE ?', ym + '-%') : await all(env, 'SELECT sid, date, why FROM absences WHERE date LIKE ?', b.year + '-%');
@@ -179,13 +186,16 @@ async function route(path, req, env) {
     const now = Date.now(), st = [];
     for (const it of items) {
       const sid = str(it.sid, 60); if (!sid) continue;
-      if (it.del) { st.push(q(env, 'DELETE FROM att WHERE day = ? AND sid = ?', b.day, sid)); continue; }
+      if (it.del) { // 태블릿 기록이 있으면 줄은 남기고 출결만 비움
+        st.push(q(env, "DELETE FROM att WHERE day = ? AND sid = ? AND (tin IS NULL OR tin = '')", b.day, sid));
+        st.push(q(env, "UPDATE att SET r = '', p = '', w = '', who = ?, at = ? WHERE day = ? AND sid = ?", who, now, b.day, sid));
+        continue; }
       const r = ['o', 'x', ''].includes(it.r) ? it.r : '';
       st.push(q(env, 'INSERT INTO att (day, sid, r, p, w, mk, who, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(day, sid) DO UPDATE SET r = excluded.r, p = excluded.p, w = excluded.w, mk = MAX(att.mk, excluded.mk), who = excluded.who, at = excluded.at',
         b.day, sid, r, r === 'o' ? cleanP(it.p) : '', r === 'x' ? str(it.w, 40) : '', it.mk ? 1 : 0, who, now));
     }
     if (st.length) await env.DB.batch(st);
-    return json({ ok: true, rows: await all(env, 'SELECT day, sid, r, p, w, mk, who, at FROM att WHERE day = ?', b.day) });
+    return json({ ok: true, rows: await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day = ?', b.day) });
   }
 
   if (path === '/api/student-save') {
@@ -229,6 +239,20 @@ async function route(path, req, env) {
     if (b.on) await run(env, 'INSERT INTO closed (day, why) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET why = excluded.why', b.day, str(b.why, 40));
     else await run(env, 'DELETE FROM closed WHERE day = ?', b.day);
     return json({ ok: true });
+  }
+
+  if (path === '/api/notify-parent') { // 사범님이 누를 때만: 그 아이 보호자 앱으로 출석 알림
+    const s = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.sid, 60));
+    if (!s) return json({ ok: false, error: '원생을 찾지 못했습니다' });
+    const name = J(s.data, {}).name, title = str(b.title, 100).trim(), body = str(b.body, 300).trim();
+    if (!title) return json({ ok: false, error: '보낼 내용을 적어 주세요' });
+    if (!env.NOTICE || !env.SYNC_KEY) return json({ ok: false, error: '학부모 알림 앱이 아직 연결되지 않았습니다 (출석부 서버 설정의 NOTICE 연결)' });
+    try {
+      const r = await env.NOTICE.fetch('https://notice/sync/notify', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify({ name, title, body }) });
+      const j = await r.json();
+      if (j.ok) await run(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), str(b.sid, 60), '', Date.now(), '학부모님께 출석 보냄: ' + title, who);
+      return json(j);
+    } catch (e) { return json({ ok: false, error: '학부모 알림 앱에 연결하지 못했습니다' }); }
   }
 
   if (path === '/api/export') { // 백업 파일 (예전 출석부와 같은 모양)

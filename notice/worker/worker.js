@@ -6,6 +6,7 @@
 //   1) D1 데이터베이스 바인딩: 변수 이름 DB
 //   2) 비밀 변수(Secret): ADMIN_PASSWORD  ← 관장님 비밀번호
 //   3) (출석부 연동, 선택) 서비스 바인딩 ATT → haerang-attendance Worker, 비밀 변수 SYNC_KEY ← 출석부 서버와 같은 값
+//      출석부 서버는 /sync/notify 로 '학부모님께 출석 보내기'를 부탁합니다 (사범님이 누를 때만)
 // 표(테이블)와 푸시 서명 키는 처음 실행될 때 자동으로 만듭니다.
 // ─────────────────────────────────────────────
 
@@ -158,6 +159,16 @@ async function route(path, req, env) {
       return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: kids.map(n => { const a = att.find(x => x.name === n) || {}; return { name: n, in: a.tin || null, out: a.tout || null, inAt: a.tin_at || null, outFrom: a.tin_at ? kstTime(new Date(a.tin_at + MIN_STAY)) : null }; }) });
     }
     if (path === '/kiosk/check') return json(await checkIn(env, b.name, b.act, true));
+  }
+
+  // ═════════ 출석부 서버에서 부름 (서비스 바인딩, SYNC_KEY 확인) ═════════
+  if (path === '/sync/notify') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const name = cleanNames([b.name])[0];
+    if (!name) return json({ ok: false, error: '이름' });
+    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: 'attendance' });
+    if (r.ok && !r.total) return json({ ok: false, error: name + ' 학생은 알림 앱에 가입한 보호자가 없습니다' });
+    return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
   }
 
   // ═════════ 관장님 전용 ═════════

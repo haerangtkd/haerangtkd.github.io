@@ -597,7 +597,7 @@
   async function loadAttDiff() {
     const box = $('attDiff'); box.innerHTML = '<p class="hint">출석부 명단을 확인하는 중…</p>';
     const j = await post('/admin/roster-diff', {}).catch(() => ({ ok: false, error: '서버에 연결하지 못했습니다' }));
-    if (!j.ok) { box.innerHTML = '<p class="hint" style="color:var(--brand)">' + esc(j.error) + '</p>'; return; }
+    if (!j.ok) { box.innerHTML = '<p class="hint" style="color:var(--brand)">' + esc(j.error === 'not found' ? '알림 서버 코드를 새로 바꿔 넣어야 쓸 수 있습니다 (설치 안내 참고)' : j.error) + '</p>'; return; }
     const rows = [...j.missing.map(s => ({ ...s, why: '명단에 없음' })), ...j.noCode.map(s => ({ ...s, why: '출결번호 ' + s.no + ' 빠짐' }))];
     attPick = new Set(rows.map(s => s.name));
     if (!rows.length) { box.innerHTML = '<p class="hint" style="color:var(--ok);font-weight:700">출석부 ' + j.total + '명이 모두 등록되어 있습니다.</p>'; return; }
