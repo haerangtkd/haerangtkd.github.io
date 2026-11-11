@@ -37,7 +37,7 @@
 | Worker | 바인딩 |
 |---|---|
 | `haerang-push` (학부모 알림) | D1 `DB`→`haerang`, Secret `ADMIN_PASSWORD`, Secret `SYNC_KEY`, Service `ATT`→`haerang-attendance` |
-| `haerang-attendance` (출석부) | D1 `DB`→`haerang-att`, Secret `ADMIN_PASSWORD`, Secret `SYNC_KEY`, Service `NOTICE`→`haerang-push` |
+| `haerang-attendance` (출석부, `/sync/teachers` 제공) | D1 `DB`→`haerang-att`, Secret `ADMIN_PASSWORD`, Secret `SYNC_KEY`, Service `NOTICE`→`haerang-push` |
 | `haerang-team` (업무) | D1 `DB`→`haerang-team`, Secret `SYNC_KEY`, Service `ATT`→`haerang-attendance` |
 
 `SYNC_KEY`는 세 서버가 같은 값. 서버끼리는 **서비스 바인딩**으로만 부른다(같은 계정 workers.dev끼리 fetch는 막힘). `/sync/...` 경로는 `X-Sync-Key` 헤더가 맞아야 동작한다.
@@ -85,6 +85,7 @@
   - 더보기: 바로가기 8개(등원·픽업, 행사표, 구매표, 달력, 내 업무, 공지, 사진, 알림 기록) + 업무 요약 + 다가오는 일정 + 진행 중 신청표. 행사표는 대시보드·더보기에서 들어감(뒤로 버튼).
   - 행사표: 예전 '해랑경희 행사 신청표' 모양 — 필터(전체·행사·물품·구매·완료) + [+ 만들기], 연도·월로 묶고 '날짜 없음' 따로, 카드(종류 뱃지·D-day·신청/결제/미결제 또는 주문/결제·지급·미결제·진행 막대). 물품 신청표는 `kind:'goods'`. 상세 [완료로] → `closed`.
   - 알림 탭: 누가 무엇을 했는지 기록(logs 표, 채팅 제외, 90일).
+  - 출석부 사범님 자동 연결: 업무 로그인 화면(`/api/members`)이 10분에 한 번 출석부 `/sync/teachers`(이름·salt·PIN 해시)를 가져와 없는 이름을 업무 사람으로 추가 → 출석부와 같은 PIN으로 로그인. 이후 PIN을 바꾸면 각 앱 따로.
   - 새 사람 들어오기: 로그인 화면 '내 이름이 없어요 · 처음 들어가기' → 이름·PIN 요청(`joins` 표) → 기존 직원 대시보드 '들어오려는 사람'에서 승인하면 그 폰이 바로 그 이름으로 로그인. (설정 → 함께 쓰는 사람에서 직접 추가도 가능) API: `/api/join-request`, `/api/join-status`, `/api/join-ok`, `/api/join-no`.
   - 큰 회사용(AI 미팅노트·메일·전자결재·조직도)은 넣지 않기로 함.
 - 로그인: 사람마다 이름 + PIN (출석부와 따로). 맨 처음 들어온 사람이 첫 계정을 만듦(관리자 비밀번호 없음).
