@@ -70,6 +70,9 @@ async function route(path, req, env) {
         .map(s => ({ name: s.name, no: s.no || '', status: s.status || '재원' }));
       return json({ ok: true, students: list });
     }
+    if (path === '/sync/teachers') { // 업무 앱: 사범님 이름·PIN(암호화된 값)을 그대로 가져가 같은 PIN으로 로그인
+      return json({ ok: true, teachers: await all(env, 'SELECT id, name, salt, pin FROM teachers ORDER BY created') });
+    }
     if (path === '/sync/checkin') {
       const name = str(b.name, 30).replace(/\s+/g, '');
       const at = Number(b.at) || Date.now();
