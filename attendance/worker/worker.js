@@ -89,6 +89,16 @@ async function route(path, req, env) {
       await run(env, "INSERT INTO att (day, sid, r, p, w, mk, who, at, tin) VALUES (?, ?, 'o', ?, '', 0, '태블릿', ?, ?) ON CONFLICT(day, sid) DO UPDATE SET r = 'o', p = excluded.p, w = '', who = '태블릿', at = excluded.at, tin = excluded.tin", day, s.id, p, Date.now(), tin);
       return json({ ok: true, day, period: per });
     }
+    if (path === '/sync/absence') { // 업무 앱 채팅 '#등원 ○○ 결석' → 결석 예정
+      const st = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) })).filter(s => s.status !== '퇴관');
+      const out = [];
+      for (const it of (Array.isArray(b.items) ? b.items : []).slice(0, 10)) {
+        const s = st.find(x => x.name === str(it.name, 20).replace(/\s+/g, '')); if (!s || !isDay(it.date)) continue;
+        await run(env, 'INSERT INTO absences (sid, date, why) VALUES (?, ?, ?) ON CONFLICT(sid, date) DO UPDATE SET why = excluded.why', s.id, it.date, str(it.why || '연락옴', 40));
+        out.push(s.name);
+      }
+      return json({ ok: true, added: out });
+    }
     return json({ ok: false, error: 'not found' }, 404);
   }
 
