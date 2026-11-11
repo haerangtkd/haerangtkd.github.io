@@ -45,6 +45,8 @@
   .on{display:flex;align-items:center;gap:12px}
   .on .dot{width:44px;height:44px;border-radius:50%;background:#E6F3EC;color:var(--ok);display:grid;place-items:center;flex:0 0 auto}
   .on .dot svg{width:24px;height:24px}
+  .wait{margin-top:14px;font-size:13.5px;background:#FFF6E5;color:#8A5A0B;border-radius:10px;padding:10px 12px}
+  .on .dot.pend{background:#FFF3DC;color:#B7791F}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
   .chip{font-size:13px;font-weight:700;background:var(--brand-soft);color:var(--brand);border-radius:99px;padding:4px 11px}
   .links{display:flex;gap:14px;margin-top:14px}
@@ -113,7 +115,7 @@
     <label class="f">아이 이름</label>
     <div id="kids"></div>
     <button class="add" id="addKid" type="button">+ 형제·자매 추가</button>
-    <p class="note">도장에 등록된 이름 그대로 적어 주세요. 아이 이름은 등원·하원 알림을 보내는 데에만 씁니다.</p>
+    <p class="note">도장에 등록된 이름 그대로 적어 주세요. 관장님이 확인한 뒤부터 등원·하원 알림이 옵니다. 아이 이름은 알림을 보내는 데에만 씁니다.</p>
     <button class="btn" id="subscribe">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
       <span>알림 켜기</span>
@@ -127,6 +129,7 @@
       <div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
       <div><h2 style="margin:0">알림을 받고 있습니다</h2><p>도장에서 보내는 알림이 이 휴대폰에 옵니다.</p></div>
     </div>
+    <p class="wait" id="waitMsg" hidden>관장님이 확인하면 등원·하원 알림이 시작됩니다. 도장 공지는 지금부터 받습니다.</p>
     <div class="chips" id="kidChips"></div>
     <div class="links">
       <button id="edit">이름 수정</button>
@@ -209,19 +212,25 @@
     fetch(API + '/vapid').then(r => r.json()).then(j => vapidKey = j.publicKey).catch(() => {});
     const sub = await reg.pushManager.getSubscription();
     const s = saved();
-    if (sub && Notification.permission === 'granted' && s) { renderOn(s.children); resync(sub, s.children); }
+    if (sub && Notification.permission === 'granted' && s) { renderOn(s.children, s.approved); resync(sub, s.children); }
     else { $('kids').innerHTML = ''; kidRow(s && s.children ? s.children[0] : ''); if (s && s.children) s.children.slice(1).forEach(kidRow); show('v-register'); }
     navigator.serviceWorker.addEventListener('message', () => loadInbox());
   }
 
-  function renderOn(children) {
+  function renderOn(children, approved) {
     $('kidChips').innerHTML = children.map(c => '<span class="chip">' + esc(c) + '</span>').join('');
+    const s = saved() || {};
+    if (approved === undefined) approved = !!s.approved;
+    $('waitMsg').hidden = approved;
+    $('v-on').querySelector('.dot').classList.toggle('pend', !approved);
+    $('v-on').querySelector('h2').textContent = approved ? '알림을 받고 있습니다' : '관장님 확인 중입니다';
     show('v-on');
   }
 
   // 서버 기록이 지워졌을 경우를 대비해 열 때마다 다시 등록
   function resync(sub, children) {
-    fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children }) }).catch(() => {});
+    fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children }) })
+      .then(r => r.json()).then(j => { if (j.ok) { save({ children, approved: !!j.approved }); renderOn(children, !!j.approved); } }).catch(() => {});
   }
 
   $('subscribe').onclick = async () => {
@@ -239,10 +248,11 @@
       let sub = await reg.pushManager.getSubscription();
       if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(vapidKey) });
       const r = await fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children }) });
-      if (!(await r.json()).ok) throw new Error('등록 실패');
-      save({ children });
-      renderOn(children);
-      toast('알림을 켰습니다');
+      const j = await r.json();
+      if (!j.ok) throw new Error('등록 실패');
+      save({ children, approved: !!j.approved });
+      renderOn(children, !!j.approved);
+      toast(j.approved ? '저장했습니다' : '알림을 켰습니다. 관장님 확인 후 등원·하원 알림이 옵니다');
     } catch (e) {
       toast('잠시 후 다시 시도해 주세요');
       console.error(e);

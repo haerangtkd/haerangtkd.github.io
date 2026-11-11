@@ -39,9 +39,13 @@ async function route(path, req, env) {
     if (!/^https:\/\//.test(s.endpoint)) return json({ ok: false, error: 'endpoint' }, 400);
     const children = cleanNames(b.children);
     const id = await subId(s.endpoint);
-    const meta = { e: s.endpoint, p: s.keys.p256dh, a: s.keys.auth, c: children, t: Date.now() };
-    await env.DB.put('sub:' + id, '1', { metadata: meta });
-    return json({ ok: true, id });
+    const old = (await env.DB.getWithMetadata('sub:' + id)).metadata;
+    // 같은 휴대폰이 같은 이름으로 다시 등록하면 승인 상태 유지, 이름이 바뀌면 다시 승인 필요
+    const same = old && old.ok && JSON.stringify([...old.c].sort()) === JSON.stringify([...children].sort());
+    const meta = { e: s.endpoint, p: s.keys.p256dh, a: s.keys.auth, c: children, t: old ? old.t : Date.now(), ok: !!same };
+    const changed = !old || old.ok !== meta.ok || old.e !== meta.e || old.p !== meta.p || old.a !== meta.a || JSON.stringify(old.c) !== JSON.stringify(meta.c);
+    if (changed) await env.DB.put('sub:' + id, '1', { metadata: meta });
+    return json({ ok: true, id, approved: meta.ok });
   }
   if (path === '/unsubscribe' && req.method === 'POST') {
     const b = await req.json();
@@ -53,14 +57,31 @@ async function route(path, req, env) {
   if (path.startsWith('/admin/')) {
     const b = req.method === 'POST' ? await req.json() : {};
     const pw = b.password || req.headers.get('x-admin-password') || '';
-    if (!env.ADMIN_PASSWORD || pw !== env.ADMIN_PASSWORD) return json({ ok: false, error: '비밀번호가 맞지 않습니다' }, 401);
+    // 비밀번호를 10번 틀리면 그 인터넷 주소는 15분 동안 잠금
+    const ip = req.headers.get('cf-connecting-ip') || 'x';
+    const failKey = 'fail:' + ip;
+    const fails = +(await env.DB.get(failKey)) || 0;
+    if (fails >= 10) return json({ ok: false, error: '비밀번호를 여러 번 틀려 15분 동안 잠겼습니다' }, 429);
+    if (!env.ADMIN_PASSWORD || !(await sameText(pw, env.ADMIN_PASSWORD))) {
+      await env.DB.put(failKey, String(fails + 1), { expirationTtl: 900 });
+      return json({ ok: false, error: '비밀번호가 맞지 않습니다' }, 401);
+    }
 
     if (path === '/admin/status') {
       const subs = await listSubs(env);
       const map = {};
-      for (const s of subs) for (const c of s.c) map[c] = (map[c] || 0) + 1;
+      for (const s of subs) if (s.ok) for (const c of s.c) map[c] = (map[c] || 0) + 1;
       const children = Object.keys(map).sort((a, b) => a.localeCompare(b, 'ko')).map(n => ({ name: n, devices: map[n] }));
-      return json({ ok: true, devices: subs.length, children });
+      const pending = subs.filter(s => !s.ok && s.c.length).sort((a, b) => b.t - a.t).map(s => ({ id: s.key.slice(4), children: s.c, at: s.t }));
+      return json({ ok: true, devices: subs.length, children, pending });
+    }
+    if (path === '/admin/approve') {
+      const key = 'sub:' + String(b.id || '').replace(/[^0-9a-f]/g, '');
+      const r = await env.DB.getWithMetadata(key);
+      if (!r.metadata) return json({ ok: false, error: '이미 지워진 등록입니다' });
+      if (b.approve) await env.DB.put(key, '1', { metadata: { ...r.metadata, ok: true } });
+      else await env.DB.delete(key);
+      return json({ ok: true });
     }
     if (path === '/admin/send') return json(await send(env, b));
     if (path === '/admin/delete-notice') {
@@ -94,7 +115,8 @@ async function send(env, b) {
   }
 
   let subs = await listSubs(env);
-  if (targets.length) subs = subs.filter(s => s.c.some(c => targets.includes(c)));
+  // 아이를 지정한 알림(등원·하원·개별 회비)은 관장님이 승인한 휴대폰에만
+  if (targets.length) subs = subs.filter(s => s.ok && s.c.some(c => targets.includes(c)));
   const total = subs.length;
   const slice = subs.slice(offset, offset + BATCH);
 
@@ -140,6 +162,13 @@ function cleanNames(arr) {
     if (n) seen.add(n);
   }
   return [...seen].slice(0, 6);
+}
+
+async function sameText(a, b) {
+  const [x, y] = await Promise.all([a, b].map(v => crypto.subtle.digest('SHA-256', enc(String(v)))));
+  const p = new Uint8Array(x), q = new Uint8Array(y);
+  let d = 0; for (let i = 0; i < p.length; i++) d |= p[i] ^ q[i];
+  return d === 0;
 }
 
 async function subId(endpoint) {

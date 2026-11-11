@@ -64,6 +64,15 @@
   .preview p{font-size:13.5px;color:#3A3533;white-space:pre-wrap;max-height:62px;overflow:hidden}
   .preview .lb{font-size:11.5px;color:var(--muted);margin-bottom:6px}
   .list{list-style:none}
+  .card.pend{border-color:#F0C36D;background:#FFFBF2}
+  .pd{display:flex;align-items:center;gap:8px;border-top:1px solid #F3E3C3;padding:11px 0}
+  .pd:first-child{border-top:0;margin-top:6px}
+  .pd div{flex:1;min-width:0}
+  .pd b{font-size:15.5px}
+  .pd small{display:block;font-size:12px;color:var(--muted)}
+  .pd button{border:0;border-radius:9px;font:inherit;font-weight:700;font-size:14px;padding:9px 13px;cursor:pointer}
+  .pd .ok{background:var(--ok);color:#fff}
+  .pd .no{background:#EFE8E1;color:var(--muted)}
   .nt{border-top:1px solid var(--line);padding:12px 0;display:flex;gap:10px;align-items:flex-start}
   .nt:first-child{border-top:0}
   .nt div{flex:1;min-width:0}
@@ -106,6 +115,11 @@
 
     <!-- 등원·하원 -->
     <section id="t-att">
+      <div class="card pend" id="pendCard" hidden>
+        <h2>승인 대기 <span id="pendN"></span></h2>
+        <p class="hint">도장 학부모님이 맞는지 확인한 뒤 승인해 주세요. 승인해야 등원·하원·회비 알림이 갑니다.</p>
+        <ul class="list" id="pendList"></ul>
+      </div>
       <div class="search"><input type="search" id="q" placeholder="아이 이름 검색"></div>
       <ul class="kids" id="kids"></ul>
       <div class="card" id="noKids" hidden>
@@ -174,7 +188,7 @@
   const $ = id => document.getElementById(id);
   const PW = 'haerang-push-admin';
   const PAGE = location.origin + '/notice/';
-  let pw = '', children = [];
+  let pw = '', children = [], pending = [];
 
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   const toast = t => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600); };
@@ -204,8 +218,24 @@
   function setStatus(j) {
     children = j.children || [];
     $('meta').textContent = '알림 켠 기기 ' + j.devices + '대';
-    renderKids(); renderChecks();
+    pending = j.pending || [];
+    renderKids(); renderChecks(); renderPending();
   }
+  function renderPending() {
+    $('pendCard').hidden = !pending.length;
+    $('pendN').textContent = pending.length ? pending.length + '건' : '';
+    $('pendList').innerHTML = pending.map(p => '<li class="pd"><div><b>' + p.children.map(esc).join(', ') + '</b><small>' + new Date(p.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' 신청' + (p.children.some(c => children.some(k => k.name === c)) ? ' · 이미 등록된 이름' : '') + '</small></div><button class="ok" data-id="' + p.id + '">승인</button><button class="no" data-id="' + p.id + '">거절</button></li>').join('');
+  }
+  $('pendList').onclick = async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const approve = b.classList.contains('ok');
+    if (!approve && !confirm('거절하면 이 휴대폰의 등록이 지워집니다.')) return;
+    b.disabled = true;
+    const j = await post('/admin/approve', { id: b.dataset.id, approve });
+    if (!j.ok) { toast(j.error || '실패했습니다'); }
+    const st = await post('/admin/status', {}); if (st.ok) setStatus(st);
+    toast(approve ? '승인했습니다' : '거절했습니다');
+  };
 
   // ── 탭 ──
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
@@ -219,7 +249,7 @@
     const q = $('q').value.replace(/\s+/g, '');
     const log = attLog();
     const list = children.filter(c => !q || c.name.includes(q));
-    $('noKids').hidden = children.length > 0;
+    $('noKids').hidden = children.length > 0 || pending.length > 0;
     $('kids').innerHTML = list.map(c => {
       const l = log[c.name] || {};
       const st = l.out ? '하원 ' + l.out : l.in ? '등원 ' + l.in : '휴대폰 ' + c.devices + '대';
