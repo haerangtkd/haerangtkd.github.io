@@ -240,6 +240,19 @@
   .bar u{text-decoration:none;background:#fff;color:var(--ink);border-radius:3px;padding:0 2px;margin-right:2px;font-size:10.5px;font-weight:700}
   .bar.dn{opacity:.55;text-decoration:line-through}
   .dc .more{display:block;font-style:normal;font-size:11px;color:var(--muted);padding-left:3px}
+  /* 상태 바꾸기 메뉴 · 체크리스트 · 카테고리 */
+  button.st{border:0;cursor:pointer}
+  .stmenu{position:fixed;z-index:70;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(15,22,40,.18);padding:6px;display:flex;flex-direction:column;min-width:130px}
+  .stmenu button{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px;border-radius:10px;font-weight:700;color:var(--brand)}
+  .stmenu button.on{background:#F4F6FA}
+  .chk{background:#EEF1F7;color:#4B5263;border-radius:6px;padding:0 7px;font-weight:700;font-size:12.5px}.chk.all{background:var(--okbg);color:var(--ok)}
+  .ctag{background:var(--soft);color:var(--brand);border-radius:6px;padding:0 7px;font-weight:700;font-size:12.5px}
+  .gsw{display:inline-flex;background:#E9ECF2;border-radius:10px;padding:3px;gap:2px;margin:2px 0 0}
+  .gsw button{padding:5px 12px;border-radius:8px;font-size:13.5px;color:var(--muted)}.gsw button.on{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .clmini{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .clmini button{font-size:13px;border:1px solid var(--line);border-radius:8px;padding:2px 8px;background:#fff;color:var(--ink)}
+  .clmini button.d{color:#A5ACBA;text-decoration:line-through;background:#F6F7FA}.clmini span{font-size:12.5px;color:var(--muted);align-self:center}
+  .todo.done .t b{color:#A5ACBA;text-decoration:line-through}
   /* 대시보드 숫자 칸 */
   .joinq .mem .btn{padding:7px 14px}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
@@ -447,6 +460,7 @@
   <symbol id="i-proj" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="15" height="13" rx="2"/><circle cx="19.5" cy="5" r="1.2"/><path d="M3.5 10h15"/></symbol>
   <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></symbol>
   <symbol id="i-minus" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12h7"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.2V5a1.5 1.5 0 0 1 1.5-1.5h7.2l8.3 8.3a1.5 1.5 0 0 1 0 2.1l-6.2 6.2a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.4"/></symbol>
   <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5.5 21V4.5M5.5 4.5h11l-2.5 4 2.5 4h-11"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 10.2 12 3.5l8.5 6.7V20a.8.8 0 0 1-.8.8H15v-6.2H9v6.2H4.3a.8.8 0 0 1-.8-.8z"/></symbol>
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6a8.2 8.2 0 0 1-12 7.3L3.5 20l1.2-4.3a8.2 8.2 0 1 1 15.8-4.1z"/><path d="M8.5 10.3h7M8.5 13.5h4.5"/></symbol>
@@ -609,26 +623,50 @@ const openItem = it => { if (!it || it.del) return toast('지워진 항목이에
 
 // ═════════ 업무 탭 (플로우 '전체 업무'처럼) ═════════
 const TKF = [['open', '진행 중'], ['mine', '내 업무'], ['due', '오늘까지'], ['done', '완료']];
-function taskRow(x) {
-  const t = today(), d = x.due, late = d && d < t && !isDone(x), cn = (S.comments.get(x.id) || []).length, ch = x.checks || [];
-  return '<div class="tk' + (isDone(x) ? ' done' : '') + '" data-id="' + x.id + '"><i class="cbar" style="background:' + itemColor(x) + '"></i><div class="tt"><b>' + esc(x.title) + (cn ? ' <em>(' + cn + ')</em>' : '') + '</b><small><span class="' + (late ? 'late' : '') + '">' + dueTxt(d) + '</span>' +
-    (ch.length ? '<span>☑ ' + ch.filter(c => c.d).length + '/' + ch.length + '</span>' : '') + (whosOf(x).length ? '<span class="avs2">' + whosOf(x).map(n => av(midOf(n), 'xs')).join('') + '</span>' : '<span>모두</span>') + '</small></div>' + stPill(statusOf(x)) + '</div>';
+// 카테고리 (예: 할 일 · 하원 · 전화업무 · 구매) — 기본 + 이미 쓴 것
+const CATS0 = ['할 일', '하원', '전화업무', '구매(도복 등)'];
+const catList = () => [...new Set([...CATS0, ...itemsOf('todo').map(x => x.cat).filter(Boolean)])];
+// 상태 뱃지: 누르면 그 자리에서 요청·진행·완료 바꾸기
+const stBtn = x => '<button class="st s' + ST.indexOf(statusOf(x)) + '" data-stp="' + x.id + '">' + statusOf(x) + ' ▾</button>';
+const chkChip = x => { const ch = x.checks || []; if (!ch.length) return ''; const d = ch.filter(c => c.d).length; return '<span class="chk' + (d === ch.length ? ' all' : '') + '">☑ ' + d + '/' + ch.length + '</span>'; };
+function stMenu(btn) {
+  document.querySelectorAll('.stmenu').forEach(x => x.remove());
+  const it = S.items.get(btn.dataset.stp); if (!it) return; const r = btn.getBoundingClientRect();
+  const m = document.createElement('div'); m.className = 'stmenu';
+  m.innerHTML = ST.map(s => '<button data-s="' + s + '" class="' + (statusOf(it) === s ? 'on' : '') + '"><span class="st s' + ST.indexOf(s) + '">' + s + '</span>' + (statusOf(it) === s ? '✓' : '') + '</button>').join('');
+  m.style.top = Math.min(r.bottom + 4, innerHeight - 170) + 'px'; m.style.right = Math.max(8, innerWidth - r.right) + 'px';
+  document.body.appendChild(m);
+  const off = e => { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('pointerdown', off, true); } };
+  setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
+  m.onclick = e => { const b = e.target.closest('[data-s]'); if (!b) return; m.remove(); document.removeEventListener('pointerdown', off, true);
+    const x = { ...it, status: b.dataset.s }; x.done = x.status === '완료'; x.doneBy = x.done ? (it.doneBy || S.me.name) : ''; x.doneAt = x.done ? (it.doneAt || Date.now()) : 0;
+    if (x.status !== statusOf(it)) saveItem(x, '☑ ' + x.title + ': ' + x.status); };
+}
+function taskRow(x, showCat) {
+  const t = today(), d = x.due, late = d && d < t && !isDone(x), cn = (S.comments.get(x.id) || []).length;
+  return '<div class="tk' + (isDone(x) ? ' done' : '') + '" data-id="' + x.id + '"><i class="cbar" style="background:' + itemColor(x) + '"></i><div class="tt"><b>' + esc(x.title) + (cn ? ' <em>(' + cn + ')</em>' : '') + '</b><small>' + (showCat && x.cat ? '<span class="ctag">' + esc(x.cat) + '</span>' : '') + '<span class="' + (late ? 'late' : '') + '">' + dueTxt(d) + '</span>' +
+    chkChip(x) + (whosOf(x).length ? '<span class="avs2">' + whosOf(x).map(n => av(midOf(n), 'xs')).join('') + '</span>' : '<span>모두</span>') + '</small></div>' + stBtn(x) + '</div>';
 }
 function renderTask() {
-  const t = today(), all = itemsOf('todo'), f = S.tkf;
+  const t = today(), all = itemsOf('todo'), f = S.tkf, gby = S.tkg || 'cat';
   const L = all.filter(x => f === 'done' ? isDone(x) : !isDone(x) && (f === 'open' || (f === 'mine' && mine(x)) || (f === 'due' && x.due && x.due <= t)));
   L.sort((a, b) => f === 'done' ? (b.doneAt || b.upd) - (a.doneAt || a.upd) : (a.due || '9999').localeCompare(b.due || '9999') || a.upd - b.upd);
   const wkEnd = addDays(t, 6 - dObj(t).getUTCDay());
-  const groups = f === 'done' ? [['완료한 업무', L]] : [['지난 업무', L.filter(x => x.due && x.due < t)], ['오늘', L.filter(x => x.due === t)], ['이번 주', L.filter(x => x.due > t && x.due <= wkEnd)], ['나중에', L.filter(x => x.due > wkEnd)], ['기한 없음', L.filter(x => !x.due)]];
+  const groups = gby === 'cat' ? [...catList().map(c => [c, L.filter(x => x.cat === c)]), ['그룹 미지정', L.filter(x => !x.cat || !catList().includes(x.cat))]]
+    : f === 'done' ? [['완료한 업무', L]] : [['지난 업무', L.filter(x => x.due && x.due < t)], ['오늘', L.filter(x => x.due === t)], ['이번 주', L.filter(x => x.due > t && x.due <= wkEnd)], ['나중에', L.filter(x => x.due > wkEnd)], ['기한 없음', L.filter(x => !x.due)]];
   $('v-task').innerHTML = '<div class="pills">' + TKF.map(([k, n]) => '<button data-k="' + k + '" class="' + (f === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>' +
     '<div class="qadd"><input class="inp" id="todoIn" placeholder="업무 추가 (내일, 11/20 처럼 날짜도 돼요)"><button class="btn g" id="todoAdd">추가</button></div>' +
-    (L.length ? groups.filter(g => g[1].length).map(([n, l]) => '<div class="grp"><div class="gh">' + ic('minus', 'width:18px;height:18px') + n + ' (' + l.length + ')</div>' + l.map(taskRow).join('') + '</div>').join('') : '<p class="empty" style="margin-top:30px">' + (f === 'done' ? '완료한 업무가 없어요' : '업무가 없어요 👍') + '</p>');
+    '<div class="gsw"><button data-g="cat" class="' + (gby === 'cat' ? 'on' : '') + '">카테고리별</button><button data-g="due" class="' + (gby === 'due' ? 'on' : '') + '">기한별</button></div>' +
+    (L.length ? groups.filter(g => g[1].length).map(([n, l]) => '<div class="grp"><div class="gh">' + ic('minus', 'width:18px;height:18px') + esc(n) + ' (' + l.length + ')</div>' + l.map(x => taskRow(x, gby !== 'cat')).join('') + '</div>').join('') : '<p class="empty" style="margin-top:30px">' + (f === 'done' ? '완료한 업무가 없어요' : '업무가 없어요 👍') + '</p>');
 }
 $('v-task').onclick = e => {
+  const sp = e.target.closest('[data-stp]'); if (sp) return stMenu(sp);
   const p = e.target.closest('[data-k]'); if (p) { S.tkf = p.dataset.k; return renderTask(); }
+  const g = e.target.closest('[data-g]'); if (g) { S.tkg = g.dataset.g; try { localStorage.setItem('haerang-team-tkg', S.tkg); } catch (_) {} return renderTask(); }
   if (e.target.id === 'todoAdd') return addTodoFromInput();
   const r = e.target.closest('.tk'); if (r) taskSheet(S.items.get(r.dataset.id));
 };
+try { S.tkg = localStorage.getItem('haerang-team-tkg') || 'cat'; } catch (_) {}
 $('v-task').addEventListener('keydown', e => { if (e.target.id === 'todoIn' && e.key === 'Enter' && !e.isComposing) addTodoFromInput(); });
 function addTodoFromInput() { const v = $('todoIn').value.trim(); if (!v) return; const w = parseWhen(v); saveItem({ type: 'todo', title: w.rest || v, due: w.date, status: '요청', whos: [], done: false }, '☑ 업무 추가: ' + (w.rest || v)); $('todoIn').value = ''; }
 
@@ -639,6 +677,7 @@ function taskSheet(it0, isNew) {
     const cms = it.id ? (S.comments.get(it.id) || []) : [], late = it.due && it.due < today() && it.status !== '완료', ch = it.checks;
     sh.querySelector('#tkB').innerHTML =
       '<input class="ttl" id="tkT" value="' + esc(it.title) + '" placeholder="업무 제목">' +
+      '<div class="fr"><span class="fi">' + ic('tag') + '</span><div><small>카테고리</small><b>' + esc(it.cat || '없음') + '</b><div class="chips" style="margin-top:6px">' + [...new Set([...catList(), ...(it.cat ? [it.cat] : [])])].map(c => '<button data-cat="' + esc(c) + '" class="' + (it.cat === c ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '<button data-cat="+">+ 새로</button></div></div></div>' +
       '<div class="fr"><span class="fi">' + ic('flag') + '</span><div><small>상태</small><div class="stc">' + ST.map(s => '<button data-st="' + s + '" class="st s' + ST.indexOf(s) + (it.status === s ? ' on' : '') + '">' + s + '</button>').join('') + '</div></div></div>' +
       '<div class="fr"><span class="fi">' + (it.whos.length ? '<span class="avs2">' + it.whos.map(n => av(midOf(n), 'xs')).join('') + '</span>' : ic('person')) + '</span><div><small>담당자</small><b>' + (it.whos.length ? '담당자 ' + it.whos.length + '명' : '모두') + '</b><div class="chips" style="margin-top:6px">' + S.members.map(m => '<button data-who="' + esc(m.name) + '" class="' + (it.whos.includes(m.name) ? 'on' : '') + '">' + esc(m.name) + '</button>').join('') + '</div></div></div>' +
       '<div class="fr"><span class="fi' + (late ? ' red' : '') + '">' + ic('cal') + '</span><div><small>기한</small><input type="date" id="tkD" class="dinp' + (late ? ' red' : '') + '" value="' + esc(it.due || '') + '"></div></div>' +
@@ -660,6 +699,7 @@ function taskSheet(it0, isNew) {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.st) { keep(); it.status = b.dataset.st; setDone(); draw(sh); if (it.id) save('☑ ' + it.title + ': ' + it.status); return; }
       if (b.dataset.who != null && b.dataset.who !== undefined && b.hasAttribute('data-who')) { keep(); const n = b.dataset.who; it.whos = it.whos.includes(n) ? it.whos.filter(x => x !== n) : [...it.whos, n]; return draw(sh); }
+      if (b.dataset.cat) { keep(); if (b.dataset.cat === '+') { const n = (prompt('새 카테고리 이름 (예: 차량, 상담)') || '').trim().slice(0, 20); if (n) it.cat = n; } else it.cat = it.cat === b.dataset.cat ? '' : b.dataset.cat; draw(sh); if (it.id) save('☑ ' + it.title + ': 카테고리 ' + (it.cat || '없음')); return; }
       if (b.dataset.c) { keep(); it.color = it.color === b.dataset.c ? '' : b.dataset.c; return draw(sh); }
       if (b.id === 'tkCa') { keep(); const v = g('tkC').value.trim(); if (v) { it.checks.push({ t: v.slice(0, 80), d: false }); draw(sh); g('tkC').focus(); } return; }
       const cl = b.closest('.cl'); if (cl) { keep(); const i = +cl.dataset.i; if (b.dataset.a === 'cd') it.checks[i].d = !it.checks[i].d; else it.checks.splice(i, 1); draw(sh); if (it.id && b.dataset.a === 'cd') save('☑ ' + it.title + ': ' + it.checks[i].t + (it.checks[i].d ? ' ✓' : ' 해제')); return; }
@@ -700,7 +740,7 @@ function renderHome() {
   const p = pickupFor(t), kidsN = new Set([...p.list, ...p.absent]).size, kidsD = p.done.length;
   const sch = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 6)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   const cu = chatUnread(), pushOk = 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('haerang-team-push') === '1';
-  const tdRow = x => '<div class="todo" data-id="' + x.id + '"><button class="ck' + (isDone(x) ? ' on' : '') + '">' + (isDone(x) ? '✓' : '') + '</button><div class="t"><b>' + esc(x.title) + '</b><small>' + (x.due && x.due < t && !isDone(x) ? '<span class="tag r">' + md(x.due) + ' 지남</span>' : isDone(x) ? '<span class="tag">' + esc(x.doneBy || '') + ' 완료</span>' : '<span class="tag y">오늘</span>') + (whosOf(x).length ? '<span class="avs2">' + whosOf(x).map(n => av(midOf(n), 'xs')).join('') + '</span>' : '') + '</small></div>' + (isDone(x) ? '' : stPill(statusOf(x))) + '</div>';
+  const tdRow = x => '<div class="todo' + (isDone(x) ? ' done' : '') + '" data-id="' + x.id + '"><button class="ck' + (isDone(x) ? ' on' : '') + '">' + (isDone(x) ? '✓' : '') + '</button><div class="t"><b>' + esc(x.title) + '</b><small>' + (x.cat ? '<span class="ctag">' + esc(x.cat) + '</span>' : '') + (x.due && x.due < t && !isDone(x) ? '<span class="tag r">' + md(x.due) + ' 지남</span>' : isDone(x) ? '<span class="tag">' + esc(x.doneBy || '') + ' 완료</span>' : '<span class="tag y">오늘</span>') + chkChip(x) + (whosOf(x).length ? '<span class="avs2">' + whosOf(x).map(n => av(midOf(n), 'xs')).join('') + '</span>' : '') + '</small>' + ((x.checks || []).length && !isDone(x) ? '<div class="clmini">' + x.checks.slice(0, 4).map((c, i) => '<button data-ci="' + i + '" class="' + (c.d ? 'd' : '') + '">' + (c.d ? '✓ ' : '○ ') + esc(c.t) + '</button>').join('') + (x.checks.length > 4 ? '<span>외 ' + (x.checks.length - 4) + '개</span>' : '') + '</div>' : '') + '</div>' + stBtn(x) + '</div>';
   $('v-home').innerHTML =
     '<div class="greet"><div><small>' + (+t.slice(5, 7)) + '월 ' + (+t.slice(8)) + '일 ' + wd(t) + '요일</small><b>' + (h < 11 ? '좋은 아침이에요 ☀️' : h < 18 ? '즐거운 오후예요 😊' : '오늘도 수고 많았어요 🌙') + '</b></div></div>' +
     (!pushOk ? '<div class="notice"><b>알림을 켜야 채팅·업무 알림이 와요</b><button class="btn g" id="pushOn">알림 켜기</button></div>' : '') +
@@ -727,6 +767,8 @@ $('v-home').onclick = async e => {
   if (e.target.id === 'todoAdd') { const v = $('todoIn').value.trim(); if (!v) return; const w = parseWhen(v); saveItem({ type: 'todo', title: w.rest || v, due: w.date || today(), status: '요청', whos: [], done: false }, '☑ 업무 추가: ' + (w.rest || v)); $('todoIn').value = ''; return; }
   const sc = e.target.closest('[data-scroll]'); if (sc) return $(sc.dataset.scroll).scrollIntoView({ behavior: 'smooth', block: 'start' });
   const go = e.target.closest('[data-go]'); if (go) { if (go.dataset.tk) S.tkf = go.dataset.tk; if (go.dataset.go === 'table') S.tf = 'all'; return setTab(go.dataset.go); }
+  const sp = e.target.closest('[data-stp]'); if (sp) return stMenu(sp);
+  const ci = e.target.closest('[data-ci]'); if (ci) { const it = JSON.parse(JSON.stringify(S.items.get(ci.closest('.todo').dataset.id))); const c = it.checks[+ci.dataset.ci]; c.d = !c.d; return saveItem(it, '☑ ' + it.title + ': ' + c.t + (c.d ? ' ✓' : ' 해제')); }
   const ck = e.target.closest('.todo .ck'); if (ck) { const it = { ...S.items.get(ck.closest('.todo').dataset.id) }; it.status = isDone(it) ? '진행' : '완료'; it.done = it.status === '완료'; it.doneBy = it.done ? S.me.name : ''; it.doneAt = it.done ? Date.now() : 0; return saveItem(it, (it.done ? '✓ 업무 완료: ' : '다시 진행: ') + it.title); }
   const td = e.target.closest('.todo'); if (td) return taskSheet(S.items.get(td.dataset.id));
   const tc = e.target.closest('.tc'); if (tc) return openTable(S.items.get(tc.dataset.id));
@@ -1077,7 +1119,7 @@ function daySheet(d) {
   const L = calItems(d);
   sheet('<div class="grab"></div><div class="shead"><h2>' + (+d.slice(5, 7)) + '월 ' + (+d.slice(8)) + '일 ' + wd(d) + '요일</h2><button class="btn g" id="dsS">+ 일정</button><button class="btn" id="dsT">+ 업무</button></div>' +
     (L.length ? L.map(x => x.type === 'todo' ? taskRow(x) : '<div class="tk" data-id="' + x.id + '"><i class="cbar" style="background:' + itemColor(x) + '"></i><div class="tt"><b>' + esc(x.title) + '</b><small><span>' + (timeKo(x.time) || '종일') + '</span>' + (x.memo ? '<span>' + esc(x.memo) + '</span>' : '') + '</small></div><span class="st sch2">일정</span></div>').join('') : '<p class="empty">일정·업무가 없어요</p>'), sh => {
-    sh.onclick = e => { if (e.target.id === 'dsS') return newOf('sched', d); if (e.target.id === 'dsT') return newOf('todo', d); const r = e.target.closest('.tk'); if (r) openItem(S.items.get(r.dataset.id)); };
+    sh.onclick = e => { const sp = e.target.closest('[data-stp]'); if (sp) return stMenu(sp); if (e.target.id === 'dsS') return newOf('sched', d); if (e.target.id === 'dsT') return newOf('todo', d); const r = e.target.closest('.tk'); if (r) openItem(S.items.get(r.dataset.id)); };
   });
 }
 // 달력 손가락으로 넘기기 (왼쪽·오른쪽)
