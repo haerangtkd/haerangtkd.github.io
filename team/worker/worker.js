@@ -27,6 +27,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS pickup (day TEXT PRIMARY KEY, data TEXT, upd INTEGER)',
   'CREATE TABLE IF NOT EXISTS photos (id TEXT PRIMARY KEY, full TEXT, thumb TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER)',
+  'CREATE TABLE IF NOT EXISTS joins (id TEXT PRIMARY KEY, name TEXT, salt TEXT, pin TEXT, status TEXT, mid TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, mid TEXT, kind TEXT, text TEXT, ref TEXT, at INTEGER)',
   'CREATE INDEX IF NOT EXISTS logs_at ON logs (at)',
 ];
@@ -81,6 +82,24 @@ async function route(path, req, env, ctx) {
     const r = await addMember(env, b.name, b.pin); if (!r.ok) return json(r);
     return json({ ok: true, tok: await newSession(env, r.id), name: r.name });
   }
+  // 새 사람: 이름·PIN으로 들어가기 요청 → 이미 있는 사람이 승인하면 들어감
+  if (path === '/api/join-request') {
+    const name = str(b.name, 12).trim(), pin = String(b.pin || '');
+    if (!name) return json({ ok: false, error: '이름을 적어 주세요' });
+    if (!/^\d{4,6}$/.test(pin)) return json({ ok: false, error: 'PIN은 숫자 4~6자리로 정해 주세요' });
+    if (await one(env, 'SELECT id FROM members WHERE name = ?', name)) return json({ ok: false, error: '같은 이름이 이미 있어요. 그 이름을 눌러 PIN으로 들어가 주세요' });
+    if ((await one(env, "SELECT COUNT(*) AS n FROM joins WHERE status = 'wait'")).n >= 10) return json({ ok: false, error: '요청이 너무 많아요. 잠시 뒤에 해 주세요' });
+    await run(env, "DELETE FROM joins WHERE status = 'wait' AND name = ?", name);
+    const id = rid(12), salt = rid(8);
+    await run(env, 'INSERT INTO joins (id, name, salt, pin, status, mid, created) VALUES (?, ?, ?, ?, ?, ?, ?)', id, name, salt, await pinHash(salt, pin), 'wait', '', Date.now());
+    ctx.waitUntil(pushAll(env, '', '해랑 업무 · 새 사람', name + '님이 들어오려고 해요. 대시보드에서 승인해 주세요', 'home').catch(() => {}));
+    return json({ ok: true, id });
+  }
+  if (path === '/api/join-status') {
+    const j = await one(env, 'SELECT * FROM joins WHERE id = ?', str(b.id, 30)); if (!j) return json({ ok: true, status: 'none' });
+    if (j.status === 'ok' && j.mid) { await run(env, "UPDATE joins SET status = 'done' WHERE id = ?", j.id); return json({ ok: true, status: 'ok', tok: await newSession(env, j.mid), name: j.name }); }
+    return json({ ok: true, status: j.status });
+  }
   if (path === '/api/login') {
     const f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', ip);
     if (f && f.until > Date.now()) return json({ ok: false, error: MAX_FAIL + '번 틀려서 잠겼어요. ' + Math.ceil((f.until - Date.now()) / 1000) + '초 뒤에 다시 해 주세요' }, 429);
@@ -104,6 +123,15 @@ async function route(path, req, env, ctx) {
   };
 
   if (path === '/api/logout') { await run(env, 'DELETE FROM sessions WHERE tok = ?', str(b.tok, 64)); return json({ ok: true }); }
+  if (path === '/api/join-ok' || path === '/api/join-no') {
+    const j = await one(env, "SELECT * FROM joins WHERE id = ? AND status = 'wait'", str(b.id, 30)); if (!j) return json({ ok: false, error: '이미 처리된 요청이에요' });
+    if (path === '/api/join-no') { await run(env, "UPDATE joins SET status = 'no' WHERE id = ?", j.id); return json({ ok: true }); }
+    if (await one(env, 'SELECT id FROM members WHERE name = ?', j.name)) { await run(env, "UPDATE joins SET status = 'no' WHERE id = ?", j.id); return json({ ok: false, error: '같은 이름이 이미 있어요' }); }
+    const mid = rid(8);
+    await env.DB.batch([q(env, 'INSERT INTO members (id, name, salt, pin, created) VALUES (?, ?, ?, ?, ?)', mid, j.name, j.salt, j.pin, Date.now()), q(env, "UPDATE joins SET status = 'ok', mid = ? WHERE id = ?", mid, j.id)]);
+    notify('해랑 업무 · ' + me.name, j.name + '님이 들어왔어요', 'member');
+    return json({ ok: true, name: j.name });
+  }
   if (path === '/api/member-add') {
     const r = await addMember(env, b.name, b.pin); if (r.ok) notify('해랑 업무 · ' + me.name, r.name + '님을 함께 쓰는 사람으로 추가했어요', 'member');
     return json(r);
@@ -141,9 +169,10 @@ async function route(path, req, env, ctx) {
       all(env, 'SELECT day, data, upd FROM pickup WHERE upd > ? AND day >= ?', since, addDays(kstDay(), -7)),
       first ? all(env, 'SELECT * FROM (SELECT id, mid, kind, text, ref, at FROM logs ORDER BY id DESC LIMIT 120) ORDER BY id') : all(env, 'SELECT id, mid, kind, text, ref, at FROM logs WHERE at > ? ORDER BY id LIMIT 200', since),
     ]);
+    const joins = await all(env, "SELECT id, name, created FROM joins WHERE status = 'wait' AND created > ?", Date.now() - 7 * 86400e3);
     const kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'notice')"), kv = k => (kvs.find(x => x.k === k) || {}).v;
     return json({ ok: true, now: Date.now(), me, members,
-      msgs: msgs.map(fixMsg), logs, notice: J(kv('notice'), null),
+      msgs: msgs.map(fixMsg), logs, joins, notice: J(kv('notice'), null),
       items: items.map(i => ({ id: i.id, type: i.type, del: !!i.del, upd: i.upd, mid: i.mid, ...J(i.data, {}) })),
       comments, pickup: pickup.map(p => ({ day: p.day, upd: p.upd, ...J(p.data, {}) })), pickupDefault: J(kv('pickupDefault'), {}) });
   }
