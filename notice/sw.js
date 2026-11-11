@@ -14,6 +14,10 @@ self.addEventListener('push', e => {
     icon: '/notice/icon-192.png',
     badge: '/notice/badge.png',
     tag: d.tag || undefined,
+    renotify: !!d.tag,
+    vibrate: [200, 100, 200, 100, 200],   // 안드로이드: 진동과 함께 화면 위로 띄우는 데 도움
+    silent: false,
+    timestamp: Date.now(),
     data: { url: d.url || '/notice/' },
   };
   e.waitUntil(Promise.all([

@@ -41,6 +41,14 @@
   .steps{list-style:none;margin-top:14px;display:grid;gap:10px;counter-reset:s}
   .steps li{display:flex;gap:12px;align-items:flex-start;font-size:15px;counter-increment:s}
   .steps li::before{content:counter(s);flex:0 0 26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font-weight:900;font-size:13px;display:grid;place-items:center;margin-top:1px}
+  .done{margin-top:14px;background:#E6F3EC;color:var(--green);border-radius:12px;padding:12px 14px;font-size:14.5px}
+  .skip{display:block;margin:16px auto 0;border:0;background:none;color:var(--muted);font-size:13px;text-decoration:underline}
+  .tip{background:#fff;border-radius:18px;padding:16px 18px;margin-top:12px;font-size:14px}
+  .tip b.t{display:block;font-size:15px;margin-bottom:6px}
+  .tip ol{margin:6px 0 0 18px}
+  .tip li{margin:3px 0}
+  .tip .row{display:flex;gap:8px;margin-top:10px}
+  .tip .row button{flex:1;border:0;border-radius:10px;padding:9px;font-size:13.5px;font-weight:700;background:#F1ECE7}
   .steps svg{width:18px;height:18px;vertical-align:-3px;color:#007AFF}
 
   /* 가입 */
@@ -217,6 +225,31 @@
     <button class="btn ghost copyLink">주소 복사하기</button>
   </section>
 
+  <section class="card" id="g-android" hidden>
+    <h2>먼저 앱을 설치해 주세요</h2>
+    <p>홈 화면에 해랑경희 앱을 설치한 뒤, 그 앱에서 가입해 주세요. 설치하면 알림도 더 잘 옵니다.</p>
+    <button class="btn" id="installBtn" hidden>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+      <span>해랑경희 앱 설치하기</span>
+    </button>
+    <div id="installSteps">
+      <ol class="steps" id="stepsSamsung" hidden>
+        <li><span>화면 아래 오른쪽 <b>≡ (메뉴)</b> 누르기</span></li>
+        <li><span><b>현재 페이지 추가</b> (또는 <b>페이지 추가</b>) 누르기</span></li>
+        <li><span><b>홈 화면</b> 누르기 → <b>추가</b></span></li>
+        <li><span>홈 화면에 생긴 <b>해랑경희</b> 아이콘으로 열기</span></li>
+      </ol>
+      <ol class="steps" id="stepsChrome" hidden>
+        <li><span>오른쪽 위 <b>⋮ (점 세 개)</b> 누르기</span></li>
+        <li><span><b>앱 설치</b> 또는 <b>홈 화면에 추가</b> 누르기</span></li>
+        <li><span><b>설치</b> 누르기</span></li>
+        <li><span>홈 화면에 생긴 <b>해랑경희</b> 아이콘으로 열기</span></li>
+      </ol>
+    </div>
+    <div class="done" id="installDone" hidden>설치했습니다. 이 화면을 닫고 <b>홈 화면의 해랑경희 아이콘</b>으로 열어 주세요.</div>
+    <button class="skip" id="skipInstall">설치가 안 되나요? 이 화면에서 계속하기</button>
+  </section>
+
   <section class="card" id="g-unsupported" hidden>
     <h2>이 기기에서는 쓸 수 없습니다</h2>
     <p>휴대폰 운영체제를 최신 버전으로 업데이트한 뒤 다시 열어 주세요. 아이폰은 iOS 16.4 이상이 필요합니다.</p>
@@ -275,6 +308,10 @@
     </div>
   </section>
 
+  <div class="tip" id="hInstall" hidden><b class="t">앱으로 설치하면 더 편합니다</b>지금은 인터넷 화면에서 쓰고 계십니다. 홈 화면에 설치하면 앱처럼 바로 열립니다.<div class="row"><button id="hInstallBtn">설치하기</button><button id="hInstallX">닫기</button></div></div>
+  <div class="tip" id="hNotiTip" hidden><b class="t">알림이 화면 위에 안 뜨나요?</b>갤럭시는 알림이 알림창에만 쌓이게 설정돼 있는 경우가 있습니다.
+    <ol><li><b>설정</b> → <b>애플리케이션</b> → <b id="tipApp">해랑경희</b></li><li><b>알림</b> → <b>알림 카테고리</b>(또는 알림 유형)</li><li><b>팝업</b>(화면 위에 표시)과 <b>소리</b> 켜기</li></ol>
+    <div class="row"><button id="hNotiTest">테스트 알림 보내기</button><button id="hNotiX">닫기</button></div></div>
   <button class="today" id="hToday" data-go="attendance" hidden></button>
   <div class="upc" id="hUpc" hidden><h3>다가오는 일정</h3><ul id="hUpcList"></ul></div>
 </main>
@@ -337,7 +374,7 @@
 
   function show(view, sub) {
     ['v-gate', 'v-home'].forEach(v => $(v).hidden = v !== view);
-    if (view === 'v-gate') ['g-inapp', 'g-ios', 'g-unsupported', 'g-notready', 'g-join'].forEach(g => $(g).hidden = g !== sub);
+    if (view === 'v-gate') ['g-inapp', 'g-ios', 'g-android', 'g-unsupported', 'g-notready', 'g-join'].forEach(g => $(g).hidden = g !== sub);
   }
 
   // ═════════ 가입 ═════════
@@ -422,6 +459,10 @@
     $('hDate').textContent = +today().slice(8);
     $('hPending').hidden = !!s.approved || !home;
     $('hNoPush').hidden = !home || !canPush || (s.push && Notification.permission === 'granted');
+    // 안드로이드 안내
+    $('hInstall').hidden = !(isAndroid && !standalone && !store.get('haerang-x-install'));
+    $('hNotiTip').hidden = !(isAndroid && home && s.push && !store.get('haerang-x-notitip'));
+    $('tipApp').textContent = standalone ? '해랑경희' : (/SamsungBrowser/i.test(ua) ? '삼성 인터넷' : 'Chrome');
     // 오늘 출결
     const t = (home && home.today && home.today[k]) || {};
     const el = $('hToday');
@@ -445,6 +486,15 @@
     sh.innerHTML = '<div class="in"><h3>아이 선택</h3>' + s.children.map((c, i) => '<button class="k' + (i === (s.kid | 0) ? ' on' : '') + '" data-i="' + i + '"><span class="avatar">' + esc(initial(c)) + '</span>' + esc(c) + '</button>').join('') + '</div>';
     sh.onclick = e => { const b = e.target.closest('button.k'); if (b) { store.set(LS, { ...me(), kid: +b.dataset.i }); renderHome(); } sh.remove(); };
     document.body.appendChild(sh);
+  };
+  $('hInstallBtn').onclick = () => { if (installEvt) $('installBtn').onclick(); else { alert(/SamsungBrowser/i.test(ua) ? '화면 아래 ≡ 메뉴 → 현재 페이지 추가 → 홈 화면을 눌러 주세요.' : '오른쪽 위 ⋮ → 앱 설치(또는 홈 화면에 추가)를 눌러 주세요.'); } };
+  $('hInstallX').onclick = () => { store.set('haerang-x-install', 1); renderHome(); };
+  $('hNotiX').onclick = () => { store.set('haerang-x-notitip', 1); renderHome(); };
+  $('hNotiTest').onclick = async () => {
+    if (Notification.permission !== 'granted') return toast('알림이 꺼져 있습니다');
+    const r = reg || await navigator.serviceWorker.ready;
+    setTimeout(() => r.showNotification('해랑경희 테스트', { body: '이 알림이 화면 위에 떴다면 설정이 잘 된 것입니다.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test', renotify: true, vibrate: [200, 100, 200] }), 3000);
+    toast('3초 뒤에 알림이 옵니다. 화면 위에 뜨는지 봐 주세요');
   };
   $('hPushOn').onclick = async () => {
     const sub = await subscribePush();
@@ -631,6 +681,19 @@
   $('vImgWrap').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
   $('vImgWrap').addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) { const n = vIdx + (dx < 0 ? 1 : -1); if (n >= 0 && n < vList.length) { vIdx = n; showV(); } } });
 
+  // ── 안드로이드 앱 설치 ──
+  let installEvt = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('installBtn').hidden = false; $('installSteps').hidden = true; renderHome && $('v-home') && !$('v-home').hidden && renderHome(); });
+  addEventListener('appinstalled', () => { $('installBtn').hidden = true; $('installSteps').hidden = true; $('installDone').hidden = false; installEvt = null; });
+  $('installBtn').onclick = async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    const r = await installEvt.userChoice.catch(() => ({}));
+    if (r && r.outcome === 'accepted') { $('installBtn').hidden = true; $('installSteps').hidden = true; $('installDone').hidden = false; }
+    installEvt = null;
+  };
+  $('skipInstall').onclick = () => { store.set('haerang-skip-install', 1); fillJoin(null); show('v-gate', 'g-join'); };
+
   // ═════════ 시작 ═════════
   async function init() {
     if (isInApp) {
@@ -641,6 +704,12 @@
       return;
     }
     if (isIOS && !standalone) return show('v-gate', 'g-ios');
+    // 갤럭시 등 안드로이드: 가입 전에는 먼저 앱(홈 화면) 설치
+    if (isAndroid && !standalone && !me() && !store.get('haerang-skip-install')) {
+      const samsung = /SamsungBrowser/i.test(ua);
+      $('stepsSamsung').hidden = !samsung; $('stepsChrome').hidden = samsung;
+      return show('v-gate', 'g-android');
+    }
     if (!API) return show('v-gate', 'g-notready');
     if ('serviceWorker' in navigator) {
       reg = await navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => null);
