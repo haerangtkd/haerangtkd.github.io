@@ -138,8 +138,9 @@ async function route(path, req, env) {
         const fees = await all(env, 'SELECT name, paid FROM fees WHERE month = ?', fm);
         out.fee = { month: fm, kids: myKids.map(k => ({ name: k, paid: !!(fees.find(f => f.name === k) || {}).paid })) };
         // 확인을 기다리는 공지·알림장 (긴급 먼저, 30일 안)
-        const asks = (await all(env, "SELECT * FROM posts WHERE ask = 1 AND type IN ('notice', 'journal') AND created > ? AND id NOT IN (SELECT post FROM acks WHERE parent = ?) ORDER BY urgent DESC, created DESC LIMIT 20", Date.now() - 30 * 864e5, p.id))
-          .filter(r => { const t = J(r.target, []); return !t.length || t.some(x => myKids.includes(x)); }).slice(0, 5);
+        const done = new Set((await all(env, 'SELECT post FROM acks WHERE parent = ?', p.id)).map(r => r.post));
+        const asks = (await all(env, "SELECT * FROM posts WHERE ask = 1 AND type IN ('notice', 'journal') AND created > ? ORDER BY urgent DESC, created DESC LIMIT 40", Date.now() - 30 * 864e5))
+          .filter(r => !done.has(r.id) && (J(r.target, []).length === 0 || J(r.target, []).some(x => myKids.includes(x)))).slice(0, 5);
         out.asks = asks.map(r => ({ id: r.id, type: r.type, kind: r.kind, title: r.title, body: r.body, urgent: !!r.urgent, at: r.created }));
       }
       return json(out);
