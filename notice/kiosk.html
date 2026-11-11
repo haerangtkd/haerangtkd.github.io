@@ -72,6 +72,7 @@
   #s-setup input{width:min(340px,86vw);border:1px solid var(--line);border-radius:12px;padding:14px;font:inherit;font-size:17px;-webkit-user-select:text;user-select:text}
   #s-setup button{width:min(340px,86vw);border:0;border-radius:12px;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:17px;padding:15px;cursor:pointer}
   #setupMsg{color:var(--brand);font-weight:700;font-size:14px;min-height:1.4em}
+  .sndtest{position:fixed;top:calc(14px + env(safe-area-inset-top));right:18px;border:0;background:#fff;border-radius:99px;padding:9px 14px;font:inherit;font-size:14px;font-weight:700;color:var(--muted);box-shadow:0 1px 6px rgba(0,0,0,.06);cursor:pointer}
   .net{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);font-size:13px;color:var(--muted)}
 </style>
 </head>
@@ -92,6 +93,7 @@
     <div class="clock" id="clock"></div>
     <h1>번호 4자리를 눌러 주세요</h1>
   </div>
+  <button class="sndtest" id="sndTest">🔊 소리 확인</button>
   <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
   <div class="msg" id="msg"></div>
   <div class="pad" id="pad">
@@ -149,8 +151,16 @@
     try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.lang = 'ko-KR'; tts.speak(u); } catch (_) {}
   }
   function say(text) {
-    if (!tts) return;
-    try { tts.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; if (koVoice) u.voice = koVoice; u.rate = 0.95; u.pitch = 1.05; u.volume = 1; tts.speak(u); } catch (_) {}
+    if (!tts) return false;
+    try {
+      if (tts.speaking || tts.pending) tts.cancel();   // 크롬은 cancel 바로 뒤의 말을 삼키는 경우가 있어 잠깐 쉬고 말함
+      if (!koVoice) pickVoice();
+      setTimeout(() => {
+        const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; if (koVoice) u.voice = koVoice; u.rate = 0.95; u.pitch = 1.05; u.volume = 1;
+        tts.resume(); tts.speak(u);
+      }, 80);
+      return true;
+    } catch (_) { return false; }
   }
 
   // 짧은 효과음
@@ -243,6 +253,13 @@
     finally { busy = false; }
   });
   $('back').onclick = home;
+  $('sndTest').onclick = () => {
+    unlockSpeech(); beep(true); pickVoice();
+    if (!tts) { $('msg').textContent = '이 기기(브라우저)는 음성 안내를 지원하지 않습니다'; return; }
+    setTimeout(() => say('해랑경희 태권도장입니다. 소리가 잘 들립니다.'), 350);
+    $('msg').textContent = koVoice ? '음성: ' + koVoice.name : '한국어 음성이 없어 기본 음성으로 읽습니다';
+    setTimeout(() => { if ($('msg').textContent.startsWith('음성') || $('msg').textContent.startsWith('한국어')) $('msg').textContent = ''; }, 5000);
+  };
 
   // ── 태블릿 등록 ──
   function toSetup(m) { try { localStorage.removeItem(TK); } catch (_) {} token = ''; $('setupMsg').textContent = m || ''; show('s-setup'); }
