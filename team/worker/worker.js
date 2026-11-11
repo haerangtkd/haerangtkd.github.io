@@ -28,6 +28,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS photos (id TEXT PRIMARY KEY, full TEXT, thumb TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER)',
   'CREATE TABLE IF NOT EXISTS joins (id TEXT PRIMARY KEY, name TEXT, salt TEXT, pin TEXT, status TEXT, mid TEXT, created INTEGER)',
+  'CREATE TABLE IF NOT EXISTS reminders (item TEXT, at INTEGER, names TEXT, title TEXT, sent INTEGER DEFAULT 0, PRIMARY KEY (item, at))',
+  'CREATE INDEX IF NOT EXISTS reminders_at ON reminders (sent, at)',
   'CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, mid TEXT, kind TEXT, text TEXT, ref TEXT, at INTEGER)',
   'CREATE INDEX IF NOT EXISTS logs_at ON logs (at)',
 ];
@@ -46,6 +48,8 @@ async function setup(env) {
 }
 
 export default {
+  // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); await runReminders(env); })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -174,7 +178,7 @@ async function route(path, req, env, ctx) {
     const kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice')"), kv = k => (kvs.find(x => x.k === k) || {}).v;
     return json({ ok: true, now: Date.now(), me, members,
       msgs: msgs.map(fixMsg), logs, joins, notice: J(kv('notice'), null),
-      items: items.map(i => ({ id: i.id, type: i.type, del: !!i.del, upd: i.upd, mid: i.mid, ...J(i.data, {}) })),
+      items: items.map(i => ({ id: i.id, type: i.type, del: !!i.del, upd: i.upd, mid: i.mid, ...J(i.data, {}) })).map(i => canSee(i, me) ? i : { id: i.id, type: i.type, del: true, upd: i.upd }).filter(i => !(first && i.del)),
       comments, pickup: pickup.map(p => ({ day: p.day, upd: p.upd, ...J(p.data, {}) })), pickupDefault: J(kv('pickupDefault'), {}), pickupTimes: J(kv('pickupTimes'), {}) });
   }
   if (path === '/api/more-msgs') return json({ ok: true, msgs: (await all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room FROM msgs WHERE id < ? AND coalesce(room, \'\') = ? ORDER BY id DESC LIMIT 100', b.before | 0, roomOk(String(b.room || ''), me.id) ? String(b.room || '') : '')).reverse().map(fixMsg) });
@@ -243,12 +247,22 @@ async function route(path, req, env, ctx) {
   if (path === '/api/item') {
     const r = itemStmt(env, b.item || {}, me); if (!r) return json({ ok: false, error: '제목을 적어 주세요' });
     await r.stmt.run();
+    // 업무 알림 (앞으로 올 것만 다시 적음)
+    const now0 = Date.now(), rems = (Array.isArray(b.item.reminders) ? b.item.reminders : []).filter(x => Number(x.at) > now0 - 60000).slice(0, 10);
+    await env.DB.batch([q(env, 'DELETE FROM reminders WHERE item = ? AND sent = 0', r.id), ...(b.item.done ? [] : rems.map(x => q(env, 'INSERT OR REPLACE INTO reminders (item, at, names, title, sent) VALUES (?, ?, ?, ?, 0)', r.id, Number(x.at), JSON.stringify((Array.isArray(x.to) ? x.to : []).map(n => str(n, 12)).slice(0, 10)), r.title)))]);
+    const sh = b.item.share || '';
+    if (sh && b.what !== false) { // 나만/담당자만 보는 업무는 볼 수 있는 사람에게만 알림, 기록 안 남김
+      const ok = (await all(env, 'SELECT id, name FROM members')).filter(m => m.id !== me.id && canSee({ ...b.item, mid: b.item.mid || me.id }, m)).map(m => m.id);
+      if (ok.length) ctx.waitUntil(all(env, 'SELECT * FROM subs WHERE mid IN (' + ok.map(() => '?').join(',') + ')', ...ok).then(subs => pushTo(env, subs, me.name, String(b.what || r.title).slice(0, 140), r.type)).catch(() => {}));
+      return json({ ok: true, id: r.id, upd: r.upd });
+    }
     if (b.what !== false) notify(me.name, String(b.what || (b.item.id ? r.title + ' 수정' : TYPE_KO[r.type] + ' 추가: ' + r.title)).slice(0, 140), r.type, r.id);
     return json({ ok: true, id: r.id, upd: r.upd });
   }
   if (path === '/api/item-del') {
     const it = await one(env, 'SELECT type, data FROM items WHERE id = ?', str(b.id, 40)); if (!it) return json({ ok: true });
     await run(env, 'UPDATE items SET del = 1, upd = ? WHERE id = ?', Date.now(), str(b.id, 40));
+    await run(env, 'DELETE FROM reminders WHERE item = ?', str(b.id, 40));
     notify(me.name, TYPE_KO[it.type] + ' 지움: ' + (J(it.data, {}).title || ''), it.type, '');
     return json({ ok: true });
   }
@@ -278,6 +292,10 @@ async function route(path, req, env, ctx) {
     if (b.what) notify(me.name + ' · 등원', String(b.what).slice(0, 140), 'pickup', b.day);
     return json({ ok: true, upd });
   }
+  if (path === '/api/pickup-absent') { // 등원표: 출석부에서 결석인 아이
+    const r = await attSync(env, '/sync/day-absent', { day: isDay(b.day) ? b.day : kstDay() });
+    return json(r.ok ? { ok: true, names: r.names || [] } : { ok: false, names: [] });
+  }
   if (path === '/api/roster') { // 출석부 원생 이름 (등원표·행사표에서 고르기)
     const r = await attSync(env, '/sync/roster', {});
     return json(r.ok ? { ok: true, students: r.students.filter(s => s.status === '재원').map(s => s.name) } : { ok: false, students: [], error: r.error });
@@ -302,6 +320,23 @@ async function importTeachers(env) {
   const have = new Set((await all(env, 'SELECT name FROM members')).map(x => x.name)), st = [];
   for (const t of r.teachers) if (t.name && !have.has(t.name) && t.salt && t.pin) { st.push(q(env, 'INSERT INTO members (id, name, salt, pin, created) VALUES (?, ?, ?, ?, ?)', rid(8), str(t.name, 12), t.salt, t.pin, Date.now())); have.add(t.name); }
   if (st.length) await env.DB.batch(st);
+}
+// 공유: '' 모두 / 'members' 만든 사람+담당자 / 'private' 만든 사람만
+function canSee(i, m) { const s = i.share || ''; if (!s || i.del) return true; if (i.mid === m.id) return true; if (s === 'members') return (Array.isArray(i.whos) ? i.whos : []).includes(m.name); return false; }
+async function runReminders(env) {
+  const now = Date.now(), due = await all(env, 'SELECT * FROM reminders WHERE sent = 0 AND at <= ? ORDER BY at LIMIT 20', now);
+  if (!due.length) return;
+  const members = await all(env, 'SELECT id, name FROM members');
+  for (const r of due) {
+    await run(env, 'UPDATE reminders SET sent = 1 WHERE item = ? AND at = ?', r.item, r.at);
+    if (r.at < now - 3 * 3600e3) continue; // 너무 늦은 건 건너뜀
+    const it = await one(env, 'SELECT data, del FROM items WHERE id = ?', r.item); if (!it || it.del) continue;
+    const d = J(it.data, {}); if (d.done) continue;
+    let ids = members.filter(m => J(r.names, []).includes(m.name)).map(m => m.id); if (!ids.length) continue;
+    const subs = await all(env, 'SELECT * FROM subs WHERE mid IN (' + ids.map(() => '?').join(',') + ')', ...ids);
+    await pushTo(env, subs, '⏰ 업무 알림', (d.title || r.title) + (d.due ? ' · ' + d.due.slice(5).replace('-', '/') + ' 까지' : ''), 'todo');
+  }
+  if (Math.random() < 0.05) await run(env, 'DELETE FROM reminders WHERE sent = 1 AND at < ?', now - 30 * 86400e3);
 }
 function fixMsg(m) { return { ...m, refs: J(m.refs, []), reply: J(m.reply, null), rx: J(m.rx, {}) }; }
 async function addLog(env, mid, kind, text, ref) {
