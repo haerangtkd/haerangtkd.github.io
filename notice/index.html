@@ -278,6 +278,22 @@
   .cal .evs i{width:6px;height:6px;border-radius:50%;background:var(--brand)}
   .cal .evs i.k-행사,.cal .evs i.k-대회{background:var(--navy)}.cal .evs i.k-심사{background:#D9822B}.cal .evs i.k-휴관{background:#9A928C}
   .list.sch{margin-top:12px}
+  .urgent{background:#FFF5F4;border:1.5px solid #E8A39E;border-radius:18px;padding:16px 18px;margin-top:14px}
+  .urgent .u-h{display:flex;align-items:center;gap:6px;color:#B42318;font-size:14px}
+  .urgent .u-h svg{width:19px;height:19px}
+  .urgent .u-h span{margin-left:auto;color:var(--muted);font-size:12.5px}
+  .urgent h3{font-size:18px;font-weight:800;margin-top:6px;line-height:1.4}
+  .urgent p{font-size:15px;color:#4A4441;white-space:pre-wrap;margin-top:4px;word-break:break-word}
+  .urgent p.clip{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .ack-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;border:1.5px solid var(--brand);background:#fff;color:var(--brand);border-radius:12px;padding:11px;font-size:15px;font-weight:700}
+  .ack-btn svg{width:18px;height:18px}
+  .ack-btn.big{background:var(--brand);color:#fff;padding:13px;font-size:16px}
+  .ack-btn:disabled{opacity:.5}
+  .acked{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:13.5px;color:var(--green);font-weight:600}
+  .acked svg{width:16px;height:16px}
+  .tag.t-urgent{background:#B42318;color:#fff}
+  #v-home:not([hidden])~.toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+  .li .lic.i-ask{background:#FFF1DE;color:#94550B}
   .att-list.fold .li:nth-child(n+6){display:none}
   .more-btn{display:block;width:100%;margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-size:14.5px;font-weight:600;color:var(--muted)}
   /* 하위 화면 위 띠 */
@@ -572,14 +588,20 @@
       '<span class="today-d">' + longDate() + '</span></div>' + (s.relation ? '<p class="sub">' + esc(k) + ' ' + esc(s.relation) + '님, 안녕하세요</p>' : '') + '</div>';
     if (home && !s.approved) h += '<div class="banner">' + ICON_CLOCK + '<span>도장에서 확인 중이에요. 확인이 끝나면 알림장·앨범·출석 기록을 볼 수 있어요.</span></div>';
     if (home && canPush && !(s.push && Notification.permission === 'granted')) h += '<div class="banner">' + IC.bell + '<span>알림이 꺼져 있어요. 등원·하원 알림을 받으려면 켜 주세요.</span><button id="hPushOn">알림 켜기</button></div>';
+    const asks = (home && home.asks) || [];
+    asks.filter(x => x.urgent).forEach(x => {
+      h += '<section class="urgent" data-pid="' + x.id + '"><div class="u-h">' + ICON_ALERT + '<b>긴급 공지</b><span>' + dateText(x.at) + '</span></div><h3>' + esc(x.title) + '</h3>' + (x.body ? '<p class="clip">' + esc(x.body) + '</p>' : '') +
+        '<button class="ack-btn big" data-ack="' + x.id + '">' + ICON.check + '확인했어요</button></section>';
+    });
     if (s.approved) {
       h += '<button class="status' + (t.out ? ' out' : t.in ? ' in' : '') + '" data-go-tab="kid"><span class="si">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span class="st"><b>' +
         (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</b><small>' +
         (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>';
     }
     const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장'], ['album', '새 사진이 올라왔어요', '앨범']].filter(([x]) => fresh(x));
-    h += '<section class="sec"><h2>확인할 소식</h2>' + (items.length
-      ? '<div class="list">' + items.map(([x, label, f]) => '<button class="li" data-news="' + f + '"><span class="lic i-' + x + '">' + IC[x] + '</span><span class="lt"><b>' + label + '</b><small>' + f + '에서 보기</small></span><i class="new"></i>' + ICON.right + '</button>').join('') + '</div>'
+    const askRows = asks.filter(x => !x.urgent).map(x => '<button class="li" data-news="' + (x.type === 'journal' ? '알림장' : '공지') + '"><span class="lic i-ask">' + ICON.check + '</span><span class="lt"><b>' + esc(x.title) + '</b><small>읽고 \'확인했어요\'를 눌러 주세요</small></span><i class="new"></i>' + ICON.right + '</button>').join('');
+    h += '<section class="sec"><h2>확인할 소식</h2>' + (items.length || askRows
+      ? '<div class="list">' + askRows + items.map(([x, label, f]) => '<button class="li" data-news="' + f + '"><span class="lic i-' + x + '">' + IC[x] + '</span><span class="lt"><b>' + label + '</b><small>' + f + '에서 보기</small></span><i class="new"></i>' + ICON.right + '</button>').join('') + '</div>'
       : '<div class="calm">' + ICON.check + '<span>새 소식을 모두 확인했어요</span></div>') + '</section>';
     const up = (home && home.counts && home.counts.schedule) || [];
     h += '<section class="sec"><h2>다가오는 일정<button data-go-tab="schedule">전체 보기</button></h2>' + (up.length
@@ -591,6 +613,7 @@
     $('tBody').onclick = async e => {
       const g = e.target.closest('[data-go-tab]'); if (g) return showTab(g.dataset.goTab);
       const n = e.target.closest('[data-news]'); if (n) return showTab('news', { filter: n.dataset.news });
+      const a = e.target.closest('[data-ack]'); if (a) return ackPost(+a.dataset.ack, a);
       if (e.target.closest('#hWho')) return pickKid();
       if (e.target.closest('#hPushOn')) return pushOn();
       if (e.target.closest('#hInstallBtn')) { if (installEvt) $('installBtn').onclick(); else alert(/SamsungBrowser/i.test(ua) ? '화면 아래 ≡ 메뉴 → 현재 페이지 추가 → 홈 화면을 눌러 주세요.' : '오른쪽 위 ⋮ → 앱 설치(또는 홈 화면에 추가)를 눌러 주세요.'); return; }
@@ -603,6 +626,20 @@
         toast('3초 뒤에 알림이 와요. 화면 위에 뜨는지 봐 주세요');
       }
     };
+  }
+  const ICON_ALERT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
+  // '확인했어요' 누르기
+  async function ackPost(id, btn) {
+    if (btn) btn.disabled = true;
+    try {
+      const j = await post('/p/ack', { id });
+      if (!j.ok) throw new Error(j.error);
+      sentReads.add(id);
+      if (home && home.asks) home.asks = home.asks.filter(x => x.id !== id);
+      if (news) ['notice', 'journal'].forEach(k => news[k].forEach(x => { if (x.id === id) x.acked = j.at; }));
+      toast('도장에 확인을 전했어요');
+      if (tab === 'home') drawHome(); else if (tab === 'news') paintNews();
+    } catch (e) { if (btn) btn.disabled = false; toast(e.message || '잠시 후 다시 눌러 주세요'); }
   }
   const ICON_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 
@@ -638,8 +675,9 @@
     const s = me() || {};
     const t = TYPE_OF[newsF];
     let list = t ? news[t] : [...news.notice, ...news.journal, ...news.album];
-    const pinned = list.filter(x => x.pin && x.t === 'notice').sort((p, q) => q.at - p.at);
-    list = list.filter(x => !(x.pin && x.t === 'notice')).sort((p, q) => q.at - p.at);
+    const top = x => x.t === 'notice' && (x.pin || (x.urgent && !x.acked));
+    const pinned = list.filter(top).sort((p, q) => (q.urgent - p.urgent) || (q.at - p.at));
+    list = list.filter(x => !top(x)).sort((p, q) => q.at - p.at);
     markSeen(t ? [t] : ['notice', 'journal', 'album']);
     const chips = '<div class="chips sticky">' + ['전체', '공지', '알림장', '앨범'].map(k => '<button class="' + (k === newsF ? 'on' : '') + '">' + k + '</button>').join('') + '</div>';
     const card = x => x.t === 'album' ? albumCard(x) : postCard(x, { kids: x.t === 'journal', type: !t });
@@ -650,6 +688,7 @@
     tbody(h);
     loadThumbs();
     $('tBody').onclick = e => {
+      const a = e.target.closest('[data-ack]'); if (a) return ackPost(+a.dataset.ack, a);
       if (expand(e)) return;
       const c = e.target.closest('.chips button'); if (c) { newsF = c.textContent; paintNews(); scrollTo(0, 0); return; }
       const p = e.target.closest('.ph-grid button'); if (p) { const al = news.album.find(x => x.id === +p.dataset.a); if (al) openViewer(al.photos, +p.dataset.i); }
@@ -803,10 +842,11 @@
   function postCard(x, opts = {}) {
     const d = dayOf(x.at);
     const mine = (me().children || []);
-    const tags = (opts.type && x.t ? '<span class="tag t-' + x.t + '">' + TYPE_LABEL[x.t] + '</span>' : '') + (x.pin ? '<span class="tag pin">중요</span>' : '') + (x.kind ? '<span class="tag k-' + esc(x.kind) + '">' + esc(x.kind) + '</span>' : '') +
+    const tags = (x.urgent ? '<span class="tag t-urgent">긴급</span>' : '') + (opts.type && x.t ? '<span class="tag t-' + x.t + '">' + TYPE_LABEL[x.t] + '</span>' : '') + (x.pin ? '<span class="tag pin">중요</span>' : '') + (x.kind ? '<span class="tag k-' + esc(x.kind) + '">' + esc(x.kind) + '</span>' : '') +
       (opts.kids && x.target && x.target.length ? x.target.filter(t => mine.includes(t)).map(t => '<span class="tag kid">' + esc(t) + '</span>').join('') : '');
     return '<article class="post" data-pid="' + (x.id | 0) + '"><div class="day"><b>' + d.d + '</b><small>' + d.w + '요일</small></div><div class="ct">' + (tags ? '<div class="tags">' + tags + '</div>' : '') +
-      '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p class="clip">' + esc(x.body) + '</p>' : '') + '<div class="meta">' + dateText(x.at) + '</div></div></article>';
+      '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p class="clip">' + esc(x.body) + '</p>' : '') + '<div class="meta">' + dateText(x.at) + '</div>' +
+      (x.ask ? (x.acked ? '<div class="acked">' + ICON.check + '확인했어요 · ' + dateText(x.acked) + '</div>' : (me().approved ? '<button class="ack-btn" data-ack="' + (x.id | 0) + '">' + ICON.check + '확인했어요</button>' : '')) : '') + '</div></article>';
   }
   function grouped(items, card) {
     let last = '', html = '';

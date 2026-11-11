@@ -140,7 +140,7 @@
 <section class="login" id="login" hidden>
   <img src="icon-192.png" alt="">
   <h1>해랑경희 관리</h1>
-  <input type="password" id="pw" placeholder="관장님 비밀번호" autocomplete="current-password">
+  <input type="password" id="pw" placeholder="관리자 비밀번호" autocomplete="current-password">
   <button class="btn" id="loginBtn">들어가기</button>
   <p class="hint" id="loginMsg" style="margin-top:12px"></p>
 </section>
@@ -195,6 +195,8 @@
           <div class="pick" id="nPhotos"><label class="addp">+ 사진<input type="file" accept="image/*" multiple hidden id="nFile"></label></div>
         </div>
         <label class="chk" id="fPin"><input type="checkbox" id="nPinChk"> 중요 공지로 맨 위에 고정</label>
+        <label class="chk" id="fUrgent"><input type="checkbox" id="nUrgent"> <span><b style="color:#B42318">긴급 공지</b> · 학부모님 앱 첫 화면 맨 위에, 확인할 때까지 보여요</span></label>
+        <label class="chk" id="fAsk"><input type="checkbox" id="nAsk"> 학부모님께 '확인했어요' 받기</label>
         <label class="chk"><input type="checkbox" id="nNotify" checked> 학부모님 휴대폰에 알림도 보내기</label>
         <button class="btn" id="nSend">올리기</button>
       </div>
@@ -246,7 +248,7 @@
       </div>
       <div class="card">
         <h2>출결 태블릿</h2>
-        <p class="hint">도장 입구 태블릿에서 아래 주소를 열고 관장님 비밀번호를 한 번 넣으면 출결용으로 등록됩니다. 태블릿을 잃어버렸을 때는 모두 해제해 주세요.</p>
+        <p class="hint">도장 입구 태블릿에서 아래 주소를 열고 관리자 비밀번호를 한 번 넣으면 출결용으로 등록됩니다. 태블릿을 잃어버렸을 때는 모두 해제해 주세요.</p>
         <div class="share"><code id="kioskUrl"></code><button id="copyKiosk">복사</button></div>
         <button class="btn ghost" id="kioskReset">등록된 태블릿 모두 해제</button>
       </div>
@@ -395,7 +397,7 @@
     nType = t; const c = TYPES[t];
     [...$('nType').children].forEach(x => x.classList.toggle('on', x.dataset.v === t));
     $('nHead').textContent = c.head; $('nHint').textContent = c.hint; $('nListHead').textContent = c.list;
-    $('fKind').hidden = !c.kinds; $('fDate').hidden = !c.date; $('fTarget').hidden = !c.target; $('fPhotos').hidden = !c.photos; $('fPin').hidden = !c.pin;
+    $('fKind').hidden = !c.kinds; $('fDate').hidden = !c.date; $('fTarget').hidden = !c.target; $('fPhotos').hidden = !c.photos; $('fPin').hidden = !c.pin; $('fUrgent').hidden = nType !== 'notice'; $('fAsk').hidden = nType !== 'notice' && nType !== 'journal';
     $('nMonth').hidden = t !== 'schedule';
     $('nNotify').checked = c.notify;
     if (c.kinds) { nKind = c.kinds[0]; $('nKind').innerHTML = c.kinds.map(k => '<button class="' + (k === nKind ? 'on' : '') + '">' + k + '</button>').join(''); renderTpl(); }
@@ -453,8 +455,8 @@
     const target = c.target && nMode === 'pick' ? [...picked] : [];
     if (c.target && nMode === 'pick' && !target.length) return toast('아이를 골라 주세요');
     if (/○/.test(title + bodyT) && !confirm('○ 표시가 남아 있습니다. 그대로 올릴까요?')) return;
-    const notify = $('nNotify').checked;
-    if (!confirm((target.length ? target.join(', ') + ' 보호자에게' : '전체 학부모님께') + ' 올립니다' + (notify ? ' (알림 보냄)' : '') + '.\n\n' + title)) return;
+    const notify = $('nNotify').checked, urgent = nType === 'notice' && $('nUrgent').checked, ask = urgent || ((nType === 'notice' || nType === 'journal') && $('nAsk').checked);
+    if (!confirm((target.length ? target.join(', ') + ' 보호자에게' : '전체 학부모님께') + ' ' + (urgent ? '긴급 공지로 ' : '') + '올립니다' + (notify ? ' (알림 보냄)' : '') + (ask ? '\n학부모님께 \'확인했어요\'를 받습니다.' : '') + '.\n\n' + title)) return;
     btn.disabled = true;
     try {
       const ids = [];
@@ -464,16 +466,16 @@
         if (!j.ok) throw new Error(j.error || '사진 실패'); ids.push(j.id);
       }
       btn.textContent = '올리는 중…';
-      const j = await post('/admin/post-save', { type: nType, kind: c.kinds ? nKind : '', title, body: bodyT, date: c.date ? $('nDate').value : null, target, photos: ids, pin: c.pin && $('nPinChk').checked });
+      const j = await post('/admin/post-save', { type: nType, kind: c.kinds ? nKind : '', title, body: bodyT, date: c.date ? $('nDate').value : null, target, photos: ids, pin: c.pin && $('nPinChk').checked, urgent, ask });
       if (!j.ok) throw new Error(j.error);
       let msg = '올렸습니다';
       if (notify) {
         const label = { notice: nKind === '공지' ? '공지' : nKind, journal: '알림장', schedule: '일정', album: '앨범' }[nType];
-        const r = await pushAll({ title: '[' + label + '] ' + title, body: nType === 'album' ? '사진 ' + ids.length + '장이 올라왔습니다' : bodyT.slice(0, 120), kind: label, children: target, view: nType }, btn);
+        const r = await pushAll({ title: (urgent ? '[긴급] ' : '[' + label + '] ') + title, body: nType === 'album' ? '사진 ' + ids.length + '장이 올라왔습니다' : bodyT.slice(0, 120), kind: label, children: target, view: nType }, btn);
         msg += ' · 휴대폰 ' + r.sent + '대에 알림';
       }
       toast(msg);
-      $('nTitle').value = ''; $('nBody').value = ''; $('nPinChk').checked = false; photos = []; drawPhotos(); picked.clear(); renderChecks();
+      $('nTitle').value = ''; $('nBody').value = ''; $('nPinChk').checked = false; $('nUrgent').checked = false; $('nAsk').checked = false; photos = []; drawPhotos(); picked.clear(); renderChecks();
       if (nType === 'schedule') nMonth = $('nDate').value.slice(0, 7);
       loadNews();
     } catch (e) { toast('실패했습니다: ' + (e.message || '')); }
@@ -486,17 +488,17 @@
     $('nMonthLabel').textContent = mLabel(nMonth);
     const j = await post('/admin/posts', { type: t, month: nMonth });
     if (t !== nType || !j.ok) return;
-    $('nList').innerHTML = j.items.length ? j.items.map(x => '<li class="nt"><div><b>' + (x.pin ? '📌 ' : '') + (x.kind ? '[' + esc(x.kind) + '] ' : '') + esc(x.title) + '</b><small>' +
+    $('nList').innerHTML = j.items.length ? j.items.map(x => '<li class="nt"><div><b>' + (x.urgent ? '<span style="color:#B42318">[긴급]</span> ' : '') + (x.pin ? '📌 ' : '') + (x.kind ? '[' + esc(x.kind) + '] ' : '') + esc(x.title) + '</b><small>' +
       (x.date ? x.date.slice(5).replace('-', '/') + ' (' + WD[new Date(x.date + 'T00:00:00Z').getUTCDay()] + ')' : when(x.at)) + (x.target && x.target.length ? ' · ' + x.target.map(esc).join(', ') : '') + (x.photos && x.photos.length ? ' · 사진 ' + x.photos.length + '장' : '') + '</small>' +
       (x.photos && x.photos.length ? '<div class="thumbs">' + x.photos.slice(0, 6).map(p => '<img data-ph="' + esc(p) + '">').join('') + '</div>' : '') +
-      '</div><div class="act">' + (t !== 'schedule' ? '<button class="rd' + (x.audience && x.reads >= x.audience ? ' all' : '') + '" data-r="' + x.id + '">읽음 ' + x.reads + '/' + x.audience + '</button>' : '') + '<button data-id="' + x.id + '">지우기</button></div></li>').join('') : '<li class="empty">아직 없습니다</li>';
+      '</div><div class="act">' + (t !== 'schedule' ? '<button class="rd' + (x.audience && x.reads >= x.audience ? ' all' : '') + '" data-r="' + x.id + '">읽음 ' + x.reads + '/' + x.audience + (x.ask ? ' · 확인 ' + (x.acks || 0) : '') + '</button>' : '') + '<button data-id="' + x.id + '">지우기</button></div></li>').join('') : '<li class="empty">아직 없습니다</li>';
     $('nList').querySelectorAll('img[data-ph]').forEach(async img => { const r = await post('/admin/photo', { id: img.dataset.ph, size: 'thumb' }); if (r.ok) img.src = 'data:image/jpeg;base64,' + r.data; });
   }
   // 읽은 사람 보기
   async function showReads(id, title) {
     const j = await post('/admin/reads', { id });
     if (!j.ok) return toast(j.error || '불러오지 못했습니다');
-    const row = x => '<li><b>' + x.kids.map(esc).join(', ') + '</b> ' + esc(x.rel) + (x.at ? '<span>' + when(x.at) + '</span>' : '') + '</li>';
+    const row = x => '<li><b>' + x.kids.map(esc).join(', ') + '</b> ' + esc(x.rel) + (x.ack ? ' <em style="color:#1E7A46;font-style:normal;font-weight:700">확인했어요</em>' : '') + (x.at ? '<span>' + when(x.at) + '</span>' : '') + '</li>';
     const sh = document.createElement('div'); sh.className = 'sheet';
     sh.innerHTML = '<div class="in"><div class="sh-h"><b>' + esc(title) + '</b><button class="x">닫기</button></div>' +
       '<h4>읽음 ' + j.read.length + '명</h4><ul>' + (j.read.map(row).join('') || '<li class="muted">아직 없습니다</li>') + '</ul>' +
