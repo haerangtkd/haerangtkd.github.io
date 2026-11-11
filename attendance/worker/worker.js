@@ -70,6 +70,12 @@ async function route(path, req, env) {
         .map(s => ({ name: s.name, no: s.no || '', status: s.status || '재원' }));
       return json({ ok: true, students: list });
     }
+    if (path === '/sync/day-absent') { // 업무 앱 등원표: 그날 결석(출석부 '결석' + 미리 연락 온 결석 예정)
+      const day = isDay(b.day) ? b.day : kstDay();
+      const names = new Map((await all(env, 'SELECT id, data FROM students')).map(r => [r.id, J(r.data, {}).name]));
+      const x = await all(env, "SELECT sid FROM att WHERE day = ? AND r = 'x'", day), ab = await all(env, 'SELECT sid FROM absences WHERE date = ?', day);
+      return json({ ok: true, names: [...new Set([...x, ...ab].map(r => names.get(r.sid)).filter(Boolean))] });
+    }
     if (path === '/sync/teachers') { // 업무 앱: 사범님 이름·PIN(암호화된 값)을 그대로 가져가 같은 PIN으로 로그인
       return json({ ok: true, teachers: await all(env, 'SELECT id, name, salt, pin FROM teachers ORDER BY created') });
     }
