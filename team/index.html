@@ -240,6 +240,17 @@
   .bar u{text-decoration:none;background:#fff;color:var(--ink);border-radius:3px;padding:0 2px;margin-right:2px;font-size:10.5px;font-weight:700}
   .bar.dn{opacity:.55;text-decoration:line-through}
   .dc .more{display:block;font-style:normal;font-size:11px;color:var(--muted);padding-left:3px}
+  /* 대시보드 숫자 칸 */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .kpis button{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 6px 9px;display:flex;flex-direction:column;align-items:center;gap:1px}
+  .kpis small{font-size:12px;color:var(--muted);white-space:nowrap}
+  .kpis b{font-size:26px;font-weight:900;color:var(--brand);line-height:1.15}.kpis b span{font-size:15px;color:var(--muted);font-weight:700}
+  .kpis em{font-style:normal;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;max-width:100%}.kpis em.r{color:var(--no);font-weight:700}
+  .todo .ck.on{background:var(--brand);border-color:var(--brand)}
+  .todo .t small{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .sec .todo{align-items:center}
+  .sec .tc{margin-top:8px}
+  .tb.bell{position:relative}.tb.bell .dot{top:2px;left:auto;right:0}
   /* 더보기 */
   .greet{display:flex;align-items:center;padding:6px 0 4px}.greet small{display:block;color:var(--muted);font-size:14px}.greet b{font-size:22px;font-weight:900}
   .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;margin:14px 0 4px}
@@ -402,7 +413,8 @@
 <div id="app" hidden>
   <header class="top"><button class="tb back" id="backBtn" hidden title="뒤로"><svg class="i" style="width:26px;height:26px"><use href="#i-back"/></svg></button><h1 id="topT">해랑 업무</h1><small id="conn"></small><span id="topBtns"></span></header>
   <main class="wrap">
-    <section id="v-chat"></section>
+    <section id="v-home"></section>
+    <section id="v-chat" hidden></section>
     <section id="v-room" hidden><div id="nbar"></div><div class="msgs" id="msgs"></div>
       <div class="composer">
         <div class="rbar" id="rbar" hidden></div>
@@ -420,16 +432,17 @@
   </main>
   <button class="fab" id="fab" hidden title="새로 만들기"><svg class="i"><use href="#i-plus"/></svg></button>
   <nav class="tabs" id="tabs">
-    <button data-t="chat" class="on"><svg class="i"><use href="#i-chat"/></svg>채팅<span class="dot" id="chatDot" hidden></span></button>
+    <button data-t="home" class="on"><svg class="i"><use href="#i-dash"/></svg>대시보드</button>
     <button data-t="cal"><svg class="i"><use href="#i-proj"/></svg>프로젝트</button>
     <button data-t="task"><svg class="i"><use href="#i-list"/></svg>업무</button>
-    <button data-t="log"><svg class="i"><use href="#i-bell"/></svg>알림<span class="dot" id="logDot" hidden></span></button>
+    <button data-t="chat"><svg class="i"><use href="#i-chat"/></svg>채팅<span class="dot" id="chatDot" hidden></span></button>
     <button data-t="more"><svg class="i"><use href="#i-dots"/></svg>더보기</button>
   </nav>
 </div>
 <div class="toast" id="toast"></div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-dash" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="9" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.6"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.6"/><rect x="3.5" y="15.5" width="7" height="5" rx="1.6"/></symbol>
   <symbol id="i-proj" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="15" height="13" rx="2"/><circle cx="19.5" cy="5" r="1.2"/><path d="M3.5 10h15"/></symbol>
   <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/></symbol>
   <symbol id="i-minus" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12h7"/></symbol>
@@ -560,7 +573,7 @@ function setBadge() {
   try { if (navigator.setAppBadge) n ? navigator.setAppBadge(n) : navigator.clearAppBadge(); } catch (_) {}
   $('chatDot').hidden = !cu; $('chatDot').textContent = cu > 99 ? '99+' : cu;
   const ln = S.logs.filter(g => g.id > S.logRead && g.mid !== S.me.id).length;
-  $('logDot').hidden = !ln || S.tab === 'log'; $('logDot').textContent = ln > 99 ? '99+' : ln;
+  S.logN = ln; const bd = $('bellDot'); if (bd) { bd.hidden = !ln; bd.textContent = ln > 99 ? '99+' : ln; }
 }
 // 화면을 보고 있을 때만 새 내용 받기 (채팅방 4초, 다른 화면 15초)
 let pollT; function poll() { clearTimeout(pollT); pollT = setTimeout(async () => { if (!document.hidden && S.tok) await sync(); poll(); }, S.tab === 'room' || S.tab === 'chat' ? 4000 : 15000); }
@@ -667,46 +680,81 @@ async function savePickup(p, what) {
   const j = await api('/api/pickup', { day: p.day, list: p.list, done: p.done, absent: p.absent, memos: p.memos, what });
   if (!j.ok) toast(j.error || '저장하지 못했어요');
 }
-const SHORT = [['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['set', '⚙️', '설정']];
-function renderMore() {
-  const t = today(), h = kNow().getUTCHours(), todos = itemsOf('todo').filter(x => !isDone(x));
-  const pushOk = 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('haerang-team-push') === '1';
-  const hd = S.homeDay, p = pickupFor(hd), kids = [...new Set([...p.list, ...p.absent])];
-  const todayS = itemsOf('sched').filter(x => x.date === t).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-  const soon = itemsOf('sched').filter(x => x.date > t && x.date <= addDays(t, 13)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+const SHORT = [['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
+// 등원·픽업 칸 (대시보드)
+function pickupCard() {
+  const t = today(), hd = S.homeDay, p = pickupFor(hd), kids = [...new Set([...p.list, ...p.absent])];
+  return '<div class="sec" id="pkSec"><div class="sh"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button><button class="lbtn" id="pkEdit">명단 수정</button></div>' +
+    (kids.length ? '<div id="pkL">' + kids.map(k => '<button class="kid' + (p.absent.includes(k) ? ' ab' : p.done.includes(k) ? ' done' : '') + '" data-k="' + esc(k) + '">' + (p.done.includes(k) ? '✓ ' : '') + esc(k) + '</button>').join('') + '</div><p class="hint" style="margin:6px 0 0">누르면 데려옴 ✓ / 길게 누르면 결석</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 아이가 없어요. 명단 수정이나 설정의 요일별 기본 명단에서 넣어 주세요.') + '</p>') +
+    (p.memos.length ? p.memos.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '') + '</div>';
+}
+// ═════════ 대시보드 (한눈에: 오늘 할 일 · 현재 행사 · 등원 · 일정) ═════════
+function renderHome() {
+  const t = today(), h = kNow().getUTCHours(), open = itemsOf('todo').filter(x => !isDone(x));
+  const todayT = open.filter(x => x.due && x.due <= t).sort((a, b) => a.due.localeCompare(b.due)), late = todayT.filter(x => x.due < t).length;
+  const doneToday = itemsOf('todo').filter(x => isDone(x) && x.doneAt && dayOf(x.doneAt) === t);
   const evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
-  $('v-more').innerHTML =
-    '<div class="greet"><div><small>' + (+t.slice(5, 7)) + '월 ' + (+t.slice(8)) + '일 (' + wd(t) + ')</small><b>' + (h < 11 ? '좋은 아침이에요 ☀️' : h < 18 ? '즐거운 오후예요 😊' : '오늘도 수고 많았어요 🌙') + '</b></div></div>' +
+  const p = pickupFor(t), kidsN = new Set([...p.list, ...p.absent]).size, kidsD = p.done.length;
+  const sch = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 6)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+  const cu = chatUnread(), pushOk = 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('haerang-team-push') === '1';
+  const tdRow = x => '<div class="todo" data-id="' + x.id + '"><button class="ck' + (isDone(x) ? ' on' : '') + '">' + (isDone(x) ? '✓' : '') + '</button><div class="t"><b>' + esc(x.title) + '</b><small>' + (x.due && x.due < t && !isDone(x) ? '<span class="tag r">' + md(x.due) + ' 지남</span>' : isDone(x) ? '<span class="tag">' + esc(x.doneBy || '') + ' 완료</span>' : '<span class="tag y">오늘</span>') + (whosOf(x).length ? '<span class="avs2">' + whosOf(x).map(n => av(midOf(n), 'xs')).join('') + '</span>' : '') + '</small></div>' + (isDone(x) ? '' : stPill(statusOf(x))) + '</div>';
+  $('v-home').innerHTML =
+    '<div class="greet"><div><small>' + (+t.slice(5, 7)) + '월 ' + (+t.slice(8)) + '일 ' + wd(t) + '요일</small><b>' + (h < 11 ? '좋은 아침이에요 ☀️' : h < 18 ? '즐거운 오후예요 😊' : '오늘도 수고 많았어요 🌙') + '</b></div></div>' +
     (!pushOk ? '<div class="notice"><b>알림을 켜야 채팅·업무 알림이 와요</b><button class="btn g" id="pushOn">알림 켜기</button></div>' : '') +
+    '<div class="kpis"><button data-go="task" data-tk="due"><small>오늘 할 일</small><b>' + todayT.length + '</b>' + (late ? '<em class="r">지난 ' + late + '</em>' : '<em>완료 ' + doneToday.length + '</em>') + '</button>' +
+    '<button data-go="table"><small>진행 중 행사</small><b>' + evs.length + '</b><em>' + (evs.find(x => x.date && x.date >= t) ? dday(evs.find(x => x.date && x.date >= t).date) + ' ' + esc(evs.find(x => x.date && x.date >= t).title).slice(0, 6) : '&nbsp;') + '</em></button>' +
+    '<button data-scroll="pkSec"><small>오늘 등원</small><b>' + kidsD + '<span>/' + kidsN + '</span></b><em>' + (p.absent.length ? '결석 ' + p.absent.length : '&nbsp;') + '</em></button>' +
+    '<button data-go="chat"><small>새 채팅</small><b>' + cu + '</b><em>&nbsp;</em></button></div>' +
+    '<div class="sec"><div class="sh"><h2>오늘 할 일</h2><button class="more" data-go="task">업무 ›</button></div>' + (todayT.length || doneToday.length ? todayT.map(tdRow).join('') + doneToday.map(tdRow).join('') : '<p class="empty">오늘까지 할 일이 없어요 👍</p>') +
+    '<div class="row" style="margin-top:8px"><input class="inp" id="todoIn" placeholder="오늘 할 일 추가"><button class="btn g" id="todoAdd">추가</button></div></div>' +
+    '<div class="sec"><div class="sh"><h2>현재 행사</h2><button class="more" data-go="table">행사표 ›</button></div>' + (evs.length ? evs.slice(0, 4).map(tableCard).join('') : '<p class="empty">진행 중인 행사·물품 신청이 없어요</p>') + '</div>' +
+    pickupCard() +
+    '<div class="sec"><div class="sh"><h2>이번 주 일정</h2><button class="more" data-go="cal">달력 ›</button></div>' + (sch.length ? sch.map(schLi).join('') : '<p class="empty">이번 주 일정이 없어요</p>') + '</div>';
+}
+async function onPickupClick(e, view) {
+  const pd = e.target.closest('[data-pd]'); if (pd) { S.homeDay = addDays(S.homeDay, +pd.dataset.pd); render(); return true; }
+  if (e.target.id === 'pkEdit') { pickupSheet(S.homeDay); return true; }
+  const k = e.target.closest('.kid'); if (k && !k.dataset.long) { const p = pickupFor(S.homeDay), n = k.dataset.k; if (p.absent.includes(n)) { p.absent = p.absent.filter(x => x !== n); if (!p.list.includes(n)) p.list.push(n); savePickup(p, n + ' 결석 취소'); return true; } const done = p.done.includes(n); p.done = done ? p.done.filter(x => x !== n) : [...p.done, n]; savePickup(p, done ? n + ' 데려옴 취소' : '✓ ' + n + ' 데려옴'); return true; }
+  return false;
+}
+$('v-home').onclick = async e => {
+  if (e.target.id === 'pushOn') return enablePush();
+  if (e.target.id === 'todoAdd') { const v = $('todoIn').value.trim(); if (!v) return; const w = parseWhen(v); saveItem({ type: 'todo', title: w.rest || v, due: w.date || today(), status: '요청', whos: [], done: false }, '☑ 업무 추가: ' + (w.rest || v)); $('todoIn').value = ''; return; }
+  const sc = e.target.closest('[data-scroll]'); if (sc) return $(sc.dataset.scroll).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const go = e.target.closest('[data-go]'); if (go) { if (go.dataset.tk) S.tkf = go.dataset.tk; if (go.dataset.go === 'table') S.tf = 'all'; return setTab(go.dataset.go); }
+  const ck = e.target.closest('.todo .ck'); if (ck) { const it = { ...S.items.get(ck.closest('.todo').dataset.id) }; it.status = isDone(it) ? '진행' : '완료'; it.done = it.status === '완료'; it.doneBy = it.done ? S.me.name : ''; it.doneAt = it.done ? Date.now() : 0; return saveItem(it, (it.done ? '✓ 업무 완료: ' : '다시 진행: ') + it.title); }
+  const td = e.target.closest('.todo'); if (td) return taskSheet(S.items.get(td.dataset.id));
+  const tc = e.target.closest('.tc'); if (tc) return openTable(S.items.get(tc.dataset.id));
+  const sch = e.target.closest('.sch'); if (sch) return openItem(S.items.get(sch.dataset.id));
+  await onPickupClick(e);
+};
+$('v-home').addEventListener('keydown', e => { if (e.target.id === 'todoIn' && e.key === 'Enter' && !e.isComposing) $('todoAdd').click(); });
+// 길게 누르면 결석
+let lpT; $('v-home').addEventListener('pointerdown', e => { const k = e.target.closest('.kid'); if (!k) return; delete k.dataset.long; lpT = setTimeout(() => { k.dataset.long = '1'; const p = pickupFor(S.homeDay), n = k.dataset.k; if (!p.absent.includes(n)) { p.absent.push(n); p.done = p.done.filter(x => x !== n); savePickup(p, n + ' 결석'); if (navigator.vibrate) navigator.vibrate(30); } }, 600); });
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('v-home').addEventListener(ev, () => clearTimeout(lpT)));
+// ═════════ 더보기 (바로가기 + 다가오는 일정 + 신청표) ═════════
+function renderMore() {
+  const t = today(), evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+  const soon = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 30)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+  $('v-more').innerHTML =
     '<div class="sgrid">' + SHORT.map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + '</button>').join('') + '</div>' +
     '<div class="sec"><div class="sh"><h2>업무</h2><button class="more" data-go="task">더보기 ›</button></div>' +
-    '<button class="sbox" data-tk="due">오늘까지 해야 할 업무<b>' + todos.filter(x => x.due && x.due <= t).length + ' ›</b></button><button class="sbox" data-tk="mine">내가 담당한 업무<b>' + todos.filter(x => whosOf(x).includes(S.me.name)).length + ' ›</b></button></div>' +
-    '<div class="sec"><div class="sh"><h2>오늘의 일정</h2><button class="more" data-go="cal">더보기 ›</button></div>' + (todayS.length ? todayS.map(schLi).join('') : '<p class="empty">오늘 일정이 없어요</p>') +
-    (soon.length ? '<p class="help" style="margin:10px 0 2px">다가오는 일정</p>' + soon.slice(0, 4).map(schLi).join('') : '') + '</div>' +
-    '<div class="sec" id="pkSec"><div class="sh"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button><button class="lbtn" id="pkEdit">명단 수정</button></div>' +
-    (kids.length ? '<div id="pkL">' + kids.map(k => '<button class="kid' + (p.absent.includes(k) ? ' ab' : p.done.includes(k) ? ' done' : '') + '" data-k="' + esc(k) + '">' + (p.done.includes(k) ? '✓ ' : '') + esc(k) + '</button>').join('') + '</div><p class="hint" style="margin:6px 0 0">누르면 데려옴 ✓ / 길게 누르면 결석</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 아이가 없어요. 명단 수정이나 설정의 요일별 기본 명단에서 넣어 주세요.') + '</p>') +
-    (p.memos.length ? p.memos.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '') + '</div>' +
-    '<div class="sec"><div class="sh"><h2>진행 중인 신청표</h2><button class="more" data-go="table">더보기 ›</button></div>' + (evs.length ? evs.slice(0, 5).map(x => { const st = tableStat(x); return '<div class="pin" data-ev="' + x.id + '"><span class="k">' + CAT[catOf(x)] + '</span><span class="t">' + esc(x.title) + '</span>' + (x.date && x.date >= t ? '<span class="pill">' + dday(x.date) + '</span>' : '<span class="pill' + (st.pct >= 100 ? ' ok' : ' b') + '">' + (st.pct >= 100 ? '완료' : st.pct + '%') + '</span>') + '</div>'; }).join('') : '<p class="empty">진행 중인 신청표가 없어요</p>') + '</div>';
+    '<button class="sbox" data-tk="due">오늘까지 해야 할 업무<b>' + itemsOf('todo').filter(x => !isDone(x) && x.due && x.due <= t).length + ' ›</b></button><button class="sbox" data-tk="mine">내가 담당한 업무<b>' + itemsOf('todo').filter(x => !isDone(x) && whosOf(x).includes(S.me.name)).length + ' ›</b></button></div>' +
+    '<div class="sec"><div class="sh"><h2>다가오는 일정</h2><button class="more" data-go="cal">달력 ›</button></div>' + (soon.length ? soon.slice(0, 8).map(schLi).join('') : '<p class="empty">한 달 안에 일정이 없어요</p>') + '</div>' +
+    '<div class="sec"><div class="sh"><h2>진행 중인 신청표</h2><button class="more" data-go="table">더보기 ›</button></div>' + (evs.length ? evs.map(x => { const st = tableStat(x); return '<div class="pin" data-ev="' + x.id + '"><span class="k">' + CAT[catOf(x)] + '</span><span class="t">' + esc(x.title) + '</span>' + (x.date && x.date >= t ? '<span class="pill">' + dday(x.date) + '</span>' : '<span class="pill' + (st.pct >= 100 ? ' ok' : ' b') + '">' + (st.pct >= 100 ? '완료' : st.pct + '%') + '</span>') + '</div>'; }).join('') : '<p class="empty">진행 중인 신청표가 없어요</p>') + '</div>';
 }
 $('v-more').onclick = async e => {
-  if (e.target.id === 'pushOn') return enablePush();
   const sc = e.target.closest('[data-sc]'); if (sc) { const k = sc.dataset.sc;
-    if (k === 'pickup') return $('pkSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (k === 'pickup') { setTab('home'); return setTimeout(() => $('pkSec') && $('pkSec').scrollIntoView({ block: 'start' }), 50); }
     if (k === 'table' || k === 'buy') { S.tf = k === 'buy' ? 'buy' : 'all'; return setTab('table'); }
     if (k === 'cal') return setTab('cal'); if (k === 'mine') { S.tkf = 'mine'; return setTab('task'); }
     if (k === 'notice') { openRoom(''); return S.notice ? jumpTo(S.notice.id) : toast('올라온 공지가 없어요. 단체방 메시지를 길게 눌러 공지로 올려요'); }
-    if (k === 'photo') return gallerySheet(); if (k === 'set') return settingsSheet(); }
+    if (k === 'photo') return gallerySheet(); if (k === 'log') return setTab('log'); }
   const go = e.target.closest('[data-go]'); if (go) return setTab(go.dataset.go);
   const tk = e.target.closest('[data-tk]'); if (tk) { S.tkf = tk.dataset.tk; return setTab('task'); }
   const pe = e.target.closest('[data-ev]'); if (pe) return openTable(S.items.get(pe.dataset.ev));
-  const pd = e.target.closest('[data-pd]'); if (pd) { S.homeDay = addDays(S.homeDay, +pd.dataset.pd); return renderMore(); }
-  if (e.target.id === 'pkEdit') return pickupSheet(S.homeDay);
   const sch = e.target.closest('.sch'); if (sch) return openItem(S.items.get(sch.dataset.id));
-  const k = e.target.closest('.kid'); if (k && !k.dataset.long) { const p = pickupFor(S.homeDay), n = k.dataset.k; if (p.absent.includes(n)) { p.absent = p.absent.filter(x => x !== n); if (!p.list.includes(n)) p.list.push(n); return savePickup(p, n + ' 결석 취소'); } const done = p.done.includes(n); p.done = done ? p.done.filter(x => x !== n) : [...p.done, n]; return savePickup(p, done ? n + ' 데려옴 취소' : '✓ ' + n + ' 데려옴'); }
 };
-// 길게 누르면 결석
-let lpT; $('v-more').addEventListener('pointerdown', e => { const k = e.target.closest('.kid'); if (!k) return; delete k.dataset.long; lpT = setTimeout(() => { k.dataset.long = '1'; const p = pickupFor(S.homeDay), n = k.dataset.k; if (!p.absent.includes(n)) { p.absent.push(n); p.done = p.done.filter(x => x !== n); savePickup(p, n + ' 결석'); if (navigator.vibrate) navigator.vibrate(30); } }, 600); });
-['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('v-more').addEventListener(ev, () => clearTimeout(lpT)));
 function pickupSheet(d) {
   const p = JSON.parse(JSON.stringify(pickupFor(d)));
   sheet('<h2>' + md(d) + ' 데리러 갈 아이</h2><p class="help">이 날만 바꿔요. 매주 같은 명단은 설정 → 요일별 기본 명단에서 바꿔요.</p><div class="chips" id="pkC" style="margin-top:12px"></div><div class="row" style="margin-top:10px"><input class="inp" id="pkIn" placeholder="이름 직접 추가"><button class="btn" id="pkAdd">추가</button></div><div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="pkOk">저장</button></div>', async ov => {
@@ -1203,7 +1251,7 @@ function renderLog() {
 $('v-log').onclick = e => {
   const r = e.target.closest('.lg'); if (!r) return; const g = S.logs.find(x => x.id == r.dataset.id); if (!g) return;
   if (g.kind === 'notice') { openRoom(''); return jumpTo(+g.ref); }
-  if (g.kind === 'pickup' && g.ref) { S.homeDay = g.ref; return setTab('more'); }
+  if (g.kind === 'pickup' && g.ref) { S.homeDay = g.ref; return setTab('home'); }
   if (g.ref) openItem(S.items.get(g.ref));
 };
 function markLogRead() { const mx = S.logs.length ? S.logs[S.logs.length - 1].id : 0; if (mx > S.logRead) { S.logRead = mx; try { localStorage.setItem('haerang-team-logread', mx); } catch (_) {} } setBadge(); }
@@ -1260,8 +1308,8 @@ function sheet(html, mount, cls) {
   if (mount) mount(ov.querySelector('.sheet'));
 }
 function closeSheet(quiet, fromHist) { const o = $('ov'); if (!o) return; if (!fromHist && sheetHist) { sheetHist = false; skipPop++; history.back(); } const f = sheetOnClose; sheetOnClose = null; if (f) f(); o.remove(); document.body.style.overflow = ''; }
-const TITLES = { chat: '채팅', room: '채팅', cal: '달력', task: '업무', log: '알림', more: '더보기', table: '행사 · 물품 신청표' };
-const TABOF = { room: 'chat', table: 'more' };
+const TITLES = { home: '해랑 업무', chat: '채팅', room: '채팅', cal: '달력', task: '업무', log: '알림', more: '더보기', table: '행사 · 물품 신청표' };
+const TABOF = { room: 'chat', table: 'more', log: 'home' };
 function topButtons(t) {
   const b = (id, i, title, st) => '<button class="tb" id="' + id + '" title="' + title + '">' + ic(i, st) + '</button>';
   if (t === 'cal') $('topT').innerHTML = (+S.calM.slice(0, 4)) + '년 ' + (+S.calM.slice(5)) + '월';
@@ -1270,24 +1318,26 @@ function topButtons(t) {
   else $('topT').textContent = TITLES[t];
   $('topBtns').innerHTML = t === 'room' ? b('tbSearch', 'search', '검색') + b('tbMenu', 'menu', '메뉴')
     : t === 'cal' ? b('tbPrev', 'back', '이전 달') + '<button class="tb txt" id="tbToday">오늘</button>' + b('tbNext', 'back', '다음 달', 'transform:scaleX(-1)')
-    : t === 'log' ? b('tbRead', 'check', '모두 읽음') : t === 'more' || t === 'chat' ? b('tbSet', 'gear', '설정') : '';
+    : t === 'log' ? b('tbRead', 'check', '모두 읽음') : t === 'home' || t === 'more' ? '<button class="tb bell" id="tbBell" title="알림">' + ic('bell') + '<span class="dot" id="bellDot" hidden></span></button>' + b('tbSet', 'gear', '설정') : t === 'chat' ? b('tbSet', 'gear', '설정') : '';
 }
 $('topBtns').onclick = e => { const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'tbBell') return setTab('log');
   if (b.id === 'tbSet') settingsSheet(); if (b.id === 'tbSearch') searchSheet(); if (b.id === 'tbMenu') chatDrawer();
   if (b.id === 'tbPrev' || b.id === 'tbNext') { S.calM = addMonth(S.calM, b.id === 'tbNext' ? 1 : -1); renderCal(); topButtons('cal'); }
   if (b.id === 'tbToday') { S.calD = today(); S.calM = S.calD.slice(0, 7); renderCal(); topButtons('cal'); }
   if (b.id === 'tbRead') { markLogRead(); S.logSeen = S.logRead; renderLog(); toast('모두 읽음으로 표시했어요'); } };
-$('backBtn').onclick = () => setTab(S.tab === 'room' ? 'chat' : S.tab === 'table' ? 'more' : 'chat');
+$('backBtn').onclick = () => setTab(S.tab === 'room' ? 'chat' : S.tab === 'table' ? (S.prevTab === 'home' ? 'home' : 'more') : S.tab === 'log' ? (S.prevTab === 'more' ? 'more' : 'home') : 'home');
 function setTab(t) {
-  if (!TITLES[t]) t = 'chat';
+  if (!TITLES[t]) t = 'home';
   if (S.tab === 'log' && t !== 'log') markLogRead();
+  if (S.tab !== t && !['room', 'table', 'log'].includes(S.tab)) S.prevTab = S.tab;
   S.tab = t; const tb = TABOF[t] || t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === tb));
   for (const k of Object.keys(TITLES)) $('v-' + k).hidden = k !== t;
   topButtons(t);
   $('fab').hidden = !['chat', 'cal', 'task'].includes(t);
   document.body.classList.toggle('chatmode', t === 'room'); document.body.classList.toggle('calmode', t === 'cal');
-  $('backBtn').hidden = !(t === 'room' || t === 'table');
+  $('backBtn').hidden = !(t === 'room' || t === 'table' || t === 'log');
   if (t === 'room') { markRoomRead(S.room); fitViewport(); }
   if (t === 'log') { S.logSeen = S.logRead; }
   if (location.hash.slice(1) !== t) history.replaceState(null, '', '#' + t);
@@ -1297,8 +1347,8 @@ $('tabs').onclick = e => { const b = e.target.closest('button'); if (b) setTab(b
 function render(scroll) {
   if (!S.me) return;
   const t = S.tab, ae = document.activeElement;
-  if (ae && ae.id === 'todoIn' && t === 'task') return; // 입력 중이면 다시 그리지 않음
-  if (t === 'chat') renderChatList(); if (t === 'room') renderChat(scroll); if (t === 'cal') renderCal(); if (t === 'task') { renderTask(); topButtons('task'); }
+  if (ae && ae.id === 'todoIn' && (t === 'task' || t === 'home')) return; // 입력 중이면 다시 그리지 않음
+  if (t === 'home') renderHome(); if (t === 'chat') renderChatList(); if (t === 'room') renderChat(scroll); if (t === 'cal') renderCal(); if (t === 'task') { renderTask(); topButtons('task'); }
   if (t === 'more') renderMore(); if (t === 'table') renderTable(); if (t === 'log') renderLog();
 }
 
@@ -1328,12 +1378,12 @@ async function loggedIn(tok) {
   S.tok = tok; try { localStorage.setItem(TOKK, tok); } catch (_) {}
   $('loginView').hidden = true;
   if (!(await sync(true))) return showLogin();
-  $('app').hidden = false; const h = location.hash.slice(1); setTab(TITLES[h] && h !== 'room' ? h : 'chat'); loadRoster();
+  $('app').hidden = false; const h = location.hash.slice(1); setTab(TITLES[h] && h !== 'room' ? h : 'home'); loadRoster();
 }
 (async () => {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   let tok = ''; try { tok = localStorage.getItem(TOKK) || ''; } catch (_) {}
-  if (tok && API) { S.tok = tok; if (await sync(true)) { $('app').hidden = false; const h = location.hash.slice(1); setTab(TITLES[h] && h !== 'room' ? h : 'chat'); loadRoster(); return; } S.tok = ''; }
+  if (tok && API) { S.tok = tok; if (await sync(true)) { $('app').hidden = false; const h = location.hash.slice(1); setTab(TITLES[h] && h !== 'room' ? h : 'home'); loadRoster(); return; } S.tok = ''; }
   showLogin();
 })();
 })();
