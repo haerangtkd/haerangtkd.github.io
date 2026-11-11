@@ -153,14 +153,26 @@
   .rbar{display:flex;gap:8px;align-items:center;background:#F4F6FA;border-radius:12px;padding:6px 10px;margin-bottom:6px;font-size:13.5px}
   .rbar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#4B5263}
   .rbar b{color:var(--brand)}
-  .cbox{display:flex;gap:4px;align-items:flex-end}
-  .cbox .ic{width:40px;height:40px;display:grid;place-items:center;color:#4B5263;flex:none;border-radius:10px}
-  .cbox .ic.plus{border:1.6px solid #4B5263;width:32px;height:32px;margin:4px;border-radius:9px}
+  /* 입력줄 (카톡처럼 둥근 한 줄: + | 글 | # | 보내기) */
+  .cbox{display:flex;align-items:flex-end;gap:6px;background:#F1F3F8;border:1px solid var(--line);border-radius:24px;padding:4px}
+  .cbox .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#4B5263;flex:none}
+  .cbox .ic.plus{background:#fff;border:1px solid var(--line)}
   .cbox .ic.plus svg.i{width:20px;height:20px}
-  .cbox .fld{flex:1;display:flex;align-items:flex-end;background:#F4F6FA;border:1px solid var(--line);border-radius:14px;padding:2px 3px 2px 10px;min-width:0}
-  .cbox textarea{flex:1;border:0;outline:0;resize:none;font-size:16px;max-height:120px;padding:7px 0;background:none;line-height:1.4;min-width:0}
-  .cbox .send{width:36px;height:36px;border-radius:10px;background:#B7BDCA;color:#fff;display:grid;place-items:center;margin:1px 0;flex:none}
-  .cbox .send.on{background:var(--brand)}
+  .cbox .ic.hash{font-size:20px;font-weight:700;color:#4B5263}
+  .cbox .ic.hash.on{background:var(--soft);color:var(--brand)}
+  .cbox textarea{flex:1;border:0;outline:0;resize:none;font-size:16px;max-height:120px;padding:8px 2px;background:none;line-height:1.4;min-width:0}
+  .cbox .send{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;flex:none}
+  .tb.back{margin-left:-10px}
+  /* 채팅 화면: 위 띠 + 대화(가운데만 스크롤) + 입력줄. 키보드가 뜨면 입력줄이 키보드 바로 위로 */
+  body.chatmode{overflow:hidden;overscroll-behavior:none}
+  body.chatmode .top{position:fixed;left:0;right:0;top:var(--vt,0px)}
+  body.chatmode nav.tabs,body.chatmode .fab{display:none}
+  body.chatmode .wrap{padding:0}
+  body.chatmode #v-chat{position:fixed;left:0;right:0;max-width:720px;margin:0 auto;top:calc(var(--vt,0px) + 58px + env(safe-area-inset-top));height:calc(var(--vh,100dvh) - 58px - env(safe-area-inset-top));display:flex;flex-direction:column;background:var(--paper)}
+  body.chatmode #nbar{position:static;margin:0}
+  body.chatmode .msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px 14px 12px}
+  body.chatmode .msgs>:first-child{margin-top:auto}
+  body.chatmode .composer{position:static;margin:0;padding:6px 10px calc(8px + var(--sb,env(safe-area-inset-bottom)))}
   .hint{font-size:12.5px;color:var(--muted);margin:5px 6px 0}
   /* 아래에서 올라오는 메뉴 */
   .emo{display:flex;justify-content:space-around;padding:4px 0 14px;border-bottom:1px solid var(--line);margin:0 -16px 6px}
@@ -311,14 +323,14 @@
 </section>
 
 <div id="app" hidden>
-  <header class="top"><h1 id="topT">해랑 업무</h1><small id="conn"></small><span id="topBtns"></span></header>
+  <header class="top"><button class="tb back" id="backBtn" hidden title="뒤로"><svg class="i" style="width:26px;height:26px"><use href="#i-back"/></svg></button><h1 id="topT">해랑 업무</h1><small id="conn"></small><span id="topBtns"></span></header>
   <main class="wrap">
     <section id="v-home"></section>
     <section id="v-chat" hidden><div id="nbar"></div><div class="msgs" id="msgs"></div>
       <div class="composer">
         <div class="rbar" id="rbar" hidden></div>
-        <div class="tags" id="tagBar"><button data-t="#일정 ">#일정</button><button data-t="#할일 ">#할일</button><button data-t="#등원 ">#등원</button><button data-t="#구매 ">#구매</button><button data-t="#행사 ">#행사</button></div>
-        <div class="cbox"><button class="ic plus" id="plusBtn" title="더보기"><svg class="i"><use href="#i-plus"/></svg></button><div class="fld"><textarea id="cIn" rows="1" placeholder="메시지를 입력하세요"></textarea><button class="send" id="cSend" title="보내기"><svg class="i" style="width:20px;height:20px"><use href="#i-up"/></svg></button></div></div>
+        <div class="tags" id="tagBar" hidden><button data-t="#일정 ">#일정</button><button data-t="#할일 ">#할일</button><button data-t="#등원 ">#등원</button><button data-t="#구매 ">#구매</button><button data-t="#행사 ">#행사</button></div>
+        <div class="cbox"><button class="ic plus" id="plusBtn" title="더보기"><svg class="i"><use href="#i-plus"/></svg></button><textarea id="cIn" rows="1" placeholder="메시지 입력"></textarea><button class="ic hash" id="hashBtn" title="해시태그">#</button><button class="send" id="cSend" title="보내기" hidden><svg class="i" style="width:20px;height:20px"><use href="#i-up"/></svg></button></div>
         <div class="hint" id="cHint" hidden></div>
         <input type="file" id="phIn" accept="image/*" hidden><input type="file" id="camIn" accept="image/*" capture="environment" hidden>
       </div>
@@ -344,6 +356,7 @@
   <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.8h17M8 3v4M16 3v4"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.6" cy="6.5" r=".9"/><circle cx="4.6" cy="12" r=".9"/><circle cx="4.6" cy="17.5" r=".9"/></symbol>
   <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.6 1.7H4.4z"/><path d="M10 20.6a2.1 2.1 0 0 0 4 0"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5 7.5 12l7.5 7.5"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
@@ -574,7 +587,7 @@ function renderNbar() {
 }
 function renderChat(scroll) {
   renderNbar();
-  const box = $('msgs'), atBottom = scrollY + innerHeight >= document.body.scrollHeight - 160, me = S.me.id;
+  const box = $('msgs'), atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 160, me = S.me.id;
   let html = S.msgs.length >= 150 && S.msgs[0].id > 1 ? '<button class="btn" id="moreMsg" style="display:block;margin:10px auto 0">이전 대화 더 보기</button>' : '', lastDay = '';
   const L = S.msgs;
   L.forEach((m, i) => {
@@ -599,8 +612,18 @@ function renderChat(scroll) {
   });
   box.innerHTML = html || '<p class="empty" style="margin-top:30px">첫 메시지를 보내 보세요.<br>#일정 #할일 #등원 #구매 를 붙이면 자동으로 정리돼요.</p>';
   box.querySelectorAll('img[data-ph]').forEach(loadPhoto);
-  if (scroll || atBottom) requestAnimationFrame(() => scrollTo(0, document.body.scrollHeight));
+  if (scroll || atBottom) toBottom();
 }
+function toBottom() { const b = $('msgs'); requestAnimationFrame(() => { b.scrollTop = b.scrollHeight; }); }
+// 아이폰 키보드: 보이는 화면 크기에 채팅 화면을 맞춤 (입력줄이 키보드 위에 붙도록)
+function fitViewport() {
+  const v = window.visualViewport, r = document.documentElement.style; if (!v) return;
+  const b = $('msgs'), stick = b.scrollTop + b.clientHeight >= b.scrollHeight - 40;
+  r.setProperty('--vh', v.height + 'px'); r.setProperty('--vt', v.offsetTop + 'px');
+  r.setProperty('--sb', v.height < innerHeight - 120 ? '0px' : 'env(safe-area-inset-bottom)'); // 키보드 떠 있으면 아래 여백 없앰
+  if (stick && S.tab === 'chat') b.scrollTop = b.scrollHeight;
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', fitViewport); visualViewport.addEventListener('scroll', fitViewport); }
 async function loadPhoto(img) {
   const id = img.dataset.ph; if (photoCache.has(id)) { img.src = photoCache.get(id); return; }
   const j = await api('/api/photo', { id }); if (j.ok) { const u = 'data:image/jpeg;base64,' + j.data; photoCache.set(id, u); img.src = u; }
@@ -664,10 +687,13 @@ $('tagBar').onclick = e => { const b = e.target.closest('button'); if (!b) retur
 const cIn = $('cIn');
 cIn.oninput = () => { cIn.style.height = 'auto'; cIn.style.height = Math.min(cIn.scrollHeight, 120) + 'px'; hintCompose(); };
 cIn.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(pointer:fine)').matches) { e.preventDefault(); sendMsg(); } };
-$('cSend').onclick = () => sendMsg();
+$('cSend').onclick = () => { sendMsg(); cIn.focus(); };
+$('hashBtn').onclick = () => { const t = $('tagBar'); t.hidden = !t.hidden; $('hashBtn').classList.toggle('on', !t.hidden); fitViewport(); };
+cIn.addEventListener('focus', () => setTimeout(() => { fitViewport(); toBottom(); }, 300));
+$('backBtn').onclick = () => setTab(S.prevTab && S.prevTab !== 'chat' ? S.prevTab : 'home');
 function hintCompose() {
   const v = cIn.value, h = $('cHint'), w = parseWhen(v.replace(/#\S+/g, ''));
-  $('cSend').classList.toggle('on', !!v.trim());
+  $('cSend').hidden = !v.trim(); $('hashBtn').hidden = !!v.trim();
   if (/#일정/.test(v)) h.textContent = w.date ? '→ ' + md(w.date) + (w.time ? ' ' + timeKo(w.time) : '') + ' 일정으로 등록돼요' : '날짜를 같이 적어 주세요 (예: 11/20 3시)';
   else if (/#할일/.test(v)) h.textContent = '→ 할 일 목록에 들어가요' + (w.date ? ' (' + md(w.date) + '까지)' : '');
   else if (/#구매/.test(v)) h.textContent = '→ 구매표에 들어가요 (쉼표로 여러 개)';
@@ -1047,10 +1073,11 @@ $('topBtns').onclick = e => { const b = e.target.closest('button'); if (!b) retu
   if (b.id === 'tbRead') { markLogRead(); S.logSeen = S.logRead; renderLog(); toast('모두 읽음으로 표시했어요'); } };
 function setTab(t) {
   if (S.tab === 'log' && t !== 'log') markLogRead();
+  if (S.tab !== t) S.prevTab = S.tab;
   S.tab = t; document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   for (const k of Object.keys(TITLES)) $('v-' + k).hidden = k !== t;
   $('topT').textContent = t === 'home' ? '' : TITLES[t]; topButtons(t);
-  $('fab').hidden = t !== 'home'; document.body.classList.toggle('chatmode', t === 'chat');
+  $('fab').hidden = t !== 'home'; document.body.classList.toggle('chatmode', t === 'chat'); $('backBtn').hidden = t !== 'chat'; if (t === 'chat') fitViewport();
   if (t === 'chat') { S.unread = 0; setBadge(); }
   if (t === 'log') { S.logSeen = S.logRead; }
   if (location.hash.slice(1) !== t) history.replaceState(null, '', '#' + t);
