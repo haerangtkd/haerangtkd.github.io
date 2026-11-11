@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>알림 보내기 · 해랑경희</title>
+<meta name="theme-color" content="#A40F16">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="알림 보내기">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--brand:#A40F16;--brand-soft:#FBEDEE;--ink:#1C1A19;--muted:#6B6460;--paper:#F5F2EE;--card:#fff;--line:#E4DCD4;--ok:#1E7A46;--go:#1E7A46;--home:#1F3B63}
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5;padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+  .top{background:var(--brand);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 0;position:sticky;top:0;z-index:5}
+  .top .in{max-width:600px;margin:0 auto}
+  .top .row{display:flex;align-items:center;gap:8px;padding-bottom:10px}
+  .top h1{font-size:18px;font-weight:900;margin-right:auto}
+  .top .meta{font-size:12.5px;opacity:.85}
+  .top button.lo{color:#fff;font:inherit;font-size:12.5px;background:rgba(255,255,255,.16);border:0;border-radius:8px;padding:6px 10px;cursor:pointer}
+  .tabs{display:flex}
+  .tabs button{flex:1;border:0;background:none;color:rgba(255,255,255,.75);font:inherit;font-weight:700;font-size:15.5px;padding:10px 4px 12px;border-bottom:3px solid transparent;cursor:pointer}
+  .tabs button.on{color:#fff;border-bottom-color:#fff}
+  .wrap{max-width:600px;margin:0 auto;padding:0 14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
+  .card h2{font-size:16px;font-weight:900;margin-bottom:4px}
+  .hint{font-size:13px;color:var(--muted)}
+  input[type=text],input[type=password],input[type=search],textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 13px;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
+  textarea{min-height:120px;resize:vertical;line-height:1.55}
+  input:focus,textarea:focus{outline:2px solid var(--brand);border-color:transparent}
+  label.f{display:block;font-size:13.5px;font-weight:700;margin:14px 0 6px}
+  .btn{display:block;width:100%;border:0;border-radius:12px;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:16px;padding:14px;margin-top:16px;cursor:pointer}
+  .btn:disabled{opacity:.5}
+  .btn:active{transform:scale(.98)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;font:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer}
+  .seg button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .tpl{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .tpl button{border:0;background:#F1ECE7;border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;color:#5A524D;cursor:pointer}
+  /* 등원·하원 */
+  .search{position:sticky;top:calc(104px + env(safe-area-inset-top));z-index:3;background:var(--paper);padding:12px 0 6px}
+  .kids{list-style:none}
+  .kid{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 14px;margin-top:8px}
+  .kid .nm{flex:1;min-width:0}
+  .kid .nm b{font-size:16.5px;display:block}
+  .kid .nm small{font-size:12px;color:var(--muted)}
+  .kid .nm small.done{color:var(--ok);font-weight:700}
+  .kid button{border:0;border-radius:10px;font:inherit;font-weight:900;font-size:15px;padding:12px 15px;color:#fff;cursor:pointer;min-width:66px}
+  .kid .in{background:var(--go)}
+  .kid .out{background:var(--home)}
+  .kid button.sent{opacity:.35}
+  .kid button:disabled{opacity:.25}
+  .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-top:8px;max-height:260px;overflow:auto}
+  .checks label{display:flex;align-items:center;gap:6px;font-size:14.5px;background:#F7F4F1;border-radius:8px;padding:8px 10px}
+  .checks input{width:18px;height:18px;accent-color:var(--brand)}
+  .preview{margin-top:14px;background:#EFEAE5;border-radius:14px;padding:12px}
+  .preview .pv{background:rgba(255,255,255,.9);border-radius:12px;padding:10px 12px;display:flex;gap:10px}
+  .preview img{width:34px;height:34px;border-radius:8px}
+  .preview b{font-size:14px;display:block}
+  .preview p{font-size:13.5px;color:#3A3533;white-space:pre-wrap;max-height:62px;overflow:hidden}
+  .preview .lb{font-size:11.5px;color:var(--muted);margin-bottom:6px}
+  .list{list-style:none}
+  .nt{border-top:1px solid var(--line);padding:12px 0;display:flex;gap:10px;align-items:flex-start}
+  .nt:first-child{border-top:0}
+  .nt div{flex:1;min-width:0}
+  .nt b{font-size:14.5px;display:block}
+  .nt small{font-size:12px;color:var(--muted)}
+  .nt button{border:0;background:#F1ECE7;color:var(--muted);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+  .empty{font-size:14px;color:var(--muted);text-align:center;padding:22px 0}
+  .share{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .share code{flex:1;min-width:0;font-size:13px;background:#F7F4F1;border-radius:8px;padding:9px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .share button{border:0;background:var(--ink);color:#fff;border-radius:8px;padding:9px 12px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1C1A19;color:#fff;font-size:14px;padding:11px 18px;border-radius:99px;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+  .toast.show{opacity:1}
+  .login{max-width:380px;margin:12vh auto 0;padding:0 16px;text-align:center}
+  .login img{width:72px}
+  .login h1{font-size:20px;font-weight:900;margin:8px 0 18px}
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<section class="login" id="login" hidden>
+  <img src="icon-192.png" alt="">
+  <h1>알림 보내기</h1>
+  <input type="password" id="pw" placeholder="비밀번호" autocomplete="current-password">
+  <button class="btn" id="loginBtn">들어가기</button>
+  <p class="hint" id="loginMsg" style="margin-top:12px"></p>
+</section>
+
+<div id="app" hidden>
+  <header class="top"><div class="in">
+    <div class="row"><h1>해랑경희 알림</h1><span class="meta" id="meta"></span><button class="lo" id="refresh">새로고침</button></div>
+    <nav class="tabs">
+      <button data-t="att" class="on">등원·하원</button>
+      <button data-t="notice">공지</button>
+      <button data-t="fee">회비</button>
+    </nav>
+  </div></header>
+
+  <main class="wrap">
+
+    <!-- 등원·하원 -->
+    <section id="t-att">
+      <div class="search"><input type="search" id="q" placeholder="아이 이름 검색"></div>
+      <ul class="kids" id="kids"></ul>
+      <div class="card" id="noKids" hidden>
+        <h2>아직 등록한 학부모님이 없습니다</h2>
+        <p class="hint">학부모님께 아래 주소를 보내 주세요. 학부모님이 아이 이름을 적고 알림을 켜면 여기에 이름이 나타납니다.</p>
+        <div class="share"><code class="shareUrl"></code><button class="copyShare">복사</button></div>
+      </div>
+    </section>
+
+    <!-- 공지 -->
+    <section id="t-notice" hidden>
+      <div class="card">
+        <h2>전체 공지 보내기</h2>
+        <p class="hint">알림을 켠 모든 학부모님께 보내고, 학부모님 화면의 도장 공지에도 남습니다.</p>
+        <label class="f">종류</label>
+        <div class="seg" id="nKind"><button class="on">공지</button><button>휴관</button><button>행사</button></div>
+        <div class="tpl" id="nTpl"></div>
+        <label class="f">제목</label>
+        <input type="text" id="nTitle" maxlength="80" placeholder="예: 12월 25일(목) 휴관 안내">
+        <label class="f">내용</label>
+        <textarea id="nBody" maxlength="500" placeholder="내용을 적어 주세요"></textarea>
+        <div class="preview"><div class="lb">학부모님 휴대폰에 이렇게 보입니다</div><div class="pv"><img src="icon-192.png" alt=""><div><b id="nPvT">제목</b><p id="nPvB"></p></div></div></div>
+        <button class="btn" id="nSend">전체에게 보내기</button>
+      </div>
+      <div class="card">
+        <h2>보낸 공지</h2>
+        <ul class="list" id="sentList"></ul>
+      </div>
+    </section>
+
+    <!-- 회비 -->
+    <section id="t-fee" hidden>
+      <div class="card">
+        <h2>회비 안내 보내기</h2>
+        <label class="f">받는 사람</label>
+        <div class="seg" id="fTarget"><button class="on" data-v="all">전체</button><button data-v="pick">아이 선택</button></div>
+        <div id="fPick" hidden>
+          <input type="search" id="fq" placeholder="이름 검색" style="margin-top:10px">
+          <div class="checks" id="fChecks"></div>
+          <p class="hint" id="fCount" style="margin-top:6px"></p>
+        </div>
+        <label class="f">제목</label>
+        <input type="text" id="fTitle" maxlength="80">
+        <label class="f">내용</label>
+        <textarea id="fBody" maxlength="500"></textarea>
+        <div class="preview"><div class="lb">학부모님 휴대폰에 이렇게 보입니다</div><div class="pv"><img src="icon-192.png" alt=""><div><b id="fPvT"></b><p id="fPvB"></p></div></div></div>
+        <p class="hint" style="margin-top:10px">아이를 골라 보내면 그 학부모님께만 가고, 도장 공지에는 남지 않습니다.</p>
+        <button class="btn" id="fSend">보내기</button>
+      </div>
+    </section>
+
+    <div class="card">
+      <h2>학부모님께 보낼 주소</h2>
+      <p class="hint">이 주소를 카카오톡 등으로 보내면 학부모님이 알림을 켤 수 있습니다.</p>
+      <div class="share"><code class="shareUrl"></code><button class="copyShare">복사</button></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script>
+(() => {
+  const API = (window.HAERANG_PUSH_API || '').replace(/\/$/, '');
+  const $ = id => document.getElementById(id);
+  const PW = 'haerang-push-admin';
+  const PAGE = location.origin + '/notice/';
+  let pw = '', children = [];
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const toast = t => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600); };
+  const post = async (path, body) => { const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw, ...body }) }); return r.json(); };
+  const timeText = d => { const h = d.getHours(), m = d.getMinutes(); return (h < 12 ? '오전 ' : '오후 ') + ((h % 12) || 12) + '시' + (m ? ' ' + m + '분' : ''); };
+  const dayKey = () => { const d = new Date(); return 'haerang-att-' + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+  const attLog = () => { try { return JSON.parse(localStorage.getItem(dayKey())) || {}; } catch (_) { return {}; } };
+
+  document.querySelectorAll('.shareUrl').forEach(el => el.textContent = PAGE);
+  document.querySelectorAll('.copyShare').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(PAGE); toast('주소를 복사했습니다'); } catch (_) { prompt('복사해 주세요', PAGE); } });
+
+  // ── 로그인 ──
+  async function login(p) {
+    pw = p;
+    const j = await post('/admin/status', {}).catch(() => ({ ok: false, error: '서버에 연결하지 못했습니다' }));
+    if (!j.ok) return j.error || '비밀번호가 맞지 않습니다';
+    try { localStorage.setItem(PW, p); } catch (_) {}
+    setStatus(j);
+    $('login').hidden = true; $('app').hidden = false;
+    loadSent();
+    return null;
+  }
+  $('loginBtn').onclick = async () => { $('loginMsg').textContent = ''; const e = await login($('pw').value); if (e) $('loginMsg').textContent = e; };
+  $('pw').onkeydown = e => { if (e.key === 'Enter') $('loginBtn').click(); };
+  $('refresh').onclick = async () => { const j = await post('/admin/status', {}); if (j.ok) { setStatus(j); loadSent(); toast('새로 불러왔습니다'); } };
+
+  function setStatus(j) {
+    children = j.children || [];
+    $('meta').textContent = '알림 켠 기기 ' + j.devices + '대';
+    renderKids(); renderChecks();
+  }
+
+  // ── 탭 ──
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    ['att', 'notice', 'fee'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
+    scrollTo(0, 0);
+  });
+
+  // ── 등원·하원 ──
+  function renderKids() {
+    const q = $('q').value.replace(/\s+/g, '');
+    const log = attLog();
+    const list = children.filter(c => !q || c.name.includes(q));
+    $('noKids').hidden = children.length > 0;
+    $('kids').innerHTML = list.map(c => {
+      const l = log[c.name] || {};
+      const st = l.out ? '하원 ' + l.out : l.in ? '등원 ' + l.in : '휴대폰 ' + c.devices + '대';
+      return '<li class="kid"><div class="nm"><b>' + esc(c.name) + '</b><small class="' + (l.in || l.out ? 'done' : '') + '">' + esc(st) + '</small></div>' +
+        '<button class="in' + (l.in ? ' sent' : '') + '" data-n="' + esc(c.name) + '" data-a="in">등원</button>' +
+        '<button class="out' + (l.out ? ' sent' : '') + '" data-n="' + esc(c.name) + '" data-a="out">하원</button></li>';
+    }).join('');
+  }
+  $('q').oninput = renderKids;
+  $('kids').onclick = async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const name = b.dataset.n, act = b.dataset.a;
+    const log = attLog();
+    if ((log[name] || {})[act] && !confirm(name + ' ' + (act === 'in' ? '등원' : '하원') + ' 알림을 오늘 이미 보냈습니다. 한 번 더 보낼까요?')) return;
+    const now = new Date(), t = timeText(now);
+    const body = act === 'in'
+      ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.'
+      : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
+    b.disabled = true;
+    try {
+      const j = await post('/admin/send', { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name] });
+      if (!j.ok) throw new Error(j.error);
+      log[name] = { ...(log[name] || {}), [act]: t };
+      try { localStorage.setItem(dayKey(), JSON.stringify(log)); } catch (_) {}
+      toast(!j.total ? name + ' 학부모님 휴대폰이 등록돼 있지 않습니다' : j.sent ? name + ' ' + (act === 'in' ? '등원' : '하원') + ' 알림을 보냈습니다' : '보내지 못했습니다. 학부모님이 알림을 다시 켜야 할 수 있습니다');
+      renderKids();
+    } catch (err) { toast('보내지 못했습니다: ' + (err.message || '')); b.disabled = false; }
+  };
+
+  // ── 묶음 발송 (기기가 많으면 여러 번 나눠 보냄) ──
+  async function sendAll(btn, payload) {
+    const label = btn.textContent; btn.disabled = true;
+    let offset = 0, msgId, sent = 0, total = 0;
+    try {
+      do {
+        btn.textContent = '보내는 중… ' + (total ? sent + '/' + total : '');
+        const j = await post('/admin/send', { ...payload, offset, msgId });
+        if (!j.ok) throw new Error(j.error);
+        msgId = j.msgId; total = j.total; sent += j.sent; offset = j.next;
+      } while (offset !== null && offset !== undefined);
+      toast(total ? sent + '대 휴대폰에 보냈습니다' : '받을 휴대폰이 없습니다');
+      return true;
+    } catch (e) { toast('보내지 못했습니다: ' + (e.message || '')); return false; }
+    finally { btn.disabled = false; btn.textContent = label; }
+  }
+
+  // ── 공지 ──
+  const tpls = {
+    '공지': [['수련 시간 변경', '수련 시간 변경 안내', '○월 ○일부터 수련 시간이 아래와 같이 바뀝니다.\n\n']],
+    '휴관': [['휴관일', '○월 ○일(○) 휴관 안내', '○월 ○일(○)은 휴관합니다.\n○일(○)부터 정상 수련합니다.'], ['명절', '명절 휴관 안내', '○월 ○일(○)부터 ○일(○)까지 명절 휴관입니다.\n즐거운 명절 보내십시오.']],
+    '행사': [['심사', '○월 승급·승품 심사 안내', '일시: ○월 ○일(○) ○시\n장소: 해랑경희 태권도장\n준비물: 도복, 띠'], ['행사', '○○ 행사 안내', '일시:\n장소:\n준비물:\n']],
+  };
+  let nKind = '공지';
+  function renderTpl() { $('nTpl').innerHTML = tpls[nKind].map((t, i) => '<button data-i="' + i + '">' + esc(t[0]) + ' 양식</button>').join(''); }
+  $('nKind').onclick = e => { const b = e.target.closest('button'); if (!b) return; nKind = b.textContent; [...$('nKind').children].forEach(x => x.classList.toggle('on', x === b)); renderTpl(); };
+  $('nTpl').onclick = e => { const b = e.target.closest('button'); if (!b) return; const t = tpls[nKind][b.dataset.i]; $('nTitle').value = t[1]; $('nBody').value = t[2]; pvN(); };
+  const pvN = () => { $('nPvT').textContent = $('nTitle').value || '제목'; $('nPvB').textContent = $('nBody').value; };
+  $('nTitle').oninput = pvN; $('nBody').oninput = pvN; renderTpl();
+  $('nSend').onclick = async () => {
+    const title = $('nTitle').value.trim(), body = $('nBody').value.trim();
+    if (!title) { toast('제목을 적어 주세요'); return; }
+    if (/○/.test(title + body) && !confirm('○ 표시가 남아 있습니다. 그대로 보낼까요?')) return;
+    if (!confirm('알림을 켠 모든 학부모님께 보냅니다.\n\n' + title)) return;
+    if (await sendAll($('nSend'), { kind: nKind, title, body })) { $('nTitle').value = ''; $('nBody').value = ''; pvN(); loadSent(); }
+  };
+
+  async function loadSent() {
+    try {
+      const j = await (await fetch(API + '/notices', { cache: 'no-store' })).json();
+      const list = j.notices || [];
+      $('sentList').innerHTML = list.length ? list.map(n => '<li class="nt"><div><b>[' + esc(n.kind) + '] ' + esc(n.title) + '</b><small>' + new Date(n.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '</small></div><button data-id="' + esc(n.id) + '">목록에서 지우기</button></li>').join('') : '<li class="empty">보낸 공지가 없습니다</li>';
+    } catch (_) {}
+  }
+  $('sentList').onclick = async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (!confirm('학부모님 화면의 공지 목록에서 지웁니다. 이미 받은 알림은 지워지지 않습니다.')) return;
+    await post('/admin/delete-notice', { id: b.dataset.id }); loadSent();
+  };
+
+  // ── 회비 ──
+  const m = new Date().getMonth() + 1;
+  $('fTitle').value = m + '월 회비 안내';
+  $('fBody').value = m + '월 회비 납부 기간입니다.\n○일까지 납부 부탁드립니다.\n\n계좌: \n문의: 도장으로 연락 주십시오.';
+  let fMode = 'all';
+  const picked = new Set();
+  $('fTarget').onclick = e => { const b = e.target.closest('button'); if (!b) return; fMode = b.dataset.v; [...$('fTarget').children].forEach(x => x.classList.toggle('on', x === b)); $('fPick').hidden = fMode !== 'pick'; };
+  function renderChecks() {
+    const q = $('fq').value.replace(/\s+/g, '');
+    $('fChecks').innerHTML = children.filter(c => !q || c.name.includes(q)).map(c => '<label><input type="checkbox" value="' + esc(c.name) + '"' + (picked.has(c.name) ? ' checked' : '') + '>' + esc(c.name) + '</label>').join('') || '<p class="hint">등록한 아이가 없습니다</p>';
+    $('fCount').textContent = picked.size ? picked.size + '명 선택' : '';
+  }
+  $('fq').oninput = renderChecks;
+  $('fChecks').onchange = e => { const v = e.target.value; e.target.checked ? picked.add(v) : picked.delete(v); $('fCount').textContent = picked.size ? picked.size + '명 선택' : ''; };
+  const pvF = () => { $('fPvT').textContent = $('fTitle').value || '제목'; $('fPvB').textContent = $('fBody').value; };
+  $('fTitle').oninput = pvF; $('fBody').oninput = pvF; pvF();
+  $('fSend').onclick = async () => {
+    const title = $('fTitle').value.trim(), body = $('fBody').value.trim();
+    if (!title) { toast('제목을 적어 주세요'); return; }
+    const kids = fMode === 'pick' ? [...picked] : [];
+    if (fMode === 'pick' && !kids.length) { toast('아이를 골라 주세요'); return; }
+    if (/○/.test(title + body) && !confirm('○ 표시가 남아 있습니다. 그대로 보낼까요?')) return;
+    if (!confirm((kids.length ? kids.join(', ') + ' 학부모님께' : '알림을 켠 모든 학부모님께') + ' 보냅니다.\n\n' + title)) return;
+    if (await sendAll($('fSend'), { kind: '회비', title, body, children: kids })) { picked.clear(); renderChecks(); loadSent(); }
+  };
+
+  // ── 시작 ──
+  (async () => {
+    if (!API) { $('login').hidden = false; $('loginMsg').textContent = '알림 서버 주소(config.js)가 아직 비어 있습니다.'; $('loginBtn').disabled = true; return; }
+    let saved = ''; try { saved = localStorage.getItem(PW) || ''; } catch (_) {}
+    if (saved && !(await login(saved))) return;
+    $('login').hidden = false;
+  })();
+  addEventListener('visibilitychange', () => { if (!document.hidden && pw && !$('app').hidden) renderKids(); });
+})();
+</script>
+</body>
+</html>
