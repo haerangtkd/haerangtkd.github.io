@@ -93,6 +93,19 @@
   .nt small{font-size:12px;color:var(--muted)}
   .nt .thumbs{display:flex;gap:4px;margin-top:6px}
   .nt .thumbs img{width:44px;height:44px;border-radius:6px;object-fit:cover;background:#EEE9E4}
+  .nt .act{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .nt button.rd{background:#FFF3E3;color:#9A5A12;font-weight:700}
+  .nt button.rd.all{background:#E6F3EC;color:var(--ok)}
+  .sheet{position:fixed;inset:0;z-index:30;background:rgba(20,10,10,.4);display:flex;align-items:flex-end;justify-content:center}
+  .sheet .in{background:#fff;width:100%;max-width:640px;max-height:80vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom))}
+  .sheet .sh-h{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .sheet .sh-h b{flex:1;font-size:16px}
+  .sheet .sh-h button{border:0;background:#F1ECE7;border-radius:8px;padding:6px 12px;font-size:13px}
+  .sheet h4{font-size:14px;font-weight:900;margin:14px 0 4px}
+  .sheet ul{list-style:none}
+  .sheet li{display:flex;gap:6px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}
+  .sheet li span{margin-left:auto;font-size:12.5px;color:var(--muted)}
+  .sheet .muted{color:var(--muted)}
   .nt button{border:0;background:#F1ECE7;color:var(--muted);border-radius:8px;padding:6px 10px;font-size:12.5px;white-space:nowrap}
 
   /* 회비 */
@@ -210,6 +223,10 @@
         <textarea id="feeBody" maxlength="3000"></textarea>
         <p class="hint" style="margin-top:8px">학부모님 앱의 회비 화면에 남고, 알림도 갑니다. 아이를 지정한 안내는 그 보호자만 봅니다.</p>
         <button class="btn" id="feeSend">보내기</button>
+      </div>
+      <div class="card">
+        <h2>보낸 회비 안내</h2>
+        <ul class="list" id="feeSent"></ul>
       </div>
     </section>
 
@@ -466,9 +483,23 @@
     $('nList').innerHTML = j.items.length ? j.items.map(x => '<li class="nt"><div><b>' + (x.pin ? '📌 ' : '') + (x.kind ? '[' + esc(x.kind) + '] ' : '') + esc(x.title) + '</b><small>' +
       (x.date ? x.date.slice(5).replace('-', '/') + ' (' + WD[new Date(x.date + 'T00:00:00Z').getUTCDay()] + ')' : when(x.at)) + (x.target && x.target.length ? ' · ' + x.target.map(esc).join(', ') : '') + (x.photos && x.photos.length ? ' · 사진 ' + x.photos.length + '장' : '') + '</small>' +
       (x.photos && x.photos.length ? '<div class="thumbs">' + x.photos.slice(0, 6).map(p => '<img data-ph="' + esc(p) + '">').join('') + '</div>' : '') +
-      '</div><button data-id="' + x.id + '">지우기</button></li>').join('') : '<li class="empty">아직 없습니다</li>';
+      '</div><div class="act">' + (t !== 'schedule' ? '<button class="rd' + (x.audience && x.reads >= x.audience ? ' all' : '') + '" data-r="' + x.id + '">읽음 ' + x.reads + '/' + x.audience + '</button>' : '') + '<button data-id="' + x.id + '">지우기</button></div></li>').join('') : '<li class="empty">아직 없습니다</li>';
     $('nList').querySelectorAll('img[data-ph]').forEach(async img => { const r = await post('/admin/photo', { id: img.dataset.ph, size: 'thumb' }); if (r.ok) img.src = 'data:image/jpeg;base64,' + r.data; });
   }
+  // 읽은 사람 보기
+  async function showReads(id, title) {
+    const j = await post('/admin/reads', { id });
+    if (!j.ok) return toast(j.error || '불러오지 못했습니다');
+    const row = x => '<li><b>' + x.kids.map(esc).join(', ') + '</b> ' + esc(x.rel) + (x.at ? '<span>' + when(x.at) + '</span>' : '') + '</li>';
+    const sh = document.createElement('div'); sh.className = 'sheet';
+    sh.innerHTML = '<div class="in"><div class="sh-h"><b>' + esc(title) + '</b><button class="x">닫기</button></div>' +
+      '<h4>읽음 ' + j.read.length + '명</h4><ul>' + (j.read.map(row).join('') || '<li class="muted">아직 없습니다</li>') + '</ul>' +
+      '<h4>안 읽음 ' + j.unread.length + '명</h4><ul>' + (j.unread.map(row).join('') || '<li class="muted">모두 읽었습니다</li>') + '</ul>' +
+      '<p class="hint" style="margin-top:12px">학부모님 앱에서 게시물이 화면에 보이면 읽음으로 표시됩니다. 알림을 켜 둔 보호자 기준이 아니라 승인된 보호자 전체 기준입니다.</p></div>';
+    sh.onclick = e => { if (e.target === sh || e.target.closest('.x')) sh.remove(); };
+    document.body.appendChild(sh);
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('button.rd'); if (b) { const li = b.closest('li'); showReads(+b.dataset.r, li ? li.querySelector('b').textContent : ''); } });
   $('nList').onclick = async e => {
     const b = e.target.closest('button[data-id]'); if (!b) return;
     if (!confirm('지울까요? 학부모님 앱에서도 사라집니다. (이미 간 알림은 지워지지 않습니다)')) return;
@@ -484,7 +515,7 @@
     const j = await post('/admin/fees', { month: fMonth });
     if (!j.ok) return;
     fees = {}; j.items.forEach(x => fees[x.name] = !!x.paid);
-    renderFees();
+    renderFees(); loadFeeSent();
     const m = +fMonth.slice(5);
     $('feeTitle').value = m + '월 회비 안내';
     if (!$('feeBody').dataset.edited) $('feeBody').value = m + '월 회비 납부 기간입니다.\n○일까지 납부 부탁드립니다.\n\n계좌: \n문의: 도장으로 연락 주십시오.';
@@ -515,9 +546,19 @@
       const j = await post('/admin/post-save', { type: 'fee', kind: '회비', title, body: bodyT, target });
       if (!j.ok) throw new Error(j.error);
       const r = await pushAll({ title: '[회비] ' + title, body: bodyT.slice(0, 120), kind: '회비', children: target, view: 'fee' }, btn);
-      toast('보냈습니다 · 휴대폰 ' + r.sent + '대');
+      toast('보냈습니다 · 휴대폰 ' + r.sent + '대'); loadFeeSent();
     } catch (e) { toast('실패했습니다: ' + (e.message || '')); }
     finally { btn.disabled = false; btn.textContent = '보내기'; }
+  };
+
+  async function loadFeeSent() {
+    const j = await post('/admin/posts', { type: 'fee' }); if (!j.ok) return;
+    $('feeSent').innerHTML = j.items.length ? j.items.slice(0, 20).map(x => '<li class="nt"><div><b>' + esc(x.title) + '</b><small>' + when(x.at) + (x.target.length ? ' · ' + x.target.map(esc).join(', ') : ' · 전체') + '</small></div><div class="act"><button class="rd' + (x.audience && x.reads >= x.audience ? ' all' : '') + '" data-r="' + x.id + '">읽음 ' + x.reads + '/' + x.audience + '</button><button data-id="' + x.id + '">지우기</button></div></li>').join('') : '<li class="empty">아직 없습니다</li>';
+  }
+  $('feeSent').onclick = async e => {
+    const b = e.target.closest('button[data-id]'); if (!b) return;
+    if (!confirm('지울까요? 학부모님 앱 회비 화면에서도 사라집니다.')) return;
+    await post('/admin/post-delete', { id: +b.dataset.id }); loadFeeSent();
   };
 
   // ═════ 명단 ═════

@@ -24,6 +24,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS fees (month TEXT, name TEXT, paid INTEGER, at INTEGER, PRIMARY KEY (month, name))',
   'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER)',
   'CREATE TABLE IF NOT EXISTS kiosks (tok TEXT PRIMARY KEY, created INTEGER)',
+  'CREATE TABLE IF NOT EXISTS reads (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))',
 ];
 let ready = false;
 async function setup(env) {
@@ -92,6 +93,12 @@ async function route(path, req, env) {
       const s = b.subscription;
       if (s && s.endpoint && s.keys) await run(env, 'UPDATE parents SET ep = ?, p256 = ?, auth = ? WHERE id = ?', s.endpoint, s.keys.p256dh, s.keys.auth, p.id);
       else await run(env, 'UPDATE parents SET ep = NULL, p256 = NULL, auth = NULL WHERE id = ?', p.id);
+      return json({ ok: true });
+    }
+    if (path === '/p/read') { // 게시물을 화면에서 본 기록 (밴드의 '읽음'처럼)
+      if (!p.ok) return json({ ok: true });
+      const ids = (Array.isArray(b.ids) ? b.ids : []).map(x => x | 0).filter(x => x > 0).slice(0, 30);
+      if (ids.length) await env.DB.batch(ids.map(id => q(env, 'INSERT OR IGNORE INTO reads (post, parent, at) VALUES (?, ?, ?)', id, p.id, Date.now())));
       return json({ ok: true });
     }
     if (path === '/p/leave') { await run(env, 'DELETE FROM parents WHERE id = ?', p.id); return json({ ok: true }); }
@@ -230,12 +237,35 @@ async function route(path, req, env) {
       const p = await one(env, 'SELECT photos FROM posts WHERE id = ?', b.id | 0);
       if (p) for (const ph of J(p.photos, [])) await run(env, 'DELETE FROM photos WHERE id = ?', ph);
       await run(env, 'DELETE FROM posts WHERE id = ?', b.id | 0);
+      await run(env, 'DELETE FROM reads WHERE post = ?', b.id | 0);
       return json({ ok: true });
     }
     if (path === '/admin/posts') {
       const type = POST_TYPES.includes(b.type) ? b.type : 'notice';
       if (type === 'schedule') return json({ ok: true, items: await listSchedule(env, b.month) });
-      return json({ ok: true, items: await listPosts(env, type, null, 100, true) });
+      const items = await listPosts(env, type, null, 100, true);
+      // 읽음 수: 대상 보호자(승인된 사람) 중 몇 명이 봤는지
+      const parents = (await all(env, 'SELECT id, kids FROM parents WHERE ok = 1')).map(p => ({ id: p.id, kids: J(p.kids, []) }));
+      const rr = items.length ? await all(env, 'SELECT post, parent FROM reads WHERE post IN (' + items.map(() => '?').join(',') + ')', ...items.map(it => it.id)) : [];
+      for (const it of items) {
+        const aud = parents.filter(p => !it.target.length || p.kids.some(k => it.target.includes(k)));
+        const readers = new Set(rr.filter(r => r.post === it.id).map(r => r.parent));
+        it.reads = aud.filter(p => readers.has(p.id)).length; it.audience = aud.length;
+      }
+      return json({ ok: true, items });
+    }
+    if (path === '/admin/reads') {
+      const post = await one(env, 'SELECT target FROM posts WHERE id = ?', b.id | 0);
+      if (!post) return json({ ok: false, error: '지워진 게시물입니다' });
+      const target = J(post.target, []);
+      const parents = (await all(env, 'SELECT id, kids, rel FROM parents WHERE ok = 1')).map(p => ({ id: p.id, kids: J(p.kids, []), rel: p.rel }))
+        .filter(p => !target.length || p.kids.some(k => target.includes(k)));
+      const reads = await all(env, 'SELECT parent, at FROM reads WHERE post = ?', b.id | 0);
+      const at = {}; reads.forEach(r => at[r.parent] = r.at);
+      const who = p => ({ kids: target.length ? p.kids.filter(k => target.includes(k)) : p.kids, rel: p.rel });
+      return json({ ok: true,
+        read: parents.filter(p => at[p.id]).sort((x, y) => at[x.id] - at[y.id]).map(p => ({ ...who(p), at: at[p.id] })),
+        unread: parents.filter(p => !at[p.id]).map(who) });
     }
     if (path === '/admin/photo-upload') {
       const full = String(b.full || ''), thumb = String(b.thumb || '');

@@ -470,7 +470,25 @@
   }
   $('pClose').onclick = () => { if (history.state && history.state.p) history.back(); else { $('v-page').hidden = true; history.replaceState(null, '', location.pathname); } };
   addEventListener('popstate', () => { const h = location.hash.slice(1); if (PAGES[h] && me()) openPage(h, false); else $('v-page').hidden = true; });
-  const body = html => { $('pBody').innerHTML = html; };
+  const body = html => { $('pBody').innerHTML = html; watchReads(); };
+
+  // ── 읽음 기록: 게시물이 화면에 보이면 관장님 쪽에 '읽음'으로 알림 ──
+  const RK = 'haerang-read';
+  let sentReads = new Set(store.get(RK) || []), readQ = new Set(), readT = null, io = null;
+  function watchReads() {
+    if (!me() || !me().approved || !('IntersectionObserver' in window)) return;
+    if (io) io.disconnect();
+    io = new IntersectionObserver(es => {
+      es.forEach(e => { if (e.isIntersecting) { const id = +e.target.dataset.pid; io.unobserve(e.target); if (id && !sentReads.has(id)) readQ.add(id); } });
+      if (readQ.size) { clearTimeout(readT); readT = setTimeout(flushReads, 700); }
+    }, { threshold: 0.01 });
+    document.querySelectorAll('#pBody [data-pid]').forEach(el => io.observe(el));
+  }
+  async function flushReads() {
+    const ids = [...readQ].slice(0, 30); ids.forEach(i => readQ.delete(i));
+    try { const j = await post('/p/read', { ids }); if (j.ok) { ids.forEach(i => sentReads.add(i)); store.set(RK, [...sentReads].slice(-800)); } } catch (_) { ids.forEach(i => readQ.add(i)); }
+    if (readQ.size) readT = setTimeout(flushReads, 700);
+  }
   const failed = j => {
     if (j && j.pending) { body('<div class="empty">관장님 확인 후에 볼 수 있습니다</div>'); return true; }
     if (!j || !j.ok) { body('<div class="empty">불러오지 못했습니다</div>'); return true; }
@@ -482,7 +500,7 @@
     const mine = (me().children || []);
     const tags = (x.pin ? '<span class="tag pin">중요</span>' : '') + (x.kind ? '<span class="tag ' + esc(x.kind) + '">' + esc(x.kind) + '</span>' : '') +
       (opts.kids && x.target && x.target.length ? x.target.filter(t => mine.includes(t)).map(t => '<span class="tag kid">' + esc(t) + '</span>').join('') : '');
-    return '<article class="post"><div class="day"><b>' + d.d + '</b><small>' + d.w + '요일</small></div><div class="ct">' + (tags ? '<div class="tags">' + tags + '</div>' : '') +
+    return '<article class="post" data-pid="' + (x.id | 0) + '"><div class="day"><b>' + d.d + '</b><small>' + d.w + '요일</small></div><div class="ct">' + (tags ? '<div class="tags">' + tags + '</div>' : '') +
       '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p class="clip">' + esc(x.body) + '</p>' : '') + '<div class="meta">' + dateText(x.at) + '</div></div></article>';
   }
   function grouped(items, card) {
@@ -512,7 +530,7 @@
       if (!j.items.length) return body('<div class="empty">아직 올라온 사진이 없습니다</div>');
       body(j.items.map((a, ai) => {
         const n = a.photos.length, shown = a.photos.slice(0, 6);
-        return '<section class="album"><h3>' + esc(a.title) + '</h3><div class="meta">' + dateText(a.at) + ' · 사진 ' + n + '장</div>' + (a.body ? '<p>' + esc(a.body) + '</p>' : '') +
+        return '<section class="album" data-pid="' + (a.id | 0) + '"><h3>' + esc(a.title) + '</h3><div class="meta">' + dateText(a.at) + ' · 사진 ' + n + '장</div>' + (a.body ? '<p>' + esc(a.body) + '</p>' : '') +
           '<div class="ph-grid n' + Math.min(n, 3) + '">' + shown.map((p, i) => '<button data-a="' + ai + '" data-i="' + i + '"><img data-ph="' + esc(p) + '" alt="">' + (i === 5 && n > 6 ? '<span class="more">+' + (n - 6) + '</span>' : '') + '</button>').join('') + '</div></section>';
       }).join(''));
       loadThumbs();
@@ -586,7 +604,7 @@
           if (!confirm('이 휴대폰의 등록을 해제할까요? 알림과 알림장을 더 이상 볼 수 없습니다.')) return;
           await post('/p/leave');
           try { const sub = reg && await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (_) {}
-          store.set(LS, null); store.set(SEEN, null); $('v-page').hidden = true; history.replaceState(null, '', location.pathname);
+          store.set(LS, null); store.set(SEEN, null); store.set(RK, null); sentReads = new Set(); $('v-page').hidden = true; history.replaceState(null, '', location.pathname);
           fillJoin(null); show('v-gate', 'g-join'); toast('등록을 해제했습니다');
         }
       };
