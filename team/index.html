@@ -255,6 +255,8 @@
   .todo.done .t b{color:#A5ACBA;text-decoration:line-through}
   /* 대시보드 숫자 칸 */
   .joinq .mem .btn{padding:7px 14px}
+  .ktm{font-size:12px;color:var(--muted);font-weight:500;margin-right:2px}.kid.done .ktm{color:var(--brand)}
+  .dtrow{display:flex;align-items:center;gap:8px;padding:3px 0}.dtrow input{border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-size:14px;width:110px}.dtrow span{flex:1}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
   .kpis button{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 6px 9px;display:flex;flex-direction:column;align-items:center;gap:1px}
   .kpis small{font-size:12px;color:var(--muted);white-space:nowrap}
@@ -560,7 +562,7 @@ async function sync(first) {
   if (syncing || !S.tok) return; syncing = true;
   const j = await api('/api/sync', first ? {} : { since: S.since, lastMsg: S.lastMsg });
   syncing = false; if (!j.ok) return false;
-  S.me = j.me; S.members = j.members; S.pickupDefault = j.pickupDefault || {};
+  S.me = j.me; S.members = j.members; S.pickupDefault = j.pickupDefault || {}; S.pickupTimes = j.pickupTimes || S.pickupTimes || {};
   let changed = false, newIn = false;
   const jn = JSON.stringify(j.joins || []); if (jn !== JSON.stringify(S.joins || [])) { S.joins = j.joins || []; changed = true; }
   for (const m of j.msgs) {
@@ -725,10 +727,12 @@ async function savePickup(p, what) {
 }
 const SHORT = [['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
 // 등원·픽업 칸 (대시보드)
+const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
-  const t = today(), hd = S.homeDay, p = pickupFor(hd), kids = [...new Set([...p.list, ...p.absent])];
+  const t = today(), hd = S.homeDay, p = pickupFor(hd), tm = (S.pickupTimes || {})[wd(hd)] || {};
+  const kids = [...new Set([...p.list, ...p.absent])].sort((a, b) => (tm[a] || '99').localeCompare(tm[b] || '99'));
   return '<div class="sec" id="pkSec"><div class="sh"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button><button class="lbtn" id="pkEdit">명단 수정</button></div>' +
-    (kids.length ? '<div id="pkL">' + kids.map(k => '<button class="kid' + (p.absent.includes(k) ? ' ab' : p.done.includes(k) ? ' done' : '') + '" data-k="' + esc(k) + '">' + (p.done.includes(k) ? '✓ ' : '') + esc(k) + '</button>').join('') + '</div><p class="hint" style="margin:6px 0 0">누르면 데려옴 ✓ / 길게 누르면 결석</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 아이가 없어요. 명단 수정이나 설정의 요일별 기본 명단에서 넣어 주세요.') + '</p>') +
+    (kids.length ? '<div id="pkL">' + kids.map(k => '<button class="kid' + (p.absent.includes(k) ? ' ab' : p.done.includes(k) ? ' done' : '') + '" data-k="' + esc(k) + '">' + (p.done.includes(k) ? '✓ ' : '') + (tm[k] ? '<small class="ktm">' + tmKo(tm[k]) + '</small>' : '') + esc(k) + '</button>').join('') + '</div><p class="hint" style="margin:6px 0 0">누르면 데려옴 ✓ / 길게 누르면 결석</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 아이가 없어요. 명단 수정이나 설정의 요일별 기본 명단에서 넣어 주세요.') + '</p>') +
     (p.memos.length ? p.memos.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '') + '</div>';
 }
 // ═════════ 대시보드 (한눈에: 오늘 할 일 · 현재 행사 · 등원 · 일정) ═════════
@@ -1340,11 +1344,13 @@ function settingsSheet() {
     '<h3>홈 화면 위젯</h3><p class="help">이 앱은 홈 화면 위젯을 만들 수 없어요. 대신 앱 아이콘에 남은 할 일·새 채팅 수가 숫자로 떠요(설치한 앱에서 알림을 켰을 때).</p>' +
     '<div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', async ov => {
     const g = id => ov.querySelector('#' + id);
-    const def = JSON.parse(JSON.stringify(S.pickupDefault || {}));
-    const drawDef = () => { g('sDef').innerHTML = WEEK.map(w => '<div class="defrow"><b>' + w + '</b><div class="chips" style="flex:1">' + (def[w] || []).map(n => '<button class="on" data-w="' + w + '" data-n="' + esc(n) + '">' + esc(n) + ' ✕</button>').join('') + '<button data-addw="' + w + '">+ 추가</button></div></div>').join(''); };
+    const def = JSON.parse(JSON.stringify(S.pickupDefault || {})), tms = JSON.parse(JSON.stringify(S.pickupTimes || {}));
+    const drawDef = () => { g('sDef').innerHTML = WEEK.map(w => { const tw = tms[w] = tms[w] || {}; const l = (def[w] || []).slice().sort((a, b) => (tw[a] || '99').localeCompare(tw[b] || '99'));
+      return '<div class="defrow"><b>' + w + '</b><div style="flex:1">' + l.map(n => '<div class="dtrow"><input type="time" data-tw="' + w + '" data-tn="' + esc(n) + '" value="' + esc(tw[n] || '') + '"><span>' + esc(n) + '</span><button class="lbtn" data-w="' + w + '" data-n="' + esc(n) + '">✕</button></div>').join('') + '<div class="chips"><button data-addw="' + w + '">+ 추가</button></div></div></div>'; }).join(''); };
+    g('sDef').addEventListener('change', e => { const i = e.target.closest('[data-tw]'); if (!i) return; tms[i.dataset.tw][i.dataset.tn] = i.value; });
     drawDef();
     g('sDef').onclick = async e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.n) { def[b.dataset.w] = def[b.dataset.w].filter(x => x !== b.dataset.n); return drawDef(); } const w = b.dataset.addw; addPeople({ rows: (def[w] || []).map(n => ({ name: n })) }, list => { def[w] = [...new Set([...(def[w] || []), ...list.map(x => x.name)])]; drawDef(); }); };
-    g('sDefSave').onclick = async () => { const j = await api('/api/pickup-default', { def }); if (j.ok) { S.pickupDefault = def; render(); toast('저장했어요'); } else toast(j.error); };
+    g('sDefSave').onclick = async () => { const j = await api('/api/pickup-default', { def, times: tms }); if (j.ok) { S.pickupDefault = def; S.pickupTimes = tms; render(); toast('저장했어요'); } else toast(j.error); };
     if (g('sOn')) g('sOn').onclick = async () => { closeSheet(); await enablePush(); };
     if (g('sOff')) g('sOff').onclick = async () => { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) { await api('/api/push', { endpoint: sub.endpoint }); await sub.unsubscribe(); } localStorage.removeItem('haerang-team-push'); closeSheet(); render(); toast('알림을 껐어요'); };
     if (g('sTest')) g('sTest').onclick = async () => { const j = await api('/api/push-test'); toast(j.sent ? '시험 알림을 보냈어요' : '보내지 못했어요. 알림을 다시 켜 주세요'); };
