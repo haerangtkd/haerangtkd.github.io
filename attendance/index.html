@@ -884,23 +884,79 @@ $('moQ').oninput = () => renderMonth();
 $('moTable').onclick = e => { const th = e.target.closest('th[data-d]'); if (th) goDay(th.dataset.d); };
 $('moPdf').onclick = () => printMonth(S.month);
 async function printMonth(ym) {
+  // 인쇄 창 대신 가로 A4 PDF 파일을 직접 만들어 내려받음 (휴대폰에서도 항상 가로)
+  toast('PDF 만드는 중…');
   await loadMonth(ym);
+  try { await document.fonts.ready; } catch (_) {}
   const t = today(), list = monthStudents(ym).filter(s => matchG(s, S.grp.mo)), days = showDays(ym), PAGE = 14;
-  const title = ym.slice(2, 4) + ym.slice(5) + ' 출석부';
-  const head = '<tr><th style="width:52px">이름</th><th style="width:26px">학년</th><th style="width:32px">출석<br>번호</th><th style="width:36px">횟수</th>' + days.map((d, i) => '<th class="' + (i && wd(d) === '월' ? 'wk' : '') + '">' + (+d.slice(8)) + '</th>').join('') + '<th style="width:28px">출석</th><th style="width:28px">결석</th></tr>';
-  let out = '';
-  for (let p = 0; p * PAGE < Math.max(list.length, 1); p++) {
-    out += '<div class="pp"><h1>' + title + '</h1><table>' + head;
-    for (const s of list.slice(p * PAGE, p * PAGE + PAGE)) {
-      const st = monthStats(s, ym, t);
-      out += '<tr><td class="pn">' + esc(s.name) + '</td><td>' + esc(grade(s, ym + '-15').label) + '</td><td>' + esc(s.no) + '</td><td>' + esc(daysShort(s.days).replace(/·/g, '')) + '</td>' +
-        days.map((d, i) => { const c = cell(s, d); const wk = i && wd(d) === '월' ? ' wk' : ''; if (c.k === 'x' && c.w) return '<td class="ps' + wk + '">' + esc(c.w) + '</td>'; return '<td class="pv' + wk + '">' + esc(c.k === 'o' ? (c.p || 'O') : c.k === 'x' ? 'X' : c.k === 'leave' ? '—' : '') + '</td>'; }).join('') +
-        '<td>' + st.o + '</td><td>' + (st.x || '') + '</td></tr>';
-    }
-    out += '</table><div class="pg">' + (p + 1) + ' / ' + Math.max(1, Math.ceil(list.length / PAGE)) + '쪽</div></div>';
+  const title = ym.slice(2, 4) + ym.slice(5) + ' 출석부', pages = Math.max(1, Math.ceil(list.length / PAGE));
+  const W = 2339, H = 1654, M = 40, F = "'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+  const fixed = [['이름', 150], ['학년', 90], ['출석\n번호', 95], ['횟수', 110]], tail = [['출석', 80], ['결석', 80]];
+  const dayW = (W - 2 * M - fixed.reduce((a, c) => a + c[1], 0) - tail.reduce((a, c) => a + c[1], 0)) / days.length;
+  const cols = [...fixed.map(c => ({ h: c[0], w: c[1] })), ...days.map(d => ({ h: String(+d.slice(8)), w: dayW, d })), ...tail.map(c => ({ h: c[0], w: c[1] }))];
+  const top = 120, headH = 70, rowH = (H - 60 - top - headH) / PAGE;
+  const jpegs = [];
+  for (let p = 0; p < pages; p++) {
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#111'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '700 46px ' + F; g.fillText(title, W / 2, 68);
+    const rows = list.slice(p * PAGE, p * PAGE + PAGE);
+    const text = (str, x, y, w, h, size, bold) => {
+      g.font = (bold ? '700 ' : '400 ') + size + 'px ' + F;
+      const lines = []; let cur = '';
+      for (const ch of String(str)) { if (ch === '\n') { lines.push(cur); cur = ''; continue; } if (g.measureText(cur + ch).width > w - 8 && cur) { lines.push(cur); cur = ch; } else cur += ch; }
+      lines.push(cur);
+      const show = lines.slice(0, 3), lh = size * 1.15;
+      show.forEach((l, k) => g.fillText(l, x + w / 2, y + h / 2 + (k - (show.length - 1) / 2) * lh));
+    };
+    let x = M;
+    cols.forEach((c, ci) => {
+      text(c.h, x, top, c.w, headH, 24, true);
+      rows.forEach((s, ri) => {
+        const y = top + headH + ri * rowH; let v = '', size = 30, bold = true;
+        if (ci === 0) { v = s.name; size = 26; } else if (ci === 1) { v = grade(s, ym + '-15').label; size = 22; bold = false; } else if (ci === 2) { v = s.no || ''; size = 22; bold = false; } else if (ci === 3) { v = daysShort(s.days).replace(/·/g, ''); size = 22; bold = false; }
+        else if (c.d) { const cl = cell(s, c.d); if (cl.k === 'x' && cl.w) { v = cl.w; size = 18; bold = false; } else v = cl.k === 'o' ? (cl.p || 'O') : cl.k === 'x' ? 'X' : cl.k === 'leave' ? '—' : ''; if (v.length > 3 && cl.k === 'o') size = 22; }
+        else { const st = monthStats(s, ym, t); v = c.h === '출석' ? st.o : (st.x || ''); size = 24; bold = false; }
+        text(v, x, y, c.w, rowH, size, bold);
+      });
+      x += c.w;
+    });
+    // 선
+    const bottom = top + headH + rows.length * rowH;
+    g.strokeStyle = '#222'; g.lineWidth = 2;
+    for (let r = 0; r <= rows.length + 1; r++) { const y = r === 0 ? top : top + headH + (r - 1) * rowH; g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); }
+    x = M;
+    cols.forEach((c, ci) => { g.lineWidth = c.d && ci > fixed.length && wd(c.d) === '월' ? 6 : 2; g.beginPath(); g.moveTo(x, top); g.lineTo(x, bottom); g.stroke(); x += c.w; });
+    g.lineWidth = 2; g.beginPath(); g.moveTo(W - M, top); g.lineTo(W - M, bottom); g.stroke();
+    g.font = '400 20px ' + F; g.textAlign = 'right'; g.fillStyle = '#666'; g.fillText((p + 1) + ' / ' + pages + '쪽', W - M, H - 30);
+    const url = cv.toDataURL('image/jpeg', 0.9);
+    jpegs.push({ w: W, h: H, bytes: Uint8Array.from(atob(url.split(',')[1]), c => c.charCodeAt(0)) });
   }
-  $('print').innerHTML = out;
-  setTimeout(() => window.print(), 300);
+  const blob = makePdf(jpegs);
+  const name = ym.slice(2, 4) + ym.slice(5) + '_출석부.pdf';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  toast('PDF를 내려받았어요 (' + pages + '쪽)');
+}
+function makePdf(imgs) { // JPEG 이미지를 가로 A4(842×595pt) 페이지로 넣은 PDF
+  const enc = new TextEncoder(), parts = [], offs = []; let len = 0;
+  const push = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const obj = (id, ...body) => { offs[id] = len; push(id + ' 0 obj\n'); body.forEach(push); push('\nendobj\n'); };
+  push('%PDF-1.4\n');
+  const n = imgs.length, pid = i => 3 + i * 3;
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Kids [' + imgs.map((_, i) => pid(i) + ' 0 R').join(' ') + '] /Count ' + n + ' >>');
+  imgs.forEach((im, i) => {
+    const p = pid(i), c = p + 1, m = p + 2, cs = 'q 842 0 0 595 0 0 cm /Im0 Do Q';
+    obj(p, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 ' + m + ' 0 R >> >> /Contents ' + c + ' 0 R >>');
+    obj(c, '<< /Length ' + cs.length + ' >>\nstream\n' + cs + '\nendstream');
+    obj(m, '<< /Type /XObject /Subtype /Image /Width ' + im.w + ' /Height ' + im.h + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + im.bytes.length + ' >>\nstream\n', im.bytes, '\nendstream');
+  });
+  const total = 3 + n * 3, xref = len;
+  let x = 'xref\n0 ' + total + '\n0000000000 65535 f \n';
+  for (let i = 1; i < total; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+  push(x + 'trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
+  return new Blob(parts, { type: 'application/pdf' });
 }
 
 // ═════════════ 사범님 공간 ═════════════
