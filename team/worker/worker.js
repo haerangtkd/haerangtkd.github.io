@@ -31,7 +31,9 @@ const SCHEMA = [
   'CREATE INDEX IF NOT EXISTS logs_at ON logs (at)',
 ];
 // 예전 표에 새 칸 붙이기 (답장·반응·수정 시각) — 이미 있으면 그냥 넘어감
-const ALTERS = ['ALTER TABLE msgs ADD COLUMN reply TEXT', 'ALTER TABLE msgs ADD COLUMN rx TEXT', 'ALTER TABLE msgs ADD COLUMN upd INTEGER'];
+const ALTERS = ['ALTER TABLE msgs ADD COLUMN reply TEXT', 'ALTER TABLE msgs ADD COLUMN rx TEXT', 'ALTER TABLE msgs ADD COLUMN upd INTEGER', 'ALTER TABLE msgs ADD COLUMN room TEXT'];
+// 채팅방: '' = 직원 단체방, 'dm:<id>:<id>' = 1:1 (두 사람 id를 정렬해서)
+const roomOk = (room, me) => room === '' || (/^dm:[0-9a-f]+:[0-9a-f]+$/.test(room) && room.split(':').includes(me));
 let ready = false;
 async function setup(env) {
   if (ready) return;
@@ -96,8 +98,8 @@ async function route(path, req, env, ctx) {
   const me = await auth(env, b.tok);
   if (!me) return json({ ok: false, error: '다시 로그인해 주세요', relogin: true }, 401);
   // 알림 보내기 + (채팅 말고는) 알림 기록에 남기기
-  const notify = (title, body, view, ref) => {
-    ctx.waitUntil(pushAll(env, me.id, title, body, view).catch(() => {}));
+  const notify = (title, body, view, ref, to) => {
+    ctx.waitUntil((to ? all(env, 'SELECT * FROM subs WHERE mid = ?', to).then(subs => pushTo(env, subs, title, body, view)) : pushAll(env, me.id, title, body, view)).catch(() => {}));
     if (view !== 'chat') ctx.waitUntil(addLog(env, me.id, view, body, ref).catch(() => {}));
   };
 
@@ -133,7 +135,7 @@ async function route(path, req, env, ctx) {
     const since = Math.max(0, Number(b.since) || 0), lastMsg = Math.max(0, b.lastMsg | 0), first = !since;
     const [members, msgs, items, comments, pickup, logs] = await Promise.all([
       all(env, 'SELECT id, name FROM members ORDER BY created'),
-      first ? all(env, 'SELECT * FROM (SELECT id, mid, text, photo, refs, reply, rx, upd, at FROM msgs ORDER BY id DESC LIMIT 150) ORDER BY id') : all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at FROM msgs WHERE id > ? OR (upd > ? AND id <= ?) ORDER BY id LIMIT 300', lastMsg, since, lastMsg),
+      first ? all(env, 'SELECT * FROM (SELECT id, mid, text, photo, refs, reply, rx, upd, at, room FROM msgs WHERE (room IS NULL OR room = \'\' OR instr(room, ?) > 0) ORDER BY id DESC LIMIT 300) ORDER BY id', me.id) : all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room FROM msgs WHERE (id > ? OR (upd > ? AND id <= ?)) AND (room IS NULL OR room = \'\' OR instr(room, ?) > 0) ORDER BY id LIMIT 300', lastMsg, since, lastMsg, me.id),
       all(env, 'SELECT id, type, data, upd, del, mid FROM items WHERE upd > ?' + (first ? ' AND del = 0' : ''), since),
       all(env, 'SELECT id, item, mid, text, at FROM comments WHERE at > ?', since),
       all(env, 'SELECT day, data, upd FROM pickup WHERE upd > ? AND day >= ?', since, addDays(kstDay(), -7)),
@@ -145,11 +147,12 @@ async function route(path, req, env, ctx) {
       items: items.map(i => ({ id: i.id, type: i.type, del: !!i.del, upd: i.upd, mid: i.mid, ...J(i.data, {}) })),
       comments, pickup: pickup.map(p => ({ day: p.day, upd: p.upd, ...J(p.data, {}) })), pickupDefault: J(kv('pickupDefault'), {}) });
   }
-  if (path === '/api/more-msgs') return json({ ok: true, msgs: (await all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at FROM msgs WHERE id < ? ORDER BY id DESC LIMIT 100', b.before | 0)).reverse().map(fixMsg) });
+  if (path === '/api/more-msgs') return json({ ok: true, msgs: (await all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room FROM msgs WHERE id < ? AND coalesce(room, \'\') = ? ORDER BY id DESC LIMIT 100', b.before | 0, roomOk(String(b.room || ''), me.id) ? String(b.room || '') : '')).reverse().map(fixMsg) });
 
   // 채팅 (해시태그로 만든 항목은 refs 로 연결)
   if (path === '/api/msg') {
-    const text = str(b.text, 2000).trim(), photo = /^[0-9a-f]{24}$/.test(b.photo || '') ? b.photo : '';
+    const text = str(b.text, 2000).trim(), photo = /^[0-9a-f]{24}$/.test(b.photo || '') ? b.photo : '', room = String(b.room || '');
+    if (!roomOk(room, me.id)) return json({ ok: false, error: '채팅방' });
     if (!text && !photo) return json({ ok: false, error: '빈 메시지' });
     const st = [], refs = [];
     for (const it of (Array.isArray(b.items) ? b.items : []).slice(0, 5)) { const r = itemStmt(env, it, me); if (r) { st.push(r.stmt); refs.push({ id: r.id, type: r.type, title: r.title }); } }
@@ -158,11 +161,12 @@ async function route(path, req, env, ctx) {
     let reply = '';
     if (b.reply) { const o = await one(env, 'SELECT id, mid, text, photo FROM msgs WHERE id = ?', b.reply | 0); if (o) reply = JSON.stringify({ id: o.id, mid: o.mid, text: str(o.text || (o.photo ? '사진' : ''), 80) }); }
     const now = Date.now();
-    const r = await run(env, 'INSERT INTO msgs (mid, text, photo, refs, reply, rx, upd, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', me.id, text, photo, JSON.stringify(refs), reply, '{}', now, now);
+    const r = await run(env, 'INSERT INTO msgs (mid, text, photo, refs, reply, rx, upd, at, room) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', me.id, text, photo, JSON.stringify(refs), reply, '{}', now, now, room);
     for (const x of refs) ctx.waitUntil(addLog(env, me.id, x.type, TYPE_KO[x.type] + ' 추가: ' + x.title, x.id).catch(() => {}));
     // 출석부에 결석 예정 넣기 (#등원 ○○ 결석)
     if (Array.isArray(b.absences) && b.absences.length) ctx.waitUntil(attSync(env, '/sync/absence', { items: b.absences.slice(0, 10) }).catch(() => {}));
-    notify(me.name, photo && !text ? '사진을 보냈어요' : text.slice(0, 120), 'chat');
+    const to = room ? room.split(':').slice(1).find(x => x !== me.id) : '';
+    notify(room ? me.name + ' (1:1)' : me.name, photo && !text ? '사진을 보냈어요' : text.slice(0, 120), 'chat', '', to);
     return json({ ok: true, id: r.meta && r.meta.last_row_id, refs });
   }
   if (path === '/api/msg-del') {
