@@ -171,11 +171,11 @@ async function route(path, req, env, ctx) {
       first ? all(env, 'SELECT * FROM (SELECT id, mid, kind, text, ref, at FROM logs ORDER BY id DESC LIMIT 120) ORDER BY id') : all(env, 'SELECT id, mid, kind, text, ref, at FROM logs WHERE at > ? ORDER BY id LIMIT 200', since),
     ]);
     const joins = await all(env, "SELECT id, name, created FROM joins WHERE status = 'wait' AND created > ?", Date.now() - 7 * 86400e3);
-    const kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'notice')"), kv = k => (kvs.find(x => x.k === k) || {}).v;
+    const kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice')"), kv = k => (kvs.find(x => x.k === k) || {}).v;
     return json({ ok: true, now: Date.now(), me, members,
       msgs: msgs.map(fixMsg), logs, joins, notice: J(kv('notice'), null),
       items: items.map(i => ({ id: i.id, type: i.type, del: !!i.del, upd: i.upd, mid: i.mid, ...J(i.data, {}) })),
-      comments, pickup: pickup.map(p => ({ day: p.day, upd: p.upd, ...J(p.data, {}) })), pickupDefault: J(kv('pickupDefault'), {}) });
+      comments, pickup: pickup.map(p => ({ day: p.day, upd: p.upd, ...J(p.data, {}) })), pickupDefault: J(kv('pickupDefault'), {}), pickupTimes: J(kv('pickupTimes'), {}) });
   }
   if (path === '/api/more-msgs') return json({ ok: true, msgs: (await all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room FROM msgs WHERE id < ? AND coalesce(room, \'\') = ? ORDER BY id DESC LIMIT 100', b.before | 0, roomOk(String(b.room || ''), me.id) ? String(b.room || '') : '')).reverse().map(fixMsg) });
 
@@ -265,6 +265,10 @@ async function route(path, req, env, ctx) {
   if (path === '/api/pickup-default') {
     const d = {}; for (const w of ['월', '화', '수', '목', '금']) d[w] = (Array.isArray(b.def && b.def[w]) ? b.def[w] : []).map(x => str(x, 20)).filter(Boolean).slice(0, 60);
     await run(env, "INSERT INTO kv (k, v) VALUES ('pickupDefault', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(d));
+    if (b.times && typeof b.times === 'object') { // 요일별 데리러 가는 시간 {월: {이름: '13:30'}}
+      const t = {}; for (const w of ['월', '화', '수', '목', '금']) { t[w] = {}; for (const n of d[w]) { const v = String((b.times[w] || {})[n] || ''); if (/^\d{2}:\d{2}$/.test(v)) t[w][n] = v; } }
+      await run(env, "INSERT INTO kv (k, v) VALUES ('pickupTimes', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(t));
+    }
     return json({ ok: true });
   }
   if (path === '/api/pickup') {
