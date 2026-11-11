@@ -27,11 +27,18 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS pickup (day TEXT PRIMARY KEY, data TEXT, upd INTEGER)',
   'CREATE TABLE IF NOT EXISTS photos (id TEXT PRIMARY KEY, full TEXT, thumb TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER)',
+  'CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, mid TEXT, kind TEXT, text TEXT, ref TEXT, at INTEGER)',
+  'CREATE INDEX IF NOT EXISTS logs_at ON logs (at)',
 ];
+// 예전 표에 새 칸 붙이기 (답장·반응·수정 시각) — 이미 있으면 그냥 넘어감
+const ALTERS = ['ALTER TABLE msgs ADD COLUMN reply TEXT', 'ALTER TABLE msgs ADD COLUMN rx TEXT', 'ALTER TABLE msgs ADD COLUMN upd INTEGER'];
 let ready = false;
 async function setup(env) {
   if (ready) return;
   await env.DB.batch(SCHEMA.map(s => env.DB.prepare(s)));
+  const cols = ((await env.DB.prepare('PRAGMA table_info(msgs)').all()).results || []).map(c => c.name);
+  for (const a of ALTERS) if (!cols.includes(a.split(' ')[5])) { try { await env.DB.prepare(a).run(); } catch (_) {} }
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS msgs_upd ON msgs (upd)').run();
   ready = true;
 }
 
@@ -88,11 +95,15 @@ async function route(path, req, env, ctx) {
   // ═════════ 로그인 후 ═════════
   const me = await auth(env, b.tok);
   if (!me) return json({ ok: false, error: '다시 로그인해 주세요', relogin: true }, 401);
-  const notify = (title, body, view) => ctx.waitUntil(pushAll(env, me.id, title, body, view).catch(() => {}));
+  // 알림 보내기 + (채팅 말고는) 알림 기록에 남기기
+  const notify = (title, body, view, ref) => {
+    ctx.waitUntil(pushAll(env, me.id, title, body, view).catch(() => {}));
+    if (view !== 'chat') ctx.waitUntil(addLog(env, me.id, view, body, ref).catch(() => {}));
+  };
 
   if (path === '/api/logout') { await run(env, 'DELETE FROM sessions WHERE tok = ?', str(b.tok, 64)); return json({ ok: true }); }
   if (path === '/api/member-add') {
-    const r = await addMember(env, b.name, b.pin); if (r.ok) notify('해랑 업무', me.name + '님이 ' + r.name + '님을 추가했어요', 'home');
+    const r = await addMember(env, b.name, b.pin); if (r.ok) notify('해랑 업무 · ' + me.name, r.name + '님을 함께 쓰는 사람으로 추가했어요', 'member');
     return json(r);
   }
   if (path === '/api/member-pin') { // 내 PIN 바꾸기, 또는 다른 사람 PIN 새로 정하기
@@ -120,20 +131,21 @@ async function route(path, req, env, ctx) {
   // 처음 열 때 전부, 그다음엔 바뀐 것만 (since)
   if (path === '/api/sync') {
     const since = Math.max(0, Number(b.since) || 0), lastMsg = Math.max(0, b.lastMsg | 0), first = !since;
-    const [members, msgs, items, comments, pickup] = await Promise.all([
+    const [members, msgs, items, comments, pickup, logs] = await Promise.all([
       all(env, 'SELECT id, name FROM members ORDER BY created'),
-      first ? all(env, 'SELECT * FROM (SELECT id, mid, text, photo, refs, at FROM msgs ORDER BY id DESC LIMIT 150) ORDER BY id') : all(env, 'SELECT id, mid, text, photo, refs, at FROM msgs WHERE id > ? ORDER BY id LIMIT 300', lastMsg),
+      first ? all(env, 'SELECT * FROM (SELECT id, mid, text, photo, refs, reply, rx, upd, at FROM msgs ORDER BY id DESC LIMIT 150) ORDER BY id') : all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at FROM msgs WHERE id > ? OR (upd > ? AND id <= ?) ORDER BY id LIMIT 300', lastMsg, since, lastMsg),
       all(env, 'SELECT id, type, data, upd, del, mid FROM items WHERE upd > ?' + (first ? ' AND del = 0' : ''), since),
       all(env, 'SELECT id, item, mid, text, at FROM comments WHERE at > ?', since),
       all(env, 'SELECT day, data, upd FROM pickup WHERE upd > ? AND day >= ?', since, addDays(kstDay(), -7)),
+      first ? all(env, 'SELECT * FROM (SELECT id, mid, kind, text, ref, at FROM logs ORDER BY id DESC LIMIT 120) ORDER BY id') : all(env, 'SELECT id, mid, kind, text, ref, at FROM logs WHERE at > ? ORDER BY id LIMIT 200', since),
     ]);
-    const def = await one(env, "SELECT v FROM kv WHERE k = 'pickupDefault'");
+    const kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'notice')"), kv = k => (kvs.find(x => x.k === k) || {}).v;
     return json({ ok: true, now: Date.now(), me, members,
-      msgs: msgs.map(m => ({ ...m, refs: J(m.refs, []) })),
+      msgs: msgs.map(fixMsg), logs, notice: J(kv('notice'), null),
       items: items.map(i => ({ id: i.id, type: i.type, del: !!i.del, upd: i.upd, mid: i.mid, ...J(i.data, {}) })),
-      comments, pickup: pickup.map(p => ({ day: p.day, upd: p.upd, ...J(p.data, {}) })), pickupDefault: J(def && def.v, {}) });
+      comments, pickup: pickup.map(p => ({ day: p.day, upd: p.upd, ...J(p.data, {}) })), pickupDefault: J(kv('pickupDefault'), {}) });
   }
-  if (path === '/api/more-msgs') return json({ ok: true, msgs: (await all(env, 'SELECT id, mid, text, photo, refs, at FROM msgs WHERE id < ? ORDER BY id DESC LIMIT 100', b.before | 0)).reverse().map(m => ({ ...m, refs: J(m.refs, []) })) });
+  if (path === '/api/more-msgs') return json({ ok: true, msgs: (await all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at FROM msgs WHERE id < ? ORDER BY id DESC LIMIT 100', b.before | 0)).reverse().map(fixMsg) });
 
   // 채팅 (해시태그로 만든 항목은 refs 로 연결)
   if (path === '/api/msg') {
@@ -143,7 +155,11 @@ async function route(path, req, env, ctx) {
     for (const it of (Array.isArray(b.items) ? b.items : []).slice(0, 5)) { const r = itemStmt(env, it, me); if (r) { st.push(r.stmt); refs.push({ id: r.id, type: r.type, title: r.title }); } }
     for (const p of (Array.isArray(b.pickups) ? b.pickups : []).slice(0, 3)) if (isDay(p.day)) st.push(q(env, 'INSERT INTO pickup (day, data, upd) VALUES (?, ?, ?) ON CONFLICT(day) DO UPDATE SET data = excluded.data, upd = excluded.upd', p.day, JSON.stringify(cleanPickup(p)), Date.now()));
     if (st.length) await env.DB.batch(st);
-    const r = await run(env, 'INSERT INTO msgs (mid, text, photo, refs, at) VALUES (?, ?, ?, ?, ?)', me.id, text, photo, JSON.stringify(refs), Date.now());
+    let reply = '';
+    if (b.reply) { const o = await one(env, 'SELECT id, mid, text, photo FROM msgs WHERE id = ?', b.reply | 0); if (o) reply = JSON.stringify({ id: o.id, mid: o.mid, text: str(o.text || (o.photo ? '사진' : ''), 80) }); }
+    const now = Date.now();
+    const r = await run(env, 'INSERT INTO msgs (mid, text, photo, refs, reply, rx, upd, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', me.id, text, photo, JSON.stringify(refs), reply, '{}', now, now);
+    for (const x of refs) ctx.waitUntil(addLog(env, me.id, x.type, TYPE_KO[x.type] + ' 추가: ' + x.title, x.id).catch(() => {}));
     // 출석부에 결석 예정 넣기 (#등원 ○○ 결석)
     if (Array.isArray(b.absences) && b.absences.length) ctx.waitUntil(attSync(env, '/sync/absence', { items: b.absences.slice(0, 10) }).catch(() => {}));
     notify(me.name, photo && !text ? '사진을 보냈어요' : text.slice(0, 120), 'chat');
@@ -152,9 +168,27 @@ async function route(path, req, env, ctx) {
   if (path === '/api/msg-del') {
     const m = await one(env, 'SELECT mid, photo FROM msgs WHERE id = ?', b.id | 0);
     if (!m || m.mid !== me.id) return json({ ok: false, error: '내가 보낸 메시지만 지울 수 있어요' });
-    await run(env, "UPDATE msgs SET text = '(지운 메시지)', photo = '', refs = '[]' WHERE id = ?", b.id | 0);
+    await run(env, "UPDATE msgs SET text = '(지운 메시지)', photo = '', refs = '[]', rx = '{}', upd = ? WHERE id = ?", Date.now(), b.id | 0);
     if (m.photo) await run(env, 'DELETE FROM photos WHERE id = ?', m.photo);
+    const n = J((await one(env, "SELECT v FROM kv WHERE k = 'notice'") || {}).v, null);
+    if (n && n.id === (b.id | 0)) await run(env, "DELETE FROM kv WHERE k = 'notice'");
     return json({ ok: true });
+  }
+  if (path === '/api/msg-react') { // 반응 이모지 (한 번 더 누르면 취소)
+    const e = ['❤️', '👍', '✅', '😊', '😮', '😭'].includes(b.e) ? b.e : null; if (!e) return json({ ok: false, error: '반응' });
+    const m = await one(env, 'SELECT rx FROM msgs WHERE id = ?', b.id | 0); if (!m) return json({ ok: false, error: '지워진 메시지예요' });
+    const rx = J(m.rx, {}), l = rx[e] || [];
+    rx[e] = l.includes(me.id) ? l.filter(x => x !== me.id) : [...l, me.id]; if (!rx[e].length) delete rx[e];
+    await run(env, 'UPDATE msgs SET rx = ?, upd = ? WHERE id = ?', JSON.stringify(rx), Date.now(), b.id | 0);
+    return json({ ok: true, rx });
+  }
+  if (path === '/api/notice') { // 채팅 공지 (id 없으면 내리기)
+    if (!b.id) { await run(env, "DELETE FROM kv WHERE k = 'notice'"); return json({ ok: true, notice: null }); }
+    const m = await one(env, 'SELECT id, mid, text FROM msgs WHERE id = ?', b.id | 0); if (!m || !m.text) return json({ ok: false, error: '글이 있는 메시지만 공지로 올릴 수 있어요' });
+    const n = { id: m.id, mid: m.mid, text: str(m.text, 500), by: me.name, at: Date.now() };
+    await run(env, "INSERT INTO kv (k, v) VALUES ('notice', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(n));
+    notify(me.name + ' · 공지', n.text.slice(0, 120), 'notice', String(m.id));
+    return json({ ok: true, notice: n });
   }
   if (path === '/api/photo-up') {
     const full = String(b.full || ''), thumb = String(b.thumb || '');
@@ -168,13 +202,13 @@ async function route(path, req, env, ctx) {
   if (path === '/api/item') {
     const r = itemStmt(env, b.item || {}, me); if (!r) return json({ ok: false, error: '제목을 적어 주세요' });
     await r.stmt.run();
-    if (b.what !== false) notify(me.name, String(b.what || (b.item.id ? r.title + ' 수정' : TYPE_KO[r.type] + ' 추가: ' + r.title)).slice(0, 140), r.type);
+    if (b.what !== false) notify(me.name, String(b.what || (b.item.id ? r.title + ' 수정' : TYPE_KO[r.type] + ' 추가: ' + r.title)).slice(0, 140), r.type, r.id);
     return json({ ok: true, id: r.id, upd: r.upd });
   }
   if (path === '/api/item-del') {
     const it = await one(env, 'SELECT type, data FROM items WHERE id = ?', str(b.id, 40)); if (!it) return json({ ok: true });
     await run(env, 'UPDATE items SET del = 1, upd = ? WHERE id = ?', Date.now(), str(b.id, 40));
-    notify(me.name, TYPE_KO[it.type] + ' 지움: ' + (J(it.data, {}).title || ''), it.type);
+    notify(me.name, TYPE_KO[it.type] + ' 지움: ' + (J(it.data, {}).title || ''), it.type, '');
     return json({ ok: true });
   }
   if (path === '/api/comment') {
@@ -182,7 +216,7 @@ async function route(path, req, env, ctx) {
     const text = str(b.text, 1000).trim(); if (!text) return json({ ok: false, error: '내용을 적어 주세요' });
     const id = rid(8), at = Date.now();
     await env.DB.batch([q(env, 'INSERT INTO comments (id, item, mid, text, at) VALUES (?, ?, ?, ?, ?)', id, str(b.item, 40), me.id, text, at), q(env, 'UPDATE items SET upd = ? WHERE id = ?', at, str(b.item, 40))]);
-    notify(me.name + ' · 댓글', '[' + (J(it.data, {}).title || TYPE_KO[it.type]) + '] ' + text.slice(0, 100), it.type);
+    notify(me.name + ' · 댓글', '[' + (J(it.data, {}).title || TYPE_KO[it.type]) + '] ' + text.slice(0, 100), 'comment', str(b.item, 40));
     return json({ ok: true, id, at });
   }
 
@@ -196,7 +230,7 @@ async function route(path, req, env, ctx) {
     if (!isDay(b.day)) return json({ ok: false, error: '날짜' });
     const d = cleanPickup(b), upd = Date.now();
     await run(env, 'INSERT INTO pickup (day, data, upd) VALUES (?, ?, ?) ON CONFLICT(day) DO UPDATE SET data = excluded.data, upd = excluded.upd', b.day, JSON.stringify(d), upd);
-    if (b.what) notify(me.name + ' · 등원', String(b.what).slice(0, 140), 'home');
+    if (b.what) notify(me.name + ' · 등원', String(b.what).slice(0, 140), 'pickup', b.day);
     return json({ ok: true, upd });
   }
   if (path === '/api/roster') { // 출석부 원생 이름 (등원표·행사표에서 고르기)
@@ -215,6 +249,12 @@ function itemStmt(env, it, me) {
   const id = str(it.id, 40) || rid(8), upd = Date.now();
   return { id, type, title: d.title, upd, stmt: q(env, 'INSERT INTO items (id, type, data, upd, del, mid) VALUES (?, ?, ?, ?, 0, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd, del = 0', id, type, s, upd, me.id) };
 }
+function fixMsg(m) { return { ...m, refs: J(m.refs, []), reply: J(m.reply, null), rx: J(m.rx, {}) }; }
+async function addLog(env, mid, kind, text, ref) {
+  const now = Date.now();
+  await run(env, 'INSERT INTO logs (mid, kind, text, ref, at) VALUES (?, ?, ?, ?, ?)', mid, str(kind, 12), str(text, 300), str(ref, 40), now);
+  if (Math.random() < 0.02) await run(env, 'DELETE FROM logs WHERE at < ?', now - 90 * 86400e3); // 90일 지난 기록 정리
+}
 function cleanPickup(p) {
   const names = a => (Array.isArray(a) ? a : []).map(x => str(x, 20)).filter(Boolean).slice(0, 80);
   return { list: names(p.list), done: names(p.done), absent: names(p.absent), memos: (Array.isArray(p.memos) ? p.memos : []).slice(-30).map(m => ({ who: str(m.who, 12), text: str(m.text, 200), at: Number(m.at) || Date.now() })) };
@@ -228,7 +268,8 @@ async function pushAll(env, myId, title, body, view) {
 async function pushTo(env, subs, title, body, view) {
   if (!subs.length) return { sent: 0, total: 0 };
   const vapid = await getVapid(env), auths = new Map();
-  const payload = JSON.stringify({ title, body, url: SITE + '/team/' + (view ? '#' + view : ''), tag: 'team-' + Date.now() });
+  const tab = { chat: 'chat', notice: 'chat', sched: 'sched', event: 'table', buy: 'table', home: 'home', pickup: 'home', todo: 'home' }[view] || 'log';
+  const payload = JSON.stringify({ title, body, url: SITE + '/team/#' + tab, tag: 'team-' + Date.now() });
   let sent = 0;
   await Promise.all(subs.slice(0, 12).map(async s => {
     try {
