@@ -28,6 +28,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER)',
   'CREATE TABLE IF NOT EXISTS kiosks (tok TEXT PRIMARY KEY, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS reads (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))',
+  'CREATE TABLE IF NOT EXISTS acks (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 학부모가 '확인했어요'를 누른 기록
 ];
 let ready = false;
 async function setup(env) {
@@ -35,6 +36,8 @@ async function setup(env) {
   await env.DB.batch(SCHEMA.map(s => env.DB.prepare(s)));
   // 나중에 추가한 칸: 등원 시각(숫자). 이미 있으면 무시
   try { await env.DB.prepare('ALTER TABLE att ADD COLUMN tin_at INTEGER').run(); } catch (_) {}
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN urgent INTEGER DEFAULT 0').run(); } catch (_) {} // 긴급 공지
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ask INTEGER DEFAULT 0').run(); } catch (_) {}    // '확인했어요' 받기
   ready = true;
 }
 
@@ -106,9 +109,16 @@ async function route(path, req, env) {
       if (ids.length) await env.DB.batch(ids.map(id => q(env, 'INSERT OR IGNORE INTO reads (post, parent, at) VALUES (?, ?, ?)', id, p.id, Date.now())));
       return json({ ok: true });
     }
+    if (path === '/p/ack') { // '확인했어요' (읽음도 같이 남김)
+      if (!p.ok) return json({ ok: false, error: '도장 확인 후에 누를 수 있어요' });
+      const id = b.id | 0, now = Date.now();
+      if (!(await one(env, 'SELECT id FROM posts WHERE id = ? AND ask = 1', id))) return json({ ok: false, error: '지워진 게시물이에요' });
+      await env.DB.batch([q(env, 'INSERT OR IGNORE INTO acks (post, parent, at) VALUES (?, ?, ?)', id, p.id, now), q(env, 'INSERT OR IGNORE INTO reads (post, parent, at) VALUES (?, ?, ?)', id, p.id, now)]);
+      return json({ ok: true, at: now });
+    }
     if (path === '/p/leave') { await run(env, 'DELETE FROM parents WHERE id = ?', p.id); return json({ ok: true }); }
     if (path === '/p/schedule') return json({ ok: true, me, items: await listSchedule(env, b.month) });
-    if (path === '/p/notices') return json({ ok: true, me, items: await listPosts(env, 'notice', null, 100) });
+    if (path === '/p/notices') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'notice', null, 100), p.id) });
     if (path === '/p/home') {
       const today = kstDay(new Date());
       const out = { ok: true, me, today: {}, counts: {} };
@@ -127,12 +137,16 @@ async function route(path, req, env) {
         const fm = kstDay(new Date()).slice(0, 7);
         const fees = await all(env, 'SELECT name, paid FROM fees WHERE month = ?', fm);
         out.fee = { month: fm, kids: myKids.map(k => ({ name: k, paid: !!(fees.find(f => f.name === k) || {}).paid })) };
+        // 확인을 기다리는 공지·알림장 (긴급 먼저, 30일 안)
+        const asks = (await all(env, "SELECT * FROM posts WHERE ask = 1 AND type IN ('notice', 'journal') AND created > ? AND id NOT IN (SELECT post FROM acks WHERE parent = ?) ORDER BY urgent DESC, created DESC LIMIT 20", Date.now() - 30 * 864e5, p.id))
+          .filter(r => { const t = J(r.target, []); return !t.length || t.some(x => myKids.includes(x)); }).slice(0, 5);
+        out.asks = asks.map(r => ({ id: r.id, type: r.type, kind: r.kind, title: r.title, body: r.body, urgent: !!r.urgent, at: r.created }));
       }
       return json(out);
     }
     // 여기부터는 관장님 승인 후에만
     if (!p.ok) return json({ ok: false, error: '관장님 승인 후에 볼 수 있습니다', pending: true, me });
-    if (path === '/p/journal') return json({ ok: true, me, items: await listPosts(env, 'journal', myKids, 100) });
+    if (path === '/p/journal') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'journal', myKids, 100), p.id) });
     if (path === '/p/albums') return json({ ok: true, me, items: await listPosts(env, 'album', myKids, 60) });
     if (path === '/p/photo') return photo(env, b.id, b.size);
     if (path === '/p/attendance') {
@@ -266,8 +280,9 @@ async function route(path, req, env) {
       const photos = (Array.isArray(b.photos) ? b.photos : []).map(String).filter(x => /^[0-9a-f]{16,32}$/.test(x)).slice(0, 30);
       const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : null;
       if (type === 'schedule' && !date) return json({ ok: false, error: '날짜를 골라 주세요' });
-      const r = await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        type, String(b.kind || '').slice(0, 10), title, String(b.body || '').slice(0, 3000), date, JSON.stringify(target), JSON.stringify(photos), b.pin ? 1 : 0, Date.now());
+      const urgent = type === 'notice' && b.urgent ? 1 : 0, ask = urgent || ((type === 'notice' || type === 'journal') && b.ask) ? 1 : 0; // 긴급이면 확인도 받음
+      const r = await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        type, String(b.kind || '').slice(0, 10), title, String(b.body || '').slice(0, 3000), date, JSON.stringify(target), JSON.stringify(photos), b.pin ? 1 : 0, Date.now(), urgent, ask);
       return json({ ok: true, id: r.meta && r.meta.last_row_id });
     }
     if (path === '/admin/post-delete') {
@@ -275,6 +290,7 @@ async function route(path, req, env) {
       if (p) for (const ph of J(p.photos, [])) await run(env, 'DELETE FROM photos WHERE id = ?', ph);
       await run(env, 'DELETE FROM posts WHERE id = ?', b.id | 0);
       await run(env, 'DELETE FROM reads WHERE post = ?', b.id | 0);
+      await run(env, 'DELETE FROM acks WHERE post = ?', b.id | 0);
       return json({ ok: true });
     }
     if (path === '/admin/posts') {
@@ -284,10 +300,12 @@ async function route(path, req, env) {
       // 읽음 수: 대상 보호자(승인된 사람) 중 몇 명이 봤는지
       const parents = (await all(env, 'SELECT id, kids FROM parents WHERE ok = 1')).map(p => ({ id: p.id, kids: J(p.kids, []) }));
       const rr = items.length ? await all(env, 'SELECT post, parent FROM reads WHERE post IN (' + items.map(() => '?').join(',') + ')', ...items.map(it => it.id)) : [];
+      const aa = items.some(it => it.ask) ? await all(env, 'SELECT post, parent FROM acks WHERE post IN (' + items.map(() => '?').join(',') + ')', ...items.map(it => it.id)) : [];
       for (const it of items) {
         const aud = parents.filter(p => !it.target.length || p.kids.some(k => it.target.includes(k)));
         const readers = new Set(rr.filter(r => r.post === it.id).map(r => r.parent));
         it.reads = aud.filter(p => readers.has(p.id)).length; it.audience = aud.length;
+        if (it.ask) { const ackers = new Set(aa.filter(r => r.post === it.id).map(r => r.parent)); it.acks = aud.filter(p => ackers.has(p.id)).length; }
       }
       return json({ ok: true, items });
     }
@@ -298,10 +316,11 @@ async function route(path, req, env) {
       const parents = (await all(env, 'SELECT id, kids, rel FROM parents WHERE ok = 1')).map(p => ({ id: p.id, kids: J(p.kids, []), rel: p.rel }))
         .filter(p => !target.length || p.kids.some(k => target.includes(k)));
       const reads = await all(env, 'SELECT parent, at FROM reads WHERE post = ?', b.id | 0);
+      const acks = await all(env, 'SELECT parent, at FROM acks WHERE post = ?', b.id | 0), ak = {}; acks.forEach(r => ak[r.parent] = r.at);
       const at = {}; reads.forEach(r => at[r.parent] = r.at);
       const who = p => ({ kids: target.length ? p.kids.filter(k => target.includes(k)) : p.kids, rel: p.rel });
       return json({ ok: true,
-        read: parents.filter(p => at[p.id]).sort((x, y) => at[x.id] - at[y.id]).map(p => ({ ...who(p), at: at[p.id] })),
+        read: parents.filter(p => at[p.id]).sort((x, y) => at[x.id] - at[y.id]).map(p => ({ ...who(p), at: at[p.id], ack: ak[p.id] || null })),
         unread: parents.filter(p => !at[p.id]).map(who) });
     }
     if (path === '/admin/photo-upload') {
@@ -347,7 +366,13 @@ async function listPosts(env, type, kids, limit, admin) {
   return rows
     .filter(r => { const t = J(r.target, []); return admin || !kids || !t.length || t.some(x => kids.includes(x)); })
     .slice(0, limit)
-    .map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, target: J(r.target, []), photos: J(r.photos, []), pin: !!r.pin, at: r.created }));
+    .map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, target: J(r.target, []), photos: J(r.photos, []), pin: !!r.pin, urgent: !!r.urgent, ask: !!r.ask, at: r.created }));
+}
+async function withAcks(env, items, parentId) { // 학부모 화면: 내가 '확인했어요'를 눌렀는지
+  if (!items.some(x => x.ask)) return items;
+  const mine = await all(env, 'SELECT post, at FROM acks WHERE parent = ?', parentId), m = {};
+  mine.forEach(r => m[r.post] = r.at);
+  return items.map(x => x.ask ? { ...x, acked: m[x.id] || null } : x);
 }
 async function listSchedule(env, month) {
   const m = /^\d{4}-\d{2}$/.test(month || '') ? month : kstDay(new Date()).slice(0, 7);
