@@ -72,6 +72,9 @@
   .st .nm{flex:1;min-width:0}
   .st .nm b{font-size:17px;font-weight:900;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .st .nm small{font-size:13.5px;color:var(--muted);display:block}
+  .offrow .st{background:#F6F2F0}.offrow .nm b{color:#9A908B}.offrow .nm small{color:#B3AAA5}
+  .offx{font-size:22px;color:#A79E99;width:58px;text-align:center;align-self:center}
+  .ab.offmk{background:none;border-color:transparent;color:#8A7F7A}
   .tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--chip);color:#6E625D;margin:2px 4px 0 0;font-weight:500}
   .tag.red{background:#FBE3E1;color:var(--no)} .tag.grn{background:var(--okbg);color:var(--ok)} .tag.blue{background:#E5ECF5;color:#1E3A5F} .tag.yel{background:#F8F0DA;color:#7A5A10}
   .acts{display:flex;gap:6px;flex:none}
@@ -444,10 +447,15 @@ function renderToday() {
     $('tList').innerHTML = '<li class="closedbox"><b>휴관일</b>' + esc(S.closed.get(d) || '') + '<br>이 날은 출석을 받지 않아요. 출석률 계산에서도 빠져요.</li>';
     $('tOff').innerHTML = ''; renderBulk(); return;
   }
-  $('tList').innerHTML = shown.length ? shown.map(s => rowHtml(s, cells.get(s.id))).join('') : '<li class="empty"><b>' + (S.students.length ? '해당하는 원생이 없어요' : '아직 원생이 없어요') + '</b>' + (S.students.length ? '' : '원생 관리에서 등록하거나, 사범님 공간에서 예전 출석부 백업을 불러와 주세요.') + '</li>';
-  $('tOff').innerHTML = off.length && !q && !f ? '<details style="border-top:1px solid var(--line)"><summary class="lh" style="list-style:none;cursor:pointer"><b>오늘 안 오는 원생 ' + off.length + '명</b><small>눌러서 보기 · 오면 보강으로 넣기</small></summary><ul class="list">' +
-    off.filter(s => matchG(s, S.grp.t)).map(s => '<li class="st"><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc(grade(s, d).label) + ' · ' + esc(daysLabel(daysOn(s, d))) + '</small></div><div class="acts"><button class="ab" data-mk="' + s.id + '">보강으로 출석</button></div></li>').join('') + '</ul></details>' : '';
+  // 안 오는 날인 아이도 가나다순 목록 안에 흐리게 (X · 보강)
+  const offShown = S.tFilter ? [] : off.filter(s => matchG(s, S.grp.t) && matchQ(s, q));
+  const merged = [...shown.map(s => ({ s, off: false })), ...offShown.map(s => ({ s, off: true }))].sort((a, b) => byName(a.s, b.s));
+  $('tList').innerHTML = merged.length ? merged.map(x => x.off ? offRowHtml(x.s, d) : rowHtml(x.s, cells.get(x.s.id))).join('') : '<li class="empty"><b>' + (S.students.length ? '해당하는 원생이 없어요' : '아직 원생이 없어요') + '</b>' + (S.students.length ? '' : '원생 관리에서 등록하거나, 사범님 공간에서 예전 출석부 백업을 불러와 주세요.') + '</li>';
+  $('tOff').innerHTML = '';
   renderBulk();
+}
+function offRowHtml(s, d) {
+  return '<li data-off="' + s.id + '" class="offrow"><div class="st"><span style="width:24px;flex:none"></span><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc(grade(s, d).label) + ' · ' + esc(daysLabel(daysOn(s, d))) + (tempOn(s, d) ? ' · 임시' : '') + '</small></div><div class="acts"><span class="offx">X</span><button class="ab offmk" data-mk="' + s.id + '">보강</button></div></div></li>';
 }
 function rowHtml(s, c) {
   const d = S.day, g = grade(s, d), tags = [];
@@ -477,6 +485,7 @@ async function setAtt(items, day = S.day) {
   if (j.ok) { applyRows(day, j.rows); render(); } else toast(j.error || '저장하지 못했어요. 다시 눌러 주세요');
 }
 $('tList').onclick = async e => {
+  const mkb = e.target.closest('[data-mk]'); if (mkb) { const s = stById(mkb.dataset.mk); setAtt([{ sid: s.id, r: 'o', p: guessP(s, S.day), mk: 1 }]); toast(s.name + ' 보강 출석으로 넣었어요'); return; }
   const li = e.target.closest('li[data-id]'); if (!li) return;
   const s = stById(li.dataset.id), d = S.day, c = cell(s, d);
   if (e.target.classList.contains('cb')) { e.target.checked ? S.sel.add(s.id) : S.sel.delete(s.id); renderToday(); return; }
