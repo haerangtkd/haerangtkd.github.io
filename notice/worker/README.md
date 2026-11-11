@@ -1,5 +1,10 @@
 # 해랑경희 알림 서버 만들기 (처음 한 번만)
 
+앱 3개가 이 서버 하나를 같이 씁니다.
+- 학부모용: https://haerangtkd.github.io/notice/
+- 관리용: https://haerangtkd.github.io/notice/admin.html
+- 출결 태블릿: https://haerangtkd.github.io/notice/kiosk.html
+
 알림을 실제로 보내 주는 무료 서버를 Cloudflare에 만듭니다. 카드 등록 없이 무료입니다.
 
 1. https://dash.cloudflare.com 에서 회원가입·로그인

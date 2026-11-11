@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>알림 보내기 · 해랑경희</title>
 <meta name="theme-color" content="#A40F16">
+<link rel="manifest" href="admin.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -64,6 +65,18 @@
   .preview p{font-size:13.5px;color:#3A3533;white-space:pre-wrap;max-height:62px;overflow:hidden}
   .preview .lb{font-size:11.5px;color:var(--muted);margin-bottom:6px}
   .list{list-style:none}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .sum{font-size:13px;font-weight:700;color:var(--ok);margin:8px 2px 0}
+  .sum:empty{display:none}
+  .pd b.rl{font-size:12.5px;color:var(--ink)}
+  .rs{border-top:1px solid var(--line);padding:12px 0}
+  .rs:first-child{border-top:0}
+  .rh{display:flex;align-items:center;gap:8px}
+  .rh b{font-size:16px}
+  .rh .codes{font-size:12.5px;color:var(--muted);margin-right:auto}
+  .rs button{border:0;background:#F1ECE7;color:#5A524D;border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+  .gd{display:flex;align-items:center;justify-content:space-between;font-size:14px;padding:6px 0 0 10px;color:#3A3533}
+  .gd button{background:none;color:var(--muted);text-decoration:underline;padding:2px 0}
   .card.pend{border-color:#F0C36D;background:#FFFBF2}
   .pd{display:flex;align-items:center;gap:8px;border-top:1px solid #F3E3C3;padding:11px 0}
   .pd:first-child{border-top:0;margin-top:6px}
@@ -108,6 +121,7 @@
       <button data-t="att" class="on">등원·하원</button>
       <button data-t="notice">공지</button>
       <button data-t="fee">회비</button>
+      <button data-t="roster">명단</button>
     </nav>
   </div></header>
 
@@ -117,10 +131,10 @@
     <section id="t-att">
       <div class="card pend" id="pendCard" hidden>
         <h2>승인 대기 <span id="pendN"></span></h2>
-        <p class="hint">도장 학부모님이 맞는지 확인한 뒤 승인해 주세요. 승인해야 등원·하원·회비 알림이 갑니다.</p>
+        <p class="hint">도장 보호자가 맞는지 확인한 뒤 승인해 주세요. 승인하면 아이가 명단에 들어가고, 휴대폰 뒷자리가 출결번호가 됩니다.</p>
         <ul class="list" id="pendList"></ul>
       </div>
-      <div class="search"><input type="search" id="q" placeholder="아이 이름 검색"></div>
+      <div class="search"><input type="search" id="q" placeholder="아이 이름 검색"><div class="sum" id="attSum"></div></div>
       <ul class="kids" id="kids"></ul>
       <div class="card" id="noKids" hidden>
         <h2>아직 등록한 학부모님이 없습니다</h2>
@@ -171,6 +185,22 @@
       </div>
     </section>
 
+    <!-- 명단 -->
+    <section id="t-roster" hidden>
+      <div class="card">
+        <h2>아이 명단</h2>
+        <p class="hint">출결번호는 아이가 태블릿에서 누르는 번호입니다. 가입을 승인하면 그 보호자의 휴대폰 뒷자리가 자동으로 들어갑니다.</p>
+        <ul class="list" id="roster" style="margin-top:8px"></ul>
+        <button class="btn ghost" id="addKid">+ 아이 직접 추가</button>
+      </div>
+      <div class="card">
+        <h2>출결 태블릿</h2>
+        <p class="hint">도장 입구 태블릿에서 아래 주소를 열고 관장님 비밀번호를 한 번 넣으면 출결용으로 등록됩니다. 태블릿을 잃어버렸을 때는 모두 해제해 주세요.</p>
+        <div class="share"><code id="kioskUrl"></code><button class="copyKiosk">복사</button></div>
+        <button class="btn ghost" id="kioskReset">등록된 태블릿 모두 해제</button>
+      </div>
+    </section>
+
     <div class="card">
       <h2>학부모님께 보낼 주소</h2>
       <p class="hint">이 주소를 카카오톡 등으로 보내면 학부모님이 알림을 켤 수 있습니다.</p>
@@ -188,15 +218,16 @@
   const $ = id => document.getElementById(id);
   const PW = 'haerang-push-admin';
   const PAGE = location.origin + '/notice/';
-  let pw = '', children = [], pending = [];
+  let pw = '', kids = [], pending = [];
 
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   const toast = t => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600); };
   const post = async (path, body) => { const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw, ...body }) }); return r.json(); };
   const timeText = d => { const h = d.getHours(), m = d.getMinutes(); return (h < 12 ? '오전 ' : '오후 ') + ((h % 12) || 12) + '시' + (m ? ' ' + m + '분' : ''); };
-  const dayKey = () => { const d = new Date(); return 'haerang-att-' + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
-  const attLog = () => { try { return JSON.parse(localStorage.getItem(dayKey())) || {}; } catch (_) { return {}; } };
 
+  const KIOSK = location.origin + '/notice/kiosk.html';
+  $('kioskUrl').textContent = KIOSK;
+  document.querySelector('.copyKiosk').onclick = async () => { try { await navigator.clipboard.writeText(KIOSK); toast('주소를 복사했습니다'); } catch (_) { prompt('복사해 주세요', KIOSK); } };
   document.querySelectorAll('.shareUrl').forEach(el => el.textContent = PAGE);
   document.querySelectorAll('.copyShare').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(PAGE); toast('주소를 복사했습니다'); } catch (_) { prompt('복사해 주세요', PAGE); } });
 
@@ -216,15 +247,15 @@
   $('refresh').onclick = async () => { const j = await post('/admin/status', {}); if (j.ok) { setStatus(j); loadSent(); toast('새로 불러왔습니다'); } };
 
   function setStatus(j) {
-    children = j.children || [];
-    $('meta').textContent = '알림 켠 기기 ' + j.devices + '대';
+    kids = j.kids || [];
+    $('meta').textContent = '아이 ' + (j.kids || []).length + '명 · 휴대폰 ' + j.devices + '대';
     pending = j.pending || [];
-    renderKids(); renderChecks(); renderPending();
+    renderKids(); renderChecks(); renderPending(); renderRoster();
   }
   function renderPending() {
     $('pendCard').hidden = !pending.length;
     $('pendN').textContent = pending.length ? pending.length + '건' : '';
-    $('pendList').innerHTML = pending.map(p => '<li class="pd"><div><b>' + p.children.map(esc).join(', ') + '</b><small>' + new Date(p.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' 신청' + (p.children.some(c => children.some(k => k.name === c)) ? ' · 이미 등록된 이름' : '') + '</small></div><button class="ok" data-id="' + p.id + '">승인</button><button class="no" data-id="' + p.id + '">거절</button></li>').join('');
+    $('pendList').innerHTML = pending.map(p => '<li class="pd"><div><b>' + p.children.map(esc).join(', ') + '</b><small><b class="rl">' + esc(p.rel || '') + ' · 뒷자리 ' + esc(p.ph || '') + '</b> · ' + new Date(p.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' 신청' + (p.children.some(c => kids.some(k => k.name === c)) ? ' · 이미 명단에 있는 이름' : ' · 새 아이') + '</small></div><button class="ok" data-id="' + p.id + '">승인</button><button class="no" data-id="' + p.id + '">거절</button></li>').join('');
   }
   $('pendList').onclick = async e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -240,21 +271,22 @@
   // ── 탭 ──
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
-    ['att', 'notice', 'fee'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
+    ['att', 'notice', 'fee', 'roster'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
     scrollTo(0, 0);
   });
 
   // ── 등원·하원 ──
   function renderKids() {
     const q = $('q').value.replace(/\s+/g, '');
-    const log = attLog();
-    const list = children.filter(c => !q || c.name.includes(q));
-    $('noKids').hidden = children.length > 0 || pending.length > 0;
+    const list = kids.filter(c => !q || c.name.includes(q));
+    $('noKids').hidden = kids.length > 0 || pending.length > 0;
+    const nin = kids.filter(k => k.today.in && !k.today.out).length, nout = kids.filter(k => k.today.out).length;
+    $('attSum').textContent = kids.length ? '오늘 도장에 있음 ' + nin + '명 · 하원 ' + nout + '명' : '';
     $('kids').innerHTML = list.map(c => {
-      const l = log[c.name] || {};
-      const st = l.out ? '하원 ' + l.out : l.in ? '등원 ' + l.in : '휴대폰 ' + c.devices + '대';
+      const l = c.today || {};
+      const st = l.out ? '하원 ' + l.out : l.in ? '등원 ' + l.in : '보호자 ' + c.guardians.length + '명';
       return '<li class="kid"><div class="nm"><b>' + esc(c.name) + '</b><small class="' + (l.in || l.out ? 'done' : '') + '">' + esc(st) + '</small></div>' +
-        '<button class="in' + (l.in ? ' sent' : '') + '" data-n="' + esc(c.name) + '" data-a="in">등원</button>' +
+        '<button class="in' + (l.in && !l.out ? ' sent' : '') + '" data-n="' + esc(c.name) + '" data-a="in">등원</button>' +
         '<button class="out' + (l.out ? ' sent' : '') + '" data-n="' + esc(c.name) + '" data-a="out">하원</button></li>';
     }).join('');
   }
@@ -262,22 +294,50 @@
   $('kids').onclick = async e => {
     const b = e.target.closest('button'); if (!b) return;
     const name = b.dataset.n, act = b.dataset.a;
-    const log = attLog();
-    if ((log[name] || {})[act] && !confirm(name + ' ' + (act === 'in' ? '등원' : '하원') + ' 알림을 오늘 이미 보냈습니다. 한 번 더 보낼까요?')) return;
-    const now = new Date(), t = timeText(now);
-    const body = act === 'in'
-      ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.'
-      : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
+    const k = kids.find(x => x.name === name) || { today: {} };
+    if (act === 'in' && k.today.in && !k.today.out && !confirm(name + ' 학생은 오늘 이미 등원했습니다. 한 번 더 보낼까요?')) return;
+    if (act === 'out' && k.today.out && !confirm(name + ' 학생은 오늘 이미 하원했습니다. 한 번 더 보낼까요?')) return;
     b.disabled = true;
     try {
-      const j = await post('/admin/send', { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name] });
+      const j = await post('/admin/check', { name, act });
       if (!j.ok) throw new Error(j.error);
-      log[name] = { ...(log[name] || {}), [act]: t };
-      try { localStorage.setItem(dayKey(), JSON.stringify(log)); } catch (_) {}
-      toast(!j.total ? name + ' 학부모님 휴대폰이 등록돼 있지 않습니다' : j.sent ? name + ' ' + (act === 'in' ? '등원' : '하원') + ' 알림을 보냈습니다' : '보내지 못했습니다. 학부모님이 알림을 다시 켜야 할 수 있습니다');
+      k.today = act === 'in' ? { in: j.time } : { ...k.today, out: j.time };
+      toast(!j.total ? name + ' 보호자 휴대폰이 등록돼 있지 않습니다' : j.sent ? name + ' ' + (act === 'in' ? '등원' : '하원') + ' 알림을 보냈습니다' : '보내지 못했습니다. 보호자가 알림을 다시 켜야 할 수 있습니다');
       renderKids();
     } catch (err) { toast('보내지 못했습니다: ' + (err.message || '')); b.disabled = false; }
   };
+
+  // ── 명단 ──
+  function renderRoster() {
+    $('roster').innerHTML = kids.length ? kids.map((k, i) => '<li class="rs"><div class="rh"><b>' + esc(k.name) + '</b><span class="codes">출결번호 ' + (k.codes.length ? k.codes.map(esc).join(', ') : '없음') + '</span><button data-i="' + i + '" data-x="edit">수정</button></div>' +
+      (k.guardians.length ? k.guardians.map(g => '<div class="gd"><span>' + esc(g.rel) + ' · ' + esc(g.ph) + '</span><button data-g="' + g.id + '" data-n="' + esc(k.name) + '" data-r="' + esc(g.rel) + '">휴대폰 해제</button></div>').join('') : '<div class="gd"><span class="hint">알림 받는 보호자 없음</span></div>') + '</li>').join('')
+      : '<li class="empty">아직 명단이 없습니다. 학부모님 가입을 승인하면 자동으로 들어옵니다.</li>';
+  }
+  $('roster').onclick = async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.g) {
+      if (!confirm(b.dataset.n + ' ' + b.dataset.r + ' 휴대폰을 해제할까요? 이 휴대폰으로는 더 이상 알림이 가지 않습니다.')) return;
+      await post('/admin/remove-device', { id: b.dataset.g }); return refresh();
+    }
+    const k = kids[b.dataset.i];
+    const name = prompt('아이 이름', k.name); if (name === null) return;
+    const codes = prompt('출결번호 (4자리, 여러 개면 쉼표로 구분)\n비워 두면 태블릿에서 찾을 수 없습니다', k.codes.join(', ')); if (codes === null) return;
+    if (!name.trim()) { if (confirm(k.name + ' 학생을 명단에서 지울까요?')) { await post('/admin/kid-delete', { name: k.name }); refresh(); } return; }
+    const j = await post('/admin/kid-save', { oldName: k.name, name: name.trim(), codes: codes.split(/[,\s]+/) });
+    if (!j.ok) toast(j.error); else { toast('저장했습니다'); refresh(); }
+  };
+  $('addKid').onclick = async () => {
+    const name = prompt('추가할 아이 이름'); if (!name || !name.trim()) return;
+    const codes = prompt('출결번호 4자리 (보통 학부모 휴대폰 뒷자리)', ''); if (codes === null) return;
+    const j = await post('/admin/kid-save', { name: name.trim(), codes: codes.split(/[,\s]+/) });
+    if (!j.ok) toast(j.error); else { toast('추가했습니다'); refresh(); }
+  };
+  $('kioskReset').onclick = async () => {
+    if (!confirm('등록된 출결 태블릿을 모두 해제할까요? 태블릿에서 비밀번호를 다시 넣어야 합니다.')) return;
+    const j = await post('/admin/kiosk-reset', {}); toast(j.ok ? '태블릿 ' + j.removed + '대를 해제했습니다' : j.error);
+  };
+  async function refresh() { const j = await post('/admin/status', {}); if (j.ok) setStatus(j); }
+  setInterval(() => { if (pw && !document.hidden) refresh(); }, 60000);
 
   // ── 묶음 발송 (기기가 많으면 여러 번 나눠 보냄) ──
   async function sendAll(btn, payload) {
@@ -338,7 +398,7 @@
   $('fTarget').onclick = e => { const b = e.target.closest('button'); if (!b) return; fMode = b.dataset.v; [...$('fTarget').children].forEach(x => x.classList.toggle('on', x === b)); $('fPick').hidden = fMode !== 'pick'; };
   function renderChecks() {
     const q = $('fq').value.replace(/\s+/g, '');
-    $('fChecks').innerHTML = children.filter(c => !q || c.name.includes(q)).map(c => '<label><input type="checkbox" value="' + esc(c.name) + '"' + (picked.has(c.name) ? ' checked' : '') + '>' + esc(c.name) + '</label>').join('') || '<p class="hint">등록한 아이가 없습니다</p>';
+    $('fChecks').innerHTML = kids.filter(c => !q || c.name.includes(q)).map(c => '<label><input type="checkbox" value="' + esc(c.name) + '"' + (picked.has(c.name) ? ' checked' : '') + '>' + esc(c.name) + '</label>').join('') || '<p class="hint">등록한 아이가 없습니다</p>';
     $('fCount').textContent = picked.size ? picked.size + '명 선택' : '';
   }
   $('fq').oninput = renderChecks;

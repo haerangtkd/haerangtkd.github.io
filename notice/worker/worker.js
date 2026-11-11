@@ -1,22 +1,23 @@
 // 해랑경희 알림 서버 (Cloudflare Workers 무료 요금제용)
+// 앱 3개가 이 서버 하나를 같이 씁니다: 학부모용(/notice/), 관리용(/notice/admin.html), 출결 태블릿(/notice/kiosk.html)
 // ─────────────────────────────────────────────
 // 필요한 설정 (Cloudflare 대시보드 → 이 Worker → 설정)
 //   1) KV 네임스페이스 바인딩: 변수 이름 DB
-//   2) 비밀 변수(Secret): ADMIN_PASSWORD  ← 관장님 발송 페이지 비밀번호
+//   2) 비밀 변수(Secret): ADMIN_PASSWORD  ← 관장님 비밀번호
 // 푸시 서명 키(VAPID)는 처음 실행될 때 자동으로 만들어 DB에 저장합니다.
 // ─────────────────────────────────────────────
 
 const SITE = 'https://haerangtkd.github.io';
 const BATCH = 40;               // 무료 요금제 외부 요청 한도(50) 안에서 한 번에 보낼 기기 수
 const MAX_NOTICES = 50;         // 공개 공지 목록에 남길 개수
+const RELATIONS = ['엄마', '아빠', '할머니', '할아버지', '이모', '고모', '삼촌'];
 
 export default {
   async fetch(req, env) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
       const url = new URL(req.url);
-      const r = await route(url.pathname, req, env);
-      return cors(r);
+      return cors(await route(url.pathname, req, env));
     } catch (e) {
       return cors(json({ ok: false, error: String(e && e.message || e) }, 500));
     }
@@ -24,42 +25,54 @@ export default {
 };
 
 async function route(path, req, env) {
-  if (path === '/vapid' && req.method === 'GET') {
-    const v = await getVapid(env);
-    return json({ ok: true, publicKey: v.publicKey });
-  }
-  if (path === '/notices' && req.method === 'GET') {
-    const list = (await env.DB.get('notices', 'json')) || [];
-    return json({ ok: true, notices: list });
-  }
+  const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+
+  // ── 학부모용 ──
+  if (path === '/vapid') return json({ ok: true, publicKey: (await getVapid(env)).publicKey });
+  if (path === '/notices') return json({ ok: true, notices: (await env.DB.get('notices', 'json')) || [] });
   if (path === '/subscribe' && req.method === 'POST') {
-    const b = await req.json();
     const s = b.subscription || {};
-    if (!s.endpoint || !s.keys || !s.keys.p256dh || !s.keys.auth) return json({ ok: false, error: '구독 정보가 올바르지 않습니다' }, 400);
-    if (!/^https:\/\//.test(s.endpoint)) return json({ ok: false, error: 'endpoint' }, 400);
-    const children = cleanNames(b.children);
+    if (!s.endpoint || !s.keys || !s.keys.p256dh || !s.keys.auth || !/^https:\/\//.test(s.endpoint)) return json({ ok: false, error: '구독 정보가 올바르지 않습니다' }, 400);
     const id = await subId(s.endpoint);
     const old = (await env.DB.getWithMetadata('sub:' + id)).metadata;
-    // 같은 휴대폰이 같은 이름으로 다시 등록하면 승인 상태 유지, 이름이 바뀌면 다시 승인 필요
-    const same = old && old.ok && JSON.stringify([...old.c].sort()) === JSON.stringify([...children].sort());
-    const meta = { e: s.endpoint, p: s.keys.p256dh, a: s.keys.auth, c: children, t: old ? old.t : Date.now(), ok: !!same };
-    const changed = !old || old.ok !== meta.ok || old.e !== meta.e || old.p !== meta.p || old.a !== meta.a || JSON.stringify(old.c) !== JSON.stringify(meta.c);
-    if (changed) await env.DB.put('sub:' + id, '1', { metadata: meta });
-    return json({ ok: true, id, approved: meta.ok });
+    // 앱을 열 때 하는 재확인(resync)은 서버에 있는 정보(관장님이 고친 이름 포함)를 그대로 유지
+    const keep = b.resync && old;
+    if (b.resync && !old) return json({ ok: true, removed: true }); // 관장님이 지웠거나 거절한 경우
+    const children = keep ? old.c : cleanNames(b.children);
+    const rel = keep ? old.r : (RELATIONS.includes(b.relation) ? b.relation : '');
+    const ph = keep ? old.ph : String(b.phone4 || '').replace(/\D/g, '');
+    if (!children.length || !rel || ph.length !== 4) return json({ ok: false, error: '아이 이름, 관계, 전화번호 뒷자리를 확인해 주세요' }, 400);
+    // 같은 휴대폰이 같은 정보로 다시 등록하면 승인 유지, 정보가 바뀌면 다시 승인 필요
+    const same = old && old.ok && old.r === rel && old.ph === ph && sameList(old.c, children);
+    const meta = { e: s.endpoint, p: s.keys.p256dh, a: s.keys.auth, c: children, r: rel, ph, t: old ? old.t : Date.now(), ok: !!same };
+    if (!old || JSON.stringify(old) !== JSON.stringify(meta)) await env.DB.put('sub:' + id, '1', { metadata: meta });
+    return json({ ok: true, id, approved: meta.ok, children, relation: rel, phone4: ph });
   }
   if (path === '/unsubscribe' && req.method === 'POST') {
-    const b = await req.json();
     if (b.endpoint) await env.DB.delete('sub:' + await subId(b.endpoint));
     return json({ ok: true });
   }
 
-  // ── 여기부터 관장님 전용 ──
+  // ── 출결 태블릿 ──
+  if (path.startsWith('/kiosk/')) {
+    const tok = String(b.token || '').replace(/[^0-9a-f]/g, '');
+    if (!tok || !(await env.DB.get('kiosk:' + tok))) return json({ ok: false, error: '출결 태블릿 등록이 풀렸습니다. 관장님 비밀번호로 다시 등록해 주세요', relogin: true }, 401);
+    if (path === '/kiosk/lookup') {
+      const code = String(b.code || '').replace(/\D/g, '');
+      const kids = (await env.DB.get('kids', 'json')) || {};
+      const att = await getAtt(env);
+      const found = Object.keys(kids).filter(n => kids[n].codes.includes(code)).sort((a, c) => a.localeCompare(c, 'ko'))
+        .map(n => ({ name: n, in: (att[n] || {}).in || null, out: (att[n] || {}).out || null }));
+      return json({ ok: true, kids: found });
+    }
+    if (path === '/kiosk/check') return json(await checkIn(env, b.name, b.act, '태블릿'));
+  }
+
+  // ── 관장님 전용 ──
   if (path.startsWith('/admin/')) {
-    const b = req.method === 'POST' ? await req.json() : {};
-    const pw = b.password || req.headers.get('x-admin-password') || '';
+    const pw = b.password || '';
     // 비밀번호를 10번 틀리면 그 인터넷 주소는 15분 동안 잠금
-    const ip = req.headers.get('cf-connecting-ip') || 'x';
-    const failKey = 'fail:' + ip;
+    const failKey = 'fail:' + (req.headers.get('cf-connecting-ip') || 'x');
     const fails = +(await env.DB.get(failKey)) || 0;
     if (fails >= 10) return json({ ok: false, error: '비밀번호를 여러 번 틀려 15분 동안 잠겼습니다' }, 429);
     if (!env.ADMIN_PASSWORD || !(await sameText(pw, env.ADMIN_PASSWORD))) {
@@ -69,33 +82,109 @@ async function route(path, req, env) {
 
     if (path === '/admin/status') {
       const subs = await listSubs(env);
-      const map = {};
-      for (const s of subs) if (s.ok) for (const c of s.c) map[c] = (map[c] || 0) + 1;
-      const children = Object.keys(map).sort((a, b) => a.localeCompare(b, 'ko')).map(n => ({ name: n, devices: map[n] }));
-      const pending = subs.filter(s => !s.ok && s.c.length).sort((a, b) => b.t - a.t).map(s => ({ id: s.key.slice(4), children: s.c, at: s.t }));
-      return json({ ok: true, devices: subs.length, children, pending });
+      const kids = (await env.DB.get('kids', 'json')) || {};
+      const att = await getAtt(env);
+      const list = Object.keys(kids).sort((a, c) => a.localeCompare(c, 'ko')).map(n => ({
+        name: n, codes: kids[n].codes, today: att[n] || {},
+        guardians: subs.filter(s => s.ok && s.c.includes(n)).map(s => ({ id: s.key.slice(4), rel: s.r, ph: s.ph })),
+      }));
+      const pending = subs.filter(s => !s.ok).sort((a, c) => c.t - a.t).map(s => ({ id: s.key.slice(4), children: s.c, rel: s.r, ph: s.ph, at: s.t }));
+      return json({ ok: true, devices: subs.length, kids: list, pending });
     }
     if (path === '/admin/approve') {
       const key = 'sub:' + String(b.id || '').replace(/[^0-9a-f]/g, '');
       const r = await env.DB.getWithMetadata(key);
       if (!r.metadata) return json({ ok: false, error: '이미 지워진 등록입니다' });
-      if (b.approve) await env.DB.put(key, '1', { metadata: { ...r.metadata, ok: true } });
-      else await env.DB.delete(key);
+      if (!b.approve) { await env.DB.delete(key); return json({ ok: true }); }
+      // 승인하면 아이를 명단에 넣고, 학부모 전화 뒷자리를 출결번호로 연결
+      const kids = (await env.DB.get('kids', 'json')) || {};
+      for (const n of r.metadata.c) {
+        kids[n] = kids[n] || { codes: [], at: Date.now() };
+        if (r.metadata.ph && !kids[n].codes.includes(r.metadata.ph)) kids[n].codes.push(r.metadata.ph);
+      }
+      await env.DB.put('kids', JSON.stringify(kids));
+      await env.DB.put(key, '1', { metadata: { ...r.metadata, ok: true } });
       return json({ ok: true });
     }
+    if (path === '/admin/remove-device') {
+      await env.DB.delete('sub:' + String(b.id || '').replace(/[^0-9a-f]/g, ''));
+      return json({ ok: true });
+    }
+    if (path === '/admin/kid-save') {
+      const name = cleanNames([b.name])[0];
+      const codes = [...new Set((Array.isArray(b.codes) ? b.codes : []).map(c => String(c).replace(/\D/g, '')).filter(c => c.length === 4))].slice(0, 6);
+      if (!name) return json({ ok: false, error: '이름을 확인해 주세요' });
+      const kids = (await env.DB.get('kids', 'json')) || {};
+      const old = b.oldName && kids[b.oldName];
+      if (b.oldName && b.oldName !== name) {
+        delete kids[b.oldName];
+        await renameInSubs(env, b.oldName, name);
+      }
+      kids[name] = { ...(old || kids[name] || { at: Date.now() }), codes };
+      await env.DB.put('kids', JSON.stringify(kids));
+      return json({ ok: true });
+    }
+    if (path === '/admin/kid-delete') {
+      const kids = (await env.DB.get('kids', 'json')) || {};
+      delete kids[b.name];
+      await env.DB.put('kids', JSON.stringify(kids));
+      return json({ ok: true });
+    }
+    if (path === '/admin/check') return json(await checkIn(env, b.name, b.act, '관리'));
     if (path === '/admin/send') return json(await send(env, b));
     if (path === '/admin/delete-notice') {
-      let list = (await env.DB.get('notices', 'json')) || [];
-      list = list.filter(n => n.id !== b.id);
+      const list = ((await env.DB.get('notices', 'json')) || []).filter(n => n.id !== b.id);
       await env.DB.put('notices', JSON.stringify(list));
       return json({ ok: true });
+    }
+    if (path === '/admin/kiosk-token') {
+      const tok = hex(crypto.getRandomValues(new Uint8Array(16)));
+      await env.DB.put('kiosk:' + tok, String(Date.now()));
+      return json({ ok: true, token: tok });
+    }
+    if (path === '/admin/kiosk-reset') {
+      const r = await env.DB.list({ prefix: 'kiosk:' });
+      await Promise.all(r.keys.map(k => env.DB.delete(k.name)));
+      return json({ ok: true, removed: r.keys.length });
     }
   }
   return json({ ok: false, error: 'not found' }, 404);
 }
 
-// 발송: children 이 비어 있으면 전체, 있으면 그 아이를 등록한 기기에만
-// 관장님 페이지가 offset 을 늘려 가며 여러 번 불러 BATCH 개씩 보냅니다.
+// ── 등원·하원 처리 (태블릿·관리 화면 공통) ──
+async function checkIn(env, name, act, by) {
+  if (act !== 'in' && act !== 'out') return { ok: false, error: 'act' };
+  const kids = (await env.DB.get('kids', 'json')) || {};
+  if (!kids[name]) return { ok: false, error: '명단에 없는 아이입니다' };
+  const now = new Date();
+  const t = kstTime(now);
+  const day = kstDay(now);
+  const att = (await env.DB.get('att:' + day, 'json')) || {};
+  att[name] = act === 'in' ? { in: t } : { ...(att[name] || {}), out: t };
+  await env.DB.put('att:' + day, JSON.stringify(att), { expirationTtl: 60 * 60 * 24 * 40 });
+  const body = act === 'in'
+    ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.'
+    : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
+  const r = await send(env, { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name] });
+  return { ok: true, time: t, sent: r.sent || 0, total: r.total || 0, by };
+}
+
+async function getAtt(env) { return (await env.DB.get('att:' + kstDay(new Date()), 'json')) || {}; }
+function kst(d) { return new Date(d.getTime() + 9 * 3600 * 1000); }
+function kstDay(d) { return kst(d).toISOString().slice(0, 10); }
+function kstTime(d) { const k = kst(d); const h = k.getUTCHours(), m = k.getUTCMinutes(); return (h < 12 ? '오전 ' : '오후 ') + ((h % 12) || 12) + '시' + (m ? ' ' + m + '분' : ''); }
+
+async function renameInSubs(env, from, to) {
+  const subs = await listSubs(env);
+  await Promise.all(subs.filter(s => s.c.includes(from)).map(s => {
+    const { key, ...meta } = s;
+    meta.c = [...new Set(s.c.map(c => (c === from ? to : c)))];
+    return env.DB.put(key, '1', { metadata: meta });
+  }));
+}
+
+// 발송: children 이 비어 있으면 전체, 있으면 그 아이의 승인된 보호자 휴대폰에만
+// 관리 화면이 offset 을 늘려 가며 여러 번 불러 BATCH 개씩 보냅니다.
 async function send(env, b) {
   const title = String(b.title || '').slice(0, 80).trim();
   const body = String(b.body || '').slice(0, 500).trim();
@@ -105,8 +194,7 @@ async function send(env, b) {
   const offset = Math.max(0, b.offset | 0);
   const msgId = b.msgId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
 
-  // 전체 공지는 첫 묶음 보낼 때 공개 목록에 저장
-  if (offset === 0 && targets.length === 0 && b.save !== false) {
+  if (offset === 0 && targets.length === 0) {
     const list = (await env.DB.get('notices', 'json')) || [];
     if (!list.some(n => n.id === msgId)) {
       list.unshift({ id: msgId, kind, title, body, at: Date.now() });
@@ -115,16 +203,14 @@ async function send(env, b) {
   }
 
   let subs = await listSubs(env);
-  // 아이를 지정한 알림(등원·하원·개별 회비)은 관장님이 승인한 휴대폰에만
   if (targets.length) subs = subs.filter(s => s.ok && s.c.some(c => targets.includes(c)));
   const total = subs.length;
   const slice = subs.slice(offset, offset + BATCH);
-
   const vapid = await getVapid(env);
   const payload = JSON.stringify({
     title, body, kind,
     url: SITE + '/notice/' + (targets.length ? '' : '#n-' + msgId),
-    tag: targets.length ? 'p-' + msgId : 'n-' + msgId,
+    tag: (targets.length ? 'p-' : 'n-') + msgId,
   });
 
   let sent = 0, failed = 0, removed = 0;
@@ -163,6 +249,7 @@ function cleanNames(arr) {
   }
   return [...seen].slice(0, 6);
 }
+function sameList(a, b) { return JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort()); }
 
 async function sameText(a, b) {
   const [x, y] = await Promise.all([a, b].map(v => crypto.subtle.digest('SHA-256', enc(String(v)))));

@@ -41,6 +41,14 @@
   .kid input:focus{outline:2px solid var(--brand);border-color:transparent}
   .kid button{border:0;background:#F1ECE7;border-radius:10px;width:46px;font-size:20px;color:var(--muted);cursor:pointer}
   .add{border:1px dashed #CFC5BC;background:none;border-radius:10px;width:100%;padding:10px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}
+  .rel{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+  .rel button{text-align:center;grid-column:span 2;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px 4px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+  .rel button.big{grid-column:span 3;font-weight:700;padding:13px 4px}
+  .rel button:nth-child(n+3):nth-child(-n+4){grid-column:span 3}
+  .rel button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  input.ph{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit;font-size:20px;letter-spacing:.3em;background:#fff}
+  input.ph:focus{outline:2px solid var(--brand);border-color:transparent}
+  .chip.g{background:#F1ECE7;color:#5A524D}
   .note{font-size:12.5px;color:var(--muted);margin-top:10px}
   .on{display:flex;align-items:center;gap:12px}
   .on .dot{width:44px;height:44px;border-radius:50%;background:#E6F3EC;color:var(--ok);display:grid;place-items:center;flex:0 0 auto}
@@ -111,11 +119,19 @@
   <!-- 등록 -->
   <section class="card" id="v-register" hidden>
     <h2 id="regTitle">알림 받기</h2>
-    <p>아이 이름을 적고 알림을 켜면 등원·하원 알림과 도장 공지를 이 휴대폰으로 받습니다.</p>
+    <p>아래 내용을 적고 알림을 켜면 등원·하원 알림과 도장 공지를 이 휴대폰으로 받습니다.</p>
     <label class="f">아이 이름</label>
     <div id="kids"></div>
     <button class="add" id="addKid" type="button">+ 형제·자매 추가</button>
-    <p class="note">도장에 등록된 이름 그대로 적어 주세요. 관장님이 확인한 뒤부터 등원·하원 알림이 옵니다. 아이 이름은 알림을 보내는 데에만 씁니다.</p>
+    <p class="note">도장에 등록된 이름 그대로 적어 주세요.</p>
+    <label class="f">아이와의 관계</label>
+    <div class="rel" id="rel">
+      <button type="button" class="big">엄마</button><button type="button" class="big">아빠</button>
+      <button type="button">할머니</button><button type="button">할아버지</button><button type="button">이모</button><button type="button">고모</button><button type="button">삼촌</button>
+    </div>
+    <label class="f">휴대폰 번호 뒷자리 4자리</label>
+    <input class="ph" id="ph" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="예: 1234" autocomplete="off">
+    <p class="note">아이가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원합니다. 관장님이 확인한 뒤부터 등원·하원 알림이 옵니다. 적은 정보는 알림과 출결에만 씁니다.</p>
     <button class="btn" id="subscribe">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
       <span>알림 켜기</span>
@@ -132,7 +148,7 @@
     <p class="wait" id="waitMsg" hidden>관장님이 확인하면 등원·하원 알림이 시작됩니다. 도장 공지는 지금부터 받습니다.</p>
     <div class="chips" id="kidChips"></div>
     <div class="links">
-      <button id="edit">이름 수정</button>
+      <button id="edit">정보 수정</button>
       <button id="test">알림 다시 확인</button>
       <button id="off">알림 끄기</button>
     </div>
@@ -191,6 +207,15 @@
     row.querySelector('button').onclick = () => { if ($('kids').children.length > 1) row.remove(); else row.querySelector('input').value = ''; };
     $('kids').appendChild(row);
   }
+  let rel = '';
+  $('rel').onclick = e => { const b = e.target.closest('button'); if (!b) return; rel = b.textContent; [...$('rel').children].forEach(x => x.classList.toggle('on', x === b)); };
+  const setRel = r => { rel = r || ''; [...$('rel').children].forEach(x => x.classList.toggle('on', x.textContent === rel)); };
+  $('ph').oninput = () => { $('ph').value = $('ph').value.replace(/\D/g, '').slice(0, 4); };
+  function fillForm(s) {
+    s = s || {};
+    $('kids').innerHTML = ''; ((s.children && s.children.length) ? s.children : ['']).forEach(kidRow);
+    setRel(s.rel); $('ph').value = s.ph || '';
+  }
   const kidNames = () => [...$('kids').querySelectorAll('input')].map(i => i.value.replace(/\s+/g, '')).filter(Boolean);
   $('addKid').onclick = () => { if ($('kids').children.length < 6) kidRow(); };
 
@@ -213,13 +238,13 @@
     const sub = await reg.pushManager.getSubscription();
     const s = saved();
     if (sub && Notification.permission === 'granted' && s) { renderOn(s.children, s.approved); resync(sub, s.children); }
-    else { $('kids').innerHTML = ''; kidRow(s && s.children ? s.children[0] : ''); if (s && s.children) s.children.slice(1).forEach(kidRow); show('v-register'); }
+    else { fillForm(s); show('v-register'); }
     navigator.serviceWorker.addEventListener('message', () => loadInbox());
   }
 
   function renderOn(children, approved) {
-    $('kidChips').innerHTML = children.map(c => '<span class="chip">' + esc(c) + '</span>').join('');
     const s = saved() || {};
+    $('kidChips').innerHTML = children.map(c => '<span class="chip">' + esc(c) + '</span>').join('') + (s.rel ? '<span class="chip g">' + esc(s.rel) + ' · ' + esc(s.ph || '') + '</span>' : '');
     if (approved === undefined) approved = !!s.approved;
     $('waitMsg').hidden = approved;
     $('v-on').querySelector('.dot').classList.toggle('pend', !approved);
@@ -229,13 +254,22 @@
 
   // 서버 기록이 지워졌을 경우를 대비해 열 때마다 다시 등록
   function resync(sub, children) {
-    fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children }) })
-      .then(r => r.json()).then(j => { if (j.ok) { save({ children, approved: !!j.approved }); renderOn(children, !!j.approved); } }).catch(() => {});
+    const s = saved() || {};
+    fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children, relation: s.rel, phone4: s.ph, resync: true }) })
+      .then(r => r.json()).then(j => {
+        if (!j.ok) return;
+        if (j.removed) { fillForm(s); $('regTitle').textContent = '다시 등록해 주세요'; show('v-register'); return; }
+        const n = { children: j.children, rel: j.relation, ph: j.phone4, approved: !!j.approved };
+        save(n); renderOn(n.children, n.approved);
+      }).catch(() => {});
   }
 
   $('subscribe').onclick = async () => {
     const children = kidNames();
     if (!children.length) { toast('아이 이름을 적어 주세요'); $('kids').querySelector('input').focus(); return; }
+    if (!rel) { toast('아이와의 관계를 골라 주세요'); return; }
+    const ph = $('ph').value;
+    if (!/^\d{4}$/.test(ph)) { toast('휴대폰 번호 뒷자리 4자리를 적어 주세요'); $('ph').focus(); return; }
     const btn = $('subscribe'); btn.disabled = true;
     try {
       const perm = await Notification.requestPermission();
@@ -247,10 +281,10 @@
       if (!vapidKey) vapidKey = (await (await fetch(API + '/vapid')).json()).publicKey;
       let sub = await reg.pushManager.getSubscription();
       if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(vapidKey) });
-      const r = await fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children }) });
+      const r = await fetch(API + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), children, relation: rel, phone4: ph }) });
       const j = await r.json();
-      if (!j.ok) throw new Error('등록 실패');
-      save({ children, approved: !!j.approved });
+      if (!j.ok) throw new Error(j.error || '등록 실패');
+      save({ children, rel, ph, approved: !!j.approved });
       renderOn(children, !!j.approved);
       toast(j.approved ? '저장했습니다' : '알림을 켰습니다. 관장님 확인 후 등원·하원 알림이 옵니다');
     } catch (e) {
@@ -260,9 +294,8 @@
   };
 
   $('edit').onclick = () => {
-    const s = saved() || { children: [] };
-    $('kids').innerHTML = ''; (s.children.length ? s.children : ['']).forEach(kidRow);
-    $('regTitle').textContent = '아이 이름 수정'; $('subscribe').querySelector('span').textContent = '저장';
+    fillForm(saved());
+    $('regTitle').textContent = '등록 정보 수정'; $('subscribe').querySelector('span').textContent = '저장';
     $('cancelEdit').hidden = false; show('v-register');
   };
   $('cancelEdit').onclick = () => { const s = saved(); if (s) renderOn(s.children); };
@@ -280,7 +313,7 @@
       await sub.unsubscribe().catch(() => {});
     }
     const s = saved(); save(null);
-    $('kids').innerHTML = ''; (s && s.children.length ? s.children : ['']).forEach(kidRow);
+    fillForm(s);
     $('regTitle').textContent = '알림 받기'; $('subscribe').querySelector('span').textContent = '알림 켜기'; $('cancelEdit').hidden = true;
     show('v-register'); toast('알림을 껐습니다');
   };
