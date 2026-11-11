@@ -9,7 +9,7 @@
 // 표(테이블)는 처음 실행될 때 자동으로 만듭니다.
 // ─────────────────────────────────────────────
 
-const SESSION_DAYS = 60;
+const SESSION_DAYS = 180; // 이 기간 동안 한 번도 안 열면 다시 PIN
 const PERIODS = [['2', 14 * 60], ['3', 15 * 60], ['4', 16 * 60], ['5', 17 * 60], ['6', 18 * 60 + 40], ['8', 20 * 60], ['9', 21 * 60]];
 
 const SCHEMA = [
@@ -350,6 +350,7 @@ async function auth(env, tok) {
   if (!tok) return null;
   const s = await one(env, 'SELECT s.tid, s.created, t.name FROM sessions s JOIN teachers t ON t.id = s.tid WHERE s.tok = ?', str(tok, 64));
   if (!s || s.created < Date.now() - SESSION_DAYS * 86400e3) return null;
+  if (s.created < Date.now() - 86400e3) await run(env, 'UPDATE sessions SET created = ? WHERE tok = ?', Date.now(), str(tok, 64)); // 쓰는 동안은 로그인 계속 유지
   return { id: s.tid, name: s.name };
 }
 async function checkAdmin(env, ip, password) {
