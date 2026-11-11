@@ -239,6 +239,12 @@
         <button class="btn ghost" id="addKid">+ 아이 직접 추가</button>
       </div>
       <div class="card">
+        <h2>출석부와 비교</h2>
+        <p class="hint">해랑 출석부에 있는데 이 앱 명단에 없는 아이를 찾아 한 번에 등록합니다. 출석부의 출석번호가 출결번호로 들어가고, 아이가 태블릿에서 번호를 누르면 출석부에도 자동으로 출석이 찍힙니다.</p>
+        <div id="attDiff" style="margin-top:10px"></div>
+        <button class="btn ghost" id="attDiffBtn">출석부 명단 확인하기</button>
+      </div>
+      <div class="card">
         <h2>출결 태블릿</h2>
         <p class="hint">도장 입구 태블릿에서 아래 주소를 열고 관장님 비밀번호를 한 번 넣으면 출결용으로 등록됩니다. 태블릿을 잃어버렸을 때는 모두 해제해 주세요.</p>
         <div class="share"><code id="kioskUrl"></code><button id="copyKiosk">복사</button></div>
@@ -586,6 +592,27 @@
     const j = await post('/admin/kid-save', { name: name.trim(), codes: codes.split(/[,\s]+/) });
     toast(j.ok ? '추가했습니다' : j.error); refresh();
   };
+  // ── 출석부와 비교 ──
+  let attPick = new Set();
+  async function loadAttDiff() {
+    const box = $('attDiff'); box.innerHTML = '<p class="hint">출석부 명단을 확인하는 중…</p>';
+    const j = await post('/admin/roster-diff', {}).catch(() => ({ ok: false, error: '서버에 연결하지 못했습니다' }));
+    if (!j.ok) { box.innerHTML = '<p class="hint" style="color:var(--brand)">' + esc(j.error) + '</p>'; return; }
+    const rows = [...j.missing.map(s => ({ ...s, why: '명단에 없음' })), ...j.noCode.map(s => ({ ...s, why: '출결번호 ' + s.no + ' 빠짐' }))];
+    attPick = new Set(rows.map(s => s.name));
+    if (!rows.length) { box.innerHTML = '<p class="hint" style="color:var(--ok);font-weight:700">출석부 ' + j.total + '명이 모두 등록되어 있습니다.</p>'; return; }
+    box.innerHTML = '<p class="hint"><b>' + rows.length + '명</b>을 등록해야 합니다 (출석부 ' + j.total + '명 중). 빼고 싶은 아이는 체크를 풀어 주세요.</p>' +
+      '<ul class="list" id="attDiffL" style="margin-top:6px">' + rows.map(s => '<li><label class="chk" style="margin-top:6px"><input type="checkbox" checked data-n="' + esc(s.name) + '"> <b>' + esc(s.name) + '</b>&nbsp;<span class="hint">' + esc(s.why) + (s.no ? ' · 번호 ' + esc(s.no) : ' · 출석번호 없음') + (s.status === '휴원' ? ' · 휴원' : '') + '</span></label></li>').join('') + '</ul>' +
+      '<button class="btn" id="attAddBtn">선택한 ' + rows.length + '명 등록</button>';
+    $('attDiffL').onchange = e => { const n = e.target.dataset.n; e.target.checked ? attPick.add(n) : attPick.delete(n); $('attAddBtn').textContent = '선택한 ' + attPick.size + '명 등록'; };
+    $('attAddBtn').onclick = async () => {
+      if (!attPick.size) return;
+      $('attAddBtn').disabled = true;
+      const r = await post('/admin/roster-add', { names: [...attPick] });
+      toast(r.ok ? r.added + '명을 등록했습니다' : r.error); await refresh(); loadAttDiff();
+    };
+  }
+  $('attDiffBtn').onclick = loadAttDiff;
   $('kioskReset').onclick = async () => {
     if (!confirm('등록된 출결 태블릿을 모두 해제할까요? 태블릿에서 비밀번호를 다시 넣어야 합니다.')) return;
     const j = await post('/admin/kiosk-reset', {}); toast(j.ok ? '태블릿 ' + j.removed + '대를 해제했습니다' : j.error);

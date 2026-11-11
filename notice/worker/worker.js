@@ -5,6 +5,7 @@
 // 필요한 설정 (Cloudflare 대시보드 → 이 Worker → 설정 → 바인딩)
 //   1) D1 데이터베이스 바인딩: 변수 이름 DB
 //   2) 비밀 변수(Secret): ADMIN_PASSWORD  ← 관장님 비밀번호
+//   3) (출석부 연동, 선택) 서비스 바인딩 ATT → haerang-attendance Worker, 비밀 변수 SYNC_KEY ← 출석부 서버와 같은 값
 // 표(테이블)와 푸시 서명 키는 처음 실행될 때 자동으로 만듭니다.
 // ─────────────────────────────────────────────
 
@@ -220,6 +221,28 @@ async function route(path, req, env) {
       await run(env, 'INSERT INTO kids (name, codes, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET codes = excluded.codes', name, JSON.stringify(codes), Date.now());
       return json({ ok: true });
     }
+    // 출석부 명단과 비교: 출석부에는 있는데 알림 앱 명단에 없는 아이, 출결번호가 빠진 아이
+    if (path === '/admin/roster-diff' || path === '/admin/roster-add') {
+      const r = await attSync(env, '/sync/roster', {});
+      if (!r.ok) return json({ ok: false, error: r.error || '출석부에 연결하지 못했습니다' });
+      const kids = await all(env, 'SELECT name, codes FROM kids');
+      const missing = [], noCode = [];
+      for (const s of r.students) {
+        const k = kids.find(x => x.name === s.name);
+        if (!k) missing.push(s);
+        else if (/^\d{4}$/.test(s.no) && !J(k.codes, []).includes(s.no)) noCode.push({ ...s, codes: J(k.codes, []) });
+      }
+      if (path === '/admin/roster-diff') return json({ ok: true, missing, noCode, total: r.students.length });
+      const want = new Set((Array.isArray(b.names) ? b.names : []).slice(0, 300).map(x => String(x || '').replace(/\s+/g, '')).filter(Boolean));
+      const st = [];
+      for (const s of [...missing, ...noCode]) {
+        if (!want.has(s.name)) continue;
+        const codes = [...new Set([...(s.codes || []), ...(/^\d{4}$/.test(s.no) ? [s.no] : [])])].slice(0, 6);
+        st.push(q(env, 'INSERT INTO kids (name, codes, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET codes = excluded.codes', s.name, JSON.stringify(codes), Date.now()));
+      }
+      if (st.length) await env.DB.batch(st);
+      return json({ ok: true, added: st.length });
+    }
     if (path === '/admin/kid-delete') { await run(env, 'DELETE FROM kids WHERE name = ?', String(b.name || '')); return json({ ok: true }); }
     if (path === '/admin/check') return json(await checkIn(env, b.name, b.act));
 
@@ -337,9 +360,18 @@ async function checkIn(env, name, act, kiosk) {
   }
   if (act === 'in') await run(env, 'INSERT INTO att (day, name, tin, tout, tin_at) VALUES (?, ?, ?, NULL, ?) ON CONFLICT(day, name) DO UPDATE SET tin = excluded.tin, tout = NULL, tin_at = excluded.tin_at', day, name, t, now.getTime());
   else await run(env, 'INSERT INTO att (day, name, tin, tout) VALUES (?, ?, NULL, ?) ON CONFLICT(day, name) DO UPDATE SET tout = excluded.tout', day, name, t);
+  if (act === 'in') await attSync(env, '/sync/checkin', { name, at: now.getTime() }); // 출석부에 자동 출석 (연결 안 됐으면 그냥 넘어감)
   const body = act === 'in' ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.' : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
   const r = await send(env, { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name], view: 'attendance' });
   return { ok: true, time: t, at: now.getTime(), sent: r.sent || 0, total: r.total || 0 };
+}
+// ─────────── 출석부 서버 연동 (서비스 바인딩 ATT) ───────────
+async function attSync(env, path, body) {
+  if (!env.ATT || !env.SYNC_KEY) return { ok: false, error: '출석부가 아직 연결되지 않았습니다 (알림 서버 설정의 ATT 바인딩·SYNC_KEY)' };
+  try {
+    const r = await env.ATT.fetch('https://attendance' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify(body) });
+    return await r.json();
+  } catch (e) { return { ok: false, error: '출석부에 연결하지 못했습니다' }; }
 }
 function kst(d) { return new Date(d.getTime() + 9 * 3600 * 1000); }
 function kstDay(d) { return kst(d).toISOString().slice(0, 10); }

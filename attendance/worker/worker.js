@@ -1,0 +1,361 @@
+// 해랑 출석부 서버 (Cloudflare Workers 무료 요금제 + D1 데이터베이스)
+// 화면: https://haerangtkd.github.io/attendance/
+// ─────────────────────────────────────────────
+// 필요한 설정 (Cloudflare 대시보드 → 이 Worker → 설정)
+//   1) D1 데이터베이스 바인딩: 변수 이름 DB  (출석부 전용 데이터베이스 haerang-att)
+//   2) 비밀 변수(Secret) ADMIN_PASSWORD : 관장님 비밀번호 — 사범님 추가, 백업 복원, 초기화에 씀
+//   3) 비밀 변수(Secret) SYNC_KEY       : 알림 서버와 같은 값 — 태블릿 등원 연동, 명단 비교에 씀
+// 표(테이블)는 처음 실행될 때 자동으로 만듭니다.
+// ─────────────────────────────────────────────
+
+const SESSION_DAYS = 60;
+const PERIODS = [['2', 14 * 60], ['3', 15 * 60], ['4', 16 * 60], ['5', 17 * 60], ['6', 18 * 60 + 40], ['8', 20 * 60], ['9', 21 * 60]];
+
+const SCHEMA = [
+  'CREATE TABLE IF NOT EXISTS teachers (id TEXT PRIMARY KEY, name TEXT, salt TEXT, pin TEXT, created INTEGER)',
+  'CREATE TABLE IF NOT EXISTS sessions (tok TEXT PRIMARY KEY, tid TEXT, created INTEGER)',
+  'CREATE TABLE IF NOT EXISTS students (id TEXT PRIMARY KEY, data TEXT, upd INTEGER)',
+  'CREATE TABLE IF NOT EXISTS att (day TEXT, sid TEXT, r TEXT, p TEXT, w TEXT, mk INTEGER DEFAULT 0, who TEXT, at INTEGER, PRIMARY KEY (day, sid))',
+  'CREATE TABLE IF NOT EXISTS absences (sid TEXT, date TEXT, why TEXT, PRIMARY KEY (sid, date))',
+  'CREATE TABLE IF NOT EXISTS trials (id TEXT PRIMARY KEY, data TEXT, upd INTEGER)',
+  'CREATE TABLE IF NOT EXISTS history (id TEXT PRIMARY KEY, sid TEXT, tid TEXT, at INTEGER, text TEXT, who TEXT)',
+  'CREATE INDEX IF NOT EXISTS history_sid ON history (sid)',
+  'CREATE TABLE IF NOT EXISTS closed (day TEXT PRIMARY KEY, why TEXT)',
+  'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER)',
+];
+let ready = false;
+async function setup(env) {
+  if (ready) return;
+  await env.DB.batch(SCHEMA.map(s => env.DB.prepare(s)));
+  ready = true;
+}
+
+export default {
+  async fetch(req, env) {
+    if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+    try {
+      await setup(env);
+      const url = new URL(req.url);
+      return cors(await route(url.pathname, req, env));
+    } catch (e) {
+      return cors(json({ ok: false, error: String(e && e.message || e) }, 500));
+    }
+  },
+};
+
+// ─────────── 도우미 ───────────
+const q = (env, sql, ...args) => env.DB.prepare(sql).bind(...args);
+const all = async (env, sql, ...args) => (await q(env, sql, ...args).all()).results || [];
+const one = (env, sql, ...args) => q(env, sql, ...args).first();
+const run = (env, sql, ...args) => q(env, sql, ...args).run();
+const J = (s, d) => { try { return s ? JSON.parse(s) : d; } catch (_) { return d; } };
+const rid = n => hex(crypto.getRandomValues(new Uint8Array(n)));
+const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+const cleanP = p => [...new Set(String(p || '').split('/').map(x => x.replace(/[^0-9]/g, '')).filter(Boolean))].sort((a, b) => a - b).join('/');
+
+async function route(path, req, env) {
+  const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+  const ip = req.headers.get('cf-connecting-ip') || 'x';
+
+  // ═════════ 알림 서버 연동 (서비스 바인딩으로만 부름) ═════════
+  if (path.startsWith('/sync/')) {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    if (path === '/sync/roster') {
+      const list = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) }))
+        .filter(s => s.name && s.status !== '퇴관')
+        .map(s => ({ name: s.name, no: s.no || '', status: s.status || '재원' }));
+      return json({ ok: true, students: list });
+    }
+    if (path === '/sync/checkin') {
+      const name = str(b.name, 30).replace(/\s+/g, '');
+      const at = Number(b.at) || Date.now();
+      const st = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) }))
+        .filter(s => (s.name || '').replace(/\s+/g, '') === name && s.status !== '퇴관');
+      if (!st.length) return json({ ok: false, error: '출석부에 없는 이름' });
+      const k = new Date(at + 9 * 3600e3), day = k.toISOString().slice(0, 10), min = k.getUTCHours() * 60 + k.getUTCMinutes();
+      const per = periodFor(min);
+      const s = st[0];
+      const cur = await one(env, 'SELECT p FROM att WHERE day = ? AND sid = ?', day, s.id);
+      const p = cleanP([cur && cur.p, per].filter(Boolean).join('/'));
+      await run(env, "INSERT INTO att (day, sid, r, p, w, mk, who, at) VALUES (?, ?, 'o', ?, '', 0, '태블릿', ?) ON CONFLICT(day, sid) DO UPDATE SET r = 'o', p = excluded.p, w = '', who = '태블릿', at = excluded.at", day, s.id, p, Date.now());
+      return json({ ok: true, day, period: per });
+    }
+    return json({ ok: false, error: 'not found' }, 404);
+  }
+
+  if (!path.startsWith('/api/')) return json({ ok: true, app: '해랑 출석부' });
+
+  // ═════════ 로그인 전 ═════════
+  if (path === '/api/teachers') {
+    const t = await all(env, 'SELECT id, name FROM teachers ORDER BY created');
+    return json({ ok: true, teachers: t, needSetup: !t.length });
+  }
+  if (path === '/api/setup') { // 처음 한 번: 관장님 비밀번호 + 첫 사범님
+    if ((await one(env, 'SELECT COUNT(*) AS n FROM teachers')).n) return json({ ok: false, error: '이미 설정되어 있습니다' });
+    const e = await checkAdmin(env, ip, b.password); if (e) return e;
+    const r = await addTeacher(env, b.name, b.pin); if (!r.ok) return json(r);
+    return json({ ok: true, ...(await newSession(env, r.id)), name: r.name });
+  }
+  if (path === '/api/login') {
+    const f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', ip);
+    if (f && f.until > Date.now()) return json({ ok: false, error: '여러 번 틀려 15분 동안 잠겼습니다' }, 429);
+    const t = await one(env, 'SELECT * FROM teachers WHERE id = ?', str(b.tid, 40));
+    if (!t || !(await sameText(await pinHash(t.salt, b.pin), t.pin))) { await fail(env, ip, f); return json({ ok: false, error: 'PIN이 맞지 않습니다' }, 401); }
+    if (f) await run(env, 'DELETE FROM fails WHERE ip = ?', ip);
+    return json({ ok: true, ...(await newSession(env, t.id)), name: t.name });
+  }
+
+  // ═════════ 관장님 비밀번호가 필요한 일 ═════════
+  if (path.startsWith('/api/admin/')) {
+    const e = await checkAdmin(env, ip, b.password); if (e) return e;
+    if (path === '/api/admin/check') return json({ ok: true });
+    if (path === '/api/admin/teacher-add') return json(await addTeacher(env, b.name, b.pin));
+    if (path === '/api/admin/teacher-pin') {
+      const pin = String(b.pin || '');
+      if (!/^\d{4,6}$/.test(pin)) return json({ ok: false, error: 'PIN은 숫자 4~6자리로 정해 주세요' });
+      const salt = rid(8);
+      await run(env, 'UPDATE teachers SET salt = ?, pin = ? WHERE id = ?', salt, await pinHash(salt, pin), str(b.tid, 40));
+      await run(env, 'DELETE FROM sessions WHERE tid = ?', str(b.tid, 40));
+      return json({ ok: true });
+    }
+    if (path === '/api/admin/teacher-del') {
+      await run(env, 'DELETE FROM teachers WHERE id = ?', str(b.tid, 40));
+      await run(env, 'DELETE FROM sessions WHERE tid = ?', str(b.tid, 40));
+      return json({ ok: true });
+    }
+    if (path === '/api/admin/wipe') { // 출석부 초기화 (사범님 PIN은 그대로)
+      await env.DB.batch(['students', 'att', 'absences', 'trials', 'history', 'closed'].map(t => env.DB.prepare('DELETE FROM ' + t)));
+      return json({ ok: true });
+    }
+    if (path === '/api/admin/import') return json(await importChunk(env, b));
+    return json({ ok: false, error: 'not found' }, 404);
+  }
+
+  // ═════════ 사범님 로그인 후 ═════════
+  const me = await auth(env, b.tok);
+  if (!me) return json({ ok: false, error: '다시 로그인해 주세요', relogin: true }, 401);
+  const who = me.name;
+
+  if (path === '/api/logout') { await run(env, 'DELETE FROM sessions WHERE tok = ?', str(b.tok, 64)); return json({ ok: true }); }
+  if (path === '/api/pin-change') {
+    const t = await one(env, 'SELECT * FROM teachers WHERE id = ?', me.id);
+    if (!(await sameText(await pinHash(t.salt, b.old), t.pin))) return json({ ok: false, error: '지금 PIN이 맞지 않습니다' });
+    if (!/^\d{4,6}$/.test(String(b.pin || ''))) return json({ ok: false, error: '새 PIN은 숫자 4~6자리로 정해 주세요' });
+    const salt = rid(8);
+    await run(env, 'UPDATE teachers SET salt = ?, pin = ? WHERE id = ?', salt, await pinHash(salt, String(b.pin)), me.id);
+    return json({ ok: true });
+  }
+
+  if (path === '/api/boot') {
+    const [students, absences, trials, closed, th, teachers] = await Promise.all([
+      all(env, 'SELECT id, data FROM students'),
+      all(env, 'SELECT sid, date, why FROM absences WHERE date >= ?', addDays(kstDay(), -100)),
+      all(env, 'SELECT id, data FROM trials'),
+      all(env, 'SELECT day, why FROM closed'),
+      all(env, "SELECT id, sid, tid, at, text, who FROM history WHERE tid <> '' ORDER BY at DESC LIMIT 500"),
+      all(env, 'SELECT id, name FROM teachers ORDER BY created'),
+    ]);
+    return json({ ok: true, me: { id: me.id, name: me.name }, teachers,
+      students: students.map(r => ({ id: r.id, ...J(r.data, {}) })),
+      trials: trials.map(r => ({ id: r.id, ...J(r.data, {}) })),
+      absences, closed, trialHistory: th });
+  }
+
+  if (path === '/api/att') {
+    let rows;
+    if (/^\d{4}$/.test(String(b.year || ''))) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at FROM att WHERE day LIKE ?', b.year + '-%');
+    else if (/^\d{4}-\d{2}$/.test(String(b.ym || ''))) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at FROM att WHERE day LIKE ?', b.ym + '-%');
+    else if (isDay(b.day)) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at FROM att WHERE day = ?', b.day);
+    else return json({ ok: false, error: '기간을 확인해 주세요' });
+    const ym = b.ym || (b.day ? b.day.slice(0, 7) : null);
+    const ab = ym ? await all(env, 'SELECT sid, date, why FROM absences WHERE date LIKE ?', ym + '-%') : await all(env, 'SELECT sid, date, why FROM absences WHERE date LIKE ?', b.year + '-%');
+    return json({ ok: true, rows, absences: ab });
+  }
+
+  if (path === '/api/att-set') { // 여러 명 한 번에: r 'o' 출석 / 'x' 결석 / '' 미확인, del 이면 줄 지움(보강 취소 등)
+    if (!isDay(b.day)) return json({ ok: false, error: '날짜를 확인해 주세요' });
+    const items = (Array.isArray(b.items) ? b.items : []).slice(0, 200);
+    const now = Date.now(), st = [];
+    for (const it of items) {
+      const sid = str(it.sid, 60); if (!sid) continue;
+      if (it.del) { st.push(q(env, 'DELETE FROM att WHERE day = ? AND sid = ?', b.day, sid)); continue; }
+      const r = ['o', 'x', ''].includes(it.r) ? it.r : '';
+      st.push(q(env, 'INSERT INTO att (day, sid, r, p, w, mk, who, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(day, sid) DO UPDATE SET r = excluded.r, p = excluded.p, w = excluded.w, mk = MAX(att.mk, excluded.mk), who = excluded.who, at = excluded.at',
+        b.day, sid, r, r === 'o' ? cleanP(it.p) : '', r === 'x' ? str(it.w, 40) : '', it.mk ? 1 : 0, who, now));
+    }
+    if (st.length) await env.DB.batch(st);
+    return json({ ok: true, rows: await all(env, 'SELECT day, sid, r, p, w, mk, who, at FROM att WHERE day = ?', b.day) });
+  }
+
+  if (path === '/api/student-save') {
+    const s = cleanStudent(b.student || {});
+    if (!s.name) return json({ ok: false, error: '이름을 적어 주세요' });
+    const id = str(b.student && b.student.id, 60) || crypto.randomUUID();
+    const st = [q(env, 'INSERT INTO students (id, data, upd) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', id, JSON.stringify(s), Date.now())];
+    for (const t of (Array.isArray(b.history) ? b.history : []).slice(0, 20)) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), id, str(b.tid, 60), Date.now(), str(t, 200), who));
+    await env.DB.batch(st);
+    return json({ ok: true, id });
+  }
+  if (path === '/api/student-delete') {
+    const id = str(b.id, 60);
+    await env.DB.batch(['students WHERE id', 'att WHERE sid', 'absences WHERE sid', 'history WHERE sid'].map(t => q(env, 'DELETE FROM ' + t + ' = ?', id)));
+    return json({ ok: true });
+  }
+  if (path === '/api/history') return json({ ok: true, items: await all(env, 'SELECT id, sid, tid, at, text, who FROM history WHERE sid = ? ORDER BY at DESC LIMIT 200', str(b.sid, 60)) });
+
+  if (path === '/api/absence-set') { // 미리 연락 온 결석
+    const st = [];
+    for (const a of (Array.isArray(b.add) ? b.add : []).slice(0, 100)) if (a.sid && isDay(a.date)) st.push(q(env, 'INSERT INTO absences (sid, date, why) VALUES (?, ?, ?) ON CONFLICT(sid, date) DO UPDATE SET why = excluded.why', str(a.sid, 60), a.date, str(a.why, 40)));
+    for (const a of (Array.isArray(b.remove) ? b.remove : []).slice(0, 100)) if (a.sid && isDay(a.date)) st.push(q(env, 'DELETE FROM absences WHERE sid = ? AND date = ?', str(a.sid, 60), a.date));
+    if (st.length) await env.DB.batch(st);
+    return json({ ok: true });
+  }
+
+  if (path === '/api/trial-save') {
+    const t = b.trial || {};
+    const d = { name: str(t.name, 20).trim(), date: isDay(t.date) ? t.date : '', per: cleanP(t.per), birth: str(t.birth, 4), guardian: str(t.guardian, 10), phone: str(t.phone, 20).replace(/[^0-9]/g, ''), inst: str(t.inst, 20), memo: str(t.memo, 500), status: ['예정', '등록', '등록 안 함', '미확인'].includes(t.status) ? t.status : '예정', studentId: str(t.studentId, 60) };
+    if (!d.name || !d.date) return json({ ok: false, error: '이름과 날짜를 적어 주세요' });
+    const id = str(t.id, 60) || rid(16);
+    const st = [q(env, 'INSERT INTO trials (id, data, upd) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', id, JSON.stringify(d), Date.now())];
+    for (const x of (Array.isArray(b.history) ? b.history : []).slice(0, 10)) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), d.studentId, id, Date.now(), str(x, 200), who));
+    await env.DB.batch(st);
+    return json({ ok: true, id });
+  }
+  if (path === '/api/trial-delete') { await env.DB.batch([q(env, 'DELETE FROM trials WHERE id = ?', str(b.id, 60)), q(env, "DELETE FROM history WHERE tid = ? AND sid = ''", str(b.id, 60))]); return json({ ok: true }); }
+
+  if (path === '/api/closed-set') {
+    if (!isDay(b.day)) return json({ ok: false, error: '날짜를 확인해 주세요' });
+    if (b.on) await run(env, 'INSERT INTO closed (day, why) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET why = excluded.why', b.day, str(b.why, 40));
+    else await run(env, 'DELETE FROM closed WHERE day = ?', b.day);
+    return json({ ok: true });
+  }
+
+  if (path === '/api/export') { // 백업 파일 (예전 출석부와 같은 모양)
+    const [students, att, absences, trials, history, closed] = await Promise.all([
+      all(env, 'SELECT id, data FROM students'), all(env, 'SELECT day, sid, r, p, w, mk FROM att ORDER BY day'),
+      all(env, 'SELECT sid, date, why FROM absences'), all(env, 'SELECT id, data FROM trials'),
+      all(env, 'SELECT id, sid, tid, at, text, who FROM history'), all(env, 'SELECT day, why FROM closed'),
+    ]);
+    const out = { app: '해랑 출석부', exportedAt: new Date().toISOString(), att: {}, absences: {}, trials: {}, students: {}, history: {}, closed: {}, makeup: {} };
+    for (const s of students) out.students[s.id] = J(s.data, {});
+    for (const a of att) {
+      const d = out.att[a.day] || (out.att[a.day] = { ym: a.day.slice(0, 7), r: {}, p: {}, w: {} });
+      d.r[a.sid] = a.r; if (a.p) d.p[a.sid] = a.p; if (a.w) d.w[a.sid] = a.w;
+      if (a.mk) (out.makeup[a.day] || (out.makeup[a.day] = [])).push(a.sid);
+    }
+    for (const a of absences) out.absences[a.sid + '_' + a.date] = { sid: a.sid, date: a.date, why: a.why, ym: a.date.slice(0, 7) };
+    for (const t of trials) out.trials[t.id] = J(t.data, {});
+    for (const h of history) out.history[h.id] = { sid: h.sid, tid: h.tid, at: new Date(h.at).toISOString(), text: h.text, who: h.who || '' };
+    for (const c of closed) out.closed[c.day] = c.why || '';
+    return json({ ok: true, backup: out });
+  }
+
+  return json({ ok: false, error: 'not found' }, 404);
+}
+
+// 백업 파일 불러오기: 화면이 조각(part)으로 나눠 보냄 — 무료 요금제 계산 한도 때문
+async function importChunk(env, b) {
+  const part = b.part, d = b.data || {}, st = [];
+  if (part === 'students') {
+    for (const [id, s] of Object.entries(d)) st.push(q(env, 'INSERT INTO students (id, data, upd) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', str(id, 60), JSON.stringify(cleanStudent(s)), Date.now()));
+  } else if (part === 'att') { // [[day, sid, r, p, w, mk], ...]
+    for (const a of (Array.isArray(d) ? d : [])) {
+      if (!isDay(a[0]) || !a[1]) continue;
+      const r = ['o', 'x'].includes(a[2]) ? a[2] : '';
+      st.push(q(env, "INSERT INTO att (day, sid, r, p, w, mk, who, at) VALUES (?, ?, ?, ?, ?, ?, '예전 출석부', 0) ON CONFLICT(day, sid) DO UPDATE SET r = excluded.r, p = excluded.p, w = excluded.w, mk = excluded.mk",
+        a[0], str(a[1], 60), r, cleanP(a[3]), str(a[4], 40), a[5] ? 1 : 0));
+    }
+  } else if (part === 'absences') {
+    for (const a of (Array.isArray(d) ? d : [])) if (a.sid && isDay(a.date)) st.push(q(env, 'INSERT INTO absences (sid, date, why) VALUES (?, ?, ?) ON CONFLICT(sid, date) DO UPDATE SET why = excluded.why', str(a.sid, 60), a.date, str(a.why, 40)));
+  } else if (part === 'trials') {
+    for (const [id, t] of Object.entries(d)) st.push(q(env, 'INSERT INTO trials (id, data, upd) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data', str(id, 60), JSON.stringify(t || {}), Date.now()));
+  } else if (part === 'history') {
+    for (const [id, h] of Object.entries(d)) st.push(q(env, 'INSERT OR REPLACE INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', str(id, 60), str(h.sid, 60), str(h.tid, 60), Date.parse(h.at) || 0, str(h.text, 200), str(h.who, 20)));
+  } else if (part === 'closed') {
+    for (const [day, why] of Object.entries(d)) if (isDay(day)) st.push(q(env, 'INSERT OR REPLACE INTO closed (day, why) VALUES (?, ?)', day, str(typeof why === 'string' ? why : (why && why.why) || '', 40)));
+  } else return { ok: false, error: 'part' };
+  if (st.length > 400) return { ok: false, error: '한 번에 너무 많습니다' };
+  if (st.length) await env.DB.batch(st);
+  return { ok: true, n: st.length };
+}
+
+function cleanStudent(s) {
+  const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
+  const days = arr => (Array.isArray(arr) ? arr : []).filter(x => DAYS.includes(x)).sort((a, b) => DAYS.indexOf(a) - DAYS.indexOf(b));
+  const okDay = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? v : '');
+  return {
+    name: str(s.name, 20).trim(),
+    birth: (+s.birth > 1900 && +s.birth < 2100) ? +s.birth : '',
+    days: days(s.days),
+    status: ['재원', '휴원', '퇴관'].includes(s.status) ? s.status : '재원',
+    joined: okDay(s.joined),
+    gender: ['남', '여'].includes(s.gender) ? s.gender : '',
+    memo: str(s.memo, 500),
+    no: str(s.no, 4).replace(/\D/g, ''),
+    guardian: str(s.guardian, 10),
+    phone: str(s.phone, 20).replace(/[^0-9]/g, ''),
+    inst: str(s.inst, 20),
+    leavePeriods: (Array.isArray(s.leavePeriods) ? s.leavePeriods : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end) })).filter(p => p.start || p.end),
+    temporarySchedules: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end), days: days(p.days) })).filter(p => p.start),
+  };
+}
+
+function periodFor(min) { // 도착 시각 → 수업 시간부 (시작 1시간 전 ~ 시작 25분 뒤에 온 수업)
+  for (const [k, start] of PERIODS) if (min >= start - 60 && min <= start + 25) return k;
+  return '';
+}
+
+// ─────────── 로그인 ───────────
+async function addTeacher(env, name, pin) {
+  name = str(name, 12).trim(); pin = String(pin || '');
+  if (!name) return { ok: false, error: '사범님 이름을 적어 주세요' };
+  if (!/^\d{4,6}$/.test(pin)) return { ok: false, error: 'PIN은 숫자 4~6자리로 정해 주세요' };
+  if (await one(env, 'SELECT id FROM teachers WHERE name = ?', name)) return { ok: false, error: '같은 이름이 이미 있습니다' };
+  const id = rid(8), salt = rid(8);
+  await run(env, 'INSERT INTO teachers (id, name, salt, pin, created) VALUES (?, ?, ?, ?, ?)', id, name, salt, await pinHash(salt, pin), Date.now());
+  return { ok: true, id, name };
+}
+async function newSession(env, tid) {
+  const tok = rid(24);
+  await run(env, 'INSERT INTO sessions (tok, tid, created) VALUES (?, ?, ?)', tok, tid, Date.now());
+  await run(env, 'DELETE FROM sessions WHERE created < ?', Date.now() - SESSION_DAYS * 86400e3);
+  return { tok };
+}
+async function auth(env, tok) {
+  if (!tok) return null;
+  const s = await one(env, 'SELECT s.tid, s.created, t.name FROM sessions s JOIN teachers t ON t.id = s.tid WHERE s.tok = ?', str(tok, 64));
+  if (!s || s.created < Date.now() - SESSION_DAYS * 86400e3) return null;
+  return { id: s.tid, name: s.name };
+}
+async function checkAdmin(env, ip, password) {
+  const f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', ip);
+  if (f && f.until > Date.now()) return json({ ok: false, error: '여러 번 틀려 15분 동안 잠겼습니다' }, 429);
+  if (!env.ADMIN_PASSWORD || !(await sameText(password || '', env.ADMIN_PASSWORD))) { await fail(env, ip, f); return json({ ok: false, error: '관장님 비밀번호가 맞지 않습니다' }, 401); }
+  return null;
+}
+async function fail(env, ip, f) { // 10번 틀리면 15분 잠금
+  const n = (f && f.until && f.until <= Date.now() ? 0 : (f ? f.n : 0)) + 1;
+  await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', ip, n, n >= 10 ? Date.now() + 15 * 60000 : 0);
+}
+async function pinHash(salt, pin) { return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', enc(salt + ':' + String(pin || ''))))); }
+async function sameText(a, b) {
+  const [x, y] = await Promise.all([a, b].map(v => crypto.subtle.digest('SHA-256', enc(String(v)))));
+  const p = new Uint8Array(x), r = new Uint8Array(y);
+  let d = 0; for (let i = 0; i < p.length; i++) d |= p[i] ^ r[i];
+  return d === 0;
+}
+
+// ─────────── 도구 ───────────
+function kstDay(d = new Date()) { return new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 10); }
+function addDays(day, n) { return new Date(Date.parse(day + 'T00:00:00Z') + n * 86400e3).toISOString().slice(0, 10); }
+function enc(s) { return new TextEncoder().encode(s); }
+function hex(b) { return [...b].map(x => x.toString(16).padStart(2, '0')).join(''); }
+function json(o, status = 200) { return new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } }); }
+function cors(r) {
+  const h = new Headers(r.headers);
+  h.set('Access-Control-Allow-Origin', '*');
+  h.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  h.set('Access-Control-Allow-Headers', 'Content-Type');
+  return new Response(r.body, { status: r.status, headers: h });
+}
