@@ -623,7 +623,12 @@ async function route(path, req, env, ctx) {
   if (path === '/api/pickup') {
     if (!isDay(b.day)) return json({ ok: false, error: '날짜' });
     const d = cleanPickup(b), upd = Date.now();
+    const prev = J((await one(env, 'SELECT data FROM pickup WHERE day = ?', b.day) || {}).data, {}).absent || [];
     await run(env, 'INSERT INTO pickup (day, data, upd) VALUES (?, ?, ?) ON CONFLICT(day) DO UPDATE SET data = excluded.data, upd = excluded.upd', b.day, JSON.stringify(d), upd);
+    // 픽업표 결석 → 출석부 결석 예정 (2026-11-13). 취소하면 픽업표가 넣은 것만 지움
+    const add = d.absent.filter(n => !prev.includes(n)), del = prev.filter(n => !d.absent.includes(n));
+    if (add.length) ctx.waitUntil(attSync(env, '/sync/absence', { items: add.slice(0, 10).map(name => ({ name, date: b.day, why: '픽업표 결석' })) }).catch(() => {}));
+    if (del.length) ctx.waitUntil(attSync(env, '/sync/absence-clear', { items: del.slice(0, 10).map(name => ({ name, date: b.day })) }).catch(() => {}));
     if (b.what) notify(me.name + ' · 등원', String(b.what).slice(0, 140), 'pickup', b.day);
     return json({ ok: true, upd });
   }

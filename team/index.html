@@ -889,7 +889,7 @@ function pickupCard() {
   const kids = [...new Set([...p.list, ...p.absent])].filter(activeKid).sort((a, b) => (tm[a] || '99').localeCompare(tm[b] || '99')); loadRstat();
   const isAb = k => p.absent.includes(k) || aa.includes(k), nAb = kids.filter(isAb).length;
   return '<div class="sec" id="pkSec"><div class="sh"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button><button class="lbtn" id="pkEdit">명단 수정</button></div>' +
-    (kids.length ? '<p class="pksum">' + (kids.length - nAb) + '명 등원' + (nAb ? ' · <b>결석 ' + nAb + '명</b>' : '') + '</p><div id="pkL">' + kids.map(k => '<button class="kid' + (isAb(k) ? ' ab' : '') + '" data-k="' + esc(k) + '">' + (tm[k] ? '<small class="ktm">' + tmKo(tm[k]) + '</small>' : '') + esc(k) + (isAb(k) ? '<em class="abt">' + (aa.includes(k) && !p.absent.includes(k) ? '출석부 결석' : '결석') + '</em>' : '') + '</button>').join('') + '</div><p class="hint" style="margin:6px 0 0">누르면 결석 표시 · 출석부에서 결석을 누르면 여기도 자동으로 결석이에요</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 제자가 없어요. 명단 수정이나 설정의 요일별 기본 명단에서 넣어 주세요.') + '</p>') +
+    (kids.length ? '<p class="pksum">' + (kids.length - nAb) + '명 등원' + (nAb ? ' · <b>결석 ' + nAb + '명</b>' : '') + '</p><div id="pkL">' + kids.map(k => '<button class="kid' + (isAb(k) ? ' ab' : '') + '" data-k="' + esc(k) + '">' + (tm[k] ? '<small class="ktm">' + tmKo(tm[k]) + '</small>' : '') + esc(k) + (isAb(k) ? '<em class="abt">' + (aa.includes(k) && !p.absent.includes(k) ? '출석부 결석' : '결석') + '</em>' : '') + '</button>').join('') + '</div><p class="hint" style="margin:6px 0 0">누르면 결석 → 출석부에도 결석 예정으로 들어가요 · 출석부 결석도 여기 자동으로 보여요</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 제자가 없어요. 명단 수정이나 설정의 요일별 기본 명단에서 넣어 주세요.') + '</p>') +
     (p.memos.length ? p.memos.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '') + pkCheckRow() + '</div>';
 }
 // 첫 화면 두 번째 줄: 원생 · 오늘 출석(출석부) · 학부모 앱 가입 승인 대기 · 학부모 앱 행사 신청
@@ -931,7 +931,7 @@ async function onPickupClick(e, view) {
   if (e.target.id === 'pkEdit') { pickupSheet(S.homeDay); return true; }
   const k = e.target.closest('.kid'); if (k) { const p = JSON.parse(JSON.stringify(pickupFor(S.homeDay))), n = k.dataset.k; p.day = S.homeDay;
     if (!p.absent.includes(n) && attAbsOf(S.homeDay).includes(n)) { toast('출석부에서 결석으로 되어 있어요'); return true; }
-    if (p.absent.includes(n)) { p.absent = p.absent.filter(x => x !== n); if (!p.list.includes(n)) p.list.push(n); savePickup(p, n + ' 결석 취소'); } else { p.absent.push(n); savePickup(p, n + ' 결석'); } return true; }
+    if (p.absent.includes(n)) { p.absent = p.absent.filter(x => x !== n); if (!p.list.includes(n)) p.list.push(n); const c = S.attAbs && S.attAbs.get(S.homeDay); if (c) c.names = c.names.filter(x => x !== n); savePickup(p, n + ' 결석 취소'); } else { p.absent.push(n); savePickup(p, n + ' 결석'); } return true; }
   return false;
 }
 $('v-home').onclick = async e => {
