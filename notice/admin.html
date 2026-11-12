@@ -162,14 +162,16 @@
 <section class="login" id="login" hidden>
   <img src="icon-192.png" alt="">
   <h1>해랑경희 관리</h1>
-  <input type="password" id="pw" placeholder="관리자 비밀번호" autocomplete="current-password">
+  <p class="hint" style="margin:0 0 10px">이름을 고르고 업무 앱 PIN을 넣어 주세요</p>
+  <div id="who" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px"></div>
+  <input type="password" id="pw" placeholder="PIN" inputmode="numeric" maxlength="12" autocomplete="off">
   <button class="btn" id="loginBtn">들어가기</button>
   <p class="hint" id="loginMsg" style="margin-top:12px"></p>
 </section>
 
 <div id="app" hidden>
   <header class="top"><div class="in">
-    <div class="row"><h1>해랑경희 관리</h1><span class="meta" id="meta"></span><button class="lo" id="refresh">새로고침</button></div>
+    <div class="row"><h1>해랑경희 관리</h1><span class="meta" id="meta"></span><button class="lo" id="refresh">새로고침</button><button class="lo" id="logout">나가기</button></div>
     <nav class="tabs">
       <button data-t="att" class="on">출결<span class="cnt" id="pendBadge" hidden></span></button>
       <button data-t="news">소식</button>
@@ -270,7 +272,7 @@
       </div>
       <div class="card">
         <h2>출결 태블릿</h2>
-        <p class="hint">도장 입구 태블릿에서 아래 주소를 열고 관리자 비밀번호를 한 번 넣으면 출결용으로 등록됩니다. 태블릿을 잃어버렸을 때는 모두 해제해 주세요.</p>
+        <p class="hint">도장 입구 태블릿에서 아래 주소를 열고 공용 PIN(업무 앱 '도장 공용')을 한 번 넣으면 출결용으로 등록됩니다. 태블릿을 잃어버렸을 때는 모두 해제해 주세요.</p>
         <div class="share"><code id="kioskUrl"></code><button id="copyKiosk">복사</button></div>
         <button class="btn ghost" id="kioskReset">등록된 태블릿 모두 해제</button>
       </div>
@@ -305,11 +307,12 @@
   const PWK = 'haerang-push-admin';
   const PAGE = location.origin + '/notice/', KIOSK = location.origin + '/notice/kiosk.html';
   const WD = '일월화수목금토';
-  let pw = '', kids = [], pending = [];
+  const TOKK = 'haerang-push-staff';
+  let pw = '', who = '', kids = [], pending = []; // pw = 로그인 표(토큰)
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   const toast = t => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2800); };
-  const post = async (path, body) => (await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw, ...body }) })).json();
+  const post = async (path, body) => (await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tok: pw, ...body }) })).json().then(j => { if (j && j.relogin) { try { localStorage.removeItem(TOKK); } catch (_) {} location.reload(); } return j; });
   const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   const thisMonth = () => today().slice(0, 7);
   const addMonth = (m, n) => { const [y, mo] = m.split('-').map(Number); return new Date(Date.UTC(y, mo - 1 + n, 1)).toISOString().slice(0, 7); };
@@ -321,17 +324,30 @@
   $('kioskUrl').textContent = KIOSK; $('copyKiosk').onclick = () => copyText(KIOSK);
 
   // ── 로그인 ──
-  async function login(p) {
-    pw = p;
+  async function login(t) {
+    pw = t;
     const j = await post('/admin/status', {}).catch(() => ({ ok: false, error: '서버에 연결하지 못했습니다' }));
-    if (!j.ok) return j.error || '비밀번호가 맞지 않습니다';
-    try { localStorage.setItem(PWK, p); } catch (_) {}
+    if (!j.ok) return j.error || '다시 로그인해 주세요';
+    try { localStorage.setItem(TOKK, t); localStorage.removeItem(PWK); } catch (_) {}
     setStatus(j);
     $('login').hidden = true; $('app').hidden = false;
     loadNews();
     return null;
   }
-  $('loginBtn').onclick = async () => { $('loginMsg').textContent = ''; const e = await login($('pw').value); if (e) $('loginMsg').textContent = e; };
+  async function showWho() { // 업무 앱 사람 목록 (직원 각자 PIN, 도장 컴퓨터는 '도장 공용')
+    const j = await fetch(API + '/staff/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()).catch(() => ({ ok: false }));
+    if (!j.ok) { $('loginMsg').textContent = j.error || '서버에 연결하지 못했습니다'; return; }
+    $('who').innerHTML = j.members.map(m => '<button type="button" class="lo" data-id="' + esc(m.id) + '" style="padding:10px 14px">' + esc(m.name) + '</button>').join('');
+    $('who').onclick = e => { const b = e.target.closest('[data-id]'); if (!b) return; who = b.dataset.id; $('who').querySelectorAll('button').forEach(x => { x.style.background = x === b ? 'var(--brand)' : ''; x.style.color = x === b ? '#fff' : ''; }); $('pw').focus(); };
+  }
+  $('loginBtn').onclick = async () => {
+    $('loginMsg').textContent = '';
+    if (!who) { $('loginMsg').textContent = '이름을 먼저 골라 주세요'; return; }
+    const r = await fetch(API + '/staff/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mid: who, pin: $('pw').value }) }).then(x => x.json()).catch(() => ({ ok: false, error: '서버에 연결하지 못했습니다' }));
+    if (!r.ok) { $('loginMsg').textContent = r.error || 'PIN이 맞지 않아요'; return; }
+    $('pw').value = ''; const e = await login(r.tok); if (e) $('loginMsg').textContent = e;
+  };
+  $('logout').onclick = async () => { await post('/staff/logout', {}).catch(() => {}); try { localStorage.removeItem(TOKK); } catch (_) {} location.reload(); };
   $('pw').onkeydown = e => { if (e.key === 'Enter') $('loginBtn').click(); };
   async function refresh() { const j = await post('/admin/status', {}); if (j.ok) setStatus(j); return j; }
   $('refresh').onclick = async () => { if ((await refresh()).ok) { loadNews(); loadFees(); toast('새로 불러왔습니다'); } };
@@ -730,9 +746,9 @@
   setType('notice');
   (async () => {
     if (!API) { $('login').hidden = false; $('loginMsg').textContent = '서버 주소(config.js)가 아직 비어 있습니다.'; $('loginBtn').disabled = true; return; }
-    let saved = ''; try { saved = localStorage.getItem(PWK) || ''; } catch (_) {}
+    let saved = ''; try { saved = localStorage.getItem(TOKK) || ''; localStorage.removeItem(PWK); } catch (_) {} // 예전 관리자 비밀번호 저장값은 지움
     if (saved && !(await login(saved))) return;
-    $('login').hidden = false;
+    $('login').hidden = false; showWho();
   })();
 })();
 </script>

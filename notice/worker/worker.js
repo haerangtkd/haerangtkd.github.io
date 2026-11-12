@@ -28,6 +28,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS fees (month TEXT, name TEXT, paid INTEGER, at INTEGER, PRIMARY KEY (month, name))',
   'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER)',
   'CREATE TABLE IF NOT EXISTS kiosks (tok TEXT PRIMARY KEY, created INTEGER)',
+  // 알림 관리 로그인 (업무 앱 PIN으로 들어온 사람) — 2026-11-12
+  'CREATE TABLE IF NOT EXISTS asess (tok TEXT PRIMARY KEY, mid TEXT, name TEXT, shared INTEGER, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS reads (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))',
   'CREATE TABLE IF NOT EXISTS acks (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 학부모가 '확인했어요'를 누른 기록
   'CREATE TABLE IF NOT EXISTS famreq (id TEXT PRIMARY KEY, kids TEXT, rel TEXT, ph TEXT, by TEXT, at INTEGER)', // 학부모 앱 '도장에 가족 추가 요청'
@@ -66,6 +68,7 @@ const one = (env, sql, ...args) => q(env, sql, ...args).first();
 const run = (env, sql, ...args) => q(env, sql, ...args).run();
 const J = (s, d) => { try { return s ? JSON.parse(s) : d; } catch (_) { return d; } };
 const rid = n => hex(crypto.getRandomValues(new Uint8Array(n)));
+const str = (v, n) => String(v == null ? "" : v).slice(0, n);
 
 async function route(path, req, env) {
   const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
@@ -229,7 +232,8 @@ async function route(path, req, env) {
     if (path === '/kiosk/admin') { // 태블릿 관리자 모드 (모드 바꾸기·소리 확인) — 관리자 비밀번호
       const k = 'kad:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, k);
       if (lu) return json({ ok: false, error: lockText(lu) });
-      if (!env.ADMIN_PASSWORD || !(await sameText(String(b.password || ''), env.ADMIN_PASSWORD))) return json({ ok: false, error: failText('비밀번호가 맞지 않아요', await failAdd(env, k)) });
+      const pinOk = b.pin ? !!(await teamSync(env, '/sync/pin-check', { shared: true, pin: str(b.pin, 12) })).ok : false; // 공용 PIN (업무 앱 '도장 공용' 계정)
+      if (!pinOk && !(env.ADMIN_PASSWORD && b.password && await sameText(String(b.password), env.ADMIN_PASSWORD))) return json({ ok: false, error: failText(b.pin ? '공용 PIN이 맞지 않아요' : '비밀번호가 맞지 않아요', await failAdd(env, k)) });
       await failClear(env, k);
       return json({ ok: true });
     }
@@ -273,13 +277,37 @@ async function route(path, req, env) {
     return json({ ok: true, pending: r ? r.n : 0 });
   }
 
-  // ═════════ 관장님 전용 ═════════
+  // ═════════ 알림 관리 로그인: 직원 각자 업무 앱 PIN (공용 기기는 '도장 공용' PIN) ═════════
+  if (path === '/staff/members') {
+    const r = await teamSync(env, '/sync/members', {});
+    return json(r.ok ? { ok: true, members: (r.members || []).map(m => ({ id: m.id, name: m.name, shared: m.shared })) } : { ok: false, error: '업무 앱에 연결하지 못했어요' });
+  }
+  if (path === '/staff/login') {
+    const ip = 'stf:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, ip);
+    if (lu) return json({ ok: false, error: lockText(lu) }, 429);
+    const r = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
+    if (!r.ok) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
+    await failClear(env, ip);
+    const tok = rid(24);
+    await run(env, 'INSERT INTO asess (tok, mid, name, shared, created) VALUES (?, ?, ?, ?, ?)', tok, r.id, r.name, r.shared ? 1 : 0, Date.now());
+    return json({ ok: true, tok, name: r.name });
+  }
+  if (path === '/staff/logout') { await run(env, 'DELETE FROM asess WHERE tok = ?', str(b.tok, 64)); return json({ ok: true }); }
+  // ═════════ 관리 화면 (직원 PIN 로그인, 예전 관리자 비밀번호도 됨) ═════════
   if (path.startsWith('/admin/')) {
     const ip = req.headers.get('cf-connecting-ip') || 'x';
     const lu = await lockUntil(env, ip);
     if (lu) return json({ ok: false, error: lockText(lu) }, 429);
-    if (!env.ADMIN_PASSWORD || !(await sameText(b.password || '', env.ADMIN_PASSWORD))) return json({ ok: false, error: failText('비밀번호가 맞지 않습니다', await failAdd(env, ip)) }, 401);
-    await failClear(env, ip);
+    const ses = b.tok ? await one(env, 'SELECT * FROM asess WHERE tok = ?', str(b.tok, 64)) : null;
+    if (ses && ses.created < Date.now() - 180 * 86400e3) { await run(env, 'DELETE FROM asess WHERE tok = ?', ses.tok); return json({ ok: false, relogin: true, error: '다시 로그인해 주세요' }, 401); }
+    if (ses) { if (ses.created < Date.now() - 86400e3) await run(env, 'UPDATE asess SET created = ? WHERE tok = ?', Date.now(), ses.tok); } // 쓰는 동안은 로그인 유지
+    else if (b.tok && !b.password) return json({ ok: false, relogin: true, error: '다시 로그인해 주세요' }, 401);
+    else if (b.spin && path === '/admin/kiosk-token') { // 태블릿 등록은 공용 PIN으로 (공용 기기)
+      if (!(await teamSync(env, '/sync/pin-check', { shared: true, pin: str(b.spin, 12) })).ok) return json({ ok: false, error: failText('공용 PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
+      await failClear(env, ip);
+    }
+    else if (!env.ADMIN_PASSWORD || !(await sameText(b.password || '', env.ADMIN_PASSWORD))) return json({ ok: false, error: failText('비밀번호가 맞지 않습니다', await failAdd(env, ip)) }, 401);
+    else await failClear(env, ip);
 
     if (path === '/admin/status') {
       const today = kstDay(new Date());

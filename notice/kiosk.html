@@ -153,8 +153,8 @@
 <section class="screen" id="s-setup" hidden>
   <img src="icon-192.png" alt="">
   <h1>출결 태블릿으로 등록</h1>
-  <p>이 기기를 도장 입구 출결용으로 씁니다. 관리자 비밀번호를 한 번만 넣어 주세요.</p>
-  <input type="password" id="pw" placeholder="관리자 비밀번호">
+  <p>이 기기를 도장 입구 출결용으로 씁니다. 공용 PIN(업무 앱 '도장 공용')을 한 번만 넣어 주세요.</p>
+  <input type="password" id="pw" placeholder="공용 PIN" inputmode="numeric" autocomplete="off">
   <button id="setupBtn">등록하기</button>
   <div id="setupMsg"></div>
 </section>
@@ -359,7 +359,7 @@
   $('setupBtn').onclick = async () => {
     $('setupMsg').textContent = '';
     try {
-      const j = await post('/admin/kiosk-token', { password: $('pw').value });
+      const j = await post('/admin/kiosk-token', { spin: $('pw').value });
       if (!j.ok) { $('setupMsg').textContent = j.error; return; }
       token = j.token; try { localStorage.setItem(TK, token); } catch (_) {}
       $('pw').value = ''; toMode(); keepAwake();
@@ -380,10 +380,10 @@
   // ── 관리자 (출결 화면 오른쪽 위, 비밀번호) — 제자들이 장난치지 않게 소리 확인·모드 바꾸기는 여기 안에 ──
   function admin() {
     clearTimeout(idle);
-    $('admBox').innerHTML = '<h3>관리자</h3><p>관리자 비밀번호를 넣어 주세요</p><input type="password" id="admPw" inputmode="numeric" autocomplete="off"><div class="err" id="admErr"></div><button class="pri" id="admOk">확인</button><button id="admX">닫기</button>';
+    $('admBox').innerHTML = '<h3>관리자</h3><p>공용 PIN을 넣어 주세요</p><input type="password" id="admPw" inputmode="numeric" autocomplete="off"><div class="err" id="admErr"></div><button class="pri" id="admOk">확인</button><button id="admX">닫기</button>';
     $('adm').hidden = false; setTimeout(() => $('admPw').focus(), 50);
     $('admX').onclick = () => { $('adm').hidden = true; home(); };
-    const go = async () => { const j = await post('/kiosk/admin', { token, password: $('admPw').value }).catch(() => ({ error: '인터넷 연결을 확인해 주세요' })); if (!j.ok) { $('admErr').textContent = j.error || '확인하지 못했어요'; $('admPw').value = ''; return; } menu(); };
+    const go = async () => { const j = await post('/kiosk/admin', { token, pin: $('admPw').value }).catch(() => ({ error: '인터넷 연결을 확인해 주세요' })); if (!j.ok) { $('admErr').textContent = j.error || '확인하지 못했어요'; $('admPw').value = ''; return; } menu(); };
     $('admOk').onclick = go; $('admPw').onkeydown = e => { if (e.key === 'Enter') go(); };
   }
   function menu() {

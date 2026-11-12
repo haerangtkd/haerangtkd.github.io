@@ -176,6 +176,15 @@ async function route(path, req, env, ctx) {
   if (path.startsWith('/sync/')) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const kids = (Array.isArray(b.kids) ? b.kids : []).map(x => str(x, 20)).filter(Boolean).slice(0, 10);
+    // 다른 앱(알림 관리·태블릿·장부)이 업무 앱 PIN으로 사람 확인 (2026-11-12 사용자 결정: 각자 PIN, 공용 기기는 공용 PIN)
+    if (path === '/sync/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared FROM members ORDER BY shared, name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared })) });
+    if (path === '/sync/pin-check') {
+      let m = b.shared ? await one(env, 'SELECT * FROM members WHERE shared = 1 ORDER BY id LIMIT 1') : await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
+      if (!m) return json({ ok: false });
+      if (!(await sameText(await pinHash(m.salt, b.pin), m.pin)) && !m.shared) { await importTeachers(env, true).catch(() => {}); m = await one(env, 'SELECT * FROM members WHERE id = ?', m.id); }
+      if (!m || !(await sameText(await pinHash(m.salt, b.pin), m.pin))) return json({ ok: false });
+      return json({ ok: true, id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared });
+    }
     if (path === '/sync/events') return json({ ok: true, events: await openEvents(env, kids) });
     if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, label, who, why, text, day, at, ack, ackAt FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 10', ...kids)).map(r => ({ ...r, ack: !!r.ack })) : [] });
     if (path === '/sync/pmsg-send') return json(await pmsgSend(env, b, kids, ctx));
