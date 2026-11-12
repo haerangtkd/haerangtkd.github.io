@@ -6,6 +6,7 @@
 //   1) D1 데이터베이스 바인딩: 변수 이름 DB
 //   2) 비밀 변수(Secret): ADMIN_PASSWORD  ← 관장님 비밀번호
 //   3) (출석부 연동, 선택) 서비스 바인딩 ATT → haerang-attendance Worker, 비밀 변수 SYNC_KEY ← 출석부 서버와 같은 값
+//   4) (행사 신청, 선택) 서비스 바인딩 TEAM → haerang-team Worker (SYNC_KEY 같은 값)
 //      출석부 서버는 /sync/notify 로 '학부모님께 출석 보내기'를 부탁합니다 (사범님이 누를 때만)
 // 표(테이블)와 푸시 서명 키는 처음 실행될 때 자동으로 만듭니다.
 // ─────────────────────────────────────────────
@@ -155,6 +156,20 @@ async function route(path, req, env) {
       const rows = await all(env, 'SELECT day, name, tin, tout FROM att WHERE day LIKE ? ORDER BY day', m + '-%');
       return json({ ok: true, me, month: m, items: rows.filter(r => myKids.includes(r.name)).map(r => ({ day: r.day, name: r.name, in: r.tin, out: r.tout })) });
     }
+    // 행사 신청 (업무 앱 행사표에서 '학부모 앱에 신청 받기'를 켠 행사만)
+    // 사범님께 연락 (버튼은 업무 앱에서 관리) · 숙제 체크
+    if (['/p/contact', '/p/contact-send', '/p/hw', '/p/hw-check'].includes(path)) {
+      const kst = await kidStatus(env), kids = myKids.filter(k => kst[k] !== '퇴관');
+      if (path === '/p/contact') { const r = await teamSync(env, '/sync/ptpl', { kids }); return json(r.ok ? { ...r, kids } : r); }
+      if (path === '/p/contact-send') return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel }));
+      if (path === '/p/hw') { const r = await teamSync(env, '/sync/hw', { kids }); return json(r.ok ? { ...r, kids } : r); }
+      return json(await teamSync(env, '/sync/hw-check', { kids, kid: b.kid, hw: b.hw, day: b.day, on: !!b.on, rel: p.rel }));
+    }
+    if (path === '/p/events' || path === '/p/event-apply') {
+      const kst = await kidStatus(env), kids = myKids.filter(k => kst[k] !== '퇴관');
+      if (path === '/p/events') { const r = await teamSync(env, '/sync/events', { kids }); return json(r.ok ? { ok: true, me, kids, events: r.events } : { ok: false, error: r.error, events: [] }); }
+      return json(await teamSync(env, '/sync/esign-set', { kids, kid: b.kid, ev: b.ev, data: b.data, cancel: !!b.cancel, rel: p.rel }));
+    }
     if (path === '/p/fees') {
       const rows = await all(env, 'SELECT month, name, paid, at FROM fees ORDER BY month DESC LIMIT 200');
       return json({ ok: true, me, status: rows.filter(r => myKids.includes(r.name)), items: await listPosts(env, 'fee', myKids, 50) });
@@ -169,7 +184,7 @@ async function route(path, req, env) {
     if (path === '/kiosk/lookup') {
       const code = String(b.code || '').replace(/\D/g, '');
       const today = kstDay(new Date());
-      const kids = (await all(env, 'SELECT name, codes FROM kids')).filter(k => J(k.codes, []).includes(code)).map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko'));
+      const kst8 = await kidStatus(env), kids = (await all(env, 'SELECT name, codes FROM kids')).filter(k => J(k.codes, []).includes(code) && kst8[k.name] !== '퇴관').map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko'));
       const att = await all(env, 'SELECT name, tin, tout, tin_at FROM att WHERE day = ?', today);
       return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: kids.map(n => { const a = att.find(x => x.name === n) || {}; return { name: n, in: a.tin || null, out: a.tout || null, inAt: a.tin_at || null, outFrom: a.tin_at ? kstTime(new Date(a.tin_at + MIN_STAY)) : null }; }) });
     }
@@ -184,6 +199,18 @@ async function route(path, req, env) {
     const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: 'attendance' });
     if (r.ok && !r.total) return json({ ok: false, error: name + ' 학생은 알림 앱에 가입한 보호자가 없습니다' });
     return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
+  }
+
+  // 업무 앱: 숙제 올릴 때 학부모님께 알림 (대상 제자 또는 모두)
+  if (path === '/sync/broadcast') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    return json(await send(env, { kind: '숙제', title: b.title, body: b.body, children: b.children, view: '', offset: b.offset | 0 })); // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
+  }
+  // 업무 앱 첫 화면: 가입 승인 기다리는 보호자 수
+  if (path === '/sync/pending') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const r = await one(env, 'SELECT COUNT(*) AS n FROM parents WHERE ok = 0');
+    return json({ ok: true, pending: r ? r.n : 0 });
   }
 
   // ═════════ 관장님 전용 ═════════
@@ -201,12 +228,12 @@ async function route(path, req, env) {
     if (path === '/admin/status') {
       const today = kstDay(new Date());
       const parents = await all(env, 'SELECT id, kids, rel, ph, ok, created, ep FROM parents ORDER BY created DESC');
-      const kids = await all(env, 'SELECT name, codes FROM kids');
+      const kids = await all(env, 'SELECT name, codes FROM kids'), kst8 = await kidStatus(env);
       const att = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', today);
       const list = kids.map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko')).map(n => {
         const k = kids.find(x => x.name === n), a = att.find(x => x.name === n);
         return {
-          name: n, codes: J(k.codes, []), today: a ? { in: a.tin, out: a.tout } : {},
+          name: n, codes: J(k.codes, []), today: a ? { in: a.tin, out: a.tout } : {}, status: kst8[n] || '',
           guardians: parents.filter(p => p.ok && J(p.kids, []).includes(n)).map(p => ({ id: p.id, rel: p.rel, ph: p.ph, push: !!p.ep })),
         };
       });
@@ -390,6 +417,7 @@ async function photo(env, id, size) {
 async function checkIn(env, name, act, kiosk) {
   if (act !== 'in' && act !== 'out') return { ok: false, error: 'act' };
   if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', String(name || '')))) return { ok: false, error: '명단에 없는 아이입니다' };
+  if (kiosk && (await kidStatus(env))[name] === '퇴관') return { ok: false, error: '퇴관으로 되어 있어요. 사범님께 말해 주세요' };
   const now = new Date(), t = kstTime(now), day = kstDay(now);
   if (act === 'out' && kiosk) { // 태블릿에서는 등원하고 30분이 지나야 하원 (관리 화면은 관장님이 언제든 가능)
     const a = await one(env, 'SELECT tin_at, tout FROM att WHERE day = ? AND name = ?', day, name);
@@ -403,6 +431,11 @@ async function checkIn(env, name, act, kiosk) {
   return { ok: true, time: t, at: now.getTime(), sent: r.sent || 0, total: r.total || 0 };
 }
 // ─────────── 출석부 서버 연동 (서비스 바인딩 ATT) ───────────
+async function teamSync(env, path, body) {
+  if (!env.TEAM || !env.SYNC_KEY) return { ok: false, error: '행사 신청은 아직 준비 중이에요' };
+  try { const r = await env.TEAM.fetch('https://team' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify(body) }); return await r.json(); }
+  catch (_) { return { ok: false, error: '잠시 후 다시 해 주세요' }; }
+}
 async function attSync(env, path, body) {
   if (!env.ATT || !env.SYNC_KEY) return { ok: false, error: '출석부가 아직 연결되지 않았습니다 (알림 서버 설정의 ATT 바인딩·SYNC_KEY)' };
   try {
@@ -414,15 +447,30 @@ function kst(d) { return new Date(d.getTime() + 9 * 3600 * 1000); }
 function kstDay(d) { return kst(d).toISOString().slice(0, 10); }
 function kstTime(d) { const k = kst(d); const h = k.getUTCHours(), m = k.getUTCMinutes(); return (h < 12 ? '오전 ' : '오후 ') + ((h % 12) || 12) + '시' + (m ? ' ' + m + '분' : ''); }
 
+// ─────────── 출석부 회원 상태 (재원이 아닌 아이만: {이름: '휴원'|'퇴관'}) — 10분마다 새로 받음, 연결 안 되면 마지막 값 ───────────
+// 퇴관: 휴대폰 알림이 가지 않고 태블릿 출결 번호도 막힘. 출석부에서 다시 재원으로 바꾸면 그대로 돌아옴. 휴원: 표시만.
+async function kidStatus(env) {
+  const c = await one(env, "SELECT v FROM kv WHERE k = 'kidStatus'"), old = c ? J(c.v, {}) : {};
+  if (old.at && Date.now() - old.at < 600000) return old.map || {};
+  const r = await attSync(env, '/sync/roster', { all: true });
+  if (!r.ok || !Array.isArray(r.students)) return old.map || {};
+  const map = {}; for (const s of r.students) if (s.name && s.status && s.status !== '재원') map[s.name] = s.status;
+  await run(env, "INSERT INTO kv (k, v) VALUES ('kidStatus', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ at: Date.now(), map }));
+  return map;
+}
+
 // ─────────── 푸시 발송 ───────────
 // children 이 비어 있으면 전체, 있으면 그 아이의 승인된 보호자에게만. 관리 화면이 offset 을 늘려 가며 나눠 부릅니다.
 async function send(env, b) {
   const title = String(b.title || '').slice(0, 100).trim();
   const body = String(b.body || '').slice(0, 300).trim();
   if (!title) return { ok: false, error: '제목이 비어 있습니다' };
-  const targets = cleanNames(b.children);
+  const st = await kidStatus(env), gone = c => st[c] === '퇴관';
+  const targets = cleanNames(b.children).filter(c => !gone(c));
+  if (b.children && cleanNames(b.children).length && !targets.length) return { ok: true, total: 0, sent: 0, failed: 0, removed: 0, next: null, left: true }; // 퇴관한 아이에게만 보내는 알림
   const offset = Math.max(0, b.offset | 0);
   let subs = await all(env, 'SELECT id, kids, ok, ep, p256, auth FROM parents WHERE ep IS NOT NULL ORDER BY id');
+  subs = subs.filter(s => { const k = J(s.kids, []); return !k.length || k.some(c => !gone(c)); }); // 아이가 모두 퇴관인 보호자는 빼기
   if (targets.length) subs = subs.filter(s => s.ok && J(s.kids, []).some(c => targets.includes(c)));
   const total = subs.length;
   const slice = subs.slice(offset, offset + BATCH);

@@ -287,6 +287,35 @@
   .urgent p.clip{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   .ack-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;border:1.5px solid var(--brand);background:#fff;color:var(--brand);border-radius:12px;padding:11px;font-size:15px;font-weight:700}
   .ack-btn svg{width:18px;height:18px}
+  /* 행사 신청 */
+  button.evc{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px;font:inherit;color:inherit}
+  .evc .eh{display:flex;align-items:center;gap:8px}.evc .eh b{font-size:16.5px;font-weight:800;flex:1;letter-spacing:-.02em}
+  .evc .em{font-size:13.5px;color:var(--muted);margin-top:3px}
+  .ev-st{display:inline-block;font-size:12.5px;font-weight:700;border-radius:99px;padding:3px 10px;background:var(--green-soft);color:var(--green);white-space:nowrap}
+  .ev-st.c{background:#F1EEEA;color:var(--muted)}
+  .ev-sh .in{max-height:88vh;overflow:auto}
+  .ev-sh .help-l{font-size:13.5px;color:var(--muted);margin:-4px 4px 12px}
+  .ev-sh p.d{white-space:pre-wrap;font-size:14.5px;background:var(--bg);border-radius:12px;padding:10px 12px;margin:0 0 6px}
+  .ev-sh label.f{display:block;font-size:13.5px;font-weight:700;color:var(--muted);margin:14px 4px 6px}
+  .ev-sh .opts{display:flex;flex-wrap:wrap;gap:6px}
+  .ev-sh .opts button{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:9px 14px;font-size:15px;color:var(--ink)}
+  .ev-sh .opts button.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700}
+  .ev-sh input.m{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font-size:15px}
+  .ev-sh .tot{display:flex;justify-content:space-between;font-weight:800;font-size:16px;margin-top:16px;padding:12px 4px 0;border-top:1px solid var(--line)}
+  .ev-sh .cx{display:block;width:100%;border:0;background:none;color:var(--muted);font-size:14.5px;padding:12px;margin-top:2px}
+  /* 사범님께 연락 · 숙제 */
+  .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .cgrid button{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 12px;font-size:14.5px;font-weight:700;text-align:left;color:var(--ink);line-height:1.35}
+  .cgrid button.tx{grid-column:1/-1;text-align:center;color:var(--muted);font-weight:600}
+  .cmsg{font-size:13.5px;color:var(--muted);padding:8px 4px 0;display:flex;gap:8px}.cmsg b{color:var(--ink);font-weight:600;flex:1}.cmsg .ok{color:var(--green);font-weight:700;white-space:nowrap}
+  .hwc{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+  .hwc .hh{display:flex;align-items:center;gap:8px}.hwc .hh b{flex:1;font-size:16px;font-weight:800}
+  .hwc .hm{font-size:13.5px;color:var(--muted);margin-top:3px;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .hwc .hb{display:flex;align-items:center;gap:8px;margin-top:10px}
+  .hwc .hb button{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:9px 16px;font-size:15px;font-weight:700;color:var(--ink)}
+  .hwc .hb button.on{border-color:var(--green);background:var(--green-soft);color:var(--green)}
+  .hwc .hb small{color:var(--muted);font-size:13px}
+  .sec h2 small{font-size:12.5px;color:var(--muted);font-weight:600;margin-left:6px}
   .ack-btn.big{background:var(--brand);color:#fff;padding:13px;font-size:16px}
   .ack-btn:disabled{opacity:.5}
   .acked{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:13.5px;color:var(--green);font-weight:600}
@@ -543,9 +572,155 @@
   const longDate = () => { const d = dayOf(Date.now()); return d.m + '월 ' + d.d + '일 ' + d.w + '요일'; };
   const md = date => { const [, m, d] = date.split('-'); return { m: +m, d: +d, w: WD[new Date(date + 'T00:00:00Z').getUTCDay()] }; };
 
+  // ── 행사 신청 (업무 앱 행사표에서 '학부모 앱에서 신청 받기'를 켠 행사) ──
+  let evs = null;
+  const won = n => (+n || 0).toLocaleString('ko-KR') + '원';
+  const evDay = date => { const d = md(date); return d.m + '월 ' + d.d + '일 (' + d.w + ')'; };
+  const evShort = date => { const d = md(date); return d.m + '/' + d.d; };
+  const evPrice = ev => ev.products.length ? ev.products.map(p => p.n + ' ' + won(p.p)).join(' / ') : ev.base ? '참가비 ' + won(ev.base) : '';
+  async function loadEvents() {
+    if (!(me() || {}).approved) return;
+    try { const j = await post('/p/events'); if (j.ok) { evs = j.events || []; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {}
+  }
+  function evSection(k) {
+    if (!evs || !evs.length) return '';
+    return '<section class="sec"><h2>행사 신청</h2>' + evs.map(ev => {
+      const m = (ev.mine || []).find(x => x.kid === k) || {};
+      const st = m.applied ? '<span class="ev-st">' + (m.byStaff ? '도장에서 접수했어요' : '신청했어요') + '</span>' : m.cancel ? '<span class="ev-st c">취소했어요</span>' : !ev.canEdit ? '<span class="ev-st c">신청 마감</span>' : '';
+      return '<button class="evc" data-ev="' + esc(ev.id) + '"><div class="eh"><b>' + esc(ev.title) + '</b>' + st + '</div><div class="em">' + esc([ev.date ? evDay(ev.date) : '', evPrice(ev), ev.canEdit && ev.close ? evShort(ev.close) + '까지 신청' : ''].filter(Boolean).join(' · ')) + '</div>' +
+        (!m.applied && ev.canEdit ? '<span class="ack-btn">' + (m.cancel ? '다시 신청하기' : '신청하기') + '</span>' : '') + '</button>';
+    }).join('') + '</section>';
+  }
+  function evSheet(id) {
+    const ev = (evs || []).find(x => x.id === id); if (!ev) return;
+    const k = curKid(), m = (ev.mine || []).find(x => x.kid === k) || {}, d0 = (!m.cancel && m.data) || {};
+    const mineApp = m.applied && !m.byStaff;
+    const st = { prods: d0.prods ? [...d0.prods] : ev.products.map((_, i) => i), opts: { ...(d0.opts || {}) }, van: d0.van == null ? null : d0.van, memo: d0.memo || '' };
+    const total = () => ev.products.length ? st.prods.reduce((a, i) => a + ((ev.products[i] || {}).p || 0), 0) : ev.base;
+    const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
+    const draw = () => {
+      const edit = ev.canEdit && !m.byStaff;
+      sh.innerHTML = '<div class="in"><h3>' + esc(ev.title) + '</h3><p class="help-l">' + esc([k, ev.date ? evDay(ev.date) : '', ev.canEdit && ev.close ? evShort(ev.close) + '까지 신청' : ''].filter(Boolean).join(' · ')) + '</p>' +
+        (ev.desc ? '<p class="d">' + esc(ev.desc) + '</p>' : '') +
+        (ev.products.length ? '<label class="f">신청할 항목</label><div class="opts" data-g="prod">' + ev.products.map((p, i) => '<button data-v="' + i + '" class="' + (st.prods.includes(i) ? 'on' : '') + '">' + esc(p.n) + ' ' + won(p.p) + '</button>').join('') + '</div>' : '') +
+        ev.options.map(o => '<label class="f">' + esc(o.n) + '</label>' + (o.c.length ? '<div class="opts" data-g="opt" data-o="' + esc(o.n) + '">' + o.c.map(c => '<button data-v="' + esc(c) + '" class="' + (st.opts[o.n] === c ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' : '<input class="m" data-o="' + esc(o.n) + '" maxlength="30" value="' + esc(st.opts[o.n] || '') + '">')).join('') +
+        (ev.van ? '<label class="f">하원차</label><div class="opts" data-g="van"><button data-v="1" class="' + (st.van === true ? 'on' : '') + '">타요</button><button data-v="0" class="' + (st.van === false ? 'on' : '') + '">안 타요</button></div>' : '') +
+        (edit ? '<label class="f">도장에 남길 말 (안 적어도 돼요)</label><input class="m" id="evMemo" maxlength="100" value="' + esc(st.memo) + '">' : '') +
+        (total() ? '<div class="tot"><span>참가비</span><span>' + won(total()) + '</span></div>' : '') +
+        (m.byStaff ? '<p class="help-l" style="margin-top:14px">도장에서 이미 접수했어요. 바꾸실 내용은 도장에 문자로 알려 주세요.</p>'
+          : edit ? '<button class="btn" id="evGo">' + (mineApp ? '바꾼 내용 저장' : '신청하기') + '</button>' + (mineApp ? '<button class="cx" id="evCx" style="color:var(--brand)">신청 취소</button>' : '')
+          : '<p class="help-l" style="margin-top:14px">신청 기간이 끝났어요. 바꾸실 내용은 도장에 문자로 알려 주세요.</p>') +
+        '<button class="cx" id="evClose">닫기</button></div>';
+      if (!edit) sh.querySelectorAll('.opts button, input.m').forEach(x => { x.disabled = true; });
+    };
+    const send = async cancel => {
+      const btn = sh.querySelector(cancel ? '#evCx' : '#evGo'); if (btn) btn.disabled = true;
+      try {
+        const j = await post('/p/event-apply', { ev: ev.id, kid: k, data: st, cancel });
+        if (!j.ok) throw new Error(j.error);
+        sh.remove(); toast(cancel ? '신청을 취소했어요' : mineApp ? '바꾼 내용을 도장에 보냈어요' : '신청했어요. 도장에 전해졌어요'); loadEvents();
+      } catch (e) { if (btn) btn.disabled = false; toast(e.message || '잠시 후 다시 해 주세요'); }
+    };
+    sh.addEventListener('input', e => { const t = e.target; if (t.id === 'evMemo') st.memo = t.value; else if (t.dataset.o) st.opts[t.dataset.o] = t.value; });
+    sh.onclick = e => {
+      if (e.target === sh || e.target.closest('#evClose')) return sh.remove();
+      if (e.target.closest('#evCx')) { if (confirm(k + ' 신청을 취소할까요?')) send(true); return; }
+      if (e.target.closest('#evGo')) {
+        if (ev.products.length && !st.prods.length) return toast('신청할 항목을 골라 주세요');
+        const miss = ev.options.find(o => o.c.length && !st.opts[o.n]); if (miss) return toast('아직 안 고른 항목이 있어요: ' + miss.n);
+        if (ev.van && st.van == null) return toast('하원차를 탈지 골라 주세요');
+        return send(false);
+      }
+      const b = e.target.closest('.opts button'); if (!b || b.disabled) return; const g = b.parentNode.dataset.g, v = b.dataset.v;
+      if (g === 'prod') { const i = +v; st.prods = st.prods.includes(i) ? st.prods.filter(x => x !== i) : [...st.prods, i].sort((a, c) => a - c); }
+      if (g === 'opt') st.opts[b.parentNode.dataset.o] = v;
+      if (g === 'van') st.van = v === '1';
+      draw();
+    };
+    draw(); document.body.appendChild(sh);
+  }
+
+  // ── 사범님께 연락 (버튼 목록은 도장이 업무 앱에서 정함) · 숙제 ──
+  let contact = null, hws = null;
+  const PH = 'haerang-phrases';
+  async function loadContact() { if (!(me() || {}).approved) return; try { const j = await post('/p/contact'); if (j.ok) { contact = j; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {} }
+  async function loadHw() { if (!(me() || {}).approved) return; try { const j = await post('/p/hw'); if (j.ok) { hws = j.hw || []; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {} }
+  const dShort = d => { const x = md(d); return x.m + '/' + x.d + '(' + x.w + ')'; };
+  function contactSection(k) {
+    if (!contact) return '';
+    const L = (contact.msgs || []).filter(x => x.kid === k).slice(0, 3);
+    return '<section class="sec"><h2>사범님께 연락</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기</button></div>' +
+      L.map(x => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + esc(x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘 /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>').join('') + '</section>';
+  }
+  const dayOfMs = ms => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
+  const todayK = () => dayOfMs(Date.now());
+  function contactSheet(id) {
+    const s0 = me() || {}, k = curKid(), isText = id === '__text', t = isText ? { id: '', label: '직접 적어서 보내기', ask: '' } : (contact.tpl || []).find(x => x.id === id); if (!t) return;
+    const st = { day: todayK(), who: t.ask === 'who' ? (s0.relation || '') : '', why: '', text: '', save: false };
+    let saved = []; try { saved = JSON.parse(localStorage.getItem(PH) || '[]'); } catch (_) {}
+    const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
+    const tom = new Date(Date.parse(todayK()) + 864e5).toISOString().slice(0, 10);
+    const draw = () => {
+      sh.innerHTML = '<div class="in"><h3>' + esc(t.label) + '</h3><p class="help-l">' + esc(k) + ' · 보내면 사범님 휴대폰에 바로 알림이 가요</p>' +
+        '<label class="f">언제</label><div class="opts" data-g="day"><button data-v="' + todayK() + '" class="' + (st.day === todayK() ? 'on' : '') + '">오늘</button><button data-v="' + tom + '" class="' + (st.day === tom ? 'on' : '') + '">내일</button><input type="date" class="m" id="cD" style="width:auto;flex:1" min="' + todayK() + '" value="' + (st.day !== todayK() && st.day !== tom ? st.day : '') + '"></div>' +
+        (t.ask === 'who' ? '<label class="f">누가</label><div class="opts" data-g="who">' + (contact.rels || []).map(r => '<button data-v="' + esc(r) + '" class="' + (st.who === r ? 'on' : '') + '">' + esc(r) + '</button>').join('') + '</div>' : '') +
+        (t.ask === 'why' ? '<label class="f">사유</label><div class="opts" data-g="why">' + (t.reasons || []).map(r => '<button data-v="' + esc(r) + '" class="' + (st.why === r ? 'on' : '') + '">' + esc(r) + '</button>').join('') + '</div>' : '') +
+        (isText && saved.length ? '<label class="f">자주 쓰는 말</label><div class="opts" data-g="ph">' + saved.map((x, i) => '<button data-v="' + i + '">' + esc(x) + '</button>').join('') + '</div>' : '') +
+        '<label class="f">' + (isText ? '보낼 말' : t.ask === 'why' ? '직접 적기 (안 적어도 돼요)' : '더 남길 말 (안 적어도 돼요)') + '</label><input class="m" id="cT" maxlength="200" value="' + esc(st.text) + '" placeholder="' + (isText ? '예: 오늘 5시에 데리러 갈게요' : '') + '">' +
+        (isText ? '<label style="display:flex;gap:8px;align-items:center;margin:10px 4px 0;font-size:14px"><input type="checkbox" id="cS"' + (st.save ? ' checked' : '') + '> 이 말을 자주 쓰는 말로 저장 (이 휴대폰에만)</label>' + (saved.length ? '<button class="cx" id="cPhClr" style="padding:6px">자주 쓰는 말 지우기</button>' : '') : '') +
+        '<button class="btn" id="cGo">보내기</button><button class="cx" id="cX">닫기</button></div>';
+    };
+    const keep = () => { const i = sh.querySelector('#cT'); if (i) st.text = i.value; const c = sh.querySelector('#cS'); if (c) st.save = c.checked; };
+    sh.addEventListener('change', e => { if (e.target.id === 'cD' && e.target.value) { keep(); st.day = e.target.value; draw(); } });
+    sh.onclick = async e => {
+      if (e.target === sh || e.target.closest('#cX')) return sh.remove();
+      const b = e.target.closest('.opts button'); if (b) { keep(); const g = b.parentNode.dataset.g, v = b.dataset.v; if (g === 'day') st.day = v; if (g === 'who') st.who = v; if (g === 'why') st.why = st.why === v ? '' : v; if (g === 'ph') st.text = saved[+v]; return draw(); }
+      if (e.target.closest('#cPhClr')) { if (confirm('자주 쓰는 말을 모두 지울까요?')) { saved = []; localStorage.removeItem(PH); draw(); } return; }
+      if (e.target.closest('#cGo')) {
+        keep();
+        if (t.ask === 'who' && !st.who) return toast('누가 오시는지 골라 주세요');
+        if (t.ask === 'why' && !st.why && !st.text.trim()) return toast('사유를 고르거나 적어 주세요');
+        if (isText && !st.text.trim()) return toast('보낼 말을 적어 주세요');
+        const btn = sh.querySelector('#cGo'); btn.disabled = true;
+        try {
+          const j = await post('/p/contact-send', { kid: k, tpl: t.id, who: st.who, why: st.why, text: st.text.trim(), day: st.day });
+          if (!j.ok) throw new Error(j.error);
+          if (isText && st.save) { saved = [st.text.trim(), ...saved.filter(x => x !== st.text.trim())].slice(0, 10); localStorage.setItem(PH, JSON.stringify(saved)); }
+          sh.remove(); toast('사범님께 보냈어요'); loadContact();
+        } catch (er) { btn.disabled = false; toast(er.message || '잠시 후 다시 해 주세요'); }
+      }
+    };
+    draw(); document.body.appendChild(sh);
+  }
+  function hwSection(k) {
+    const L = (hws || []).filter(h => h.kids.includes(k)); if (!L.length) return '';
+    const td = todayK();
+    return '<section class="sec"><h2>숙제<small>해 보면 좋아요</small></h2>' + L.map(h => {
+      const mine = h.chk.filter(c => c.kid === k), done = h.mode === 'daily' ? mine.some(c => c.day === td) : mine.length > 0;
+      const days = h.mode === 'daily' ? Math.round((Date.parse(h.end) - Date.parse(h.start)) / 864e5) + 1 : 0;
+      const canToday = h.mode !== 'daily' || (td >= h.start && td <= h.end);
+      return '<div class="hwc" data-hw="' + esc(h.id) + '"><div class="hh"><b>' + esc(h.title) + '</b>' + (h.end ? '<span class="ev-st c">' + (h.mode === 'daily' ? dShort(h.start) + '~' : '') + dShort(h.end) + (h.mode === 'daily' ? '' : '까지') + '</span>' : '') + '</div>' + (h.body ? '<div class="hm">' + esc(h.body) + '</div>' : '') +
+        '<div class="hb">' + (canToday ? '<button data-hwc="' + esc(h.id) + '" class="' + (done ? 'on' : '') + '">' + (done ? '✓ ' : '') + (h.mode === 'daily' ? '오늘 했어요' : '했어요') + '</button>' : '') + (h.mode === 'daily' ? '<small>' + mine.length + ' / ' + days + '일 했어요</small>' : '') + '</div></div>';
+    }).join('') + '</section>';
+  }
+  async function hwToggle(id) {
+    const h = (hws || []).find(x => x.id === id), k = curKid(), td = todayK(); if (!h) return;
+    const key = h.mode === 'daily' ? td : '', on = !h.chk.some(c => c.kid === k && c.day === key);
+    h.chk = h.chk.filter(c => !(c.kid === k && c.day === key)); if (on) h.chk.push({ kid: k, day: key }); drawHome();
+    try { const j = await post('/p/hw-check', { kid: k, hw: id, day: td, on }); if (!j.ok) throw new Error(j.error); if (on) toast('잘했어요! 도장에 전해졌어요'); } catch (er) { toast(er.message || '잠시 후 다시 해 주세요'); loadHw(); }
+  }
+  function hwSheet(id) {
+    const h = (hws || []).find(x => x.id === id); if (!h || !h.body) return;
+    const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
+    sh.innerHTML = '<div class="in"><h3>' + esc(h.title) + '</h3><p class="d">' + esc(h.body) + '</p><button class="cx" id="hX">닫기</button></div>';
+    sh.onclick = e => { if (e.target === sh || e.target.closest('#hX')) sh.remove(); };
+    document.body.appendChild(sh);
+  }
+
   async function goHome() {
     show('v-home');
     renderHome();
+    loadEvents(); loadContact(); loadHw();
     try {
       const j = await post('/p/home');
       if (j.removed) { store.set(LS, null); fillJoin(null); show('v-gate', 'g-join'); toast('등록이 해제되었어요. 다시 가입해 주세요'); return; }
@@ -597,6 +772,7 @@
       h += '<button class="status' + (t.out ? ' out' : t.in ? ' in' : '') + '" data-go-tab="kid"><span class="si">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span class="st"><b>' +
         (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</b><small>' +
         (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>';
+      h += contactSection(k) + evSection(k) + hwSection(k);
     }
     const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장'], ['album', '새 사진이 올라왔어요', '앨범']].filter(([x]) => fresh(x));
     const askRows = asks.filter(x => !x.urgent).map(x => '<button class="li" data-news="' + (x.type === 'journal' ? '알림장' : '공지') + '"><span class="lic i-ask">' + ICON.check + '</span><span class="lt"><b>' + esc(x.title) + '</b><small>읽고 \'확인했어요\'를 눌러 주세요</small></span><i class="new"></i>' + ICON.right + '</button>').join('');
@@ -614,6 +790,10 @@
       const g = e.target.closest('[data-go-tab]'); if (g) return showTab(g.dataset.goTab);
       const n = e.target.closest('[data-news]'); if (n) return showTab('news', { filter: n.dataset.news });
       const a = e.target.closest('[data-ack]'); if (a) return ackPost(+a.dataset.ack, a);
+      const ev = e.target.closest('[data-ev]'); if (ev) return evSheet(ev.dataset.ev);
+      const ct = e.target.closest('[data-ct]'); if (ct) return contactSheet(ct.dataset.ct);
+      const hc = e.target.closest('[data-hwc]'); if (hc) return hwToggle(hc.dataset.hwc);
+      const hw = e.target.closest('[data-hw]'); if (hw) return hwSheet(hw.dataset.hw);
       if (e.target.closest('#hWho')) return pickKid();
       if (e.target.closest('#hPushOn')) return pushOn();
       if (e.target.closest('#hInstallBtn')) { if (installEvt) $('installBtn').onclick(); else alert(/SamsungBrowser/i.test(ua) ? '화면 아래 ≡ 메뉴 → 현재 페이지 추가 → 홈 화면을 눌러 주세요.' : '오른쪽 위 ⋮ → 앱 설치(또는 홈 화면에 추가)를 눌러 주세요.'); return; }
@@ -646,7 +826,7 @@
   function pickKid(after) {
     const s = me(); if (!s || (s.children || []).length < 2) return;
     const sh = document.createElement('div'); sh.className = 'sheet';
-    sh.innerHTML = '<div class="in"><h3>아이 선택</h3>' + s.children.map((c, i) => '<button class="k' + (i === (s.kid | 0) ? ' on' : '') + '" data-i="' + i + '"><span class="avatar">' + esc(initial(c)) + '</span>' + esc(c) + '</button>').join('') + '</div>';
+    sh.innerHTML = '<div class="in"><h3>자녀 선택</h3>' + s.children.map((c, i) => '<button class="k' + (i === (s.kid | 0) ? ' on' : '') + '" data-i="' + i + '"><span class="avatar">' + esc(initial(c)) + '</span>' + esc(c) + '</button>').join('') + '</div>';
     sh.onclick = e => { const b = e.target.closest('button.k'); if (b) { store.set(LS, { ...me(), kid: +b.dataset.i }); renderHome(); if (after) after(); } sh.remove(); };
     document.body.appendChild(sh);
   }

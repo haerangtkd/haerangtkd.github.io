@@ -444,7 +444,17 @@ function normBelt(v){
   return BELTS.includes(s)? s : '';
 }
 const STATUSES=['재원','휴원','퇴관'];
-const statusOf = k => { const s=(settings.status||{})[kidId(k)] || String(k.status||'재원').trim(); return STATUSES.includes(s)? s : (/휴/.test(s)?'휴원':/퇴/.test(s)?'퇴관':'재원'); };
+/* 출석부 회원 상태 (업무 서버를 거쳐 받음). 이름+출생연도로 맞추고, 같은 이름이 하나뿐이면 이름만으로도 맞춤 */
+let ATTST=null;
+function attStatusOf(k){ if(!ATTST) return ''; return ATTST.byId[k.name+'|'+String(k.birth||'').slice(0,4)] || ATTST.byName[k.name] || ''; }
+async function loadAttStatus(){
+  try{ const j=await tcall('/api/roster-all',{}); const byId={}, cnt={}, byName={};
+    j.students.forEach(x=>{ cnt[x.name]=(cnt[x.name]||0)+1; if(x.birth) byId[x.name+'|'+String(x.birth).slice(0,4)]=x.status; });
+    j.students.forEach(x=>{ if(cnt[x.name]===1) byName[x.name]=x.status; });
+    ATTST={byId,byName}; renderList(); if(view==='detail'){renderEditor();renderPreview();}
+  }catch(e){}
+}
+const statusOf = k => { const s=attStatusOf(k) || (settings.status||{})[kidId(k)] || String(k.status||'재원').trim(); return STATUSES.includes(s)? s : (/휴/.test(s)?'휴원':/퇴/.test(s)?'퇴관':'재원'); };
 const rateOf = k => { const i=peek(k); return i && i.rate!=null && i.rate!=='' ? i.rate : null; };
 function qVals(k,ev){return ev.months.map(m=>({m, v: k.rec[ev.name]&&k.rec[ev.name][m]!=null? k.rec[ev.name][m] : null}));}
 const hasQ = k => qVals(k,curEv()).some(x=>x.v!=null);
@@ -761,7 +771,7 @@ function renderEditor(){
   </div>
   <div class="two">
     <label class="field"><span>띠</span><select id="eBelt"><option value="">선택 안 함</option>${beltOptions(k).map(b=>`<option ${b===beltOf(k)?'selected':''}>${b}</option>`).join('')}</select></label>
-    <label class="field"><span>회원 상태</span><select id="eSt">${STATUSES.map(s=>`<option ${s===statusOf(k)?'selected':''}>${s}</option>`).join('')}</select></label>
+    <label class="field"><span>회원 상태${attStatusOf(k)?' · 출석부 기준':''}</span><select id="eSt" ${attStatusOf(k)?'disabled title="회원 상태는 출석부 원생 관리에서 바꿔요"':''}>${STATUSES.map(s=>`<option ${s===statusOf(k)?'selected':''}>${s}</option>`).join('')}</select></label>
   </div>
   <div class="two">
     <label class="field"><span>출석 (회)</span><input type="number" id="eAn" min="0" step="1" inputmode="numeric" value="${i.an!=null?esc(i.an):''}" placeholder="예: 20"></label>
@@ -1051,7 +1061,22 @@ $('pdfAll').onclick=async()=>{
 
 function renderAll(){renderSettings();renderList();renderEditor();renderPreview();}
 document.querySelector('.brand-logo').src = LOGO;
+// 내려받기 비밀번호 (업무 앱 설정에서 이사범님이 정한 공통 번호) — 맞으면 5분 동안 다시 안 물음
+let dlOkUntil=0;
+function askDl(){
+  if(dlOkUntil>Date.now()) return Promise.resolve(true);
+  return new Promise(res=>{
+    const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:rgba(20,20,30,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML='<div style="background:#fff;border-radius:18px;padding:20px;width:100%;max-width:340px;font-family:inherit"><b style="font-size:17px">내려받기 비밀번호</b><p style="font-size:13.5px;color:#666;margin:6px 0 10px">기네스 백업 파일에는 원생 기록이 있어서 비밀번호를 한 번 더 확인해요.</p><input id="dlP" type="password" inputmode="numeric" maxlength="8" autocomplete="off" style="width:100%;font-size:18px;padding:10px;border:1px solid #ccc;border-radius:10px"><p id="dlM" style="color:#C0392B;font-size:13px;min-height:18px;margin:6px 0"></p><div style="display:flex;gap:8px;justify-content:flex-end"><button id="dlX" class="btn" type="button">취소</button><button id="dlOk" class="btn" type="button">확인</button></div></div>';
+    document.body.appendChild(ov); const g=id=>ov.querySelector('#'+id); setTimeout(()=>g('dlP').focus(),50);
+    const done=v=>{ov.remove();res(v);};
+    g('dlX').onclick=()=>done(false);
+    const go=async()=>{const pin=g('dlP').value; if(!pin) return; let j; try{ j=await tcall('/api/dl-check',{pin}); }catch(e){ j={ok:false,error:e.message}; } if(!j||!j.ok){ g('dlM').textContent=(j&&j.error)||'확인하지 못했어요'; g('dlP').value=''; return; } dlOkUntil=Date.now()+5*60000; done(true); };
+    g('dlOk').onclick=go; g('dlP').onkeydown=e=>{ if(e.key==='Enter') go(); };
+  });
+}
 $('bkOut').onclick=async()=>{
+  if(!(await askDl())) return;
   try{ const b=await backupDocs(); await downloads.save({filename:'해랑기네스_백업_'+todayISO()+'.json', data:new Blob([JSON.stringify(b)],{type:'application/json'})}); toast('백업 파일을 저장했어요'); }
   catch(e){ if(!(e&&e.code==='declined')) toast('백업을 만들지 못했어요'); }
 };
@@ -1069,7 +1094,7 @@ $('fBk').onchange=async e=>{
     toast('불러왔어요. 다시 여는 중이에요'); setTimeout(()=>location.reload(),900);
   }catch(err){ setSync(''); toast('불러오지 못했어요. '+(err.message||'')); }
 };
-load(); renderAll(); dbInit();
+load(); renderAll(); dbInit().then(()=>{ if(db) loadAttStatus(); });
 </script>
 
 </body></html>

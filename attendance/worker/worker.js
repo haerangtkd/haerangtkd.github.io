@@ -24,6 +24,7 @@ const SCHEMA = [
   'CREATE INDEX IF NOT EXISTS history_sid ON history (sid)',
   'CREATE TABLE IF NOT EXISTS closed (day TEXT PRIMARY KEY, why TEXT)',
   'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER)',
+  'CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)', // dlpin: 내려받기 비밀번호 (명단·출결·백업 파일)
 ];
 let ready = false;
 async function setup(env) {
@@ -66,8 +67,8 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     if (path === '/sync/roster') {
       const list = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) }))
-        .filter(s => s.name && s.status !== '퇴관')
-        .map(s => ({ name: s.name, no: s.no || '', status: s.status || '재원' }));
+        .filter(s => s.name && (b.all || s.status !== '퇴관')) // all: 퇴관까지 (알림 앱 알림 멈춤·기네스 회원 상태용)
+        .map(s => ({ name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '' }));
       return json({ ok: true, students: list });
     }
     if (path === '/sync/day-absent') { // 업무 앱 등원표: 그날 결석(출석부 '결석' + 미리 연락 온 결석 예정)
@@ -76,6 +77,25 @@ async function route(path, req, env) {
       const x = await all(env, "SELECT sid FROM att WHERE day = ? AND r = 'x'", day), ab = await all(env, 'SELECT sid FROM absences WHERE date = ?', day);
       return json({ ok: true, names: [...new Set([...x, ...ab].map(r => names.get(r.sid)).filter(Boolean))] });
     }
+    // 업무 앱 '원생' 메뉴: 명단 보기·등록·회원 상태·임시변경 (출석부와 같은 원생 기록을 씀)
+    if (path === '/sync/students') {
+      const rows = await all(env, 'SELECT id, data, upd FROM students');
+      const day = kstDay(), att = await all(env, "SELECT sid FROM att WHERE day = ? AND r = 'o'", day);
+      return json({ ok: true, day, students: rows.map(r => ({ id: r.id, upd: r.upd, ...J(r.data, {}) })), here: att.map(r => r.sid) });
+    }
+    if (path === '/sync/student-save') {
+      const cur = b.student && b.student.id ? await one(env, 'SELECT upd FROM students WHERE id = ?', str(b.student.id, 60)) : null;
+      if (cur && b.upd && cur.upd !== b.upd) return json({ ok: false, error: '다른 곳에서 먼저 바뀌었어요. 새로 불러온 뒤 다시 해 주세요', stale: true });
+      return json(await saveStudentRow(env, b, str(b.who, 20) || '업무 앱'));
+    }
+    if (path === '/sync/closed') return json({ ok: true, closed: !!(await one(env, 'SELECT day FROM closed WHERE day = ?', isDay(b.day) ? b.day : kstDay())) });
+    if (path === '/sync/dlpin-set') { // 업무 앱 이사범님이 정함
+      const pin = String(b.pin || ''); if (!/^\d{4,8}$/.test(pin)) return json({ ok: false, error: '숫자 4~8자리로 정해 주세요' });
+      const salt = rid(8); await run(env, "INSERT INTO kv (k, v) VALUES ('dlpin', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ salt, h: await pinHash(salt, pin) }));
+      return json({ ok: true });
+    }
+    if (path === '/sync/dlpin-check') return json(await dlCheck(env, b.pin, 'team:' + str(b.who, 20)));
+    if (path === '/sync/history') return json({ ok: true, items: await all(env, 'SELECT id, sid, tid, at, text, who FROM history WHERE sid = ? ORDER BY at DESC LIMIT 100', str(b.sid, 60)) });
     if (path === '/sync/teachers') { // 업무 앱: 사범님 이름·PIN(암호화된 값)을 그대로 가져가 같은 PIN으로 로그인
       return json({ ok: true, teachers: await all(env, 'SELECT id, name, salt, pin FROM teachers ORDER BY created') });
     }
@@ -218,15 +238,8 @@ async function route(path, req, env) {
     return json({ ok: true, rows: await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day = ?', b.day) });
   }
 
-  if (path === '/api/student-save') {
-    const s = cleanStudent(b.student || {});
-    if (!s.name) return json({ ok: false, error: '이름을 적어 주세요' });
-    const id = str(b.student && b.student.id, 60) || crypto.randomUUID();
-    const st = [q(env, 'INSERT INTO students (id, data, upd) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', id, JSON.stringify(s), Date.now())];
-    for (const t of (Array.isArray(b.history) ? b.history : []).slice(0, 20)) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), id, str(b.tid, 60), Date.now(), str(t, 200), who));
-    await env.DB.batch(st);
-    return json({ ok: true, id });
-  }
+  if (path === '/api/student-save') return json(await saveStudentRow(env, b, who));
+  if (path === '/api/dl-check') return json(await dlCheck(env, b.pin, 'att:' + me.id));
   if (path === '/api/student-delete') {
     const id = str(b.id, 60);
     await env.DB.batch(['students WHERE id', 'att WHERE sid', 'absences WHERE sid', 'history WHERE sid'].map(t => q(env, 'DELETE FROM ' + t + ' = ?', id)));
@@ -275,7 +288,8 @@ async function route(path, req, env) {
     } catch (e) { return json({ ok: false, error: '학부모 알림 앱에 연결하지 못했습니다' }); }
   }
 
-  if (path === '/api/export') { // 백업 파일 (예전 출석부와 같은 모양)
+  if (path === '/api/export') { // 백업 파일 (예전 출석부와 같은 모양) — 내려받기 비밀번호 필요
+    const dl = await dlCheck(env, b.dlpin, 'att:' + me.id); if (!dl.ok) return json(dl);
     const [students, att, absences, trials, history, closed] = await Promise.all([
       all(env, 'SELECT id, data FROM students'), all(env, 'SELECT day, sid, r, p, w, mk FROM att ORDER BY day'),
       all(env, 'SELECT sid, date, why FROM absences'), all(env, 'SELECT id, data FROM trials'),
@@ -324,6 +338,31 @@ async function importChunk(env, b) {
   return { ok: true, n: st.length };
 }
 
+// 내려받기 비밀번호 확인 (10번 틀리면 30분 잠금)
+async function dlCheck(env, pin, key) {
+  const r = await one(env, "SELECT v FROM kv WHERE k = 'dlpin'"); if (!r) return { ok: false, notSet: true, error: '아직 내려받기 비밀번호가 없어요. 이사범님이 업무 앱 설정에서 먼저 정해 주세요' };
+  const k = 'dl:' + key, f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', k);
+  if (f && f.until > Date.now()) return { ok: false, error: '여러 번 틀려서 30분 동안 잠겼어요' };
+  const d = J(r.v, {});
+  if (!(await sameText(await pinHash(d.salt, String(pin || '')), d.h))) {
+    const n = (f && f.until && f.until <= Date.now() ? 0 : (f ? f.n : 0)) + 1;
+    await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', k, n, n >= 10 ? Date.now() + 30 * 60000 : 0);
+    return { ok: false, error: '내려받기 비밀번호가 맞지 않아요' };
+  }
+  if (f) await run(env, 'DELETE FROM fails WHERE ip = ?', k);
+  return { ok: true };
+}
+
+async function saveStudentRow(env, b, who) {
+  const s = cleanStudent(b.student || {});
+  if (!s.name) return { ok: false, error: '이름을 적어 주세요' };
+  const id = str(b.student && b.student.id, 60) || crypto.randomUUID(), upd = Date.now();
+  const st = [q(env, 'INSERT INTO students (id, data, upd) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', id, JSON.stringify(s), upd)];
+  for (const t of (Array.isArray(b.history) ? b.history : []).slice(0, 20)) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), id, str(b.tid, 60), upd, str(t, 200), who));
+  await env.DB.batch(st);
+  return { ok: true, id, upd };
+}
+
 function cleanStudent(s) {
   const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
   const days = arr => (Array.isArray(arr) ? arr : []).filter(x => DAYS.includes(x)).sort((a, b) => DAYS.indexOf(a) - DAYS.indexOf(b));
@@ -342,6 +381,8 @@ function cleanStudent(s) {
     inst: str(s.inst, 20),
     leavePeriods: (Array.isArray(s.leavePeriods) ? s.leavePeriods : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end) })).filter(p => p.start || p.end),
     temporarySchedules: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end), days: days(p.days) })).filter(p => p.start),
+    // 회원 상태 바뀐 기록 (날짜·사유) — 업무 앱 원생 메뉴와 출석부가 같이 씀
+    statusLog: (Array.isArray(s.statusLog) ? s.statusLog : []).slice(-40).map(p => ({ date: okDay(p.date), from: ['재원', '휴원', '퇴관', ''].includes(p.from) ? p.from : '', to: ['재원', '휴원', '퇴관'].includes(p.to) ? p.to : '재원', why: str(p.why, 100), who: str(p.who, 20), at: +p.at || 0 })),
   };
 }
 

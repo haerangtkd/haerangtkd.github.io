@@ -662,6 +662,7 @@ function statusSheet(s) {
   sheet('<h2>' + esc(s.name) + ' 회원 상태</h2><p class="help">지금: ' + s.status + (s.status === '휴원' ? ' · ' + esc(lpText((s.leavePeriods || []).filter(p => !p.end))) : '') + '</p>' +
     '<div class="chips" style="margin-top:14px" id="ssC">' + ['재원', '휴원', '퇴관'].map(x => '<button data-v="' + x + '" class="' + (s.status === x ? 'on' : '') + '">' + x + '</button>').join('') + '</div>' +
     '<label class="f" id="ssDL">날짜</label><input type="date" class="inp" id="ssD" value="' + today() + '"><p class="help" id="ssH"></p>' +
+    '<label class="f">사유 (안 적어도 돼요)</label><input class="inp" id="ssW" maxlength="100" placeholder="예: 이사, 방학 동안 쉼">' +
     '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="ssS">저장</button></div>', ov => {
     let v = s.status; const g = id => ov.querySelector('#' + id);
     const draw = () => { g('ssC').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === v)); g('ssDL').textContent = v === '휴원' ? '휴원 시작일' : v === '재원' && s.status === '휴원' ? '복귀일' : '날짜'; g('ssH').textContent = v === '휴원' ? '이 날부터 출석부에 —로 표시되고 출석률에서 빠져요.' : v === '재원' && s.status === '휴원' ? '이 날부터 다시 출석부에 나와요.' : v === '퇴관' ? '출석부에서 빠지지만 지난 기록은 남아요.' : ''; };
@@ -673,7 +674,9 @@ function statusSheet(s) {
       n.status = v;
       if (v === '휴원') n.leavePeriods.push({ start: d, end: '' });
       if (s.status === '휴원') n.leavePeriods.forEach(p => { if (!p.end) p.end = d; });
-      if (await saveStudent(n, diffHistory(s, n))) { closeSheet(); toast(s.name + ' ' + v + '(으)로 바꿨어요'); }
+      const why = g('ssW').value.trim(); n.statusLog = [...(n.statusLog || []), { date: d, from: s.status, to: v, why, who: (S.me && S.me.name) || '', at: Date.now() }];
+      const h = diffHistory(s, n); if (why) h.push('사유: ' + why + ' (' + d + ')');
+      if (await saveStudent(n, h)) { closeSheet(); toast(s.name + ' ' + v + '(으)로 바꿨어요'); }
     };
   });
 }
@@ -990,11 +993,12 @@ $('spaceBtn').onclick = () => {
     const needAdmin = () => { if (getAdmin()) return false; toast('위에 관리자 비밀번호를 먼저 넣어 주세요'); const el = ov.querySelector('#adPw'); if (el) el.focus(); return true; };
     ov.onclick = async e => {
       const b = e.target.closest('[data-x]'); if (!b) return; const x = b.dataset.x;
+      if (['csvS', 'csvM', 'pdf', 'csvY', 'bak'].includes(x) && !(await askDl())) return; // 명단·출결·백업 파일은 내려받기 비밀번호
       if (x === 'csvS') downloadCsv('원생명단_' + today() + '.csv', studentCsv());
       if (x === 'csvM') { await loadMonth(ym); downloadCsv(ym.slice(2, 4) + ym.slice(5) + '_출결기록.csv', monthCsv(ym)); }
       if (x === 'pdf') { closeSheet(); printMonth(ym); }
       if (x === 'csvY') { b.textContent = '불러오는 중…'; const j = await api('/api/att', { year: yr }, true); if (!j.ok) return toast(j.error); downloadCsv(yr + '_전체출결.csv', yearCsv(yr, j.rows, j.absences)); b.textContent = yr + '년 전체 출결 받기 (CSV)'; }
-      if (x === 'bak') { b.textContent = '만드는 중…'; const j = await api('/api/export', {}, true); b.textContent = '백업 파일 받기 (전체 데이터)'; if (!j.ok) return toast(j.error); download('해랑출석부_백업_' + today() + '.json', JSON.stringify(j.backup), 'application/json'); }
+      if (x === 'bak') { b.textContent = '만드는 중…'; const j = await api('/api/export', { dlpin: S.dlOk && S.dlOk.pin }, true); b.textContent = '백업 파일 받기 (전체 데이터)'; if (!j.ok) return toast(j.error); download('해랑출석부_백업_' + today() + '.json', JSON.stringify(j.backup), 'application/json'); }
       if (x === 'pin') pinSheet();
       if (x === 'out') { if (confirm('로그아웃할까요?')) { await api('/api/logout', {}, true); logoutLocal(); } }
       if (x === 'tch') teacherSheet();
@@ -1083,6 +1087,19 @@ function yearCsv(yr, rows, abs) {
   for (const r of [...rows].sort((a, b) => a.day.localeCompare(b.day))) { const s = stById(r.sid); if (!s) continue; seen.add(r.sid + '|' + r.day); out.push([r.day, wd(r.day), s.name, grade(s, r.day).label, r.r === 'o' ? '출석' : r.r === 'x' ? '결석' : '미확인', r.p, r.w, r.mk ? '보강' : '', r.who]); }
   for (const [k, w] of abm) if (!seen.has(k)) { const [sid, day] = k.split('|'); const s = stById(sid); if (s && day <= today()) out.push([day, wd(day), s.name, grade(s, day).label, '결석(예정)', '', w, '', '']); }
   return csv([out[0], ...out.slice(1).sort((a, b) => a[0].localeCompare(b[0]) || a[2].localeCompare(b[2], 'ko'))]);
+}
+// 내려받기 비밀번호 (모든 직원이 같은 번호, 이사범님이 업무 앱 설정에서 정함) — 한 번 맞으면 5분 동안 다시 안 물음
+function askDl() {
+  if (S.dlOk && S.dlOk.until > Date.now()) return Promise.resolve(true);
+  return new Promise(res => {
+    const ov = document.createElement('div'); ov.className = 'ov'; ov.style.zIndex = 90;
+    ov.innerHTML = '<div class="sheet" style="max-width:380px"><h2>내려받기 비밀번호</h2><p class="help">원생 명단·출결 기록·백업 파일은 개인정보라서 비밀번호를 한 번 더 확인해요.</p><input class="inp" id="dlP" type="password" inputmode="numeric" autocomplete="off" maxlength="8" style="margin-top:10px"><p class="help" id="dlM" style="color:#C0392B"></p><div class="foot"><span class="sp"></span><button id="dlX">취소</button><button class="save" id="dlOk">확인</button></div></div>';
+    document.body.appendChild(ov); const g = id => ov.querySelector('#' + id); setTimeout(() => g('dlP').focus(), 50);
+    const done = v => { ov.remove(); res(v); };
+    g('dlX').onclick = () => done(false);
+    const go = async () => { const pin = g('dlP').value; if (!pin) return; const j = await api('/api/dl-check', { pin }, true); if (!j.ok) { g('dlM').textContent = j.error || '확인하지 못했어요'; g('dlP').value = ''; return; } S.dlOk = { pin, until: Date.now() + 5 * 60000 }; done(true); };
+    g('dlOk').onclick = go; g('dlP').onkeydown = e => { if (e.key === 'Enter') go(); };
+  });
 }
 function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
 const downloadCsv = (n, t) => download(n, t, 'text/csv;charset=utf-8');

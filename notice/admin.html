@@ -25,6 +25,7 @@
   .top .meta{font-size:12.5px;opacity:.85}
   .top button.lo{color:#fff;font-size:12.5px;background:rgba(255,255,255,.16);border:0;border-radius:8px;padding:6px 10px}
   .tabs{display:flex}
+  .kst{font-style:normal;font-size:11.5px;font-weight:700;background:#EEF1F7;color:#1F3B63;border-radius:99px;padding:1px 7px;margin-left:4px;vertical-align:2px}.kst.out{background:#F1EEEA;color:#6B6460}
   .tabs button{flex:1;border:0;background:none;color:rgba(255,255,255,.72);font-weight:700;font-size:15.5px;padding:10px 2px 12px;border-bottom:3px solid transparent;position:relative}
   .tabs button.on{color:#fff;border-bottom-color:#fff}
   .tabs .cnt{position:absolute;top:4px;margin-left:2px;background:#FFC53D;color:#5A3A00;font-size:11px;font-weight:900;border-radius:99px;padding:0 6px}
@@ -355,7 +356,7 @@
     $('kids').innerHTML = list.map(c => {
       const l = c.today || {};
       const st = l.out ? '등원 ' + (l.in || '-') + ' · 하원 ' + l.out : l.in ? '등원 ' + l.in : '보호자 ' + c.guardians.length + '명';
-      return '<li class="kid"><div class="nm"><b>' + esc(c.name) + '</b><small class="' + (l.in || l.out ? 'done' : '') + '">' + esc(st) + '</small></div>' +
+      return '<li class="kid"><div class="nm"><b>' + esc(c.name) + '</b>' + (c.status ? ' <em class="kst' + (c.status === '퇴관' ? ' out' : '') + '">' + esc(c.status) + '</em>' : '') + '<small class="' + (l.in || l.out ? 'done' : '') + '">' + esc(st) + '</small></div>' +
         '<button class="in' + (l.in && !l.out ? ' sent' : '') + '" data-n="' + esc(c.name) + '" data-a="in">등원</button>' +
         '<button class="out' + (l.out ? ' sent' : '') + '" data-n="' + esc(c.name) + '" data-a="out">하원</button></li>';
     }).join('');
@@ -571,7 +572,7 @@
 
   // ═════ 명단 ═════
   function renderRoster() {
-    $('roster').innerHTML = kids.length ? kids.map((k, i) => '<li class="rs"><div class="rh"><b>' + esc(k.name) + '</b><span class="codes">출결번호 ' + (k.codes.length ? k.codes.map(esc).join(', ') : '없음') + '</span><button data-i="' + i + '">수정</button></div>' +
+    $('roster').innerHTML = kids.length ? kids.map((k, i) => '<li class="rs"><div class="rh"><b>' + esc(k.name) + '</b>' + (k.status ? ' <em class="kst' + (k.status === '퇴관' ? ' out' : '') + '">' + esc(k.status) + '</em>' : '') + '<span class="codes">출결번호 ' + (k.codes.length ? k.codes.map(esc).join(', ') : '없음') + '</span><button data-i="' + i + '">수정</button></div>' +
       (k.guardians.length ? k.guardians.map(g => '<div class="gd"><span>' + esc(g.rel) + ' · ' + esc(g.ph) + (g.push ? '' : ' · 알림 꺼짐') + '</span><button data-g="' + g.id + '" data-n="' + esc(k.name) + '" data-r="' + esc(g.rel) + '">등록 해제</button></div>').join('') : '<div class="gd"><span class="hint">가입한 보호자 없음</span></div>') + '</li>').join('')
       : '<li class="empty">아직 명단이 없습니다. 학부모님 가입을 승인하면 자동으로 들어옵니다.</li>';
   }

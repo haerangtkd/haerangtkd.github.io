@@ -36,7 +36,7 @@ const ctx = { waitUntil: p => p && p.catch && p.catch(() => {}) };
 const aenv = { DB: D1('att.db'), ADMIN_PASSWORD: 'kwanjang', SYNC_KEY: 'sync123' };
 const nenv = { DB: D1('notice.db'), ADMIN_PASSWORD: 'kwanjang', SYNC_KEY: 'sync123' };
 const tenv = { DB: D1('team.db'), SYNC_KEY: 'sync123' };
-aenv.NOTICE = bind(nw, nenv); nenv.ATT = bind(aw, aenv); tenv.ATT = bind(aw, aenv);
+aenv.NOTICE = bind(nw, nenv); nenv.ATT = bind(aw, aenv); tenv.ATT = bind(aw, aenv); tenv.NOTICE = bind(nw, nenv); nenv.TEAM = bind(tw, tenv);
 
 const API = { A: [aw, aenv], N: [nw, nenv], T: [tw, tenv] }; // /A/… 출석부, /N/… 알림, /T/… 업무
 const CONFIG = {
