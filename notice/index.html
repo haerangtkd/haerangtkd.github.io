@@ -707,7 +707,7 @@
     if (!contact) return '';
     const L = (contact.msgs || []).filter(x => x.kid === k).slice(0, 3);
     return '<section class="sec" id="secCt"><h2>사범님께 연락</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기</button></div>' +
-      L.map(x => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + esc(x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘 /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>').join('') + '</section>';
+      L.map(x => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + esc(x.short ? (x.day !== dayOfMs(x.at) ? dShort(x.day) + ' ' : '') + x.short : x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘 /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>').join('') + '</section>';
   }
   const dayOfMs = ms => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
   const todayK = () => dayOfMs(Date.now());

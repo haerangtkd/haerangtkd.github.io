@@ -249,7 +249,7 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const name = cleanNames([b.name])[0];
     if (!name) return json({ ok: false, error: '이름' });
-    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: 'attendance' });
+    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: b.view === 'home' ? '' : 'attendance' }); // view 'home' = 학부모 연락 확인 알림
     if (r.ok && !r.total) return json({ ok: false, error: name + ' 학생은 알림 앱에 가입한 보호자가 없습니다' });
     return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
   }

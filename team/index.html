@@ -648,7 +648,8 @@ async function sync(first) {
 function chatUnread() { const rs = new Set(['', ...S.msgs.map(roomOf)]); let n = 0; for (const r of rs) if (!(S.tab === 'room' && r === S.room)) n += unreadIn(r); return n; }
 function setBadge() {
   if (!S.me) return;
-  const t = today(), cu = chatUnread(), n = itemsOf('todo').filter(x => !isDone(x) && (!x.due || x.due <= t) && mine(x)).length + cu;
+  const t = today(), cu = chatUnread(), now = new Date(), late = now.getHours() * 60 + now.getMinutes() >= 17 * 60 + 50; // 앱 숫자: 날짜 지난 업무 + 안 읽은 채팅, 오늘까지인 업무는 오후 5시 50분부터
+  const n = itemsOf('todo').filter(x => !isDone(x) && x.due && (x.due < t || (late && x.due === t)) && mine(x)).length + cu;
   try { if (navigator.setAppBadge) n ? navigator.setAppBadge(n) : navigator.clearAppBadge(); } catch (_) {}
   $('chatDot').hidden = !cu; $('chatDot').textContent = cu > 99 ? '99+' : cu;
   const ln = S.logs.filter(g => g.id > S.logRead && g.mid !== S.me.id).length;
@@ -1916,7 +1917,7 @@ async function pkCheck(off) { S.pkchk = { day: today(), v: off ? null : { by: S.
 
 // ═════════ 학부모 연락 (학부모 앱 '사범님께 연락') ═════════
 const pmList = () => [...S.pmsg.values()].sort((a, b) => b.id - a.id);
-const pmLine = x => (x.label === '직접 쓴 연락' ? '' : x.day !== dayOf(x.at) ? x.label.replace(/^오늘 /, '') : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '') + (x.text ? (x.label === '직접 쓴 연락' ? '' : ' · ') + x.text : '');
+const pmLine = x => x.short != null ? x.short : (x.label === '직접 쓴 연락' ? '' : x.day !== dayOf(x.at) ? x.label.replace(/^오늘 /, '') : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '') + (x.text ? (x.label === '직접 쓴 연락' ? '' : ' · ') + x.text : '');
 function pmRow(x, withBtns) {
   const t = today(), dl = x.day === t ? '오늘' : x.day === addDays(t, 1) ? '내일' : md(x.day);
   const actL = x.act === 'absent' ? '출석부 결석에 넣을게요' : x.act === 'in' ? '픽업표에 넣을게요' : x.act === 'out' ? '할 일에 넣을게요' : '';
