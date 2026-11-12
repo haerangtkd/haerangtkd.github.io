@@ -614,6 +614,7 @@ async function sync(first) {
   let changed = false, newIn = false;
   const jn = JSON.stringify(j.joins || []); if (jn !== JSON.stringify(S.joins || [])) { S.joins = j.joins || []; changed = true; }
   const ex = JSON.stringify([j.clean, j.cleanchk, j.roles, j.pkchk]); if (ex !== S._ex) { S._ex = ex; S.clean = j.clean; S.cleanchk = j.cleanchk || []; S.roles = j.roles || []; S.pkchk = j.pkchk; changed = true; }
+  S.kioskMulti = !!j.kioskMulti;
   for (const x of (j.esigns || [])) { S.esigns.set(x.ev + '|' + x.kid, x); changed = true; }
   for (const x of (j.pmsg || [])) { S.pmsg.set(x.id, x); changed = true; }
   for (const x of (j.hw || [])) { S.hw.set(x.id, x); changed = true; }
@@ -888,8 +889,8 @@ function pickupCard() {
 function dashRow2() {
   loadKids(); loadDash();
   const ks = S.kids ? kidStats() : null, ns = newSigns().length, pd = S.dashPending;
-  const chg = ks ? [ks.newM ? '신규 ' + ks.newM : '', ks.leaveM ? '휴원 ' + ks.leaveM : '', ks.outM ? '퇴관 ' + ks.outM : ''].filter(Boolean).join(' ') : '';
-  return '<div class="kpis k2"><button data-go="kids"><small>재원</small><b>' + (ks ? ks.on : '–') + '</b><em>' + (chg || (ks ? '이번 달 변동 없음' : '&nbsp;')) + '</em></button>' +
+  const chg = ks ? [ks.leave ? '휴원 ' + ks.leave : '', ks.newM ? '이번 달 신규 ' + ks.newM : ''].filter(Boolean).join(' · ') : '';
+  return '<div class="kpis k2"><button data-go="kids"><small>재원 (휴원 빼고)</small><b>' + (ks ? ks.on : '–') + '</b><em>' + (chg || '&nbsp;') + '</em></button>' +
     '<button data-kh="1"><small>오늘 출석</small><b>' + (ks ? ks.sched.filter(x => S.kidsHere.has(x.id)).length + '<span>/' + ks.sched.length + '</span>' : '–') + '</b><em' + (ks && ks.notYet.length ? ' class="r"' : '') + '>' + (ks && ks.notYet.length ? '아직 ' + ks.notYet.length : '&nbsp;') + '</em></button>' +
     '<button data-app="appNtc"><small>가입 승인</small><b>' + (pd == null ? '–' : pd) + '</b><em' + (pd ? ' class="r"' : '') + '>' + (pd ? '기다리는 중' : '&nbsp;') + '</em></button>' +
     '<button data-sign="1"><small>앱 행사 신청</small><b>' + ns + '</b><em' + (ns ? ' class="r"' : '') + '>' + (ns ? '새로 들어옴' : '&nbsp;') + '</em></button></div>';
@@ -1598,7 +1599,7 @@ function renderKids() {
   if (!S.kids) { $('v-kids').innerHTML = '<p class="empty" style="margin-top:30px">' + (S.kidsErr ? esc(S.kidsErr) : '출석부 명단을 불러오는 중이에요') + '</p>'; loadKids(); return; }
   const n = k => S.kids.filter(s => k === '전체' || s.status === k).length;
   $('v-kids').innerHTML = '<div class="tfil"><input class="inp" id="kQ" placeholder="이름·번호 검색" value="' + esc(S.kq || '') + '" autocomplete="off" style="flex:1;margin:0"><button class="mk" id="kNew">+ 새 원생</button></div>' +
-    '<div class="tfil"><div class="fs" id="kFil">' + ['재원', '휴원', '퇴관', '전체'].map(k => '<button data-f="' + k + '" class="' + (f === k ? 'on' : '') + '">' + k + ' ' + n(k) + '</button>').join('') + '</div></div>' +
+    '<div class="tfil"><div class="fs" id="kFil">' + (isBoss() ? ['재원', '휴원', '퇴관', '전체'] : ['재원', '휴원', '전체']).map(k => '<button data-f="' + k + '" class="' + (f === k ? 'on' : '') + '">' + k + ' ' + n(k) + '</button>').join('') + '</div></div>' +
     '<div class="card klist" id="kL"></div><p class="hint" style="text-align:center;margin-top:10px">출석부와 같은 명단이에요. 여기서 바꾸면 출석부·알림 앱·기네스에도 같이 반영돼요.<br>잠깐 빠지는 결석은 출석부에서 해요.</p>';
   drawKidList(); loadKids();
 }
@@ -1630,7 +1631,7 @@ function kidSheet(id) {
     line('보호자', esc([s.guardian, kPhone(s.phone)].filter(Boolean).join(' ')) + (s.phone ? ' <a class="btn" href="tel:' + esc(s.phone) + '" style="padding:3px 10px;margin-left:6px;text-decoration:none;color:inherit">전화</a>' : '')) +
     line('출석번호', esc(s.no || '')) + line('어린이집·유치원', esc(s.inst || '')) + line('메모', esc(s.memo || '')) + '</div>' +
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
-    (log.length ? '<h3>회원 상태 기록</h3>' + log.map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
+    (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + L.map(x => pmRow(x, false)).join('') : ''; })() +
     '<h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
     ov.classList.add('full');
@@ -1641,6 +1642,7 @@ function kidSheet(id) {
   });
 }
 function kidStatusSheet(s) {
+  if (s.status === '퇴관' && !isBoss()) return toast('퇴관한 제자를 다시 바꾸는 건 관리자만 할 수 있어요');
   sheet('<h2>' + esc(s.name) + ' 회원 상태</h2><p class="help">지금: ' + s.status + '</p><div class="chips" id="ksC" style="margin-top:12px">' + ['재원', '휴원', '퇴관'].map(x => '<button data-v="' + x + '" class="' + (s.status === x ? 'on' : '') + '">' + x + '</button>').join('') + '</div>' +
     '<label class="f" id="ksDL">날짜</label><input type="date" class="inp" id="ksD" value="' + today() + '"><p class="help" id="ksH"></p>' +
     '<label class="f">사유 (안 적어도 돼요)</label><input class="inp" id="ksW" maxlength="100" placeholder="예: 이사, 학원 시간 겹침, 방학 동안 쉼">' +
@@ -1695,6 +1697,7 @@ function kidEdit(s0) {
     '<label class="f">출석번호 (태블릿에 누르는 4자리, 보통 연락처 뒷자리)</label><input class="inp" id="eNo" inputmode="numeric" maxlength="4" value="' + esc(s.no) + '">' +
     '<label class="f">어린이집·유치원 (유치부만)</label><input class="inp" id="eInst" value="' + esc(s.inst) + '">' +
     '<label class="f">메모</label><textarea class="inp" id="eMemo" rows="2">' + esc(s.memo) + '</textarea>' +
+    '<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="eNoAsk"' + (s.noAsk ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 태블릿을 안 눌러도 등원 알림을 묻지 않기 (보호자가 데려다주는 제자)</label>' +
     (s0 ? '<p class="help">회원 상태(휴원·퇴관)는 앞 화면의 \'회원 상태\'에서 바꿔요.</p>' : '') +
     '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="eSave">' + (s0 ? '저장' : '등록') + '</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
@@ -1704,7 +1707,7 @@ function kidEdit(s0) {
     g('eNo').oninput = () => { noTouched = true; };
     if (!s0) setTimeout(() => g('eName').focus(), 60);
     g('eSave').onclick = async () => {
-      s.name = g('eName').value.replace(/\s+/g, ''); s.birth = +g('eBirth').value || ''; s.joined = g('eJoin').value; s.phone = g('ePhone').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4); s.inst = g('eInst').value.trim(); s.memo = g('eMemo').value.trim();
+      s.name = g('eName').value.replace(/\s+/g, ''); s.birth = +g('eBirth').value || ''; s.joined = g('eJoin').value; s.phone = g('ePhone').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4); s.inst = g('eInst').value.trim(); s.memo = g('eMemo').value.trim(); s.noAsk = g('eNoAsk').checked;
       if (!s.name) return toast('이름을 적어 주세요');
       if (s.no && s.no.length !== 4) return toast('출석번호는 4자리로 적어 주세요');
       const dup = (S.kids || []).find(x => x.name === s.name && (!s0 || x.id !== s0.id) && x.status !== '퇴관');
@@ -1755,17 +1758,19 @@ function markLogRead() { const mx = S.logs.length ? S.logs[S.logs.length - 1].id
 const isBoss = () => !!(S.me && S.me.boss);
 const roleOf = m => (m && m.role) || '';
 function staffHtml() {
-  const L = S.members.map(m => '<li class="row" style="padding:7px 0;gap:8px">' + av(m.id, 's') + '<div style="flex:1;min-width:0"><b>' + esc(m.name) + (m.id === S.me.id ? ' (나)' : '') + '</b>' + (roleOf(m) ? ' <span class="tag">' + esc(roleOf(m)) + '</span>' : '') + (m.boss ? ' <span class="tag g">관리</span>' : '') + '</div>' +
+  const L = S.members.map(m => '<li class="row" style="padding:7px 0;gap:8px">' + av(m.id, 's') + '<div style="flex:1;min-width:0"><b>' + esc(m.name) + (m.id === S.me.id ? ' (나)' : '') + '</b>' + (roleOf(m) ? ' <span class="tag">' + esc(roleOf(m)) + '</span>' : '') + (m.boss ? ' <span class="tag g">관리자</span>' : '') + '</div>' +
     (isBoss() && m.id !== S.me.id ? '<button class="btn" data-ed="' + m.id + '">수정</button>' : isBoss() ? '<button class="btn" data-ed="' + m.id + '">수정</button>' : '') + '</li>').join('');
   return '<h3>직원</h3><ul class="l" id="sMem">' + L + '</ul>' +
-    (isBoss() ? '<button class="big g" id="sAddM">+ 새 직원 등록</button><button class="big" id="sRoles">직책 관리</button><p class="help">새 직원은 이사범님이 정해 준 PIN으로 처음 들어가면 자기 PIN으로 바꿔야 써요.</p>'
-      : '<p class="help">직원 등록·이름·직책은 이사범님이 바꿔요. 나는 내 PIN만 바꿀 수 있어요.</p>');
+    (isBoss() ? '<button class="big g" id="sAddM">+ 새 직원 등록</button><button class="big" id="sRoles">직책 관리</button><p class="help">새 직원은 관리자가 정해 준 PIN으로 처음 들어가면 자기 PIN으로 바꿔야 써요. 공용 계정 PIN은 관리자만 바꿔요.</p>'
+      : '<p class="help">직원 등록·이름·직책은 관리자가 바꿔요. 나는 내 PIN만 바꿀 수 있어요.</p>') +
+    (isBoss() ? '<h3>출결 태블릿</h3><label style="display:flex;gap:8px;align-items:center;font-size:15px"><input type="checkbox" id="sMulti"' + (S.kioskMulti ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 하루에 여러 번 등·하원 허용 (방학 등)</label><p class="help">꺼 두면 태블릿에서 등원 한 번, 하원 한 번만 돼요. 켜 두면 두 번째부터는 \'맞는지 확인\' 할 일이 생겨요.</p>' : '');
 }
 function staffBind(ov) {
   const g = id => ov.querySelector('#' + id);
   g('sMem').onclick = e => { const b = e.target.closest('[data-ed]'); if (b) staffEdit(S.members.find(m => m.id === b.dataset.ed)); };
   if (g('sAddM')) g('sAddM').onclick = () => staffEdit(null);
   if (g('sRoles')) g('sRoles').onclick = () => rolesSheet();
+  if (g('sMulti')) g('sMulti').onchange = async e => { const on = e.target.checked; const j = await api('/api/kiosk-multi', { on }); if (!j.ok) { e.target.checked = !on; return toast(j.error); } S.kioskMulti = on; toast(on ? '여러 번 등·하원을 허용했어요' : '하루 한 번만 되게 했어요'); };
 }
 function staffEdit(m) {
   const roles = S.roles || [], isMe = m && m.id === S.me.id; let role = m ? roleOf(m) : (roles[0] || '');
@@ -1773,16 +1778,17 @@ function staffEdit(m) {
     '<label class="f">이름</label><input class="inp" id="seN" maxlength="12" value="' + esc(m ? m.name : '') + '" placeholder="예: 홍길동">' +
     '<label class="f">직책</label><div class="chips" id="seR">' + roles.map(r => '<button data-r="' + esc(r) + '" class="' + (role === r ? 'on' : '') + '">' + esc(r) + '</button>').join('') + '<button data-r="">없음</button></div>' +
     (!m ? '<label class="f">처음 PIN (숫자 4~6자리, 직원이 들어가서 바로 바꿔요)</label><input class="inp" id="seP" inputmode="numeric" maxlength="6" autocomplete="new-password">' : '') +
+    (m && !m.shared ? '<label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:15px"><input type="checkbox" id="seB"' + (m.boss ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 관리자 (직원·청소·학부모 연락 버튼·태블릿 설정)</label>' : '') +
     '<div class="foot">' + (m && !isMe ? '<button class="del" id="seX">삭제</button><button id="seP2">PIN 새로</button>' : '') + '<span class="sp"></span><button data-close>취소</button><button class="save" id="seOk">' + (m ? '저장' : '등록') + '</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
     g('seR').onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; role = b.dataset.r; g('seR').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.r === role && !!role)); };
     g('seOk').onclick = async () => {
       const name = g('seN').value.trim(); if (!name) return toast('이름을 적어 주세요');
-      const j = m ? await api('/api/member-edit', { mid: m.id, name, role }) : await api('/api/member-add', { name, role, pin: g('seP').value });
+      const j = m ? await api('/api/member-edit', { mid: m.id, name, role, ...(g('seB') ? { boss: g('seB').checked } : {}) }) : await api('/api/member-add', { name, role, pin: g('seP').value });
       if (!j.ok) return toast(j.error); toast(m ? '저장했어요' : name + '님을 등록했어요. 처음 PIN을 알려 주세요'); await sync(); settingsSheet();
     };
     if (g('seX')) g('seX').onclick = async () => { if (!confirm(m.name + '님을 지울까요?')) return; const j = await api('/api/member-del', { mid: m.id }); toast(j.ok ? '지웠어요' : j.error); await sync(); settingsSheet(); };
-    if (g('seP2')) g('seP2').onclick = async () => { const pin = prompt(m.name + '님의 새 처음 PIN (숫자 4~6자리). 다음에 들어가면 자기 PIN으로 바꿔요'); if (!pin) return; const j = await api('/api/member-pin', { mid: m.id, pin }); toast(j.ok ? 'PIN을 새로 정했어요' : j.error); };
+    if (g('seP2')) g('seP2').onclick = async () => { const pin = prompt(m.shared ? '공용 계정 새 PIN (숫자 4~6자리)' : m.name + '님의 새 처음 PIN (숫자 4~6자리). 다음에 들어가면 자기 PIN으로 바꿔요'); if (!pin) return; const j = await api('/api/member-pin', { mid: m.id, pin }); toast(j.ok ? 'PIN을 새로 정했어요' : j.error); };
   });
 }
 function rolesSheet() {
@@ -1807,18 +1813,20 @@ function dlBind(ov) { const b = ov.querySelector('#sDl'); if (b) b.onclick = asy
 // ═════════ 청소 (한 주씩 돌아가며 · 담당자만 체크) ═════════
 const CW = ['월', '화', '수', '목', '금'];
 function cleanWho(day) { const c = S.clean; if (!c || !(c.order || []).length) return ''; const mon = d => dObj(d).getTime() - ((dObj(d).getUTCDay() + 6) % 7) * 864e5; const w = Math.floor((mon(day) - mon(c.start || day)) / (7 * 864e5)); return c.order[((w % c.order.length) + c.order.length) % c.order.length]; }
-function cleanTasks(day) { const c = S.clean, w = wd(day); if (!c || !CW.includes(w)) return []; return [...((c.days || {})[w] || []), ...(c.daily || [])]; }
+function cleanTasks(day) { const c = S.clean, w = wd(day); if (!c || !CW.includes(w)) return []; return [...((c.days || {})[w] || [])]; }
+const weekKey = day => 'w:' + addDays(day, -((dObj(day).getUTCDay() + 6) % 7)); // '이번 주 안에' 청소 체크 (쓰레기 비우기 등)
 const cleanDone = (day, t) => (S.cleanchk || []).find(x => x.day === day && x.task === t);
 function cleanMissed() { // 지난 평일 중 다 안 한 날 (2주 안)
   const out = []; for (let i = 1; i <= 14; i++) { const d = addDays(today(), -i); if (S.clean && d < (S.clean.since || S.clean.start)) break; const l = cleanTasks(d).filter(t => !cleanDone(d, t)); if (l.length) out.push({ day: d, left: l, who: cleanWho(d) }); } return out;
 }
 function cleanCard() {
-  const t = today(), tasks = cleanTasks(t), who = cleanWho(t), me = who === S.me.id, miss = cleanMissed().filter(x => x.who === S.me.id);
-  if (!S.clean || (!tasks.length && !miss.length)) return '';
-  const left = tasks.filter(x => !cleanDone(t, x)).length, late = kNow().getUTCHours() >= 18 && left;
-  const row = (d, x) => { const dn = cleanDone(d, x); return '<button class="cln' + (dn ? ' on' : '') + '" data-cl="' + esc(x) + '" data-cd="' + d + '"' + (who === S.me.id || (d !== t && cleanWho(d) === S.me.id) ? '' : ' disabled') + '><span class="ck">' + (dn ? '✓' : '') + '</span>' + esc(x) + (dn && dn.at ? '<small>' + hm(dn.at) + '</small>' : '') + '</button>'; };
+  const t = today(), tasks = cleanTasks(t), who = cleanWho(t), me = who === S.me.id, miss = cleanMissed().filter(x => x.who === S.me.id), wk = weekKey(t), wkT = (S.clean && S.clean.daily) || [], wkLeft = wkT.filter(x => !cleanDone(wk, x));
+  if (!S.clean || (!tasks.length && !miss.length && !wkT.length)) return '';
+  const left = tasks.filter(x => !cleanDone(t, x)).length, late = kNow().getUTCHours() >= 18 && (left || (wd(t) === '금' && wkLeft.length));
+  const row = (d, x) => { const dn = cleanDone(d, x); return '<button class="cln' + (dn ? ' on' : '') + '" data-cl="' + esc(x) + '" data-cd="' + d + '"' + (who === S.me.id || (d !== t && cleanWho(d.replace(/^w:/, '')) === S.me.id) ? '' : ' disabled') + '><span class="ck">' + (dn ? '✓' : '') + '</span>' + esc(x) + (dn && dn.at ? '<small>' + hm(dn.at) + '</small>' : '') + '</button>'; };
   return '<div class="sec' + (late || miss.length ? ' blink' : '') + '" id="clSec"><div class="sh"><h2>🧹 오늘 청소</h2><small>' + (who ? (me ? '이번 주 내 담당' : esc(nameOf(who)) + ' 담당') : '담당자 없음') + '</small></div>' +
-    (tasks.length ? '<p class="pksum">' + (left ? left + '개 남음 · 21시까지' : '다 했어요 👍') + '</p><div class="clist">' + tasks.map(x => row(t, x)).join('') + '</div>' : '<p class="empty">오늘은 청소가 없어요</p>') +
+    (tasks.length ? '<p class="pksum">' + (left ? left + '개 남음 · 21시까지' : '다 했어요 👍') + '</p><div class="clist">' + tasks.map(x => row(t, x)).join('') + '</div>' : '<p class="empty">오늘은 요일 청소가 없어요</p>') +
+    (wkT.length && CW.includes(wd(t)) ? '<p class="pksum" style="margin-top:12px">이번 주 안에 · ' + (wkLeft.length ? wkLeft.length + '개 남음 (금요일까지)' : '다 했어요 👍') + '</p><div class="clist">' + wkT.map(x => row(wk, x)).join('') + '</div>' : '') +
     miss.map(m => '<p class="pksum" style="color:var(--no);margin-top:10px"><b>' + md(m.day) + ' 청소 ' + m.left.length + '개 안 끝남</b></p><div class="clist">' + m.left.map(x => row(m.day, x)).join('') + '</div>').join('') +
     (!me && tasks.length ? '<p class="help">담당자만 체크할 수 있어요. 보기만 돼요.</p>' : '') + '</div>';
 }
@@ -1831,7 +1839,7 @@ async function onCleanClick(e) {
 }
 function cleanHtml() {
   if (!isBoss()) return '';
-  return '<h3>학부모 연락 버튼</h3><p class="help">학부모 앱 \'사범님께 연락\' 버튼과 사유를 정해요.</p><button class="big" id="sPt">학부모 연락 버튼 관리</button>' + '<h3>청소 순서 · 목록</h3><p class="help">한 주씩 돌아가며 맡아요. 담당자만 체크하고, 안 끝나면 18시·21시에 담당자에게 알림이 가요.</p><button class="big" id="sClean">청소 설정</button>';
+  return '<h3>학부모 연락 버튼</h3><p class="help">학부모 앱 \'사범님께 연락\' 버튼과 사유를 정해요.</p><button class="big" id="sPt">학부모 연락 버튼 관리</button>' + '<h3>청소 순서 · 목록</h3><p class="help">한 주씩 돌아가며 맡아요. 담당자만 체크하고, 요일 청소가 안 끝나면 18시·21시에, 이번 주 안에 할 청소는 금요일 18시·21시에 담당자에게 알림이 가요.</p><button class="big" id="sClean">청소 설정</button>';
 }
 function cleanBind(ov) { const b = ov.querySelector('#sClean'); if (b) b.onclick = () => cleanSheet(); const p = ov.querySelector('#sPt'); if (p) p.onclick = () => ptplSheet(); }
 function cleanSheet() {
@@ -1840,7 +1848,7 @@ function cleanSheet() {
   sheet('<h2>청소 설정</h2><label class="f">순서 (누른 순서대로 한 주씩)</label><div class="chips" id="cO"></div><p class="help" id="cOh"></p>' +
     '<label class="f">이번 주 담당</label><div class="chips" id="cNow"></div>' +
     CW.map(w => '<label class="f">' + w + '요일 (쉼표로 나눠 적기)</label><input class="inp" data-cw="' + w + '" value="' + esc((c.days[w] || []).join(', ')) + '">').join('') +
-    '<label class="f">매일 (월~금)</label><input class="inp" id="cDaily" value="' + esc((c.daily || []).join(', ')) + '">' +
+    '<label class="f">이번 주 안에 한 번 (쓰레기 비우기 등, 쉼표로)</label><input class="inp" id="cDaily" value="' + esc((c.daily || []).join(', ')) + '">' +
     '<div class="foot"><span class="sp"></span><button id="cBack">취소</button><button class="save" id="cOk">저장</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
     const draw = () => {
@@ -1878,19 +1886,35 @@ const pmList = () => [...S.pmsg.values()].sort((a, b) => b.id - a.id);
 const pmLine = x => (x.label === '직접 쓴 연락' ? '' : x.day !== dayOf(x.at) ? x.label.replace(/^오늘 /, '') : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '') + (x.text ? (x.label === '직접 쓴 연락' ? '' : ' · ') + x.text : '');
 function pmRow(x, withBtns) {
   const t = today(), dl = x.day === t ? '오늘' : x.day === addDays(t, 1) ? '내일' : md(x.day);
-  const actL = x.act === 'absent' ? '출석부에 결석 넣기' : x.act ? '픽업표에 적기' : '';
+  const actL = x.act === 'absent' ? '출석부 결석에 넣을게요' : x.act === 'in' ? '픽업표에 넣을게요' : x.act === 'out' ? '할 일에 넣을게요' : '';
   return '<div class="pmr' + (x.ack ? ' ok' : '') + '" data-pm="' + x.id + '"><div class="pt"><b>' + esc(x.kid) + '</b> <span class="tag' + (x.act === 'absent' ? ' r' : x.act ? ' y' : '') + '">' + dl + '</span><p>' + esc(pmLine(x)) + '</p><small>' + esc(x.rel || '학부모') + ' · ' + hm(x.at) + (x.at < Date.now() - 864e5 ? ' · ' + md(dayOf(x.at)) : '') + (x.ack ? ' · ' + esc(x.ack) + ' 확인' + (x.applied ? (x.act === 'absent' ? ' · 출석부 결석 넣음' : ' · 픽업표에 적음') : '') : '') + '</small></div>' +
-    (withBtns && !x.ack ? '<div class="pb">' + (actL ? '<button class="btn g" data-pa="1">확인 · ' + actL + '</button>' : '') + '<button class="btn' + (actL ? '' : ' g') + '" data-pa="0">' + (actL ? '확인만' : '확인') + '</button></div>' : '') + '</div>';
+    (withBtns && !x.ack ? '<div class="pb">' + (actL ? '<button class="btn g" data-pa="1">' + actL + '</button><button class="btn" data-pa="adj">조율할게요</button>' : '') + '<button class="btn' + (actL ? '' : ' g') + '" data-pa="0">' + (actL ? '확인만 할게요' : '확인했어요') + '</button></div>' : '') + '</div>';
 }
 function pmCard() {
-  const t = today(), L = pmList(), open = L.filter(x => !x.ack), recent = L.filter(x => x.ack && (dayOf(x.at) === t || x.day === t)).slice(0, 5);
-  if (!open.length && !recent.length) return '';
-  return '<div class="sec' + (open.length ? ' blink' : '') + '" id="pmSec"><div class="sh"><h2>💬 학부모 연락' + (open.length ? ' <em style="color:var(--no);font-style:normal">' + open.length + '</em>' : '') + '</h2></div>' + open.map(x => pmRow(x, true)).join('') + recent.map(x => pmRow(x, false)).join('') + '</div>';
+  const L = pmList(), open = L.filter(x => !x.ack); // 처리한 연락은 여기서 빠지고 출석부·픽업표·할 일로 감 (원생 상세에 기록은 남음)
+  if (!open.length) return '';
+  return '<div class="sec blink" id="pmSec"><div class="sh"><h2>💬 학부모 연락 <em style="color:var(--no);font-style:normal">' + open.length + '</em></h2></div>' + open.map(x => pmRow(x, true)).join('') + '</div>';
 }
 async function onPmClick(e) {
-  const b = e.target.closest('[data-pa]'); if (!b) return false; const id = +b.closest('[data-pm]').dataset.pm, apply = b.dataset.pa === '1';
+  const b = e.target.closest('[data-pa]'); if (!b) return false; const id = +b.closest('[data-pm]').dataset.pm;
+  if (b.dataset.pa === 'adj') { pmAdjust(S.pmsg.get(id)); return true; }
+  const apply = b.dataset.pa === '1';
   b.disabled = true; const j = await api('/api/pmsg-ack', { id, apply }); if (!j.ok) { toast(j.error); b.disabled = false; return true; }
-  const x = S.pmsg.get(id); if (x) { x.ack = S.me.name; x.applied = apply ? 1 : x.applied; } toast(apply ? '확인하고 반영했어요' : '확인했어요'); await sync(); render(); return true;
+  const x = S.pmsg.get(id); if (x) { x.ack = S.me.name; x.applied = apply ? 1 : x.applied; } toast(apply ? '넣었어요' : '확인했어요'); await sync(); render(); return true;
+}
+// 조율할게요: 날짜·누가·내용을 고쳐서 넣기
+function pmAdjust(x) {
+  if (!x) return; let day = x.day, who = x.who || '';
+  const where = x.act === 'absent' ? '출석부 결석' : x.act === 'in' ? '픽업표' : '할 일';
+  sheet('<h2>' + esc(x.kid) + ' · 조율해서 넣기</h2><p class="help">학부모님 연락: ' + esc(pmLine(x)) + '<br>학부모님과 이야기한 대로 고친 뒤 ' + where + '에 넣어요.</p>' +
+    '<label class="f">날짜</label><input type="date" class="inp" id="paD" value="' + esc(day) + '">' +
+    (x.act === 'in' || x.act === 'out' ? '<label class="f">누가</label><div class="chips" id="paW">' + (S.rels || []).map(r => '<button data-w="' + esc(r) + '" class="' + (who === r ? 'on' : '') + '">' + esc(r) + '</button>').join('') + '</div>' : '') +
+    '<label class="f">' + (x.act === 'absent' ? '사유·메모' : '메모 (시간 등)') + '</label><input class="inp" id="paT" maxlength="200" value="' + esc(x.text || '') + '">' +
+    '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="paOk">' + where + '에 넣기</button></div>', ov => {
+    const g = id => ov.querySelector('#' + id);
+    if (g('paW')) g('paW').onclick = e => { const b = e.target.closest('[data-w]'); if (!b) return; who = b.dataset.w; g('paW').querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)); };
+    g('paOk').onclick = async () => { const j = await api('/api/pmsg-ack', { id: x.id, apply: true, day: g('paD').value || day, who, text: g('paT').value.trim() }); if (!j.ok) return toast(j.error); closeSheet(); toast(where + '에 넣었어요'); await sync(); render(); };
+  });
 }
 function ptplSheet() {
   const L = JSON.parse(JSON.stringify(S.ptpl || []));
@@ -1971,7 +1995,7 @@ function settingsSheet() {
     '<h3>알림</h3>' + (pushOk ? '<p class="help">이 기기에서 알림이 켜져 있어요. 채팅·댓글·체크·수정이 생기면 알림이 와요 (내가 한 건 빼고).</p><button class="big" id="sTest">알림 시험 보내기</button><button class="big" id="sOff">이 기기 알림 끄기</button>' : '<button class="big g" id="sOn">이 기기에서 알림 켜기</button><p class="help">아이폰은 Safari에서 공유 → 홈 화면에 추가로 설치한 뒤, 설치한 앱에서 켜야 알림이 와요.</p>') +
     '<h3>요일별 기본 등원 명단</h3><p class="help">매주 데리러 가는 제자를 요일마다 넣어 두면 홈 등원표에 자동으로 나와요.</p><div id="sDef"></div><button class="big" id="sDefSave">기본 명단 저장</button>' +
     staffHtml() + dlHtml() + cleanHtml() +
-    '<h3>내 PIN</h3><button class="big" id="sPin">PIN 바꾸기</button><button class="big" id="sOut">로그아웃</button>' +
+    '<h3>' + (S.me.shared ? '공용 계정' : '내 PIN') + '</h3>' + (S.me.shared ? '<p class="help">공용 계정 PIN은 관리자만 바꿔요.</p>' : '<button class="big" id="sPin">PIN 바꾸기</button>') + '<button class="big" id="sOut">로그아웃</button>' +
     '<h3>홈 화면 위젯</h3><p class="help">이 앱은 홈 화면 위젯을 만들 수 없어요. 대신 앱 아이콘에 남은 할 일·새 채팅 수가 숫자로 떠요(설치한 앱에서 알림을 켰을 때).</p>' +
     '<div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', async ov => {
     const g = id => ov.querySelector('#' + id);
@@ -1986,7 +2010,7 @@ function settingsSheet() {
     if (g('sOff')) g('sOff').onclick = async () => { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) { await api('/api/push', { endpoint: sub.endpoint }); await sub.unsubscribe(); } localStorage.removeItem('haerang-team-push'); closeSheet(); render(); toast('알림을 껐어요'); };
     if (g('sTest')) g('sTest').onclick = async () => { const j = await api('/api/push-test'); toast(j.sent ? '시험 알림을 보냈어요' : '보내지 못했어요. 알림을 다시 켜 주세요'); };
     staffBind(ov); dlBind(ov); cleanBind(ov);
-    g('sPin').onclick = async () => { const old = prompt('지금 PIN'); if (!old) return; const pin = prompt('새 PIN (숫자 4~6자리)'); if (!pin) return; const j = await api('/api/member-pin', { old, pin }); toast(j.ok ? 'PIN을 바꿨어요' : j.error); };
+    if (g('sPin')) g('sPin').onclick = async () => { const old = prompt('지금 PIN'); if (!old) return; const pin = prompt('새 PIN (숫자 4~6자리)'); if (!pin) return; const j = await api('/api/member-pin', { old, pin }); toast(j.ok ? 'PIN을 바꿨어요' : j.error); };
     g('sOut').onclick = async () => { if (!confirm('로그아웃할까요?')) return; await api('/api/logout'); logoutLocal(); closeSheet(); };
   });
 }

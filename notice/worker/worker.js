@@ -30,6 +30,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS kiosks (tok TEXT PRIMARY KEY, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS reads (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))',
   'CREATE TABLE IF NOT EXISTS acks (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 학부모가 '확인했어요'를 누른 기록
+  'CREATE TABLE IF NOT EXISTS famreq (id TEXT PRIMARY KEY, kids TEXT, rel TEXT, ph TEXT, by TEXT, at INTEGER)', // 학부모 앱 '도장에 가족 추가 요청'
 ];
 let ready = false;
 async function setup(env) {
@@ -158,6 +159,15 @@ async function route(path, req, env) {
     }
     // 행사 신청 (업무 앱 행사표에서 '학부모 앱에 신청 받기'를 켠 행사만)
     // 사범님께 연락 (버튼은 업무 앱에서 관리) · 숙제 체크
+    if (path === '/p/family-request') { // 도장에 가족 추가 요청 (주소를 아무에게나 보내지 않도록)
+      if (!p.ok) return json({ ok: false, error: '도장 확인 후에 할 수 있어요' });
+      const rel = RELATIONS.includes(b.rel) ? b.rel : '기타', ph = String(b.ph || '').replace(/\D/g, '').slice(-4);
+      if (ph.length !== 4) return json({ ok: false, error: '그분 전화번호 뒷자리 4개를 적어 주세요' });
+      const kst = await kidStatus(env), kids = myKids.filter(k => kst[k] !== '퇴관');
+      await run(env, 'INSERT INTO famreq (id, kids, rel, ph, by, at) VALUES (?, ?, ?, ?, ?, ?)', rid(8), JSON.stringify(kids), rel, ph, p.id, Date.now());
+      await teamSync(env, '/sync/pmsg-send', { kids, kid: kids[0], tpl: '', text: rel + ' (전화 뒷자리 ' + ph + ') — 앱 주소를 보내 주시고, 가입하면 알림 관리에서 승인해 주세요', rel: p.rel, family: true });
+      return json({ ok: true });
+    }
     if (['/p/contact', '/p/contact-send', '/p/hw', '/p/hw-check'].includes(path)) {
       const kst = await kidStatus(env), kids = myKids.filter(k => kst[k] !== '퇴관');
       if (path === '/p/contact') { const r = await teamSync(env, '/sync/ptpl', { kids }); return json(r.ok ? { ...r, kids } : r); }
@@ -189,6 +199,13 @@ async function route(path, req, env) {
       return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: kids.map(n => { const a = att.find(x => x.name === n) || {}; return { name: n, in: a.tin || null, out: a.tout || null, inAt: a.tin_at || null, outFrom: a.tin_at ? kstTime(new Date(a.tin_at + MIN_STAY)) : null }; }) });
     }
     if (path === '/kiosk/check') return json(await checkIn(env, b.name, b.act, true));
+    if (path === '/kiosk/admin') { // 태블릿 관리자 모드 (모드 바꾸기·소리 확인) — 관리자 비밀번호
+      const k = 'kad:' + (req.headers.get('cf-connecting-ip') || 'x'), f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', k);
+      if (f && f.until > Date.now()) return json({ ok: false, error: '여러 번 틀려서 15분 동안 잠겼어요' });
+      if (!env.ADMIN_PASSWORD || !(await sameText(String(b.password || ''), env.ADMIN_PASSWORD))) { const n = (f && f.until && f.until <= Date.now() ? 0 : (f ? f.n : 0)) + 1; await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', k, n, n >= 10 ? Date.now() + 15 * 60000 : 0); return json({ ok: false, error: '비밀번호가 맞지 않아요' }); }
+      if (f) await run(env, 'DELETE FROM fails WHERE ip = ?', k);
+      return json({ ok: true });
+    }
   }
 
   // ═════════ 출석부 서버에서 부름 (서비스 바인딩, SYNC_KEY 확인) ═════════
@@ -201,6 +218,22 @@ async function route(path, req, env) {
     return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
   }
 
+  // 업무 앱 관리자: 태블릿 '하루 여러 번 등·하원 허용' (방학 등)
+  if (path === '/sync/kiosk-multi') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    await run(env, "INSERT INTO kv (k, v) VALUES ('kioskMulti', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0');
+    return json({ ok: true });
+  }
+  // 출석부: 태블릿을 안 누른 제자를 사범님이 출석 처리하면서 '등원 알림 보내기'를 고른 경우 (태블릿 등원과 같게 기록 → 나중에 태블릿을 또 눌러도 겹치지 않음)
+  if (path === '/sync/teacher-checkin') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const name = cleanNames([b.name])[0]; if (!name) return json({ ok: false, error: '이름' });
+    if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', name))) return json({ ok: false, error: name + ' 학생은 알림 앱 명단에 없어요' });
+    const a = await one(env, 'SELECT tin FROM att WHERE day = ? AND name = ?', kstDay(new Date()), name);
+    if (a && a.tin) return json({ ok: true, already: true });
+    const r = await checkIn(env, name, 'in', false);
+    return json(r.ok ? { ok: true, sent: r.sent, total: r.total } : r);
+  }
   // 업무 앱: 숙제 올릴 때 학부모님께 알림 (대상 제자 또는 모두)
   if (path === '/sync/broadcast') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
@@ -237,7 +270,8 @@ async function route(path, req, env) {
           guardians: parents.filter(p => p.ok && J(p.kids, []).includes(n)).map(p => ({ id: p.id, rel: p.rel, ph: p.ph, push: !!p.ep })),
         };
       });
-      const pending = parents.filter(p => !p.ok).map(p => ({ id: p.id, children: J(p.kids, []), rel: p.rel, ph: p.ph, at: p.created }));
+      const freq = await all(env, 'SELECT kids, rel, ph FROM famreq WHERE at > ?', Date.now() - 60 * 86400e3);
+      const pending = parents.filter(p => !p.ok).map(p => ({ id: p.id, children: J(p.kids, []), rel: p.rel, ph: p.ph, at: p.created, famreq: freq.some(f => f.ph === p.ph && J(f.kids, []).some(k => J(p.kids, []).includes(k))) }));
       return json({ ok: true, devices: parents.filter(p => p.ep).length, kids: list, pending });
     }
     if (path === '/admin/approve') {
@@ -423,9 +457,16 @@ async function checkIn(env, name, act, kiosk) {
     const a = await one(env, 'SELECT tin_at, tout FROM att WHERE day = ? AND name = ?', day, name);
     if (a && a.tin_at && !a.tout && now.getTime() - a.tin_at < MIN_STAY) return { ok: false, early: true, error: '등원하고 30분이 지나야 하원할 수 있습니다. ' + kstTime(new Date(a.tin_at + MIN_STAY)) + '부터 누를 수 있습니다' };
   }
+  let repeat = false;
+  if (kiosk) { // 태블릿: 하루에 등원 한 번, 하원 한 번 (관리자가 '여러 번 허용'을 켜면 허용하고 업무 앱에 확인할 일로 남김)
+    const a = await one(env, 'SELECT tin, tout FROM att WHERE day = ? AND name = ?', day, name);
+    repeat = !!(a && (act === 'in' ? a.tin : a.tout));
+    if (repeat && (await one(env, "SELECT v FROM kv WHERE k = 'kioskMulti'") || {}).v !== '1') return { ok: false, already: true, error: '오늘 이미 ' + (act === 'in' ? '등원' : '하원') + '했어요 (' + (act === 'in' ? a.tin : a.tout) + ')' };
+  }
   if (act === 'in') await run(env, 'INSERT INTO att (day, name, tin, tout, tin_at) VALUES (?, ?, ?, NULL, ?) ON CONFLICT(day, name) DO UPDATE SET tin = excluded.tin, tout = NULL, tin_at = excluded.tin_at', day, name, t, now.getTime());
   else await run(env, 'INSERT INTO att (day, name, tin, tout) VALUES (?, ?, NULL, ?) ON CONFLICT(day, name) DO UPDATE SET tout = excluded.tout', day, name, t);
   if (act === 'in') await attSync(env, '/sync/checkin', { name, at: now.getTime() }); // 출석부에 자동 출석 (연결 안 됐으면 그냥 넘어감)
+  if (repeat) await teamSync(env, '/sync/kiosk-repeat', { name, act, time: t, day });
   const body = act === 'in' ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.' : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
   const r = await send(env, { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name], view: 'attendance' });
   return { ok: true, time: t, at: now.getTime(), sent: r.sent || 0, total: r.total || 0 };

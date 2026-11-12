@@ -498,7 +498,13 @@ $('tList').onclick = async e => {
   const extra = !scheduled(s, d);
   if (a === 'o') {
     if (c.k === 'o') return setAtt([extra ? { sid: s.id, r: '', mk: 1 } : { sid: s.id, del: true }]);
-    return setAtt([{ sid: s.id, r: 'o', p: guessP(s, d), mk: extra ? 1 : 0 }]);
+    // 오늘 태블릿을 안 누른 제자: 학부모님께 등원 알림을 보낼지 물어봄 (원생 정보에서 '묻지 않기'면 안 물음)
+    const ask = d === today() && !(c.r && c.r.tin) && !s.noAsk ? await askCheckin(s) : 'none';
+    if (!ask) return;
+    await setAtt([{ sid: s.id, r: 'o', p: guessP(s, d), mk: extra ? 1 : 0 }]);
+    if (ask === 'send') { const j = await api('/api/checkin-notify', { sid: s.id }); toast(j.ok ? (j.already ? '이미 등원 알림이 갔어요' : s.name + ' 등원 알림을 보냈어요') : (j.error || '알림을 보내지 못했어요')); }
+    if (ask === 'kid') toast(s.name + '에게 태블릿에서 등원을 누르라고 해 주세요');
+    return;
   }
   if (a === 'x') {
     if (c.k === 'x' && !c.reserved) return setAtt([extra ? { sid: s.id, r: '', mk: 1 } : { sid: s.id, del: true }]);
@@ -508,6 +514,16 @@ $('tList').onclick = async e => {
   }
   if (a === 't') return tempSheet(s, d);
 };
+function askCheckin(s) {
+  return new Promise(res => {
+    sheet('<h2>' + esc(s.name) + ' 태블릿 등원을 안 눌렀어요</h2><p class="help">학부모님께 등원 알림을 보낼까요? 출석은 어느 쪽이든 체크돼요.</p>' +
+      '<button class="big" data-ck="send" style="margin-top:12px">등원 알림 보내기</button><button class="big" data-ck="kid">학생이 태블릿에서 직접 누르기</button><button class="big line" data-ck="none">알림은 안 보내도 돼요</button>' +
+      '<p class="help">보호자가 늘 데려다주는 제자는 원생 정보 수정에서 \'묻지 않기\'를 켜 두면 이 창이 안 떠요.</p><div class="foot"><span class="sp"></span><button data-close>취소</button></div>', ov => {
+      askReason.res = res; // 취소·바깥 누르면 null
+      ov.onclick = e => { const b = e.target.closest('[data-ck]'); if (b) { askReason.res = null; closeSheet(true); res(b.dataset.ck); } };
+    });
+  });
+}
 function guessP(s, d) {
   if (d === today()) { const p = nowPeriod(); if (p) return p; }
   // 이 아이가 이번 달에 가장 많이 온 시간부
@@ -612,6 +628,7 @@ function editStudent(s0) {
     '<label class="f">가입일</label><input type="date" class="inp" id="eJoin" value="' + esc(s.joined) + '">' +
     '<label class="f">성별</label><div class="chips" id="eGen">' + [['남', '남'], ['여', '여'], ['', '선택 안 함']].map(([v, l]) => '<button data-v="' + v + '" class="' + (s.gender === v ? 'on' : '') + '">' + l + '</button>').join('') + '</div>' +
     '<label class="f">메모</label><textarea class="inp" id="eMemo" rows="2">' + esc(s.memo) + '</textarea>' +
+    '<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="eNoAsk"' + (s.noAsk ? ' checked' : '') + ' style="width:20px;height:20px"> 태블릿을 안 눌러도 등원 알림을 묻지 않기 (보호자가 데려다주는 제자)</label>' +
     (s0 ? '<h3>변경 이력 (회원 상태 · 수련요일 · 체험)</h3><ul class="hist" id="eHist"><li><span>불러오는 중…</span></li></ul>' : '') +
     '<div class="foot">' + (s0 ? '<button class="del" id="eDel">삭제</button>' : '') + '<span class="sp"></span><button data-close>취소</button><button class="save" id="eSave">저장</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
@@ -648,7 +665,7 @@ function editStudent(s0) {
     };
     g('eSave').onclick = async () => {
       s.name = g('eName').value.replace(/\s+/g, ''); s.inst = g('eInst').value.trim(); s.phone = g('ePhone').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4);
-      s.joined = g('eJoin').value; s.memo = g('eMemo').value.trim();
+      s.joined = g('eJoin').value; s.memo = g('eMemo').value.trim(); s.noAsk = g('eNoAsk').checked;
       s.temporarySchedules = s.temporarySchedules.filter(t => t.start);
       if (!s.name) return toast('이름을 적어 주세요');
       const dup = S.students.find(x => x.name === s.name && (!s0 || x.id !== s0.id) && x.status !== '퇴관');

@@ -316,6 +316,14 @@
   .hwc .hb button.on{border-color:var(--green);background:var(--green-soft);color:var(--green)}
   .hwc .hb small{color:var(--muted);font-size:13px}
   .sec h2 small{font-size:12.5px;color:var(--muted);font-weight:600;margin-left:6px}
+  /* 홈 메뉴 (키즈노트처럼 한눈에) */
+  .tcard{background:#fff;border-radius:22px;padding:18px 12px 10px;box-shadow:0 1px 10px rgba(0,0,0,.04)}
+  .tcard .th{font-size:18px;font-weight:900;color:var(--brand);padding:0 8px;letter-spacing:-.02em}.tcard .th small{display:block;font-size:13px;color:var(--muted);font-weight:500;margin-top:2px}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:12px}
+  .tiles button{position:relative;background:none;border:0;padding:8px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:13.5px;font-weight:600;color:var(--ink)}
+  .tiles button .ti{width:52px;height:52px;border-radius:15px;display:grid;place-items:center}
+  .tiles button .ti svg{width:27px;height:27px}
+  .tiles button i.n{position:absolute;top:8px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--brand)}
   .ack-btn.big{background:var(--brand);color:#fff;padding:13px;font-size:16px}
   .ack-btn:disabled{opacity:.5}
   .acked{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:13.5px;color:var(--green);font-weight:600}
@@ -545,7 +553,7 @@
   $('joinCancel').onclick = () => goHome();
 
   // ═════════ 앱 화면 (아래 탭 4개: 홈 · 소식 · 일정 · 우리 아이) ═════════
-  const TABS = { home: '홈', news: '소식', schedule: '일정', kid: '우리 아이' };
+  const TABS = { home: '홈', schedule: '일정', news: '소식', kid: '우리 아이' };
   // 예전 알림 주소(#journal 등)도 그대로 열리게
   const LEGACY = { journal: ['news', '알림장'], notice: ['news', '공지'], album: ['news', '앨범'], attendance: ['kid'], me: ['kid'], schedule: ['schedule'], news: ['news'], kid: ['kid'], home: ['home'] };
   const TYPE_OF = { 공지: 'notice', 알림장: 'journal', 앨범: 'album' };
@@ -584,7 +592,7 @@
   }
   function evSection(k) {
     if (!evs || !evs.length) return '';
-    return '<section class="sec"><h2>행사 신청</h2>' + evs.map(ev => {
+    return '<section class="sec" id="secEv"><h2>행사 신청</h2>' + evs.map(ev => {
       const m = (ev.mine || []).find(x => x.kid === k) || {};
       const st = m.applied ? '<span class="ev-st">' + (m.byStaff ? '도장에서 접수했어요' : '신청했어요') + '</span>' : m.cancel ? '<span class="ev-st c">취소했어요</span>' : !ev.canEdit ? '<span class="ev-st c">신청 마감</span>' : '';
       return '<button class="evc" data-ev="' + esc(ev.id) + '"><div class="eh"><b>' + esc(ev.title) + '</b>' + st + '</div><div class="em">' + esc([ev.date ? evDay(ev.date) : '', evPrice(ev), ev.canEdit && ev.close ? evShort(ev.close) + '까지 신청' : ''].filter(Boolean).join(' · ')) + '</div>' +
@@ -646,14 +654,42 @@
   async function loadContact() { if (!(me() || {}).approved) return; try { const j = await post('/p/contact'); if (j.ok) { contact = j; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {} }
   async function loadHw() { if (!(me() || {}).approved) return; try { const j = await post('/p/hw'); if (j.ok) { hws = j.hw || []; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {} }
   const dShort = d => { const x = md(d); return x.m + '/' + x.d + '(' + x.w + ')'; };
+  // 홈 메뉴: 공지·알림장·앨범·일정·출석·숙제·행사·연락 (새 소식은 빨간 점)
+  function homeTiles(k) {
+    const hwN = (hws || []).filter(h => h.kids.includes(k)).length, evN = (evs || []).length;
+    const T = [['journal', '알림장', '#F4A63A', '#fff', fresh('journal')], ['notice', '공지', '#3D8BF2', '#fff', fresh('notice')], ['album', '앨범', '#2BB3A3', '#fff', fresh('album')], ['schedule', '일정', '#F05A3C', '#fff', false],
+      ['kid', '출석', '#F6C21C', '#fff', false], ['hw', '숙제', '#8B6CF0', '#fff', false, hwN], ['ev', '행사 신청', '#E2477B', '#fff', false, evN], ['ct', '연락하기', '#A40F16', '#fff', false]];
+    return '<section class="sec"><div class="tcard"><div class="th">해랑경희 태권도장<small>' + esc(k) + '</small></div><div class="tiles">' + T.map(([key, label, bg, fg, isNew, n]) => '<button data-tile="' + key + '">' + (isNew ? '<i class="n"></i>' : '') + '<span class="ti" style="background:' + bg + ';color:' + fg + '">' + (IC[key] || IC[{ hw: 'edit', ev: 'schedule', ct: 'bell' }[key]] || '') + '</span>' + label + (n ? ' ' + n : '') + '</button>').join('') + '</div></div></section>';
+  }
+  function onTile(key) {
+    if (key === 'notice') return showTab('news', { filter: '공지' }); if (key === 'journal') return showTab('news', { filter: '알림장' }); if (key === 'album') return showTab('news', { filter: '앨범' });
+    if (key === 'schedule') return showTab('schedule'); if (key === 'kid') return showTab('kid');
+    const id = { hw: 'secHw', ev: 'secEv', ct: 'secCt' }[key], el = $(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); else toast(key === 'hw' ? '지금 올라온 숙제가 없어요' : key === 'ev' ? '지금 신청 받는 행사가 없어요' : '잠시 후 다시 눌러 주세요');
+  }
   function contactSection(k) {
     if (!contact) return '';
     const L = (contact.msgs || []).filter(x => x.kid === k).slice(0, 3);
-    return '<section class="sec"><h2>사범님께 연락</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기</button></div>' +
+    return '<section class="sec" id="secCt"><h2>사범님께 연락</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기</button></div>' +
       L.map(x => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + esc(x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘 /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>').join('') + '</section>';
   }
   const dayOfMs = ms => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
   const todayK = () => dayOfMs(Date.now());
+  // 도장에 가족 추가 요청 (보안: 주소를 아무에게나 보내지 않고 도장이 확인)
+  function famSheet() {
+    const RL = ['엄마', '아빠', '할머니', '할아버지', '이모', '고모', '삼촌', '기타']; let rel = '';
+    const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
+    const draw = () => { sh.innerHTML = '<div class="in"><h3>도장에 가족 추가 요청</h3><p class="help-l">요청하시면 도장에서 그분께 앱 주소를 보내 드리고, 가입하면 확인해서 승인해요.</p><label class="f">누구를 추가할까요</label><div class="opts" data-g="rel">' + RL.map(r => '<button data-v="' + r + '" class="' + (rel === r ? 'on' : '') + '">' + r + '</button>').join('') + '</div><label class="f">그분 휴대폰 번호 뒷자리 4개</label><input class="m" id="fPh" inputmode="numeric" maxlength="4"><button class="btn" id="fGo">요청하기</button><button class="cx" id="fX">닫기</button></div>'; };
+    sh.onclick = async e => {
+      if (e.target === sh || e.target.closest('#fX')) return sh.remove();
+      const b = e.target.closest('.opts button'); if (b) { const ph = sh.querySelector('#fPh').value; rel = b.dataset.v; draw(); sh.querySelector('#fPh').value = ph; return; }
+      if (e.target.closest('#fGo')) {
+        const ph = sh.querySelector('#fPh').value.replace(/\D/g, ''); if (!rel) return toast('누구를 추가할지 골라 주세요'); if (ph.length !== 4) return toast('번호 뒷자리 4개를 적어 주세요');
+        try { const j = await post('/p/family-request', { rel, ph }); if (!j.ok) throw new Error(j.error); sh.remove(); toast('도장에 요청했어요. 곧 연락드릴게요'); } catch (er) { toast(er.message || '잠시 후 다시 해 주세요'); }
+      }
+    };
+    draw(); document.body.appendChild(sh);
+  }
   function contactSheet(id) {
     const s0 = me() || {}, k = curKid(), isText = id === '__text', t = isText ? { id: '', label: '직접 적어서 보내기', ask: '' } : (contact.tpl || []).find(x => x.id === id); if (!t) return;
     const st = { day: todayK(), who: t.ask === 'who' ? (s0.relation || '') : '', why: '', text: '', save: false };
@@ -695,7 +731,7 @@
   function hwSection(k) {
     const L = (hws || []).filter(h => h.kids.includes(k)); if (!L.length) return '';
     const td = todayK();
-    return '<section class="sec"><h2>숙제<small>해 보면 좋아요</small></h2>' + L.map(h => {
+    return '<section class="sec" id="secHw"><h2>숙제<small>해 보면 좋아요</small></h2>' + L.map(h => {
       const mine = h.chk.filter(c => c.kid === k), done = h.mode === 'daily' ? mine.some(c => c.day === td) : mine.length > 0;
       const days = h.mode === 'daily' ? Math.round((Date.parse(h.end) - Date.parse(h.start)) / 864e5) + 1 : 0;
       const canToday = h.mode !== 'daily' || (td >= h.start && td <= h.end);
@@ -772,7 +808,7 @@
       h += '<button class="status' + (t.out ? ' out' : t.in ? ' in' : '') + '" data-go-tab="kid"><span class="si">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span class="st"><b>' +
         (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</b><small>' +
         (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>';
-      h += contactSection(k) + evSection(k) + hwSection(k);
+      h += homeTiles(k) + contactSection(k) + evSection(k) + hwSection(k);
     }
     const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장'], ['album', '새 사진이 올라왔어요', '앨범']].filter(([x]) => fresh(x));
     const askRows = asks.filter(x => !x.urgent).map(x => '<button class="li" data-news="' + (x.type === 'journal' ? '알림장' : '공지') + '"><span class="lic i-ask">' + ICON.check + '</span><span class="lt"><b>' + esc(x.title) + '</b><small>읽고 \'확인했어요\'를 눌러 주세요</small></span><i class="new"></i>' + ICON.right + '</button>').join('');
@@ -791,6 +827,7 @@
       const n = e.target.closest('[data-news]'); if (n) return showTab('news', { filter: n.dataset.news });
       const a = e.target.closest('[data-ack]'); if (a) return ackPost(+a.dataset.ack, a);
       const ev = e.target.closest('[data-ev]'); if (ev) return evSheet(ev.dataset.ev);
+      const tl = e.target.closest('[data-tile]'); if (tl) return onTile(tl.dataset.tile);
       const ct = e.target.closest('[data-ct]'); if (ct) return contactSheet(ct.dataset.ct);
       const hc = e.target.closest('[data-hwc]'); if (hc) return hwToggle(hc.dataset.hwc);
       const hw = e.target.closest('[data-hw]'); if (hw) return hwSheet(hw.dataset.hw);
@@ -918,7 +955,7 @@
       '<button class="li" data-x="fee"><span class="lic">' + IC.fee + '</span><span class="lt"><b>회비 안내</b></span>' + ICON.right + '</button>' +
       '<button class="li" data-x="edit"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 수정 · 자녀 추가</b><small>' + esc(s.relation || '') + ' · 출결번호 ' + esc(s.phone4 || '') + '</small></span>' + ICON.right + '</button>' +
       (canPush ? '<button class="li" data-x="push"><span class="lic">' + IC.bell + '</span><span class="lt"><b>알림</b><small>' + (pushOk ? '켜져 있어요 · 눌러서 확인' : '꺼져 있어요 · 눌러서 켜기') + '</small></span>' + ICON.right + '</button>' : '') +
-      '<button class="li" data-x="share"><span class="lic">' + IC.share + '</span><span class="lt"><b>가족에게 주소 보내기</b><small>다른 가족도 각자 휴대폰에서 가입하면 함께 알림을 받아요</small></span>' + ICON.right + '</button>' +
+      (s.approved ? '<button class="li" data-x="fam"><span class="lic">' + IC.share + '</span><span class="lt"><b>도장에 가족 추가 요청하기</b><small>할머니·아빠 등 다른 가족도 알림을 받을 수 있게 도장에서 도와드려요</small></span>' + ICON.right + '</button>' : '') +
       '<button class="li danger" data-x="leave"><span class="lic">' + IC.out + '</span><span class="lt"><b>이 휴대폰 등록 해제</b></span>' + ICON.right + '</button></div></section>';
     const head = kidSel + '<div class="att-kid"><span class="avatar">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장 · ' + (s.approved ? '확인 완료' : '도장 확인 중') + '</small></div><span class="cnt" id="attCnt"></span></div>';
     let att = '';
@@ -957,6 +994,7 @@
       if (x === 'fee') openPage('fee');
       if (x === 'edit') { fillJoin(me(), true); show('v-gate', 'g-join'); scrollTo(0, 0); }
       if (x === 'share') copy();
+      if (x === 'fam') famSheet();
       if (x === 'push') {
         if (canPush && s.push && Notification.permission === 'granted') { (reg || await navigator.serviceWorker.ready).showNotification('해랑경희', { body: '알림이 잘 오고 있어요.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test' }); return; }
         await pushOn(); drawKid(month);

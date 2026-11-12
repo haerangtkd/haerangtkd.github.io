@@ -84,9 +84,22 @@ async function route(path, req, env) {
       return json({ ok: true, day, students: rows.map(r => ({ id: r.id, upd: r.upd, ...J(r.data, {}) })), here: att.map(r => r.sid) });
     }
     if (path === '/sync/student-save') {
-      const cur = b.student && b.student.id ? await one(env, 'SELECT upd FROM students WHERE id = ?', str(b.student.id, 60)) : null;
+      const cur = b.student && b.student.id ? await one(env, 'SELECT upd, data FROM students WHERE id = ?', str(b.student.id, 60)) : null;
       if (cur && b.upd && cur.upd !== b.upd) return json({ ok: false, error: '다른 곳에서 먼저 바뀌었어요. 새로 불러온 뒤 다시 해 주세요', stale: true });
+      if (cur && b.noRevive && J(cur.data, {}).status === '퇴관' && (b.student || {}).status !== '퇴관') return json({ ok: false, error: '퇴관한 제자를 다시 바꾸는 건 관리자만 할 수 있어요' });
       return json(await saveStudentRow(env, b, str(b.who, 20) || '업무 앱'));
+    }
+    if (path === '/sync/kid-today') { // 업무 앱 보호자 하원 알림: 오늘 그 제자가 들은 마지막 수업 시작 + 45분 (50분 수업, 끝나기 5분 전)
+      const day = isDay(b.day) ? b.day : kstDay(), name = str(b.name, 20).replace(/\s+/g, '');
+      const st = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) })).find(x => x.name === name && x.status !== '퇴관');
+      if (!st) return json({ ok: false, error: '출석부에 없는 이름' });
+      const a = await one(env, 'SELECT r, p, tin FROM att WHERE day = ? AND sid = ?', day, st.id);
+      if (!a || a.r !== 'o') return json({ ok: true, alertAt: null });
+      let ps = String(a.p || '').split('/').filter(Boolean);
+      if (!ps.length && a.tin) { const [h, mi] = a.tin.split(':').map(Number); const pf = periodFor(h * 60 + mi); if (pf) ps = [pf]; }
+      const starts = ps.map(p => (PERIODS.find(x => x[0] === p) || [])[1]).filter(x => x != null); if (!starts.length) return json({ ok: true, alertAt: null });
+      const t = Math.max(...starts) + 45;
+      return json({ ok: true, alertAt: String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0') });
     }
     if (path === '/sync/closed') return json({ ok: true, closed: !!(await one(env, 'SELECT day FROM closed WHERE day = ?', isDay(b.day) ? b.day : kstDay())) });
     if (path === '/sync/dlpin-set') { // 업무 앱 이사범님이 정함
@@ -240,6 +253,12 @@ async function route(path, req, env) {
 
   if (path === '/api/student-save') return json(await saveStudentRow(env, b, who));
   if (path === '/api/dl-check') return json(await dlCheck(env, b.pin, 'att:' + me.id));
+  if (path === '/api/checkin-notify') { // 태블릿을 안 누른 제자 출석 + '등원 알림 보내기' → 학부모 앱에 등원으로 기록하고 알림
+    const st = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.sid, 60)); if (!st) return json({ ok: false, error: '원생을 찾지 못했어요' });
+    if (!env.NOTICE || !env.SYNC_KEY) return json({ ok: false, error: '학부모 알림 앱이 연결되지 않았어요' });
+    try { const r = await env.NOTICE.fetch('https://notice/sync/teacher-checkin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify({ name: J(st.data, {}).name }) }); return json(await r.json()); }
+    catch (_) { return json({ ok: false, error: '학부모 알림 앱에 연결하지 못했어요' }); }
+  }
   if (path === '/api/student-delete') {
     const id = str(b.id, 60);
     await env.DB.batch(['students WHERE id', 'att WHERE sid', 'absences WHERE sid', 'history WHERE sid'].map(t => q(env, 'DELETE FROM ' + t + ' = ?', id)));
@@ -381,6 +400,7 @@ function cleanStudent(s) {
     inst: str(s.inst, 20),
     leavePeriods: (Array.isArray(s.leavePeriods) ? s.leavePeriods : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end) })).filter(p => p.start || p.end),
     temporarySchedules: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end), days: days(p.days) })).filter(p => p.start),
+    noAsk: !!s.noAsk, // 태블릿을 안 눌러도 '등원 알림 보낼까요?'를 묻지 않음 (보호자가 데려다주는 제자)
     // 회원 상태 바뀐 기록 (날짜·사유) — 업무 앱 원생 메뉴와 출석부가 같이 씀
     statusLog: (Array.isArray(s.statusLog) ? s.statusLog : []).slice(-40).map(p => ({ date: okDay(p.date), from: ['재원', '휴원', '퇴관', ''].includes(p.from) ? p.from : '', to: ['재원', '휴원', '퇴관'].includes(p.to) ? p.to : '재원', why: str(p.why, 100), who: str(p.who, 20), at: +p.at || 0 })),
   };

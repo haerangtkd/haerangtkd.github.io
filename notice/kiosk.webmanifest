@@ -4,7 +4,7 @@
   "start_url": "/notice/kiosk.html",
   "scope": "/notice/",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "landscape",
   "background_color": "#FBF8F4",
   "theme_color": "#A40F16",
   "lang": "ko",

@@ -72,6 +72,37 @@
   #s-setup input{width:min(340px,86vw);border:1px solid var(--line);border-radius:12px;padding:14px;font:inherit;font-size:17px;-webkit-user-select:text;user-select:text}
   #s-setup button{width:min(340px,86vw);border:0;border-radius:12px;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:17px;padding:15px;cursor:pointer}
   #setupMsg{color:var(--brand);font-weight:700;font-size:14px;min-height:1.4em}
+  /* 모드 고르기 · 관리자 · 상담 */
+  #s-mode{flex-direction:column;align-items:center;justify-content:center;gap:4vh}
+  #s-mode h1{font-size:clamp(26px,4.4vh,40px);font-weight:900}
+  .modes{display:flex;gap:4vw;flex-wrap:wrap;justify-content:center}
+  .modes button{width:min(38vw,320px);aspect-ratio:1.1;border:0;border-radius:28px;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.07);font:inherit;font-size:clamp(28px,4.6vh,44px);font-weight:900;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer}
+  .modes button span{font-size:clamp(46px,8vh,80px)}.modes button small{font-size:clamp(14px,2vh,18px);color:var(--muted);font-weight:500}
+  .admbtn{position:fixed;top:calc(14px + env(safe-area-inset-top));right:18px;border:0;background:transparent;border-radius:99px;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;color:#C9C0B8;cursor:pointer}
+  .ovl{position:fixed;inset:0;background:rgba(20,10,10,.45);display:flex;align-items:center;justify-content:center;z-index:50}
+  .ovl .box{background:#fff;border-radius:22px;padding:24px;width:min(420px,90vw);display:flex;flex-direction:column;gap:12px;text-align:center}
+  .ovl .box h3{font-size:20px;font-weight:900}.ovl .box p{color:var(--muted);font-size:14px}
+  .ovl input{border:1px solid var(--line);border-radius:12px;padding:14px;font:inherit;font-size:18px;text-align:center;-webkit-user-select:text;user-select:text}
+  .ovl button{border:0;border-radius:12px;padding:14px;font:inherit;font-size:17px;font-weight:700;background:#F1ECE7;color:var(--ink);cursor:pointer}.ovl button.pri{background:var(--brand);color:#fff}
+  .ovl .err{color:var(--brand);font-weight:700;font-size:14px;min-height:1.2em}
+  #s-consult{flex-direction:column;padding-right:96px}
+  #s-consult h2{font-size:clamp(22px,3.4vh,32px);font-weight:900;margin:1vh 0 2vh}
+  .docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;overflow:auto}
+  .docs button{border:0;border-radius:20px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.05);padding:22px;text-align:left;font:inherit;font-size:clamp(18px,2.6vh,24px);font-weight:800;color:var(--ink);cursor:pointer}
+  .docs button small{display:block;font-size:14px;color:var(--muted);font-weight:500;margin-top:4px}
+  .viewer{position:fixed;inset:0;background:#1C1A19;display:flex;align-items:center;justify-content:center;z-index:30;padding-right:96px}
+  .viewer img{max-width:100%;max-height:100%;object-fit:contain;background:#fff}
+  .viewer .nav{position:fixed;bottom:20px;left:calc(50% - 48px);transform:translateX(-50%);display:flex;gap:12px;align-items:center;color:#fff;font-weight:700}
+  .viewer .nav button{border:0;border-radius:14px;padding:12px 22px;font:inherit;font-size:18px;font-weight:800;background:rgba(255,255,255,.18);color:#fff}
+  .exit{position:fixed;top:0;right:0;bottom:0;width:88px;border:0;background:var(--brand);color:#fff;font:inherit;font-size:20px;font-weight:900;writing-mode:vertical-rl;letter-spacing:.2em;cursor:pointer;z-index:40}
+  /* 가로 화면 (태블릿을 눕혀 둘 때) */
+  @media (orientation: landscape) and (min-width: 700px) {
+    #s-pad{flex-direction:row;gap:6vw}
+    #s-pad .head{width:38vw}
+    #s-pad .left{display:flex;flex-direction:column;align-items:center;gap:3vh}
+    .pad{width:min(46vw,64vh,520px)}
+    .kids{grid-template-columns:1fr 1fr;width:min(94vw,1100px)}
+  }
   .sndtest{position:fixed;top:calc(14px + env(safe-area-inset-top));right:18px;border:0;background:#fff;border-radius:99px;padding:9px 14px;font:inherit;font-size:14px;font-weight:700;color:var(--muted);box-shadow:0 1px 6px rgba(0,0,0,.06);cursor:pointer}
   .net{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);font-size:13px;color:var(--muted)}
 </style>
@@ -87,15 +118,29 @@
   <div id="setupMsg"></div>
 </section>
 
+<section class="screen" id="s-mode" hidden>
+  <img src="../img/brand/lion-red.png" alt="" style="width:clamp(64px,10vh,110px)">
+  <h1>무엇으로 쓸까요?</h1>
+  <div class="modes"><button data-mode="att"><span>🥋</span>출결<small>제자들이 번호를 눌러요</small></button><button data-mode="consult"><span>📋</span>상담<small>상담 자료·계약서 설명</small></button></div>
+</section>
+
+<section class="screen" id="s-consult" hidden>
+  <h2>상담 자료</h2>
+  <div class="docs" id="docs"></div>
+  <button class="exit" id="cExit">나가기</button>
+</section>
+
 <section class="screen" id="s-pad" hidden>
+  <div class="left">
   <div class="head">
     <img src="../img/brand/lion-red.png" alt="">
     <div class="clock" id="clock"></div>
     <h1>번호 4자리를 눌러 주세요</h1>
   </div>
-  <button class="sndtest" id="sndTest">🔊 소리 확인</button>
   <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
   <div class="msg" id="msg"></div>
+  </div>
+  <button class="admbtn" id="admBtn">관리자</button>
   <div class="pad" id="pad">
     <button>1</button><button>2</button><button>3</button>
     <button>4</button><button>5</button><button>6</button>
@@ -117,6 +162,8 @@
 </section>
 
 <div class="net" id="net"></div>
+<div class="ovl" id="adm" hidden><div class="box" id="admBox"></div></div>
+<div class="viewer" id="viewer" hidden><img id="vImg" alt=""><div class="nav"><button id="vPrev">‹ 앞</button><span id="vNo"></span><button id="vNext">다음 ›</button></div><button class="exit" id="vExit">닫기</button></div>
 
 <script src="config.js"></script>
 <script>
@@ -127,7 +174,8 @@
   let token = ''; try { token = localStorage.getItem(TK) || ''; } catch (_) {}
   let code = '', found = [], idle = null, busy = false, skew = 0, minStay = 30 * 60000;
 
-  const screens = ['s-setup', 's-pad', 's-pick', 's-done'];
+  const screens = ['s-setup', 's-mode', 's-consult', 's-pad', 's-pick', 's-done'];
+  const MK = 'haerang-kiosk-mode'; let mode = ''; try { mode = localStorage.getItem(MK) || ''; } catch (_) {}
   const show = id => screens.forEach(s => $(s).hidden = s !== id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   const post = async (path, body) => (await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
@@ -232,13 +280,11 @@
     const b = e.target.closest('button'); if (!b || busy) return;
     const k = found[b.dataset.i], act = b.dataset.a;
     if (b.dataset.wait) { beep(false); drawKids('등원하고 30분이 지나야 하원할 수 있습니다 (' + (k.outFrom || '') + '부터)'); say('등원하고 30분이 지나야 하원할 수 있습니다'); resetIdle(); return; }
-    if (act === 'in' && k.in && !k.out && !confirm(k.name + ' 학생은 오늘 이미 등원했습니다. 다시 등원할까요?')) return;
-    if (act === 'out' && k.out && !confirm(k.name + ' 학생은 오늘 이미 하원했습니다. 다시 하원할까요?')) return;
     busy = true; $('kids').querySelectorAll('button').forEach(x => x.disabled = true);
     try {
       const j = await post('/kiosk/check', { token, name: k.name, act });
       if (j.relogin) return toSetup(j.error);
-      if (j.early) { beep(false); drawKids(j.error); return; }
+      if (j.early || j.already) { beep(false); drawKids(j.error); say(j.already ? '오늘은 이미 ' + (act === 'in' ? '등원' : '하원') + '했어요' : '등원하고 30분이 지나야 하원할 수 있습니다'); resetIdle(); return; }
       if (!j.ok) throw new Error(j.error);
       k[act] = j.time; if (act === 'in') { k.out = null; k.inAt = j.at; k.outFrom = hm(j.at + minStay); }
       beep(true);
@@ -257,12 +303,12 @@
     finally { busy = false; }
   });
   $('back').onclick = home;
-  $('sndTest').onclick = () => {
+  const soundTest = () => { const out = $('sndMsg') || $('msg');
     unlockSpeech(); beep(true); pickVoice();
-    if (!tts) { $('msg').textContent = '이 기기(브라우저)는 음성 안내를 지원하지 않습니다'; return; }
-    setTimeout(() => say('해랑경희 태권도장입니다. 소리가 잘 들립니다.', () => { $('msg').textContent = '이 브라우저에서는 음성이 나오지 않습니다. 태블릿의 Safari·크롬이나 엣지에서 열어 주세요'; }), 350);
-    $('msg').textContent = koVoice ? '음성: ' + koVoice.name : '한국어 음성이 없어 기본 음성으로 읽습니다';
-    setTimeout(() => { if ($('msg').textContent.startsWith('음성') || $('msg').textContent.startsWith('한국어')) $('msg').textContent = ''; }, 6000);
+    if (!tts) { out.textContent = '이 기기(브라우저)는 음성 안내를 지원하지 않습니다'; return; }
+    setTimeout(() => say('해랑경희 태권도장입니다. 소리가 잘 들립니다.', () => { out.textContent = '이 브라우저에서는 음성이 나오지 않습니다. 태블릿의 Safari·크롬이나 엣지에서 열어 주세요'; }), 350);
+    out.textContent = koVoice ? '음성: ' + koVoice.name : '한국어 음성이 없어 기본 음성으로 읽습니다';
+    setTimeout(() => { if (out.textContent.startsWith('음성') || out.textContent.startsWith('한국어')) out.textContent = ''; }, 6000);
   };
 
   // ── 태블릿 등록 ──
@@ -273,7 +319,7 @@
       const j = await post('/admin/kiosk-token', { password: $('pw').value });
       if (!j.ok) { $('setupMsg').textContent = j.error; return; }
       token = j.token; try { localStorage.setItem(TK, token); } catch (_) {}
-      $('pw').value = ''; home(); keepAwake();
+      $('pw').value = ''; toMode(); keepAwake();
     } catch (_) { $('setupMsg').textContent = '서버에 연결하지 못했습니다'; }
   };
   $('pw').onkeydown = e => { if (e.key === 'Enter') $('setupBtn').click(); };
@@ -283,7 +329,40 @@
 
   if (!API) { show('s-setup'); $('setupMsg').textContent = '알림 서버 주소(config.js)가 아직 비어 있습니다'; $('setupBtn').disabled = true; }
   else if (!token) show('s-setup');
-  else home();
+  else if (mode === 'att') home(); else if (mode === 'consult') toConsult(); else toMode();
+
+  // ── 모드 고르기 (출결 / 상담) ──
+  function toMode() { clearTimeout(idle); show('s-mode'); }
+  $('s-mode').onclick = e => { const b = e.target.closest('[data-mode]'); if (!b) return; mode = b.dataset.mode; try { localStorage.setItem(MK, mode); } catch (_) {} if (mode === 'att') { home(); keepAwake(); } else toConsult(); };
+  // ── 관리자 (출결 화면 오른쪽 위, 비밀번호) — 제자들이 장난치지 않게 소리 확인·모드 바꾸기는 여기 안에 ──
+  function admin() {
+    clearTimeout(idle);
+    $('admBox').innerHTML = '<h3>관리자</h3><p>관리자 비밀번호를 넣어 주세요</p><input type="password" id="admPw" inputmode="numeric" autocomplete="off"><div class="err" id="admErr"></div><button class="pri" id="admOk">확인</button><button id="admX">닫기</button>';
+    $('adm').hidden = false; setTimeout(() => $('admPw').focus(), 50);
+    $('admX').onclick = () => { $('adm').hidden = true; home(); };
+    const go = async () => { const j = await post('/kiosk/admin', { token, password: $('admPw').value }).catch(() => ({ error: '인터넷 연결을 확인해 주세요' })); if (!j.ok) { $('admErr').textContent = j.error || '확인하지 못했어요'; $('admPw').value = ''; return; } menu(); };
+    $('admOk').onclick = go; $('admPw').onkeydown = e => { if (e.key === 'Enter') go(); };
+  }
+  function menu() {
+    $('admBox').innerHTML = '<h3>관리자 메뉴</h3><button class="pri" id="mMode">출결 / 상담 바꾸기</button><button id="mSnd">🔊 소리 확인</button><div class="err" id="sndMsg" style="color:var(--muted)"></div><button id="mX">닫기</button>';
+    $('mMode').onclick = () => { $('adm').hidden = true; toMode(); };
+    $('mSnd').onclick = () => { soundTest(); };
+    $('mX').onclick = () => { $('adm').hidden = true; home(); };
+  }
+  $('admBtn').onclick = admin;
+  // ── 상담 (자료 넘겨 보기, 오른쪽 끝 '나가기') ──
+  let docs = [], cur = null, page = 0;
+  async function toConsult() {
+    clearTimeout(idle); show('s-consult');
+    try { docs = await fetch('consult/list.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []); } catch (_) { docs = []; }
+    $('docs').innerHTML = docs.length ? docs.map((d, i) => '<button data-d="' + i + '">' + esc(d.title) + '<small>' + (d.pages || []).length + '쪽' + (d.desc ? ' · ' + esc(d.desc) : '') + '</small></button>').join('') : '<p style="color:var(--muted);font-size:18px">상담 자료를 준비 중이에요. 자료를 넣으면 여기에 보여요.</p>';
+  }
+  $('docs').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; cur = docs[+b.dataset.d]; page = 0; drawPage(); $('viewer').hidden = false; };
+  function drawPage() { const ps = cur.pages || []; $('vImg').src = 'consult/' + ps[page]; $('vNo').textContent = (page + 1) + ' / ' + ps.length; $('vPrev').disabled = page === 0; $('vNext').disabled = page >= ps.length - 1; }
+  $('vPrev').onclick = () => { if (page > 0) { page--; drawPage(); } };
+  $('vNext').onclick = () => { if (page < (cur.pages || []).length - 1) { page++; drawPage(); } };
+  $('vExit').onclick = () => { $('viewer').hidden = true; };
+  $('cExit').onclick = () => { $('viewer').hidden = true; toMode(); };
 })();
 </script>
 </body>
