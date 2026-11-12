@@ -45,6 +45,8 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ask INTEGER DEFAULT 0').run(); } catch (_) {}    // '확인했어요' 받기
   try { await env.DB.prepare('ALTER TABLE parents ADD COLUMN inv TEXT').run(); } catch (_) {}               // 가입할 때 쓴 초대번호
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
+  try { await env.DB.prepare('ALTER TABLE kids ADD COLUMN sid TEXT').run(); } catch (_) {} // 출석부 원생 id (2026-11-13 원생 한 명단)
+  try { await env.DB.prepare('ALTER TABLE kids ADD COLUMN ano TEXT').run(); } catch (_) {} // 출석부에서 가져온 출결번호 (바뀌면 이것만 바꿈)
   ready = true;
 }
 
@@ -377,15 +379,7 @@ async function route(path, req, env) {
       if (!name) return json({ ok: false, error: '이름을 확인해 주세요' });
       if (b.oldName && b.oldName !== name) {
         if (await one(env, 'SELECT name FROM kids WHERE name = ?', name)) return json({ ok: false, error: '같은 이름이 이미 명단에 있습니다' });
-        await env.DB.batch([
-          q(env, 'UPDATE kids SET name = ? WHERE name = ?', name, b.oldName),
-          q(env, 'UPDATE att SET name = ? WHERE name = ?', name, b.oldName),
-          q(env, 'UPDATE fees SET name = ? WHERE name = ?', name, b.oldName),
-        ]);
-        for (const p of await all(env, 'SELECT id, kids FROM parents')) {
-          const ks = J(p.kids, []);
-          if (ks.includes(b.oldName)) await run(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify([...new Set(ks.map(k => (k === b.oldName ? name : k)))]), p.id);
-        }
+        await renameKid(env, b.oldName, name);
       }
       await run(env, 'INSERT INTO kids (name, codes, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET codes = excluded.codes', name, JSON.stringify(codes), Date.now());
       return json({ ok: true });
@@ -570,6 +564,46 @@ function kst(d) { return new Date(d.getTime() + 9 * 3600 * 1000); }
 function kstDay(d) { return kst(d).toISOString().slice(0, 10); }
 function kstTime(d) { const k = kst(d); const h = k.getUTCHours(), m = k.getUTCMinutes(); return (h < 12 ? '오전 ' : '오후 ') + ((h % 12) || 12) + '시' + (m ? ' ' + m + '분' : ''); }
 
+// ─────────── 원생 한 명단 (2026-11-13): 출석부가 기준, 10분마다 자동으로 맞춤 ───────────
+// · 출석부 원생 id(sid)로 같은 아이를 알아봄 → 출석부에서 이름을 바꾸면 여기 이름(보호자·출결 기록·회비·글 대상·초대번호)도 같이 바뀜
+// · 출석부에 새로 들어온 아이(퇴관 빼고)는 태블릿 명단에 자동 등록 (출결번호 4자리가 있으면 그 번호로)
+// · 출석부에서 출결번호를 바꾸면 예전 번호(출석부에서 가져온 것만) 대신 새 번호. 직접 넣은 다른 번호(형제 등)는 그대로
+// · 아무것도 지우지 않음
+async function renameKid(env, from, to) {
+  if (!from || !to || from === to) return;
+  await env.DB.batch([
+    q(env, 'UPDATE kids SET name = ? WHERE name = ?', to, from),
+    q(env, 'UPDATE att SET name = ? WHERE name = ?', to, from),
+    q(env, 'UPDATE fees SET name = ? WHERE name = ?', to, from),
+  ]);
+  const swap = a => [...new Set(a.map(k => (k === from ? to : k)))];
+  for (const p of await all(env, 'SELECT id, kids FROM parents')) { const ks = J(p.kids, []); if (ks.includes(from)) await run(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify(swap(ks)), p.id); }
+  for (const p of await all(env, 'SELECT id, target FROM posts WHERE target LIKE ?', '%' + from + '%')) { const t = J(p.target, []); if (t.includes(from)) await run(env, 'UPDATE posts SET target = ? WHERE id = ?', JSON.stringify(swap(t)), p.id); }
+  for (const i of await all(env, 'SELECT code, kids FROM invites WHERE kids LIKE ?', '%' + from + '%')) { const t = J(i.kids, []); if (t.includes(from)) await run(env, 'UPDATE invites SET kids = ? WHERE code = ?', JSON.stringify(swap(t)), i.code); }
+  for (const f of await all(env, 'SELECT id, kids FROM famreq WHERE kids LIKE ?', '%' + from + '%')) { const t = J(f.kids, []); if (t.includes(from)) await run(env, 'UPDATE famreq SET kids = ? WHERE id = ?', JSON.stringify(swap(t)), f.id); }
+}
+async function rosterFollow(env, students) {
+  const kids = await all(env, 'SELECT name, codes, sid, ano FROM kids');
+  const bySid = new Map(kids.filter(k => k.sid).map(k => [k.sid, k])), byName = new Map(kids.map(k => [k.name, k]));
+  const seen = new Set();
+  for (const s of students) {
+    const sid = String(s.id || ''), name = String(s.name || '').replace(/\s+/g, ''); if (!sid || !name || seen.has(sid)) continue; seen.add(sid);
+    const no = /^\d{4}$/.test(String(s.no || '')) ? String(s.no) : '';
+    let k = bySid.get(sid);
+    if (!k) { const n = byName.get(name); if (n && !n.sid) k = n; } // 처음 한 번: 이름이 같은 아이와 연결
+    if (!k) {
+      if (s.status === '퇴관' || byName.has(name)) continue; // 퇴관은 새로 넣지 않음, 같은 이름이 다른 아이로 이미 있으면 건드리지 않음
+      await run(env, 'INSERT INTO kids (name, codes, created, sid, ano) VALUES (?, ?, ?, ?, ?) ON CONFLICT(name) DO NOTHING', name, JSON.stringify(no ? [no] : []), Date.now(), sid, no);
+      byName.set(name, { name, sid }); continue;
+    }
+    if (k.name !== name && !byName.has(name)) { await renameKid(env, k.name, name); byName.delete(k.name); k.name = name; byName.set(name, k); }
+    let codes = J(k.codes, []).filter(c => !k.ano || c !== k.ano || c === no); // 출석부에서 가져온 예전 번호만 뺌 (직접 넣은 번호는 그대로)
+    if (no && !codes.includes(no)) codes = [...codes, no].slice(-6);
+    const nc = JSON.stringify(codes);
+    if (k.sid !== sid || (k.ano || '') !== no || nc !== (k.codes || '[]')) await run(env, 'UPDATE kids SET sid = ?, ano = ?, codes = ? WHERE name = ?', sid, no, nc, k.name);
+  }
+}
+
 // ─────────── 출석부 회원 상태 (재원이 아닌 아이만: {이름: '휴원'|'퇴관'}) — 10분마다 새로 받음, 연결 안 되면 마지막 값 ───────────
 // 퇴관: 휴대폰 알림이 가지 않고 태블릿 출결 번호도 막힘. 출석부에서 다시 재원으로 바꾸면 그대로 돌아옴. 휴원: 표시만.
 async function kidStatus(env) {
@@ -577,6 +611,7 @@ async function kidStatus(env) {
   if (old.at && Date.now() - old.at < 600000) return old.map || {};
   const r = await attSync(env, '/sync/roster', { all: true });
   if (!r.ok || !Array.isArray(r.students)) return old.map || {};
+  try { await rosterFollow(env, r.students); } catch (_) {} // 원생 한 명단: 새 원생·이름·출결번호를 출석부에 맞춤
   const map = {}; for (const s of r.students) if (s.name && s.status && s.status !== '재원') map[s.name] = s.status;
   await run(env, "INSERT INTO kv (k, v) VALUES ('kidStatus', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ at: Date.now(), map }));
   return map;

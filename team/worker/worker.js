@@ -148,7 +148,7 @@ async function renameMember(env, id, from, to) {
 
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); await runReminders(env); await runHeld(env); await runPushQueue(env); await runTimed(env); })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); await runReminders(env); await runHeld(env); await runPushQueue(env); await runTimed(env); try { await rosterFollow(env); } catch (_) {} })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -844,6 +844,39 @@ function cleanTasks(c, day) { const w = dayW(day); if (!c || !['월', '화', '�
 const weekKey = day => 'w:' + addDays(day, -((new Date(Date.parse(day + 'T00:00:00Z')).getUTCDay() + 6) % 7));
 async function bumpKv(env) { await run(env, "INSERT INTO kv (k, v) VALUES ('kvupd', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now())); }
 // ─────────── 정해진 시각 알림 (5분 크론에서, 하루 한 번씩) ───────────
+// ─────────── 원생 한 명단 (2026-11-13): 출석부에서 이름이 바뀌면 업무 앱도 따라감 (10분마다) ───────────
+// 출석부 원생 id → 이름을 kv 'rosterIds'에 두고, 바뀐 이름을 등원·픽업 기본 명단·시간, 오늘부터의 픽업표, 학부모 연락·행사 신청·숙제 체크, 안 끝난 하원 할 일에 반영. 지우는 것은 없음.
+async function rosterFollow(env) {
+  const at = await one(env, "SELECT v FROM kv WHERE k = 'rosterAt'"); if (at && Date.now() - Number(at.v) < 600000) return;
+  await run(env, "INSERT INTO kv (k, v) VALUES ('rosterAt', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now()));
+  const r = await attSync(env, '/sync/roster', { all: true }); if (!r.ok || !Array.isArray(r.students)) return;
+  const prev = J((await one(env, "SELECT v FROM kv WHERE k = 'rosterIds'") || {}).v, null), map = {};
+  for (const s of r.students) if (s.id && s.name) map[s.id] = String(s.name).replace(/\s+/g, '');
+  if (prev) for (const id in map) if (prev[id] && prev[id] !== map[id]) await renameKidTeam(env, prev[id], map[id]);
+  await run(env, "INSERT INTO kv (k, v) VALUES ('rosterIds', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(map));
+}
+async function renameKidTeam(env, from, to) {
+  const sw = a => (Array.isArray(a) ? [...new Set(a.map(x => (x === from ? to : x)))] : a);
+  const kvGet = async k => J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, {});
+  const kvSet = (k, v) => run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify(v));
+  const def = await kvGet('pickupDefault'); let ch = false; for (const w in def) if ((def[w] || []).includes(from)) { def[w] = sw(def[w]); ch = true; } if (ch) await kvSet('pickupDefault', def);
+  const tm = await kvGet('pickupTimes'); ch = false; for (const w in tm) if (tm[w] && from in tm[w]) { if (!(to in tm[w])) tm[w][to] = tm[w][from]; delete tm[w][from]; ch = true; } if (ch) await kvSet('pickupTimes', tm);
+  for (const p of await all(env, 'SELECT day, data FROM pickup WHERE day >= ?', kstDay())) {
+    const d = J(p.data, {}); if (![d.list, d.done, d.absent].some(a => Array.isArray(a) && a.includes(from))) continue;
+    await run(env, 'UPDATE pickup SET data = ?, upd = ? WHERE day = ?', JSON.stringify({ ...d, list: sw(d.list), done: sw(d.done), absent: sw(d.absent) }), Date.now(), p.day);
+  }
+  await env.DB.batch([
+    q(env, 'UPDATE pmsg SET kid = ? WHERE kid = ?', to, from),
+    q(env, 'UPDATE OR IGNORE esign SET kid = ? WHERE kid = ?', to, from),
+    q(env, 'UPDATE OR IGNORE hwchk SET kid = ? WHERE kid = ?', to, from),
+  ]);
+  for (const it of await all(env, "SELECT id, data FROM items WHERE type = 'todo' AND del = 0 AND data LIKE ?", '%' + from + '%')) {
+    const d = J(it.data, {}); if (d.pickupKid !== from || d.done) continue;
+    d.pickupKid = to; if (typeof d.title === 'string' && d.title.startsWith(from + ' ')) d.title = to + d.title.slice(from.length);
+    await run(env, 'UPDATE items SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), Date.now(), it.id);
+  }
+  await addLog(env, '', 'pickup', '🥋 출석부에서 이름이 바뀌어 업무 앱도 바꿨어요: ' + from + ' → ' + to, '');
+}
 async function onceAt(env, key) { const r = await one(env, 'SELECT v FROM kv WHERE k = ?', key); if (r) return false; await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', key, '1'); return true; }
 async function runTimed(env, now = Date.now()) {
   const k = new Date(now + 9 * 3600e3), day = k.toISOString().slice(0, 10), m = k.getUTCHours() * 60 + k.getUTCMinutes(), wd = k.getUTCDay();
