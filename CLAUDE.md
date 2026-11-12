@@ -202,6 +202,7 @@
 - Claude가 직접 배포할 때(이번에 쓴 방법): 사용자 크롬(Claude in Chrome 확장)에서 Cloudflare 대시보드에 로그인된 탭을 열고, 그 탭에서 JS로 대시보드 API를 부른다.
   - `PUT /api/v4/accounts/<계정ID>/workers/scripts/<이름>` (multipart: `metadata` + `worker.js`, `main_module:'worker.js'`)
   - 코드만 바꿀 땐 metadata에 **`keep_bindings: ['secret_text','d1','service']`** 를 꼭 넣는다 (안 넣으면 비밀번호·DB 연결이 지워짐).
+  - (2026-11-12 밤) 위 PUT이 403(HTML)으로 막힘 → 대신: 대시보드 탭 JS로 raw 코드를 `navigator.clipboard.writeText` → 편집 화면(`/workers/services/edit/<이름>/production`) 코드 칸 클릭 → Ctrl+A·Ctrl+V → Deploy. 바인딩·크론 그대로 유지됨 확인.
   - D1 직접 조회: `POST /api/v4/accounts/<계정ID>/d1/database/<DB id>/query {sql}`
   - Claude 앱 안 브라우저는 Cloudflare 로그인 확인(사람 확인)에서 막힘 → 크롬 확장 사용.
 - 학부모 앱 서버를 바꾸기 전엔 지금 돌아가는 코드가 저장소와 같은지 확인한다(`/workers/scripts/haerang-push/content/v2`).
