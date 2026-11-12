@@ -451,6 +451,7 @@ async function route(path, req, env, ctx) {
     const nbd = needBoss(); if (nbd) return nbd;
     const mid = str(b.mid, 40); if (mid === me.id) return json({ ok: false, error: '나는 지울 수 없어요' });
     await env.DB.batch([q(env, 'DELETE FROM members WHERE id = ?', mid), q(env, 'DELETE FROM sessions WHERE mid = ?', mid), q(env, 'DELETE FROM subs WHERE mid = ?', mid)]);
+    ctx.waitUntil(attSync(env, '/sync/staff-gone', { mid }).catch(() => {})); // 출석부 로그인도 끝
     return json({ ok: true });
   }
   if (path === '/api/push') { // 알림 켜기/끄기
@@ -667,6 +668,7 @@ function itemStmt(env, it, me) {
 // 출석부 사범님을 업무 앱 사람으로 (이름이 없으면 추가, 출석부와 같은 PIN). 10분에 한 번만 확인 (force면 바로)
 // 출석부에서 PIN을 바꾸면 업무 앱 PIN도 따라 바뀜 (asrc = 마지막으로 가져온 출석부 PIN 값). 업무 앱에서 따로 바꾼 PIN은 출석부 PIN이 다시 바뀔 때까지 그대로.
 async function importTeachers(env, force) {
+  return; // 2026-11-13 사용자 결정: 사범님 PIN은 업무 앱에서만 (출석부 사범님을 더는 가져오지 않음. 출석부가 업무 앱 PIN으로 로그인)
   const k = await one(env, "SELECT v FROM kv WHERE k = 'tImport'"); if (!force && k && Date.now() - Number(k.v) < 600000) return;
   const r = await attSync(env, '/sync/teachers', {}); if (!r.ok || !Array.isArray(r.teachers)) return;
   await run(env, "INSERT INTO kv (k, v) VALUES ('tImport', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now()));

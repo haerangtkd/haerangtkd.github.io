@@ -576,7 +576,7 @@ function renderStudents() {
   const g = S.grp.s, q = $('sQ').value, showLeave = $('sLeave').checked;
   const leaveN = S.students.filter(s => s.status === '휴원').length;
   $('sLeaveT').textContent = '휴원 ' + leaveN + '명도 같이 보기';
-  seg($('sGrp'), ['전체', ...GROUPS, '퇴관'], g, v => { S.grp.s = v; renderStudents(); });
+  seg($('sGrp'), ['전체', ...GROUPS, ...(S.me && S.me.boss ? ['퇴관'] : [])], g, v => { S.grp.s = v; renderStudents(); }); // 퇴관 명단은 관리자만
   const list = S.students.filter(s => (g === '퇴관' ? s.status === '퇴관' : s.status !== '퇴관' && matchG(s, g) && (showLeave || s.status !== '휴원')) && matchQ(s, q)).sort(byName);
   $('sInfo').textContent = list.length + '명 · 가나다순';
   $('sList').innerHTML = list.length ? list.map(s => {
@@ -997,8 +997,8 @@ $('spaceBtn').onclick = () => {
     (false ? '<div style="border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px;background:#FCFAF9"><b>관리자 비밀번호</b><p class="help">이 기기에서 처음 한 번만 넣으면 돼요. 관리자 메뉴(사범님 추가, 백업 불러오기, 초기화)를 쓸 때 필요해요.</p><div class="row2" style="margin-top:8px"><input class="inp" id="adPw" type="password" autocomplete="new-password" name="haerang-admin-pw" placeholder="관리자 비밀번호"><button class="sbtn red" id="adOk">확인</button></div><p class="help" id="adMsg" style="color:var(--no)"></p></div>' : '') +
     '<h3>파일로 보관하기</h3><button class="big" data-x="csvS">원생 명단 내려받기 (CSV)</button><button class="big" data-x="csvM">' + ymLabel(ym) + ' 출결 기록 내려받기 (CSV)</button><button class="big" data-x="pdf">' + ymLabel(ym) + ' 출석부 가로 PDF</button>' +
     '<h3>한 번에 전부 받기</h3><button class="big" data-x="csvY">' + yr + '년 전체 출결 받기 (CSV)</button><button class="big red" data-x="bak">백업 파일 받기 (전체 데이터)</button>' +
-    '<h3>내 PIN</h3><button class="big" data-x="pin">PIN 바꾸기</button><button class="big" data-x="out">로그아웃</button>' +
-    '<h3>관리</h3><button class="big" data-x="tch">사범님 추가 · PIN 초기화</button><button class="big" data-x="imp">백업 파일 불러오기 (예전 출석부 포함)</button><button class="big line" data-x="wipe">출석부 초기화</button>' +
+    '<h3>내 PIN</h3><p class="help">PIN은 업무 앱과 같아요. 바꾸기·사범님 추가는 업무 앱 → 설정에서 해요.</p><button class="big" data-x="out">로그아웃</button>' +
+    '<h3>관리</h3><button class="big" data-x="imp">백업 파일 불러오기 (예전 출석부 포함)</button><button class="big line" data-x="wipe">출석부 초기화</button>' +
     '<p class="help" style="margin-top:12px">초기화나 복원을 하기 전에 위의 백업 파일을 먼저 받아 두세요. 백업 파일에는 원생 명단, 모든 출결 기록, 결석 예약, 체험 수업, 휴관일, 변경 이력이 들어 있어요.</p>' +
     '<p class="help">출결 태블릿에서 아이가 번호를 누르면 이 출석부에 자동으로 출석이 찍혀요. 출석부에 새 원생을 넣으면 학부모 알림 앱 관리 화면의 명단 탭에서 한 번에 등록할 수 있어요.</p>' +
     '<div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', ov => {
@@ -1111,7 +1111,7 @@ function askDl() {
   if (S.dlOk && S.dlOk.until > Date.now()) return Promise.resolve(true);
   return new Promise(res => {
     const ov = document.createElement('div'); ov.className = 'ov'; ov.style.zIndex = 90;
-    ov.innerHTML = '<div class="sheet" style="max-width:380px"><h2>내려받기 비밀번호</h2><p class="help">원생 명단·출결 기록·백업 파일은 개인정보라서 비밀번호를 한 번 더 확인해요.</p><input class="inp" id="dlP" type="password" inputmode="numeric" autocomplete="off" maxlength="8" style="margin-top:10px"><p class="help" id="dlM" style="color:#C0392B"></p><div class="foot"><span class="sp"></span><button id="dlX">취소</button><button class="save" id="dlOk">확인</button></div></div>';
+    ov.innerHTML = '<div class="sheet" style="max-width:380px"><h2>관리자 비밀번호</h2><p class="help">원생 명단·출결 기록·백업 파일은 개인정보라서 관리자 비밀번호를 한 번 더 확인해요.</p><input class="inp" id="dlP" type="password" autocomplete="off" maxlength="100" style="margin-top:10px"><p class="help" id="dlM" style="color:#C0392B"></p><div class="foot"><span class="sp"></span><button id="dlX">취소</button><button class="save" id="dlOk">확인</button></div></div>';
     document.body.appendChild(ov); const g = id => ov.querySelector('#' + id); setTimeout(() => g('dlP').focus(), 50);
     const done = v => { ov.remove(); res(v); };
     g('dlX').onclick = () => done(false);

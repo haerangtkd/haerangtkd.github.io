@@ -1882,7 +1882,7 @@ function rolesSheet() {
   });
 }
 function dlHtml() {
-  return '<h3>내려받기 비밀번호</h3><p class="help">원생 명단·출결 기록·백업 파일을 받을 때 넣는 공통 번호예요(출석부·성장 측정). 직원 PIN과 다른 번호로 정해요.</p>' + (isBoss() ? '<button class="big" id="sDl">내려받기 비밀번호 정하기</button>' : '');
+  return '<h3>내려받기</h3><p class="help">원생 명단·출결 기록·백업 파일(출석부·성장 측정)은 <b>관리자 비밀번호</b>(학부모 알림 앱 관리자 비밀번호, 장부 기기 등록과 같은 것)로 받아요.</p>';
 }
 function dlBind(ov) { const b = ov.querySelector('#sDl'); if (b) b.onclick = async () => { const p1 = prompt('새 내려받기 비밀번호 (숫자 4~8자리)'); if (!p1) return; if (prompt('한 번 더 넣어 주세요') !== p1) return toast('두 번 넣은 번호가 달라요'); const j = await api('/api/dlpin-set', { pin: p1 }); toast(j.ok ? '정했어요. 직원들에게만 알려 주세요' : j.error); }; }
 

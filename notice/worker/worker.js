@@ -45,6 +45,7 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ask INTEGER DEFAULT 0').run(); } catch (_) {}    // '확인했어요' 받기
   try { await env.DB.prepare('ALTER TABLE parents ADD COLUMN inv TEXT').run(); } catch (_) {}               // 가입할 때 쓴 초대번호
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
+  try { await env.DB.prepare('ALTER TABLE asess ADD COLUMN boss INTEGER DEFAULT 0').run(); } catch (_) {} // 업무 앱 관리자 (퇴관 원생은 관리자만)
   try { await env.DB.prepare('ALTER TABLE kids ADD COLUMN sid TEXT').run(); } catch (_) {} // 출석부 원생 id (2026-11-13 원생 한 명단)
   try { await env.DB.prepare('ALTER TABLE kids ADD COLUMN ano TEXT').run(); } catch (_) {} // 출석부에서 가져온 출결번호 (바뀌면 이것만 바꿈)
   ready = true;
@@ -299,6 +300,13 @@ async function route(path, req, env) {
     const parents = (await all(env, 'SELECT rel, ok, created, inv, kids FROM parents')).filter(p => J(p.kids, []).includes(name)).map(p => ({ rel: p.rel, ok: !!p.ok, at: p.created, inv: p.inv || '' }));
     return json({ ok: true, onKiosk: !!k, codes: k ? J(k.codes, []) : [], invites: await inviteList(env, name), parents });
   }
+  // 출석부 로그인: 업무 앱 직원 이름·PIN 확인을 대신 전해 줌 (출석부에는 업무 서버 연결이 없음) 2026-11-13
+  if (path === '/sync/staff-members' || path === '/sync/staff-pin') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    if (path === '/sync/staff-members') return json(await teamSync(env, '/sync/members', {}));
+    const r = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
+    return json(r.ok ? { ok: true, id: r.id, name: r.name, boss: !!r.boss, shared: !!r.shared } : { ok: false, error: r.error || 'PIN이 맞지 않아요' });
+  }
   // 업무 앱 첫 화면: 가입 승인 기다리는 보호자 수
   if (path === '/sync/pending') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
@@ -318,7 +326,7 @@ async function route(path, req, env) {
     if (!r.ok) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
     await failClear(env, ip);
     const tok = rid(24);
-    await run(env, 'INSERT INTO asess (tok, mid, name, shared, created) VALUES (?, ?, ?, ?, ?)', tok, r.id, r.name, r.shared ? 1 : 0, Date.now());
+    await run(env, 'INSERT INTO asess (tok, mid, name, shared, created, boss) VALUES (?, ?, ?, ?, ?, ?)', tok, r.id, r.name, r.shared ? 1 : 0, Date.now(), r.boss ? 1 : 0);
     return json({ ok: true, tok, name: r.name });
   }
   if (path === '/staff/logout') { await run(env, 'DELETE FROM asess WHERE tok = ?', str(b.tok, 64)); return json({ ok: true }); }
@@ -343,7 +351,8 @@ async function route(path, req, env) {
       const parents = await all(env, 'SELECT id, kids, rel, ph, ok, created, ep, inv FROM parents ORDER BY created DESC');
       const kids = await all(env, 'SELECT name, codes FROM kids'), kst8 = await kidStatus(env);
       const att = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', today);
-      const list = kids.map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko')).map(n => {
+      const boss = !ses || !!ses.boss; // 관리자 비밀번호로 들어온 경우는 관리자
+      const list = kids.map(k => k.name).filter(n => boss || kst8[n] !== '퇴관').sort((a, c) => a.localeCompare(c, 'ko')).map(n => {
         const k = kids.find(x => x.name === n), a = att.find(x => x.name === n);
         return {
           name: n, codes: J(k.codes, []), today: a ? { in: a.tin, out: a.tout } : {}, status: kst8[n] || '',

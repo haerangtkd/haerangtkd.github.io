@@ -33,6 +33,7 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE att ADD COLUMN tin TEXT').run(); } catch (_) {} // 태블릿 등원 시각
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   ready = true;
+  try { await env.DB.prepare('ALTER TABLE teachers ADD COLUMN boss INTEGER DEFAULT 0').run(); } catch (_) {} // 업무 앱 관리자 (2026-11-13: 퇴관 원생은 관리자만)
 }
 
 export default {
@@ -142,6 +143,11 @@ async function route(path, req, env) {
       }
       return json({ ok: true, added: out });
     }
+    if (path === '/sync/staff-gone') { // 업무 앱에서 직원을 지우면 출석부 로그인도 끝
+      const tid = 'm:' + str(b.mid, 40);
+      await env.DB.batch([q(env, 'DELETE FROM sessions WHERE tid = ?', tid), q(env, 'DELETE FROM teachers WHERE id = ?', tid)]);
+      return json({ ok: true });
+    }
     if (path === '/sync/absence-clear') { // 업무 앱 픽업표에서 결석을 취소하면, 픽업표가 넣은 결석 예정만 지움 (2026-11-13)
       const st = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) }));
       const out = [];
@@ -158,7 +164,9 @@ async function route(path, req, env) {
   if (!path.startsWith('/api/')) return json({ ok: true, app: '해랑 출석부' });
 
   // ═════════ 로그인 전 ═════════
-  if (path === '/api/teachers') {
+  if (path === '/api/teachers') { // 업무 앱 직원 (공용 계정 빼고). 업무 앱에 못 닿으면 예전 출석부 사범님
+    const r = await noticeCall(env, '/sync/staff-members', {});
+    if (r.ok && Array.isArray(r.members)) return json({ ok: true, teachers: r.members.filter(m => !m.shared).map(m => ({ id: 'm:' + m.id, name: m.name })), needSetup: false, team: true });
     const t = await all(env, 'SELECT id, name FROM teachers ORDER BY created');
     return json({ ok: true, teachers: t, needSetup: !t.length });
   }
@@ -171,7 +179,16 @@ async function route(path, req, env) {
   if (path === '/api/login') {
     const lu = await lockUntil(env, ip);
     if (lu) return json({ ok: false, error: lockText(lu) }, 429);
-    const t = await one(env, 'SELECT * FROM teachers WHERE id = ?', str(b.tid, 40));
+    const tid = str(b.tid, 60);
+    if (tid.startsWith('m:')) { // 업무 앱 PIN으로
+      const r = await noticeCall(env, '/sync/staff-pin', { mid: tid.slice(2), pin: str(b.pin, 12) });
+      if (!r.ok && /연결/.test(r.error || '')) return json({ ok: false, error: r.error }, 503);
+      if (!r.ok || r.shared) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
+      await failClear(env, ip);
+      await run(env, 'INSERT INTO teachers (id, name, salt, pin, created, boss) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, boss = excluded.boss', tid, str(r.name, 20), rid(8), rid(16), Date.now(), r.boss ? 1 : 0);
+      return json({ ok: true, ...(await newSession(env, tid)), name: r.name });
+    }
+    const t = await one(env, 'SELECT * FROM teachers WHERE id = ?', tid);
     if (!t || !(await sameText(await pinHash(t.salt, b.pin), t.pin))) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
     await failClear(env, ip);
     return json({ ok: true, ...(await newSession(env, t.id)), name: t.name });
@@ -181,6 +198,7 @@ async function route(path, req, env) {
   if (path.startsWith('/api/admin/')) { // 로그인한 사범님(PIN)이면 됨. 관장님 비밀번호로도 가능
     if (!(await auth(env, b.tok))) { const e = await checkAdmin(env, ip, b.password); if (e) return e; }
     if (path === '/api/admin/check') return json({ ok: true });
+    if (/^\/api\/admin\/teacher-/.test(path)) return json({ ok: false, error: '사범님 추가·PIN·삭제는 업무 앱 → 설정 → 직원 관리에서 해요' }); // 2026-11-13
     if (path === '/api/admin/teacher-add') return json(await addTeacher(env, b.name, b.pin));
     if (path === '/api/admin/teacher-pin') {
       const pin = String(b.pin || '');
@@ -210,6 +228,7 @@ async function route(path, req, env) {
 
   if (path === '/api/logout') { await run(env, 'DELETE FROM sessions WHERE tok = ?', str(b.tok, 64)); return json({ ok: true }); }
   if (path === '/api/pin-change') {
+    if (String(me.id).startsWith('m:')) return json({ ok: false, error: 'PIN은 업무 앱 → 설정에서 바꿔요 (출석부도 같은 PIN을 써요)' });
     const t = await one(env, 'SELECT * FROM teachers WHERE id = ?', me.id);
     if (!(await sameText(await pinHash(t.salt, b.old), t.pin))) return json({ ok: false, error: '지금 PIN이 맞지 않습니다' });
     if (!/^\d{4,6}$/.test(String(b.pin || ''))) return json({ ok: false, error: '새 PIN은 숫자 4~6자리로 정해 주세요' });
@@ -227,8 +246,8 @@ async function route(path, req, env) {
       all(env, "SELECT id, sid, tid, at, text, who FROM history WHERE tid <> '' ORDER BY at DESC LIMIT 500"),
       all(env, 'SELECT id, name FROM teachers ORDER BY created'),
     ]);
-    return json({ ok: true, me: { id: me.id, name: me.name }, teachers,
-      students: students.map(r => ({ id: r.id, ...J(r.data, {}) })),
+    return json({ ok: true, me: { id: me.id, name: me.name, boss: me.boss }, teachers,
+      students: students.map(r => ({ id: r.id, ...J(r.data, {}) })).filter(x => me.boss || x.status !== '퇴관'), // 퇴관 원생은 관리자만 (2026-11-13)
       trials: trials.map(r => ({ id: r.id, ...J(r.data, {}) })),
       absences, closed, trialHistory: th });
   }
@@ -369,7 +388,24 @@ async function importChunk(env, b) {
 }
 
 // 내려받기 비밀번호 확인 (5번마다 잠금, 1분·2분·3분…)
+// 업무 앱 직원·PIN은 알림 서버를 거쳐 업무 서버에서 확인 (출석부에는 업무 서버 연결이 없음) — 2026-11-13 사용자 결정: 사범님 PIN은 업무 앱에서만
+async function noticeCall(env, path, body) {
+  if (!env.NOTICE || !env.SYNC_KEY) return { ok: false, error: '업무 앱에 연결되지 않았어요' };
+  try { return await (await env.NOTICE.fetch('https://notice' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify(body) })).json(); }
+  catch (_) { return { ok: false, error: '업무 앱에 연결하지 못했어요' }; }
+}
+// 내려받기(명단·출결·백업 파일)는 관리자 비밀번호 (알림 앱 관리자 비밀번호 = 장부 기기 등록과 같은 것) — 2026-11-13 사용자 결정
 async function dlCheck(env, pin, key) {
+  const k = 'dl:' + key, lu = await lockUntil(env, k);
+  if (lu) return { ok: false, error: lockText(lu) };
+  let ok = false, reached = false;
+  if (env.NOTICE) { try { const r = await (await env.NOTICE.fetch('https://notice/ledger/admin-check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: String(pin || '').slice(0, 100) }) })).json(); reached = !r.error; ok = !!r.ok; } catch (_) {} }
+  if (!reached) ok = !!(env.ADMIN_PASSWORD && await sameText(String(pin || ''), env.ADMIN_PASSWORD)); // 알림 서버에 못 닿으면 출석부 관리자 비밀번호로
+  if (!ok) return { ok: false, error: failText('관리자 비밀번호가 맞지 않아요', await failAdd(env, k)) };
+  await failClear(env, k);
+  return { ok: true };
+}
+async function dlCheckOld(env, pin, key) { // 예전 '내려받기 비밀번호' (안 씀, 기록용)
   const r = await one(env, "SELECT v FROM kv WHERE k = 'dlpin'"); if (!r) return { ok: false, notSet: true, error: '아직 내려받기 비밀번호가 없어요. 이사범님이 업무 앱 설정에서 먼저 정해 주세요' };
   const k = 'dl:' + key, lu = await lockUntil(env, k);
   if (lu) return { ok: false, error: lockText(lu) };
@@ -436,10 +472,10 @@ async function newSession(env, tid) {
 }
 async function auth(env, tok) {
   if (!tok) return null;
-  const s = await one(env, 'SELECT s.tid, s.created, t.name FROM sessions s JOIN teachers t ON t.id = s.tid WHERE s.tok = ?', str(tok, 64));
+  const s = await one(env, 'SELECT s.tid, s.created, t.name, t.boss FROM sessions s JOIN teachers t ON t.id = s.tid WHERE s.tok = ?', str(tok, 64));
   if (!s || s.created < Date.now() - SESSION_DAYS * 86400e3) return null;
   if (s.created < Date.now() - 86400e3) await run(env, 'UPDATE sessions SET created = ? WHERE tok = ?', Date.now(), str(tok, 64)); // 쓰는 동안은 로그인 계속 유지
-  return { id: s.tid, name: s.name };
+  return { id: s.tid, name: s.name, boss: !!s.boss };
 }
 async function checkAdmin(env, ip, password) {
   const lu = await lockUntil(env, ip);
