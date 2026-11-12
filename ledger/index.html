@@ -4255,7 +4255,7 @@ async function startRestore(file) {
         for (const [id, doc] of Object.entries(incoming)) await App.db.doc(`${col}/${id}`).set(doc);
         for (const id of Object.keys(App.data[col])) if (!incoming[id]) await App.db.doc(`${col}/${id}`).delete();
       }
-      const cfg = { ...d.config }; delete cfg.backupLog; cfg.lastBackupAt = HL.nowIso();
+      const cfg = { ...d.config }; delete cfg.backupLog; for (const k of ['pwSalt', 'pwHash', 'recSalt', 'recHash', 'pwChangedAt']) delete cfg[k]; cfg.lastBackupAt = HL.nowIso(); // 예전 장부 비밀번호 정보는 옮기지 않음
       await App.db.doc('config/main').set(cfg);
       await dropSnapshots();
       App.gen = new Set(); closeSheet(); toast('복원했어요'); lock();
