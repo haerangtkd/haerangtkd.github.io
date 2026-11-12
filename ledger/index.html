@@ -2504,32 +2504,18 @@ function renderGate(kind) {
     card.append(h('h2', { text: '아직 장부가 준비되지 않았어요' }), h('div', { text: '관리자가 먼저 장부를 설정해야 직원 입력을 할 수 있어요.' }), h('button', { type: 'button', onclick: () => window.HL_LOGOUT && window.HL_LOGOUT() }, '나가기'));
     return;
   }
-  if (kind === 'setup') {
-    const pw = h('input', { type: 'password', id: 'setPw', autocomplete: 'new-password' });
-    const pw2 = h('input', { type: 'password', id: 'setPw2', autocomplete: 'new-password' });
-    const ph = h('input', { type: 'text', id: 'setPhrase', placeholder: '예: 관리자만 아는 단어나 날짜' });
+  if (kind === 'setup') { // 장부 비밀번호는 따로 없음 (관리자 비밀번호로 기기 등록 + 각자 PIN) — 2026-11-13
     const err = h('div', { class: 'err' });
-    const go = h('button', { class: 'primary', type: 'button' }, '장부 시작하기');
-    go.addEventListener('click', async () => {
-      if (!pw.value) { err.textContent = '비밀번호를 입력해 주세요.'; return; }
-      if (pw.value !== pw2.value) { err.textContent = '비밀번호 확인이 달라요.'; return; }
-      if (!normPhrase(ph.value)) { err.textContent = '확인 문구를 입력해 주세요. 비밀번호를 잊었을 때 필요해요.'; return; }
-      go.disabled = true;
-      try {
-        const ym = HL.ym(HL.today());
-        const pwSalt = HL.uid('s'), recSalt = HL.uid('r');
-        await App.db.doc('config/main').set({ pwSalt, pwHash: await sha(`${pwSalt}:${pw.value}`), recSalt, recHash: await sha(`${recSalt}:${normPhrase(ph.value)}`), startMonth: ym, prices: { [ym]: { ...HL.DEFAULT_PRICES } }, joinFee: 20000, lastBackupAt: null, createdAt: HL.nowIso() });
-        App.mode = 'owner'; gateState = 'x'; route();
-      } catch (e) { err.textContent = `저장하지 못했어요. ${errText(e)}`; go.disabled = false; }
-    });
-    // 예전 장부 백업이 있으면 바로 복원 (장부 비밀번호·설정도 그대로 들어옴) — 처음 설정은 백업이 없을 때만
     const rf = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
     rf.addEventListener('change', () => { if (rf.files[0]) startRestore(rf.files[0]); rf.value = ''; });
-    const more = h('div', { hidden: true }, h('div', { class: 'sub', text: `미납 관리는 ${HL.monthLabelFull(HL.ym(HL.today()))}부터 시작해요. 여기서 정한 비밀번호는 새 폰을 등록할 때 써요.` }),
-      F('장부 비밀번호', pw), F('비밀번호 확인', pw2), F('확인 문구 (비밀번호를 잊었을 때 사용)', ph), err, go);
-    card.append(h('h2', { text: '장부 시작하기' }), h('div', { class: 'sub', text: '예전 장부에서 받은 JSON 백업 파일을 고르면 회원·회비·거래·설정(장부 비밀번호 포함)이 그대로 들어와요.' }),
-      h('button', { class: 'primary', type: 'button', onclick: () => rf.click() }, '백업 파일로 시작하기'), rf,
-      h('button', { class: 'small', type: 'button', style: 'margin-top:14px', onclick: (e) => { more.hidden = false; e.target.hidden = true; } }, '백업 없이 새 장부로 시작'), more);
+    const fresh = h('button', { class: 'small', type: 'button', style: 'margin-top:14px' }, '백업 없이 새 장부로 시작');
+    fresh.addEventListener('click', async () => {
+      fresh.disabled = true;
+      try { const ym = HL.ym(HL.today()); await App.db.doc('config/main').set({ startMonth: ym, prices: { [ym]: { ...HL.DEFAULT_PRICES } }, joinFee: 20000, lastBackupAt: null, createdAt: HL.nowIso() }); App.mode = 'owner'; gateState = 'x'; route(); }
+      catch (e) { err.textContent = `저장하지 못했어요. ${errText(e)}`; fresh.disabled = false; }
+    });
+    card.append(h('h2', { text: '장부 시작하기' }), h('div', { class: 'sub', text: '예전 장부에서 받은 JSON 백업 파일을 고르면 회원·회비·거래·설정이 그대로 들어와요.' }),
+      h('button', { class: 'primary', type: 'button', onclick: () => rf.click() }, '백업 파일로 시작하기'), rf, fresh, err);
     return;
   }
   if (kind === 'lock') {
@@ -4193,7 +4179,7 @@ function buildSettings() {
     if (!Object.keys(upd).length) { pwErr.textContent = '바꿀 내용을 입력해 주세요.'; return; }
     try { await App.db.doc('config/main').update(upd); toast('변경됨'); op.value = np.value = np2.value = nph.value = ''; pwErr.textContent = ''; } catch (e) { pwErr.textContent = errText(e); }
   });
-  box.append(h('div', { class: 'card' }, h('h3', { text: '비밀번호 · 확인 문구' }), h('div', { class: 'grid2' }, F('현재 비밀번호', op), F('새 비밀번호', np), F('새 비밀번호 확인', np2), F('새 확인 문구', nph)), pwErr, h('div', { class: 'row end' }, pwBtn)));
+  // 장부 비밀번호 카드는 쓰지 않음 (2026-11-13: 관리자 비밀번호로 기기 등록 + 각자 PIN)
   // 백업
   const em = h('input', { type: 'month', id: 'exportMonth' });
   const fileJson = h('input', { type: 'file', accept: '.json,application/json', id: 'restoreFile', hidden: true });

@@ -1,6 +1,6 @@
 // 해랑 장부 서버 (haerang-ledger) — 2026-11-12
-// 필요한 설정(바인딩): D1 DB → haerang-ledger, Service TEAM → haerang-team
-// 기기 등록: 폰에 처음 깔면 장부 비밀번호(장부 설정의 비밀번호) 한 번 → 이 기기에서 관리자가 PIN으로 장부 전체를 열 수 있음.
+// 필요한 설정(바인딩): D1 DB → haerang-ledger, Service TEAM → haerang-team, Service NOTICE → haerang-push(관리자 비밀번호 확인)
+// 기기 등록: 폰에 처음 깔면 관리자 비밀번호(알림 앱 ADMIN_PASSWORD, 알림 서버가 확인) 한 번 → 이 기기에서 관리자가 PIN으로 장부 전체를 열 수 있음.
 // 로그인은 열 때마다 PIN (12시간 지나면 다시). 관리자(boss) = 장부 전체(등록된 기기에서만), '직원이에요' = 관리자가 허락한 직원만, 직원 화면(회원 조회·입력 → 관리자 승인).
 // 공용 계정은 못 들어옴.
 // 데이터: 예전 claude.ai 아티팩트 장부와 같은 모양의 문서(경로 'members/abc')를 그대로 저장.
@@ -58,11 +58,13 @@ async function route(path, req, env) {
   if (path === '/api/device') { // 이 기기를 관리자 기기로 등록 (장부 비밀번호)
     const k = 'dev:' + ip, lu = await lockUntil(env, k);
     if (lu) return json({ ok: false, error: lockText(lu) }, 429);
-    const cfg = J((await one(env, "SELECT data FROM docs WHERE path = 'config/main' AND del = 0") || {}).data, null);
-    if (cfg && cfg.pwHash && (await sha(cfg.pwSalt + ':' + String(b.pw || ''))) !== cfg.pwHash) return json({ ok: false, error: failText('장부 비밀번호가 맞지 않아요', await failAdd(env, k)) }, 401);
+    if (!env.NOTICE) return json({ ok: false, error: '알림 앱이 연결되지 않았어요' }, 503);
+    let r; try { r = await (await env.NOTICE.fetch('https://notice/ledger/admin-check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: str(b.pw, 100) }) })).json(); } catch (_) { r = { ok: false, error: '알림 앱에 연결하지 못했어요' }; }
+    if (r.error) return json({ ok: false, error: r.error }, 503);
+    if (!r.ok) return json({ ok: false, error: failText('관리자 비밀번호가 맞지 않아요', await failAdd(env, k)) }, 401);
     await failClear(env, k);
     const tok = rid(24); await run(env, 'INSERT INTO devices (tok, created, used) VALUES (?, ?, ?)', tok, Date.now(), Date.now());
-    return json({ ok: true, dev: tok, first: !cfg });
+    return json({ ok: true, dev: tok });
   }
   if (path === '/api/login') {
     const k = 'pin:' + ip, lu = await lockUntil(env, k);

@@ -38,7 +38,7 @@ const aenv = { DB: D1('att.db'), ADMIN_PASSWORD: 'kwanjang', SYNC_KEY: 'sync123'
 const nenv = { DB: D1('notice.db'), ADMIN_PASSWORD: 'kwanjang', SYNC_KEY: 'sync123' };
 const tenv = { DB: D1('team.db'), SYNC_KEY: 'sync123' };
 const lenv = { DB: D1('ledger.db') };
-aenv.NOTICE = bind(nw, nenv); nenv.ATT = bind(aw, aenv); tenv.ATT = bind(aw, aenv); tenv.NOTICE = bind(nw, nenv); nenv.TEAM = bind(tw, tenv); lenv.TEAM = bind(tw, tenv);
+aenv.NOTICE = bind(nw, nenv); nenv.ATT = bind(aw, aenv); tenv.ATT = bind(aw, aenv); tenv.NOTICE = bind(nw, nenv); nenv.TEAM = bind(tw, tenv); lenv.TEAM = bind(tw, tenv); lenv.NOTICE = bind(nw, nenv);
 
 const API = { A: [aw, aenv], N: [nw, nenv], T: [tw, tenv], L: [lw, lenv] }; // /A/… 출석부, /N/… 알림, /T/… 업무, /L/… 장부
 const CONFIG = {

@@ -72,6 +72,11 @@ const str = (v, n) => String(v == null ? "" : v).slice(0, n);
 
 async function route(path, req, env) {
   const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
+  // 장부 서버가 관리자 비밀번호를 확인할 때 (서비스 바인딩으로만 — 주소 이름이 'notice'인 요청은 바깥에서 올 수 없음)
+  if (path === '/ledger/admin-check') {
+    if (new URL(req.url).hostname !== 'notice') return json({ ok: false, error: 'not found' }, 404);
+    return json({ ok: !!(env.ADMIN_PASSWORD && b.password && await sameText(String(b.password), env.ADMIN_PASSWORD)) });
+  }
 
   // ═════════ 누구나 ═════════
   if (path === '/vapid') return json({ ok: true, publicKey: (await getVapid(env)).publicKey });

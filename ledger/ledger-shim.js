@@ -1,6 +1,6 @@
 // 해랑 장부 — 예전 claude.ai 아티팩트 장부 화면을 그대로 쓰기 위한 연결 (2026-11-12)
 // window.claude.use('db' | 'downloads' | 'sample') 를 장부 서버(haerang-ledger)로 바꿔 준다.
-// 로그인: 폰에 처음 깔면 장부 비밀번호로 기기 등록(한 번) → 그 뒤 관리자는 열 때마다 PIN = 'owner'(장부 전체).
+// 로그인: 폰에 처음 깔면 관리자 비밀번호(알림 앱 ADMIN_PASSWORD)로 기기 등록(한 번) → 그 뒤 관리자는 열 때마다 PIN = 'owner'(장부 전체).
 // '직원이에요' → 관리자가 허락한 직원이 PIN = 'staff'(회원 조회·입력, 관리자 승인 뒤 반영, 합계 없음).
 (function () {
   const API = (window.HAERANG_LEDGER_API || '').replace(/\/$/, '');
@@ -134,7 +134,7 @@
     const link = 'margin-top:16px;background:none;border:0;color:#1E2A3A;text-decoration:underline;font-size:15px';
     const head = '<img src="icon-192.png" alt="" style="width:72px;height:72px;border-radius:18px"><h1 style="font-size:22px;margin:14px 0 4px">해랑 장부</h1>';
     let body;
-    if (mode === 'device') body = '<p style="color:#667085;font-size:14px;margin:0 0 16px">이 기기에서 처음 열어요.<br>장부 비밀번호를 한 번만 넣어 주세요.</p><input id="hlPw" type="password" autocomplete="off" placeholder="장부 비밀번호" style="' + inp + '"><button id="hlGo" type="button" style="' + btn + '">이 기기 등록하기</button><p id="hlMsg" style="color:#C0392B;font-size:14px;min-height:20px;margin:10px 0 0"></p><button id="hlSw" type="button" style="' + link + '">직원이에요</button>';
+    if (mode === 'device') body = '<p style="color:#667085;font-size:14px;margin:0 0 16px">이 기기에서 처음 열어요.<br>관리자 비밀번호(알림 관리에서 쓰던 비밀번호)를<br>한 번만 넣어 주세요.</p><input id="hlPw" type="password" autocomplete="off" placeholder="관리자 비밀번호" style="' + inp + '"><button id="hlGo" type="button" style="' + btn + '">이 기기 등록하기</button><p id="hlMsg" style="color:#C0392B;font-size:14px;min-height:20px;margin:10px 0 0"></p><button id="hlSw" type="button" style="' + link + '">직원이에요</button>';
     else body = '<p style="color:#667085;font-size:14px;margin:0 0 16px">' + (mode === 'owner' ? '관리자 이름을 고르고 PIN을 넣어 주세요' : '직원 · 이름을 고르고 업무 앱 PIN을 넣어 주세요') + '</p><div id="hlWho" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px"></div><input id="hlPin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="PIN" style="' + inp + '"><button id="hlGo" type="button" style="' + btn + '">들어가기</button><p id="hlMsg" style="color:#C0392B;font-size:14px;min-height:20px;margin:10px 0 0"></p><button id="hlSw" type="button" style="' + link + '">' + (mode === 'owner' ? '직원이에요' : '관리자예요') + '</button>';
     box.innerHTML = '<div style="width:100%;max-width:340px;text-align:center">' + head + body + '</div>';
     document.body.appendChild(box);
@@ -144,7 +144,7 @@
       const go = async () => {
         msg('');
         const j = await fetch(API + '/api/device', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pw: $('hlPw').value }) }).then(r => r.json()).catch(() => ({ ok: false, error: '인터넷 연결을 확인해 주세요' }));
-        if (!j.ok) { msg(j.error || '장부 비밀번호가 맞지 않아요'); $('hlPw').value = ''; return; }
+        if (!j.ok) { msg(j.error || '관리자 비밀번호가 맞지 않아요'); $('hlPw').value = ''; return; }
         LS.set(DK, j.dev); loginScreen('owner');
       };
       $('hlGo').onclick = go; $('hlPw').onkeydown = e => { if (e.key === 'Enter') go(); };
