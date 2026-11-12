@@ -1664,13 +1664,55 @@ function kidSheet(id) {
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + L.map(x => pmRow(x, false)).join('') : ''; })() +
-    '<div id="kDocs"></div><h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
+    '<div id="kFam"></div><div id="kDocs"></div><h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
     ov.classList.add('full');
     loadDocs().then(() => { const el = ov.querySelector('#kDocs'); const L = (S.docs || []).filter(d => d.sid === s.id); if (el && L.length) { el.innerHTML = '<h3>등록 서류</h3>' + L.map(docRow).join(''); el.onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); }; } });
+    kidFamily(ov.querySelector('#kFam'), s);
     ov.querySelector('#kSt').onclick = () => kidStatusSheet(s);
     ov.querySelector('#kTp').onclick = () => kidTempSheet(s);
     ov.querySelector('#kEd').onclick = () => kidEdit(s);
     api('/api/student-history', { sid: s.id }).then(j => { const el = ov.querySelector('#kHist'); if (el) el.innerHTML = j.ok && (j.items || []).length ? j.items.map(h => '<div class="kh">' + esc(h.text) + '<small>' + longTime(h.at) + (h.who ? ' · ' + esc(h.who) : '') + '</small></div>').join('') : '<p class="help">기록이 없어요</p>'; });
+  });
+}
+// 원생 화면: 학부모 앱 · 가족 초대번호(QR) (알림 서버에 있음, 2026-11-13)
+const INV_URL = c => 'https://haerangtkd.github.io/notice/?c=' + c;
+async function kidFamily(el, s) {
+  if (!el) return;
+  el.innerHTML = '<h3>학부모 앱 · 초대번호(QR)</h3><p class="help">불러오는 중…</p>';
+  const j = await api('/api/kid-family', { name: s.name });
+  if (!j.ok) { el.innerHTML = '<h3>학부모 앱 · 초대번호(QR)</h3><p class="help">' + esc(j.error || '알림 앱에 연결하지 못했어요') + '</p>'; return; }
+  const ps = j.parents || [], inv = j.invites || [];
+  el.innerHTML = '<h3>학부모 앱 · 초대번호(QR)</h3><div class="card kinfo">' +
+    '<div class="kv"><span>태블릿 출석번호</span><b>' + (j.onKiosk ? esc((j.codes || []).join(', ') || '번호 없음') : '아직 안 들어감 (10분 안에 자동으로)') + '</b></div>' +
+    '<div class="kv"><span>가입한 보호자</span><b>' + (ps.length ? ps.map(p => esc(p.rel || '보호자') + (p.ok ? '' : ' (승인 대기)')).join(', ') : '없음') + '</b></div>' +
+    inv.map(i => '<div class="kv"><span>초대번호 ' + esc(i.code) + (i.off ? ' · 막힘' : '') + '</span><b>' + esc(i.name || '') + ' · ' + i.used.length + '/' + i.max + '대 <button class="btn" data-qr="' + esc(i.code) + '" style="padding:3px 10px;margin-left:6px">QR</button></b></div>').join('') +
+    '</div><div class="row" style="margin-top:8px"><button class="btn" id="kInv" style="flex:1">+ 가족 초대번호 만들기</button></div>' +
+    '<p class="help">승인·가입 거절은 알림 관리 → 명단에서 해요.</p>';
+  el.onclick = e => { const q = e.target.closest('[data-qr]'); if (q) kidQr(q.dataset.qr, (inv.find(i => i.code === q.dataset.qr) || {}).name); };
+  el.querySelector('#kInv').onclick = () => {
+    sheet('<h2>가족 초대번호 만들기</h2><label class="f">가정 이름</label><input class="inp" id="iN" value="' + esc(s.name + ' 가정') + '">' +
+      '<label class="f">가입할 수 있는 휴대폰 수</label><div class="chips" id="iM">' + [1, 2, 3, 4].map(n => '<button data-v="' + n + '" class="' + (n === 2 ? 'on' : '') + '">' + n + '대</button>').join('') + '</div>' +
+      '<p class="help">형제가 있으면 알림 관리 → 명단 → 가족 초대번호에서 제자를 더 넣어 주세요.</p>' +
+      '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="iOk">만들기</button></div>', ov => {
+      let max = 2; const g = id => ov.querySelector('#' + id);
+      g('iM').onclick = e => { const b = e.target.closest('button'); if (!b) return; max = +b.dataset.v; g('iM').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+      g('iOk').onclick = async () => {
+        const r = await api('/api/kid-invite', { name: g('iN').value.trim() || s.name + ' 가정', kids: [s.name], max });
+        if (!r.ok) return toast(r.error || '만들지 못했어요');
+        toast('초대번호 ' + r.code + ' 만들었어요'); kidSheet(s.id);
+      };
+    });
+  };
+}
+function kidQr(code, name) {
+  sheet('<h2>' + esc(name || '해랑경희 앱 가입') + '</h2><div id="qrc" style="display:flex;justify-content:center;margin:12px 0"></div><div style="text-align:center;font-size:30px;font-weight:800;letter-spacing:.2em">' + esc(code) + '</div>' +
+    '<p class="help" style="text-align:center">휴대폰 카메라로 찍으면 가입 화면이 열려요. 아이폰은 앱을 설치한 뒤 이 번호를 넣어요.</p>' +
+    '<div class="foot"><button id="qCp">주소 복사</button><span class="sp"></span><button data-close>닫기</button></div>', async ov => {
+    ov.querySelector('#qCp').onclick = () => navigator.clipboard && navigator.clipboard.writeText(INV_URL(code)).then(() => toast('주소를 복사했어요'), () => toast(INV_URL(code)));
+    try {
+      if (!window.QRCode) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+      new QRCode(ov.querySelector('#qrc'), { text: INV_URL(code), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+    } catch (_) { ov.querySelector('#qrc').textContent = '큐알을 그리지 못했어요. 주소 복사를 써 주세요.'; }
   });
 }
 function kidStatusSheet(s) {

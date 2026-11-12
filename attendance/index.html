@@ -230,7 +230,7 @@
         <div class="pad">
           <div class="seg" id="sGrp"></div>
           <div class="gap"></div>
-          <div class="row2"><input type="search" class="inp" id="sQ" placeholder="이름 검색"><button class="sbtn red" id="sAdd">+ 원생 등록</button></div>
+          <div class="row2"><input type="search" class="inp" id="sQ" placeholder="이름 검색"><button class="sbtn" id="sAdd" title="원생 등록·정보 수정은 업무 앱에서 해요">업무 앱에서 등록 ›</button></div>
           <label class="ck"><input type="checkbox" id="sLeave"> <span id="sLeaveT">휴원도 같이 보기</span></label>
         </div>
         <div class="lh"><b>원생 명단</b><small id="sInfo"></small></div>
@@ -583,11 +583,12 @@ function renderStudents() {
     const gr = grade(s), tg = [];
     if (s.status !== '재원') tg.push('<span class="tag ' + (s.status === '휴원' ? 'yel' : 'red') + '">' + s.status + '</span>');
     if (tempOn(s, today())) tg.push('<span class="tag yel">임시변경 중</span>');
-    return '<li class="st" data-id="' + s.id + '"><div class="av">' + esc(s.name.length > 2 ? s.name.slice(-2) : s.name) + '</div><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc([gr.label, daysLabel(s.days), s.no].filter(Boolean).join(' · ')) + '</small>' + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><div class="acts"><button class="ab" data-a="st">회원상태</button><button class="ab" data-a="t">임시변경</button><button class="ab" data-a="e">수정</button></div></li>';
-  }).join('') : '<li class="empty"><b>원생이 없어요</b>위의 + 원생 등록을 눌러 주세요.</li>';
+    return '<li class="st" data-id="' + s.id + '"><div class="av">' + esc(s.name.length > 2 ? s.name.slice(-2) : s.name) + '</div><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc([gr.label, daysLabel(s.days), s.no].filter(Boolean).join(' · ')) + '</small>' + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><div class="acts"><button class="ab" data-a="st">회원상태</button><button class="ab" data-a="t">임시변경</button></div></li>';
+  }).join('') : '<li class="empty"><b>원생이 없어요</b>원생 등록은 업무 앱 → 더보기 → 🥋 원생에서 해요.</li>';
 }
 $('sQ').oninput = renderStudents; $('sLeave').onchange = renderStudents;
-$('sAdd').onclick = () => editStudent(null);
+// 2026-11-13 사용자 결정: 원생 등록·정보 수정(출생연도·어린이집·출석번호·수련 요일·연락처)은 업무 앱 🥋 원생에서만. 출석부는 회원 상태·임시변경만.
+$('sAdd').onclick = () => { location.href = '/team/#kids'; };
 $('sList').onclick = e => { const b = e.target.closest('button'); const li = e.target.closest('li[data-id]'); if (!b || !li) return; const s = stById(li.dataset.id); if (b.dataset.a === 'e') editStudent(s); else if (b.dataset.a === 't') tempSheet(s, today()); else statusSheet(s); };
 
 async function saveStudent(st, history, extra = {}) {
@@ -833,7 +834,7 @@ $('trBody').onclick = async e => {
     const id = await saveStudent(s, ['체험 수업 후 정식 등록 (체험일 ' + md(t.date) + ')'], { tid: t.id });
     if (!id) return;
     await saveTrial({ ...t, status: '등록', studentId: id }, ['체험 수업 후 정식 등록 (체험일 ' + md(t.date) + ')']);
-    editStudent(stById(id)); toast('수련 요일과 연락처를 확인해 주세요');
+    toast('등록했어요. 요일·연락처·출석번호는 업무 앱 원생에서 적어요');
   }
 };
 async function saveTrial(t, history) {

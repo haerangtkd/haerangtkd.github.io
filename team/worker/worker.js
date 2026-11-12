@@ -631,6 +631,14 @@ async function route(path, req, env, ctx) {
     const r = await attSync(env, '/sync/day-absent', { day: isDay(b.day) ? b.day : kstDay() });
     return json(r.ok ? { ok: true, names: r.names || [] } : { ok: false, names: [] });
   }
+  // 원생 화면: 학부모 앱 가족 초대번호(QR)·가입 상태 (알림 서버에 있음) — 2026-11-13
+  if (path === '/api/kid-family') return json(await noticeSync(env, '/sync/kid-family', { name: str(b.name, 20) }));
+  if (path === '/api/kid-invite') {
+    if (me.shared) return json({ ok: false, error: '공용 계정으로는 만들 수 없어요' });
+    const r = await noticeSync(env, '/sync/invite-save', { code: b.code ? str(b.code, 10) : '', name: str(b.name, 30), kids: Array.isArray(b.kids) ? b.kids.map(x => str(x, 20)).slice(0, 6) : [], max: b.max | 0, off: !!b.off });
+    if (r.ok) await addLog(env, me.id, 'pickup', '🔑 가족 초대번호 ' + (b.code ? '수정' : '만듦') + ': ' + str(b.name, 30), '');
+    return json(r);
+  }
   if (path === '/api/roster-all') { // 출석부 원생 회원 상태 (퇴관 포함) — 등원표에서 휴원·퇴관 빼기, 기네스 결과지 회원 상태
     const r = await attSync(env, '/sync/roster', { all: true });
     return json(r.ok ? { ok: true, students: r.students.map(s => ({ name: s.name, birth: s.birth || '', status: s.status || '재원' })) } : { ok: false, students: [], error: r.error });

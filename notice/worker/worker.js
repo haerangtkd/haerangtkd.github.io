@@ -277,6 +277,15 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     return json(await send(env, { kind: '숙제', title: b.title, body: b.body, children: b.children, view: '', offset: b.offset | 0 })); // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
   }
+  // 업무 앱 원생 화면: 그 제자의 가족 초대번호(QR)·학부모 앱 가입 상태 (2026-11-13)
+  if (path === '/sync/kid-family' || path === '/sync/invite-save') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    if (path === '/sync/invite-save') return json(await inviteSave(env, b));
+    const name = cleanNames([b.name])[0]; if (!name) return json({ ok: false, error: '이름' });
+    const k = await one(env, 'SELECT codes FROM kids WHERE name = ?', name);
+    const parents = (await all(env, 'SELECT rel, ok, created, inv, kids FROM parents')).filter(p => J(p.kids, []).includes(name)).map(p => ({ rel: p.rel, ok: !!p.ok, at: p.created, inv: p.inv || '' }));
+    return json({ ok: true, onKiosk: !!k, codes: k ? J(k.codes, []) : [], invites: await inviteList(env, name), parents });
+  }
   // 업무 앱 첫 화면: 가입 승인 기다리는 보호자 수
   if (path === '/sync/pending') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
@@ -350,26 +359,8 @@ async function route(path, req, env) {
       return json({ ok: true });
     }
     // ── 초대번호 (가정마다 따로, 가입할 수 있는 휴대폰 수 제한) ──
-    if (path === '/admin/invites') {
-      const invs = await all(env, 'SELECT code, name, kids, max, off, created FROM invites ORDER BY created DESC');
-      const ps = await all(env, 'SELECT id, kids, rel, ph, ok, created, inv FROM parents WHERE inv IS NOT NULL');
-      return json({ ok: true, items: invs.map(i => ({ code: i.code, name: i.name || '', kids: J(i.kids, []), max: i.max, off: !!i.off, created: i.created,
-        used: ps.filter(p => p.inv === i.code).map(p => ({ id: p.id, rel: p.rel, ph: p.ph, ok: !!p.ok, at: p.created, kids: J(p.kids, []) })) })) });
-    }
-    if (path === '/admin/invite-save') {
-      const name = String(b.name || '').trim().slice(0, 30), kids = cleanNames(Array.isArray(b.kids) ? b.kids : []);
-      const max = Math.max(1, Math.min(9, b.max | 0 || 2));
-      if (b.code) {
-        const i = await one(env, 'SELECT code FROM invites WHERE code = ?', String(b.code)); if (!i) return json({ ok: false, error: '없는 초대번호예요' });
-        await run(env, 'UPDATE invites SET name = ?, kids = ?, max = ?, off = ? WHERE code = ?', name, JSON.stringify(kids), max, b.off ? 1 : 0, i.code);
-        return json({ ok: true, code: i.code });
-      }
-      let code = '';
-      for (let t = 0; t < 20 && !code; t++) { const c = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000)); if (!(await one(env, 'SELECT code FROM invites WHERE code = ?', c))) code = c; }
-      if (!code) return json({ ok: false, error: '번호를 만들지 못했어요. 다시 눌러 주세요' });
-      await run(env, 'INSERT INTO invites (code, name, kids, max, off, created) VALUES (?, ?, ?, ?, 0, ?)', code, name, JSON.stringify(kids), max, Date.now());
-      return json({ ok: true, code });
-    }
+    if (path === '/admin/invites') return json({ ok: true, items: await inviteList(env) });
+    if (path === '/admin/invite-save') return json(await inviteSave(env, b));
     if (path === '/admin/invite-del') { await run(env, 'DELETE FROM invites WHERE code = ?', String(b.code || '')); return json({ ok: true }); } // 이미 가입한 보호자는 그대로
     if (path === '/admin/invite-open') { await run(env, "INSERT INTO kv (k, v) VALUES ('inviteOpen', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0'); return json({ ok: true }); }
     if (path === '/admin/remove-device') { await run(env, 'DELETE FROM parents WHERE id = ?', String(b.id || '')); return json({ ok: true }); }
@@ -563,6 +554,29 @@ async function attSync(env, path, body) {
 function kst(d) { return new Date(d.getTime() + 9 * 3600 * 1000); }
 function kstDay(d) { return kst(d).toISOString().slice(0, 10); }
 function kstTime(d) { const k = kst(d); const h = k.getUTCHours(), m = k.getUTCMinutes(); return (h < 12 ? '오전 ' : '오후 ') + ((h % 12) || 12) + '시' + (m ? ' ' + m + '분' : ''); }
+
+// ─────────── 가족 초대번호 (알림 관리 · 업무 앱 원생 화면이 같이 씀) ───────────
+async function inviteList(env, kid) {
+  const invs = await all(env, 'SELECT code, name, kids, max, off, created FROM invites ORDER BY created DESC');
+  const ps = await all(env, 'SELECT id, kids, rel, ph, ok, created, inv FROM parents WHERE inv IS NOT NULL');
+  return invs.map(i => ({ code: i.code, name: i.name || '', kids: J(i.kids, []), max: i.max, off: !!i.off, created: i.created,
+    used: ps.filter(p => p.inv === i.code).map(p => ({ id: p.id, rel: p.rel, ph: p.ph, ok: !!p.ok, at: p.created, kids: J(p.kids, []) })) }))
+    .filter(i => !kid || i.kids.includes(kid));
+}
+async function inviteSave(env, b) {
+  const name = String(b.name || '').trim().slice(0, 30), kids = cleanNames(Array.isArray(b.kids) ? b.kids : []);
+  const max = Math.max(1, Math.min(9, b.max | 0 || 2));
+  if (b.code) {
+    const i = await one(env, 'SELECT code FROM invites WHERE code = ?', String(b.code)); if (!i) return ({ ok: false, error: '없는 초대번호예요' });
+    await run(env, 'UPDATE invites SET name = ?, kids = ?, max = ?, off = ? WHERE code = ?', name, JSON.stringify(kids), max, b.off ? 1 : 0, i.code);
+    return ({ ok: true, code: i.code });
+  }
+  let code = '';
+  for (let t = 0; t < 20 && !code; t++) { const c = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000)); if (!(await one(env, 'SELECT code FROM invites WHERE code = ?', c))) code = c; }
+  if (!code) return ({ ok: false, error: '번호를 만들지 못했어요. 다시 눌러 주세요' });
+  await run(env, 'INSERT INTO invites (code, name, kids, max, off, created) VALUES (?, ?, ?, ?, 0, ?)', code, name, JSON.stringify(kids), max, Date.now());
+  return ({ ok: true, code });
+}
 
 // ─────────── 원생 한 명단 (2026-11-13): 출석부가 기준, 10분마다 자동으로 맞춤 ───────────
 // · 출석부 원생 id(sid)로 같은 아이를 알아봄 → 출석부에서 이름을 바꾸면 여기 이름(보호자·출결 기록·회비·글 대상·초대번호)도 같이 바뀜
