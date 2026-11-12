@@ -1110,14 +1110,9 @@
   const expand = e => { const p = e.target.closest('.post p.clip'); if (p) { p.classList.remove('clip'); return true; } return false; };
 
   const RENDER = {
-    async fee() {
+    async fee() { // 2026-11-13 사용자 결정: 회비 납부 여부는 학부모 앱에 보이지 않음 (장부에서 관리, 매달 5일 미납 가정에만 안내 알림)
       const j = await post('/p/fees'); if (failed(j)) return;
-      const m = thisMonth(), s = me();
-      const st = (mm, k) => (j.status.find(x => x.month === mm && x.name === k) || {}).paid;
-      const months = [...new Set(j.status.map(x => x.month))].filter(x => x < m).slice(0, 12);
-      body('<div class="fee-now"><h3>' + mLabel(m) + ' 회비</h3>' + s.children.map(k => '<div class="fee-row"><span>' + esc(k) + '</span><span class="badge ' + (st(m, k) ? 'paid">납부 완료' : 'unpaid">납부 전') + '</span></div>').join('') + '</div>' +
-        (j.items.length ? '<div class="msec">회비 안내</div>' + j.items.map(x => postCard(x, { kids: true })).join('') : '') +
-        (months.length ? '<div class="msec">지난 달</div><ul class="fee-hist">' + months.map(mm => '<li><span>' + mLabel(mm) + '</span><span>' + s.children.map(k => esc(k) + ' ' + (st(mm, k) ? '✓' : '–')).join(' · ') + '</span></li>').join('') + '</ul>' : ''));
+      body(j.items.length ? j.items.map(x => postCard(x, { kids: true })).join('') : '<p class="empty">아직 회비 안내가 없어요.<br>궁금한 점은 도장으로 연락 주세요.</p>');
       $('pBody').onclick = expand;
     },
   };

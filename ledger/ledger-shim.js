@@ -86,6 +86,7 @@
 
   function logout() { const t = tok; tok = ''; SS.set(TK, ''); if (t) fetch(API + '/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tok: t }) }).catch(() => {}); setTimeout(() => location.reload(), 50); }
   window.HL_LOGOUT = logout;
+  window.HL_CALL = (path, body) => call(path, body || {}); // 장부 서버의 다른 기능 (예: 5일 회비 안내 미리 보기)
   window.HL_FORGET = () => { LS.set(DK, ''); logout(); }; // 로그아웃: 이 기기 등록도 풀기
 
   async function start() {

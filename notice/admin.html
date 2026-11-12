@@ -235,14 +235,13 @@
     <section id="t-fee" hidden>
       <div class="mhead" id="fMonth"><button data-m="-1">‹</button><b id="fMonthLabel"></b><button data-m="1">›</button></div>
       <div class="card">
-        <h2>납부 확인</h2>
-        <p class="hint">회비를 받으면 눌러서 <b>납부 완료</b>로 바꿔 주세요. 학부모님 앱 회비 화면에 바로 반영됩니다.</p>
-        <p class="hint" id="feeSum" style="margin-top:6px;font-weight:700;color:var(--ink)"></p>
-        <ul class="list" id="feeList" style="margin-top:6px"></ul>
+        <h2>회비 납부</h2>
+        <p class="hint">회비 납부는 <b>장부</b>에서 관리해요. 매달 5일 낮 12시에 장부 기준 <b>미납 가정에만</b> 학부모 앱 안내 알림이 자동으로 가요. 학부모 앱에는 납부 여부가 보이지 않아요.</p>
+        <a class="btn ghost" href="/ledger/" style="display:block;text-align:center;margin-top:10px;text-decoration:none">장부 열기 ›</a>
       </div>
       <div class="card">
         <h2>회비 안내 보내기</h2>
-        <div class="seg" id="feeTarget" style="margin-top:10px"><button class="on" data-v="unpaid">납부 전인 아이만</button><button data-v="all">전체</button></div>
+        <p class="hint" style="margin-top:6px">전체 학부모님께 보내는 안내예요 (계좌·납부 기간 등).</p>
         <label class="f">제목</label>
         <input type="text" id="feeTitle" maxlength="100">
         <label class="f">내용</label>
@@ -357,7 +356,7 @@
     kids = j.kids || []; pending = j.pending || [];
     $('meta').textContent = '아이 ' + kids.length + '명 · 알림 ' + j.devices + '대';
     $('pendBadge').hidden = !pending.length; $('pendBadge').textContent = pending.length;
-    renderKids(); renderPending(); renderRoster(); renderChecks(); renderFees();
+    renderKids(); renderPending(); renderRoster(); renderChecks();
     $('invOpen').checked = !!j.inviteOpen;
     if (!$('t-roster').hidden) loadInvites();
   }
@@ -569,31 +568,18 @@
   $('nMonth').onclick = e => { const b = e.target.closest('button'); if (b) { nMonth = addMonth(nMonth, +b.dataset.m); loadNews(); } };
 
   // ═════ 회비 ═════
-  let fMonth = thisMonth(), fees = {}, feeMode = 'unpaid';
+  let fMonth = thisMonth(), fees = {}, feeMode = 'all';
   async function loadFees() {
     if (!pw) return;
     $('fMonthLabel').textContent = mLabel(fMonth);
     const j = await post('/admin/fees', { month: fMonth });
     if (!j.ok) return;
-    fees = {}; j.items.forEach(x => fees[x.name] = !!x.paid);
-    renderFees(); loadFeeSent();
+    loadFeeSent();
     const m = +fMonth.slice(5);
     $('feeTitle').value = m + '월 회비 안내';
     if (!$('feeBody').dataset.edited) $('feeBody').value = m + '월 회비 납부 기간입니다.\n○일까지 납부 부탁드립니다.\n\n계좌: \n문의: 도장으로 연락 주십시오.';
   }
-  function renderFees() {
-    const paid = kids.filter(k => fees[k.name]).length;
-    $('feeSum').textContent = kids.length ? '납부 ' + paid + '명 · 납부 전 ' + (kids.length - paid) + '명' : '';
-    $('feeList').innerHTML = kids.length ? kids.map(k => '<li class="fee"><b>' + esc(k.name) + '</b><button class="tog' + (fees[k.name] ? ' on' : '') + '" data-n="' + esc(k.name) + '">' + (fees[k.name] ? '납부 완료 ✓' : '납부 전') + '</button></li>').join('') : '<li class="empty">명단이 비어 있습니다</li>';
-  }
-  $('feeList').onclick = async e => {
-    const b = e.target.closest('button.tog'); if (!b) return;
-    const n = b.dataset.n, v = !fees[n]; fees[n] = v; renderFees();
-    const j = await post('/admin/fee-set', { month: fMonth, name: n, paid: v });
-    if (!j.ok) { fees[n] = !v; renderFees(); toast('저장하지 못했습니다'); }
-  };
   $('fMonth').onclick = e => { const b = e.target.closest('button'); if (b) { fMonth = addMonth(fMonth, +b.dataset.m); loadFees(); } };
-  $('feeTarget').onclick = e => { const b = e.target.closest('button'); if (!b) return; feeMode = b.dataset.v; [...$('feeTarget').children].forEach(x => x.classList.toggle('on', x === b)); };
   $('feeBody').oninput = () => $('feeBody').dataset.edited = '1';
   $('feeSend').onclick = async () => {
     const title = $('feeTitle').value.trim(), bodyT = $('feeBody').value.trim(), btn = $('feeSend');

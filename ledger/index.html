@@ -4193,6 +4193,20 @@ function buildSettings() {
     h('div', { class: 'row' }, h('button', { class: 'small', type: 'button', onclick: downloadTemplate }, '회원 명단 양식 내려받기'), h('button', { class: 'small', type: 'button', onclick: () => fileXlsx.click() }, '엑셀로 회원 가져오기'), fileXlsx),
     h('div', { id: 'undoImportBox', class: 'row', hidden: true }, h('span', { class: 'sub grow' }), h('button', { class: 'small', type: 'button', onclick: openUndoImport }, '마지막 엑셀 가져오기 되돌리기')),
     h('div', { id: 'setBackupLog' })));
+  if (window.HL_ROLE === 'owner' && window.HL_CALL) { // 매달 5일 회비 안내 (2026-11-13)
+    const fn = h('div', { class: 'sub', text: '매달 5일 낮 12시에 미납 가정(재원·신규)에만 학부모 앱 안내 알림이 자동으로 가요. 학부모 앱에는 납부 여부가 보이지 않아요.' });
+    const out = h('div', {});
+    const show = async () => {
+      out.innerHTML = '<div class="sub">불러오는 중…</div>';
+      try {
+        const j = await window.HL_CALL('/api/fee-notice');
+        const ml = (ms) => ms.map((m) => `${Number(m.slice(5))}월`).join('·');
+        out.innerHTML = (j.last ? `<div class="sub"><b>${Number(j.ym.slice(5))}월 5일에 보냄</b> · ${j.last.families.length}가정</div>` + j.last.families.map((f) => `<div class="li"><div class="main"><div class="t">${esc(f.kids.join('·'))}</div><div class="s">${ml(f.months)} · 휴대폰 ${f.sent}대</div></div></div>`).join('') : '') +
+          `<div class="sub" style="margin-top:8px"><b>지금 보내면</b> · ${j.plan.length}가정</div>` + (j.plan.length ? j.plan.map((f) => `<div class="li"><div class="main"><div class="t">${esc(f.kids.join('·'))}</div><div class="s">${ml(f.months)} 미납 · ${f.onApp ? `학부모 앱 휴대폰 ${f.phones}대` : '학부모 앱 명단에 없음(이름 확인)'}</div></div></div>`).join('') : '<div class="empty">미납 가정이 없어요</div>');
+      } catch (e) { out.innerHTML = `<div class="sub">${esc((e && e.message) || '불러오지 못했어요')}</div>`; }
+    };
+    box.append(h('div', { class: 'card' }, h('h3', { text: '매달 5일 회비 안내' }), fn, h('div', { class: 'row' }, h('button', { class: 'small', type: 'button', onclick: show }, '받을 가정 미리 보기')), out));
+  }
   box.append(h('div', { class: 'card' }, h('h3', { text: '장부 정보' }), h('div', { id: 'setStart', class: 'sub' }), h('div', { class: 'row' }, h('button', { class: 'small', type: 'button', onclick: lock }, '잠금'), h('button', { class: 'small', type: 'button', onclick: () => window.HL_FORGET && window.HL_FORGET() }, '로그아웃')), h('div', { class: 'sub', text: '잠금: 다음에 PIN만 다시 넣어요. 로그아웃: 이 기기 등록도 풀려서 다음에 관리자 비밀번호부터 다시 넣어요.' })));
   box.append(h('div', { class: 'card' }, h('h3', { text: '처음 쓰는 순서' }), h('ol', { class: 'sub', html: GUIDE.map((x) => `<li>${x}</li>`).join('') })));
   box.append(h('div', { class: 'card' }, h('h3', { text: '삭제 기록' }), h('div', { id: 'setDeleteLog' })));

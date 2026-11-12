@@ -80,6 +80,21 @@ async function route(path, req, env) {
     return json({ ok: !!(env.ADMIN_PASSWORD && b.password && await sameText(String(b.password), env.ADMIN_PASSWORD)) });
   }
 
+  // 장부 서버: 매달 5일 미납 가정 회비 안내 (서비스 바인딩으로만 — 주소 이름이 'notice'인 요청은 바깥에서 올 수 없음) 2026-11-13
+  if (path === '/ledger/fee-notice') {
+    if (new URL(req.url).hostname !== 'notice') return json({ ok: false, error: 'not found' }, 404);
+    const kids = cleanNames(b.kids);
+    if (b.check) { // 미리 보기: 알림 앱 명단에 있는 아이 · 승인된 보호자 휴대폰 수
+      const ps = await all(env, 'SELECT kids, ok, ep FROM parents WHERE ok = 1 AND ep IS NOT NULL');
+      const names = new Set((await all(env, 'SELECT name FROM kids')).map(r => r.name));
+      return json({ ok: true, kids: kids.map(k => ({ name: k, onApp: names.has(k), phones: ps.filter(p => J(p.kids, []).includes(k)).length })) });
+    }
+    if (!kids.length) return json({ ok: true, total: 0, sent: 0, next: null });
+    if (!(b.offset | 0)) await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 0, 0)', // 학부모 앱 '회비 안내'에도 남김 (그 가정만 보임)
+      'fee', '회비', str(b.title, 100), str(b.body, 3000), kstDay(new Date()), JSON.stringify(kids), '[]', Date.now());
+    return json(await send(env, { kind: '회비', title: str(b.title, 100), body: str(b.body, 300), children: kids, view: 'fee', offset: b.offset | 0 }));
+  }
+
   // ═════════ 누구나 ═════════
   if (path === '/vapid') return json({ ok: true, publicKey: (await getVapid(env)).publicKey });
   if (path === '/notices') return json({ ok: true, notices: await listPosts(env, 'notice', null, 50) });
@@ -165,8 +180,7 @@ async function route(path, req, env) {
         const al = await listPosts(env, 'album', myKids, 1);
         out.counts.album = al[0] ? al[0].at : 0;
         const fm = kstDay(new Date()).slice(0, 7);
-        const fees = await all(env, 'SELECT name, paid FROM fees WHERE month = ?', fm);
-        out.fee = { month: fm, kids: myKids.map(k => ({ name: k, paid: !!(fees.find(f => f.name === k) || {}).paid })) };
+        out.fee = { month: fm, kids: [] }; // 납부 여부는 학부모에게 보내지 않음 (2026-11-13)
         // 확인을 기다리는 공지·알림장 (긴급 먼저, 30일 안)
         const done = new Set((await all(env, 'SELECT post FROM acks WHERE parent = ?', p.id)).map(r => r.post));
         const asks = (await all(env, "SELECT * FROM posts WHERE ask = 1 AND type IN ('notice', 'journal') AND created > ? ORDER BY urgent DESC, created DESC LIMIT 40", Date.now() - 30 * 864e5))
@@ -209,8 +223,7 @@ async function route(path, req, env) {
       return json(await teamSync(env, '/sync/esign-set', { kids, kid: b.kid, ev: b.ev, data: b.data, cancel: !!b.cancel, rel: p.rel }));
     }
     if (path === '/p/fees') {
-      const rows = await all(env, 'SELECT month, name, paid, at FROM fees ORDER BY month DESC LIMIT 200');
-      return json({ ok: true, me, status: rows.filter(r => myKids.includes(r.name)), items: await listPosts(env, 'fee', myKids, 50) });
+      return json({ ok: true, me, status: [], items: await listPosts(env, 'fee', myKids, 50) }); // 납부 여부는 안 보냄 (장부에서 관리)
     }
     return json({ ok: false, error: 'not found' }, 404);
   }
