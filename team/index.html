@@ -1675,19 +1675,39 @@ function kidSheet(id) {
     (tp ? line('임시변경', esc(tp.start + ' ~ ' + (tp.end || '') + ' · ' + tp.days.join('·'))) : '') + line('입관일', esc(s.joined || '')) +
     (s.status === '휴원' ? line('휴원', esc(kLp((s.leavePeriods || []).filter(p => !p.end)))) : '') +
     line('보호자', esc([s.guardian, kPhone(s.phone)].filter(Boolean).join(' ')) + (s.phone ? ' <a class="btn" href="tel:' + esc(s.phone) + '" style="padding:3px 10px;margin-left:6px;text-decoration:none;color:inherit">전화</a>' : '')) +
+    line('다른 보호자', esc(kPhone(s.phone2 || ''))) +
     line('출석번호', esc(s.no || '')) + line('어린이집·유치원', esc(s.inst || '')) + line('메모', esc(s.memo || '')) + '</div>' +
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + L.map(x => pmRow(x, false)).join('') : ''; })() +
-    '<div id="kFam"></div><div id="kDocs"></div><h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
+    '<div id="kSib"></div><div id="kFam"></div><div id="kDocs"></div><h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
     ov.classList.add('full');
     loadDocs().then(() => { const el = ov.querySelector('#kDocs'); const L = (S.docs || []).filter(d => d.sid === s.id); if (el && L.length) { el.innerHTML = '<h3>등록 서류</h3>' + L.map(docRow).join(''); el.onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); }; } });
-    kidFamily(ov.querySelector('#kFam'), s);
+    kidSiblings(ov.querySelector('#kSib'), s); kidFamily(ov.querySelector('#kFam'), s);
     ov.querySelector('#kSt').onclick = () => kidStatusSheet(s);
     ov.querySelector('#kTp').onclick = () => kidTempSheet(s);
     ov.querySelector('#kEd').onclick = () => kidEdit(s);
     api('/api/student-history', { sid: s.id }).then(j => { const el = ov.querySelector('#kHist'); if (el) el.innerHTML = j.ok && (j.items || []).length ? j.items.map(h => '<div class="kh">' + esc(h.text) + '<small>' + longTime(h.at) + (h.who ? ' · ' + esc(h.who) : '') + '</small></div>').join('') : '<p class="help">기록이 없어요</p>'; });
   });
+}
+// 형제·자매 (2026-11-13): 업무 앱에서 묶음 → 학부모 앱 초대번호(형제 함께 가입)·장부(확인 알림)에 반영
+const sibsOf = s => s && s.famId ? (S.kids || []).filter(x => x.famId === s.famId && x.id !== s.id && x.status !== '퇴관') : [];
+function kidSiblings(el, s) {
+  if (!el) return; const L = sibsOf(s);
+  el.innerHTML = '<h3>형제·자매</h3><div class="chips" id="sbL">' + L.map(x => '<button data-k="' + esc(x.id) + '">' + esc(x.name) + (x.birth ? ' <small>' + x.birth + '</small>' : '') + '</button>').join('') + '<button data-add="1">+ 묶기</button>' + (L.length ? '<button data-off="1" style="color:#C0392B">묶음에서 빼기</button>' : '') + '</div>' +
+    '<p class="help">묶으면 가족 초대번호에 형제가 함께 들어가요. 장부 형제 할인은 장부에서 확인한 뒤 바뀌어요.</p>';
+  el.onclick = async e => {
+    const k = e.target.closest('[data-k]'); if (k) return kidSheet(k.dataset.k);
+    if (e.target.closest('[data-off]')) { if (!confirm(s.name + '을(를) 형제·자매 묶음에서 뺄까요?')) return; const r = await api('/api/kid-fam', { sid: s.id, off: true }); if (!r.ok) return toast(r.error); await loadKids(true); return kidSheet(s.id); }
+    if (e.target.closest('[data-add]')) {
+      const C = (S.kids || []).filter(x => x.id !== s.id && x.status !== '퇴관' && !(s.famId && x.famId === s.famId)).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      sheet('<h2>' + esc(s.name) + '의 형제·자매</h2><input class="inp" id="sbQ" placeholder="이름 검색"><div class="chips" id="sbC" style="margin-top:10px"></div><div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', o2 => {
+        const dr = () => { const q = o2.querySelector('#sbQ').value.trim(); o2.querySelector('#sbC').innerHTML = C.filter(x => !q || x.name.includes(q)).slice(0, 60).map(x => '<button data-v="' + esc(x.id) + '">' + esc(x.name) + (x.birth ? ' <small>' + x.birth + '</small>' : '') + '</button>').join('') || '<span class="help">찾는 원생이 없어요</span>'; };
+        o2.querySelector('#sbQ').oninput = dr; dr();
+        o2.querySelector('#sbC').onclick = async ev => { const b = ev.target.closest('[data-v]'); if (!b) return; const r = await api('/api/kid-fam', { sid: s.id, with: b.dataset.v }); if (!r.ok) return toast(r.error); toast('형제·자매로 묶었어요'); await loadKids(true); kidSheet(s.id); };
+      });
+    }
+  };
 }
 // 원생 화면: 학부모 앱 · 가족 초대번호(QR) (알림 서버에 있음, 2026-11-13)
 const INV_URL = c => 'https://haerangtkd.github.io/notice/?c=' + c;
@@ -1705,16 +1725,17 @@ async function kidFamily(el, s) {
     '<p class="help">승인·가입 거절은 알림 관리 → 명단에서 해요.</p>';
   el.onclick = e => { const q = e.target.closest('[data-qr]'); if (q) kidQr(q.dataset.qr, (inv.find(i => i.code === q.dataset.qr) || {}).name, s.name); };
   el.querySelector('#kInv').onclick = () => {
-    sheet('<h2>가족 초대번호 만들기</h2><label class="f">가정 이름</label><input class="inp" id="iN" value="' + esc(s.name + ' 가정') + '">' +
+    const fam = [s.name, ...sibsOf(s).map(x => x.name)];
+    sheet('<h2>가족 초대번호 만들기</h2><label class="f">가정 이름</label><input class="inp" id="iN" value="' + esc(fam.join('·') + ' 가정') + '">' + (fam.length > 1 ? '<p class="help">형제·자매 ' + esc(fam.join(', ')) + ' 함께 들어가요.</p>' : '') +
       '<label class="f">가입할 수 있는 휴대폰 수</label><div class="chips" id="iM">' + [1, 2, 3, 4].map(n => '<button data-v="' + n + '" class="' + (n === 2 ? 'on' : '') + '">' + n + '대</button>').join('') + '</div>' +
       '<p class="help">형제가 있으면 알림 관리 → 명단 → 가족 초대번호에서 제자를 더 넣어 주세요.</p>' +
       '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="iOk">만들기</button></div>', ov => {
       let max = 2; const g = id => ov.querySelector('#' + id);
       g('iM').onclick = e => { const b = e.target.closest('button'); if (!b) return; max = +b.dataset.v; g('iM').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
       g('iOk').onclick = async () => {
-        const r = await api('/api/kid-invite', { name: g('iN').value.trim() || s.name + ' 가정', kids: [s.name], max });
+        const r = await api('/api/kid-invite', { name: g('iN').value.trim() || fam.join('·') + ' 가정', kids: fam, max });
         if (!r.ok) return toast(r.error || '만들지 못했어요');
-        toast('초대번호 ' + r.code + ' 만들었어요'); kidQr(r.code, g('iN').value.trim() || s.name + ' 가정', s.name, false);
+        toast('초대번호 ' + r.code + ' 만들었어요'); kidQr(r.code, g('iN').value.trim() || fam.join('·') + ' 가정', fam.join('·'), false);
       };
     });
   };
@@ -1824,6 +1845,8 @@ function kidEdit(s0, pre, after) {
     '<label class="f">입관일</label><input type="date" class="inp" id="eJoin" value="' + esc(s.joined || '') + '">' +
     '<label class="f">보호자</label><div class="chips" id="eGd">' + ['어머니', '아버지', '기타'].map(x => '<button data-v="' + x + '" class="' + (s.guardian === x ? 'on' : '') + '">' + x + '</button>').join('') + '</div>' +
     '<input class="inp" id="ePhone" inputmode="tel" placeholder="보호자 연락처" value="' + esc(s.phone) + '" style="margin-top:10px">' +
+    '<input class="inp" id="ePhone2" inputmode="tel" placeholder="다른 보호자 연락처 (예: 아빠, 없으면 비워 두기)" value="' + esc(s.phone2 || '') + '" style="margin-top:8px">' +
+    '<p class="help">학부모 앱은 이 번호들 뒷자리로만 가입할 수 있어요.</p>' +
     '<label class="f">출석번호 (태블릿에 누르는 4자리, 보통 연락처 뒷자리)</label><input class="inp" id="eNo" inputmode="numeric" maxlength="4" value="' + esc(s.no) + '">' +
     '<label class="f">어린이집·유치원 (유치부만)</label><input class="inp" id="eInst" value="' + esc(s.inst) + '">' +
     '<label class="f">메모</label><textarea class="inp" id="eMemo" rows="2">' + esc(s.memo) + '</textarea>' +
@@ -1837,7 +1860,7 @@ function kidEdit(s0, pre, after) {
     g('eNo').oninput = () => { noTouched = true; };
     if (!s0) setTimeout(() => g('eName').focus(), 60);
     g('eSave').onclick = async () => {
-      s.name = g('eName').value.replace(/\s+/g, ''); s.birth = +g('eBirth').value || ''; s.joined = g('eJoin').value; s.phone = g('ePhone').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4); s.inst = g('eInst').value.trim(); s.memo = g('eMemo').value.trim(); s.noAsk = g('eNoAsk').checked;
+      s.name = g('eName').value.replace(/\s+/g, ''); s.birth = +g('eBirth').value || ''; s.joined = g('eJoin').value; s.phone = g('ePhone').value.replace(/\D/g, ''); s.phone2 = g('ePhone2').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4); s.inst = g('eInst').value.trim(); s.memo = g('eMemo').value.trim(); s.noAsk = g('eNoAsk').checked;
       if (!s.name) return toast('이름을 적어 주세요');
       if (s.no && s.no.length !== 4) return toast('출석번호는 4자리로 적어 주세요');
       const dup = (S.kids || []).find(x => x.name === s.name && (!s0 || x.id !== s0.id) && x.status !== '퇴관');
@@ -1847,7 +1870,7 @@ function kidEdit(s0, pre, after) {
       else {
         if (s0.name !== s.name) h.push('이름 변경: ' + s0.name + ' → ' + s.name);
         if ((s0.days || []).join('') !== s.days.join('')) h.push('수련요일 변경: ' + ((s0.days || []).join('') || '없음') + ' → ' + (s.days.join('') || '없음'));
-        const ch = [['birth', '출생연도'], ['joined', '입관일'], ['guardian', '보호자'], ['phone', '연락처'], ['no', '출석번호'], ['inst', '어린이집·유치원'], ['memo', '메모']].filter(([k]) => String(s0[k] || '') !== String(s[k] || '')).map(([, n]) => n);
+        const ch = [['birth', '출생연도'], ['joined', '입관일'], ['guardian', '보호자'], ['phone', '연락처'], ['phone2', '연락처2'], ['no', '출석번호'], ['inst', '어린이집·유치원'], ['memo', '메모']].filter(([k]) => String(s0[k] || '') !== String(s[k] || '')).map(([, n]) => n);
         if (ch.length) h.push('정보 수정: ' + ch.join(', '));
       }
       const id = await saveKid(s, h, s0);

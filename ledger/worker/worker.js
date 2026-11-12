@@ -138,6 +138,10 @@ async function route(path, req, env) {
     }
     return json({ ok: true, at: last });
   }
+  if (path === '/api/team-families') { // 업무 앱 형제·자매 묶음 (장부 확인 알림용)
+    if (!owner) return json({ ok: false, error: '관리자만 볼 수 있어요' }, 403);
+    return json(await team(env, '/ledger/families', {}));
+  }
   if (path === '/api/fee-notice') { // 관리자: 5일 회비 안내 미리 보기 · 지난 기록
     if (!owner) return json({ ok: false, error: '관리자만 볼 수 있어요' }, 403);
     const plan = await feeNoticePlan(env), ym = kstToday().slice(0, 7);

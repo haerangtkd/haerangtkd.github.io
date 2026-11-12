@@ -176,7 +176,13 @@ async function route(path, req, env, ctx) {
   if (path.startsWith('/ledger/')) {
     if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
     if (path === '/ledger/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared, ledger FROM members ORDER BY name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared, ledger: !!m.ledger })) });
-    if (path === '/ledger/pin-check') {
+    if (path === '/ledger/families') { // 장부: 업무 앱 형제·자매 묶음 (확인 알림용, B안)
+    if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
+    const r = await attSync(env, '/sync/roster', { all: true, fam: true }); if (!r.ok) return json(r);
+    const g = {}; for (const x of r.students || []) if (x.famId && x.status !== '퇴관') (g[x.famId] = g[x.famId] || []).push(x.name);
+    return json({ ok: true, groups: Object.values(g).filter(a => a.length > 1) });
+  }
+  if (path === '/ledger/pin-check') {
       let m = await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
       if (m && !(await sameText(await pinHash(m.salt, b.pin), m.pin))) { await importTeachers(env, true).catch(() => {}); m = await one(env, 'SELECT * FROM members WHERE id = ?', m.id); }
       if (!m || !(await sameText(await pinHash(m.salt, b.pin), m.pin))) return json({ ok: false });
@@ -639,6 +645,19 @@ async function route(path, req, env, ctx) {
   }
   // 원생 화면: 학부모 앱 가족 초대번호(QR)·가입 상태 (알림 서버에 있음) — 2026-11-13
   if (path === '/api/kid-family') return json(await noticeSync(env, '/sync/kid-family', { name: str(b.name, 20) }));
+  if (path === '/api/kid-fam') { // 형제·자매 묶기 {sid, with} / 풀기 {sid, off}
+    if (me.shared) return json({ ok: false, error: '공용 계정으로는 바꿀 수 없어요' });
+    const r = await attSync(env, '/sync/students', {}); if (!r.ok) return json(r);
+    const L = r.students || [], a = L.find(x => x.id === str(b.sid, 60)); if (!a) return json({ ok: false, error: '원생을 찾지 못했어요' });
+    if (b.off) { await attSync(env, '/sync/fam-set', { sids: [a.id], famId: '', who: me.name }); const left = L.filter(x => x.famId && x.famId === a.famId && x.id !== a.id); if (left.length === 1) await attSync(env, '/sync/fam-set', { sids: [left[0].id], famId: '', who: me.name }); }
+    else {
+      const o = L.find(x => x.id === str(b.with, 60)); if (!o || o.id === a.id) return json({ ok: false, error: '묶을 원생을 골라 주세요' });
+      const fam = a.famId || o.famId || 'f' + rid(6), ids = L.filter(x => x.id === a.id || x.id === o.id || (x.famId && (x.famId === a.famId || x.famId === o.famId))).map(x => x.id);
+      await attSync(env, '/sync/fam-set', { sids: ids, famId: fam, who: me.name });
+    }
+    await addLog(env, me.id, 'pickup', '👨‍👩‍👧 형제·자매 ' + (b.off ? '묶음 풀기: ' + a.name : '묶음: ' + a.name), '');
+    return json({ ok: true });
+  }
   if (path === '/api/inv-tpl') { // 가족 초대 안내 문구 (관리자가 기본 문구 저장)
     if (b.tpl != null) { const nb = needBoss(); if (nb) return nb; await run(env, "INSERT INTO kv (k, v) VALUES ('invTpl', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", str(b.tpl, 2000)); return json({ ok: true }); }
     return json({ ok: true, tpl: ((await one(env, "SELECT v FROM kv WHERE k = 'invTpl'")) || {}).v || '' });

@@ -70,7 +70,7 @@ async function route(path, req, env) {
     if (path === '/sync/roster') {
       const list = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) }))
         .filter(s => s.name && (b.all || s.status !== '퇴관')) // all: 퇴관까지 (알림 앱 알림 멈춤·기네스 회원 상태용)
-        .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', ...(b.phones ? { phone: String(s.phone || '').replace(/\D/g, '') } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
+        .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', ...(b.phones ? { phones: [s.phone, s.phone2].map(v => String(v || '').replace(/\D/g, '')).filter(Boolean) } : {}), ...(b.fam ? { famId: s.famId || '' } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
       return json({ ok: true, students: list });
     }
     if (path === '/sync/day-absent') { // 업무 앱 등원표: 그날 결석(출석부 '결석' + 미리 연락 온 결석 예정)
@@ -142,6 +142,17 @@ async function route(path, req, env) {
         out.push(s.name);
       }
       return json({ ok: true, added: out });
+    }
+    if (path === '/sync/fam-set') { // 업무 앱: 형제·자매 묶기/풀기 {sids, famId}
+      const ids = (Array.isArray(b.sids) ? b.sids : []).slice(0, 10).map(x => str(x, 60)), fam = str(b.famId, 40), now = Date.now(), st = [];
+      for (const id of ids) {
+        const r = await one(env, 'SELECT data FROM students WHERE id = ?', id); if (!r) continue;
+        const d = J(r.data, {}); if ((d.famId || '') === fam) continue; d.famId = fam;
+        st.push(q(env, 'UPDATE students SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), now, id));
+        st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), id, '', now, fam ? '형제·자매 묶음' : '형제·자매 묶음 풀기', str(b.who, 20) || '업무 앱'));
+      }
+      if (st.length) await env.DB.batch(st);
+      return json({ ok: true });
     }
     if (path === '/sync/staff-gone') { // 업무 앱에서 직원을 지우면 출석부 로그인도 끝
       const tid = 'm:' + str(b.mid, 40);
@@ -442,6 +453,8 @@ function cleanStudent(s) {
     no: str(s.no, 4).replace(/\D/g, ''),
     guardian: str(s.guardian, 10),
     phone: str(s.phone, 20).replace(/[^0-9]/g, ''),
+    phone2: str(s.phone2, 20).replace(/[^0-9]/g, ''), // 다른 보호자 연락처 (학부모 앱 가입 확인용, 2026-11-13)
+    famId: str(s.famId, 40), // 형제·자매 묶음 (업무 앱에서 묶음, 2026-11-13)
     inst: str(s.inst, 20),
     leavePeriods: (Array.isArray(s.leavePeriods) ? s.leavePeriods : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end) })).filter(p => p.start || p.end),
     temporarySchedules: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end), days: days(p.days) })).filter(p => p.start),
