@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="해랑 업무">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
+  :root{--sat:max(env(safe-area-inset-top),var(--satjs,0px))} /* 아이폰 홈 화면 앱에서 위쪽 높이가 0으로 오는 때가 있어 기종별 높이로 대신 (2026-11-13) */
   :root{--brand:#0D326F;--brand2:#09244F;--brand3:#1E4C97;--soft:#E8EEF8;--soft2:#D3DEF1;--red:#A40F16;--ink:#1D2330;--muted:#7B8294;--paper:#F3F5F9;--card:#fff;--line:#E2E6EE;--chip:#EEF1F6;--ok:#1E8A5A;--okbg:#DDF3E7;--no:#C62828;--nobg:#FCE4E4;--org:#E0861F;--yel:#FFF5D9}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
@@ -23,7 +24,7 @@
   input,select,textarea{font:inherit;color:var(--ink)}
   svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
   /* 위 띠 */
-  .top{position:sticky;top:0;z-index:20;background:#fff;color:var(--ink);padding:env(safe-area-inset-top) 8px 0 16px;display:flex;align-items:center;gap:2px;height:calc(58px + env(safe-area-inset-top))}
+  .top{position:sticky;top:0;z-index:20;background:#fff;color:var(--ink);padding:var(--sat) 8px 0 16px;display:flex;align-items:center;gap:2px;height:calc(58px + var(--sat))}
   #topBtns{display:flex;gap:2px}
   .top h1{font-size:24px;font-weight:900;letter-spacing:-.5px;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .top small{font-size:12px;opacity:.75;margin-right:6px}
@@ -110,7 +111,7 @@
   .notice b{flex:1;font-weight:500}
   /* 채팅 */
   #v-room{display:flex;flex-direction:column}
-  #nbar{position:sticky;top:calc(58px + env(safe-area-inset-top));z-index:15;margin:0 -14px}
+  #nbar{position:sticky;top:calc(58px + var(--sat));z-index:15;margin:0 -14px}
   .nbar{background:#fff;border-bottom:1px solid var(--line);padding:9px 14px;display:flex;gap:10px;align-items:center;font-size:14px;cursor:pointer;box-shadow:0 2px 6px rgba(20,30,60,.05)}
   .nbar svg.i{color:var(--brand);width:20px;height:20px}
   .nbar span{flex:1;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all}
@@ -174,7 +175,7 @@
   body.chatmode .top{position:fixed;left:0;right:0;top:var(--vt,0px)}
   body.chatmode nav.tabs,body.chatmode .fab{display:none}
   body.chatmode .wrap{padding:0}
-  body.chatmode #v-room{position:fixed;left:0;right:0;max-width:720px;margin:0 auto;top:calc(var(--vt,0px) + 58px + env(safe-area-inset-top));height:calc(var(--vh,100dvh) - 58px - env(safe-area-inset-top));display:flex;flex-direction:column;background:var(--paper)}
+  body.chatmode #v-room{position:fixed;left:0;right:0;max-width:720px;margin:0 auto;top:calc(var(--vt,0px) + 58px + var(--sat));height:calc(var(--vh,100dvh) - 58px - var(--sat));display:flex;flex-direction:column;background:var(--paper)}
   body.chatmode #nbar{position:static;margin:0}
   body.chatmode .msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px 14px 12px}
   body.chatmode .msgs>:first-child{margin-top:auto}
@@ -211,7 +212,7 @@
   .av.xs{width:24px;height:24px;border-radius:50%;font-size:11.5px}
   .av{font-size:11px}.av.l{font-size:13.5px}.av.rm{font-size:15px}
   /* 업무 상세 */
-  .shead.lt{position:sticky;top:0;z-index:5;background:#fff;margin:0 -16px 4px;padding:calc(6px + env(safe-area-inset-top)) 8px 6px}
+  .shead.lt{position:sticky;top:0;z-index:5;background:#fff;margin:0 -16px 4px;padding:calc(6px + var(--sat)) 8px 6px}
   .sheet.full .shead.lt{background:#fff;color:var(--ink);border-bottom:1px solid var(--line)}
   .shead.lt .sp{flex:1}.shead .tb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
   .donebtn{font-size:15px;font-weight:700;color:var(--muted);padding:6px 14px;border-radius:99px;border:1px solid var(--line)}
@@ -232,7 +233,7 @@
   .foot .inp{flex:1;min-width:0}
   /* 달력 (캘린더 앱처럼 칸에 색 막대) */
   body.calmode .wrap{padding:0 0 calc(64px + env(safe-area-inset-bottom));max-width:none}
-  .tcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:28px repeat(var(--wk),minmax(84px,calc((100dvh - 58px - 28px - 66px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / var(--wk))));background:#fff;border-top:1px solid var(--line)}
+  .tcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:28px repeat(var(--wk),minmax(84px,calc((100dvh - 58px - 28px - 66px - var(--sat) - env(safe-area-inset-bottom)) / var(--wk))));background:#fff;border-top:1px solid var(--line)}
   .tcal .w{text-align:center;font-size:13px;color:var(--muted);line-height:28px;border-bottom:1px solid var(--line)}
   .tcal .w.su,.dc.su em{color:var(--no)}.tcal .w.sa,.dc.sa em{color:#2F6FDE}
   .dc{border-right:1px solid #EEF0F5;border-bottom:1px solid #EEF0F5;padding:3px 2px;overflow:hidden;cursor:pointer;min-width:0}
@@ -318,7 +319,7 @@
   .ov.dr{align-items:stretch;justify-content:flex-end}
   .sheet.drawer{width:86%;max-width:380px;max-height:none;height:100%;border-radius:0;padding:0;animation:slide .18s ease-out;display:flex;flex-direction:column}
   @keyframes slide{from{transform:translateX(40px);opacity:.6}to{transform:none;opacity:1}}
-  .drh{background:var(--brand3);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 8px 14px;display:grid;grid-template-columns:repeat(4,1fr)}
+  .drh{background:var(--brand3);color:#fff;padding:calc(14px + var(--sat)) 8px 14px;display:grid;grid-template-columns:repeat(4,1fr)}
   .drh button{color:#fff;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13.5px}
   .drh button svg.i{width:28px;height:28px;stroke-width:1.5}
   .drb{flex:1;overflow:auto;padding:14px 16px}
@@ -407,7 +408,7 @@
   .ov{position:fixed;inset:0;background:rgba(15,22,40,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
   .sheet{background:#fff;width:100%;max-width:720px;max-height:92vh;max-height:92dvh;overflow:auto;border-radius:22px 22px 0 0;padding:20px 16px calc(18px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;animation:up .16s ease-out}
   .sheet.full{max-height:100vh;height:100vh;max-height:100dvh;height:100dvh;border-radius:0;padding-top:0}
-  .sheet.full .shead{position:sticky;top:0;z-index:5;background:var(--brand);color:#fff;margin:0 -16px 8px;padding:calc(10px + env(safe-area-inset-top)) 12px 12px}
+  .sheet.full .shead{position:sticky;top:0;z-index:5;background:var(--brand);color:#fff;margin:0 -16px 8px;padding:calc(10px + var(--sat)) 12px 12px}
   .sheet.full .shead .btn{background:rgba(255,255,255,.15);color:#fff}
   @keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
   .sheet h2{font-size:21px;font-weight:900;margin-bottom:4px}
@@ -449,7 +450,7 @@
   .br.done .ck{background:var(--brand);border-color:var(--brand)}
   .br.done input.n{text-decoration:line-through;color:#A5ACBA}
   .defrow{display:flex;align-items:flex-start;gap:8px;margin-top:8px}.defrow b{width:24px;flex:none;padding-top:6px}
-  .login{max-width:420px;margin:0 auto;padding:calc(60px + env(safe-area-inset-top)) 22px 40px;text-align:center}
+  .login{max-width:420px;margin:0 auto;padding:calc(60px + var(--sat)) 22px 40px;text-align:center}
   .login img{width:84px;height:84px;border-radius:22px}
   .login h1{font-size:25px;font-weight:900;margin-top:14px;color:var(--brand)}
   .login p{color:var(--muted);font-size:14.5px;margin-top:4px}
@@ -466,6 +467,20 @@
 </style>
 </head>
 <body>
+<script>
+(function () { // 아이폰 홈 화면 앱: 시계·배터리 줄 높이(safe-area)가 0으로 오면 기종에 맞게 비워 둠
+  var ios = /iPhone|iPod/.test(navigator.userAgent), st = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if (!ios || !st) return;
+  function fix() {
+    var p = document.createElement('div'); p.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
+    document.body.appendChild(p); var h = p.getBoundingClientRect().height; p.remove();
+    var H = Math.max(screen.height, screen.width), fb = H >= 852 ? 59 : H >= 812 ? 47 : 20;
+    document.documentElement.style.setProperty('--satjs', (h > 0 ? 0 : fb) + 'px');
+  }
+  fix(); addEventListener('resize', fix); addEventListener('orientationchange', function () { setTimeout(fix, 300); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(fix, 100); });
+})();
+</script>
 
 <section class="login" id="loginView" hidden>
   <img src="icon-192.png" alt="">
