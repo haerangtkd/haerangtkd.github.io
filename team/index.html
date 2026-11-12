@@ -1810,13 +1810,14 @@ function staffEdit(m) {
     '<label class="f">이름</label><input class="inp" id="seN" maxlength="12" value="' + esc(m ? m.name : '') + '" placeholder="예: 홍길동">' +
     '<label class="f">직책</label><div class="chips" id="seR">' + roles.map(r => '<button data-r="' + esc(r) + '" class="' + (role === r ? 'on' : '') + '">' + esc(r) + '</button>').join('') + '<button data-r="">없음</button></div>' +
     (!m ? '<label class="f">처음 PIN (숫자 4~6자리, 직원이 들어가서 바로 바꿔요)</label><input class="inp" id="seP" inputmode="numeric" maxlength="6" autocomplete="new-password">' : '') +
-    (m && !m.shared ? '<label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:15px"><input type="checkbox" id="seB"' + (m.boss ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 관리자 (직원·청소·학부모 연락 버튼·태블릿 설정)</label>' : '') +
+    (m && !m.shared ? '<label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:15px"><input type="checkbox" id="seB"' + (m.boss ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 관리자 (직원·청소·학부모 연락 버튼·태블릿 설정)</label>' : '' : '') +
+    (m && !m.shared ? '<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:15px"><input type="checkbox" id="seL"' + (m.ledger || m.boss ? ' checked' : '') + (m.boss ? ' disabled' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 장부 직원 입력 (회비 확인·납부 입력, 관리자 승인)' + (m.boss ? ' — 관리자는 장부 전체' : '') + '</label>' : '') +
     '<div class="foot">' + (m && !isMe ? '<button class="del" id="seX">삭제</button><button id="seP2">PIN 새로</button>' : '') + '<span class="sp"></span><button data-close>취소</button><button class="save" id="seOk">' + (m ? '저장' : '등록') + '</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
     g('seR').onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; role = b.dataset.r; g('seR').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.r === role && !!role)); };
     g('seOk').onclick = async () => {
       const name = g('seN').value.trim(); if (!name) return toast('이름을 적어 주세요');
-      const j = m ? await api('/api/member-edit', { mid: m.id, name, role, ...(g('seB') ? { boss: g('seB').checked } : {}) }) : await api('/api/member-add', { name, role, pin: g('seP').value });
+      const j = m ? await api('/api/member-edit', { mid: m.id, name, role, ...(g('seB') ? { boss: g('seB').checked } : {}), ...(g('seL') && !g('seL').disabled ? { ledger: g('seL').checked } : {}) }) : await api('/api/member-add', { name, role, pin: g('seP').value });
       if (!j.ok) return toast(j.error); toast(m ? '저장했어요' : name + '님을 등록했어요. 처음 PIN을 알려 주세요'); await sync(); settingsSheet();
     };
     if (g('seX')) g('seX').onclick = async () => { if (!confirm(m.name + '님을 지울까요?')) return; const j = await api('/api/member-del', { mid: m.id }); toast(j.ok ? '지웠어요' : j.error); await sync(); settingsSheet(); };

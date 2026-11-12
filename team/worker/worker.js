@@ -95,7 +95,7 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   if (!mcols.includes('asrc')) { try { await env.DB.prepare('ALTER TABLE members ADD COLUMN asrc TEXT').run(); } catch (_) {} } // 출석부 PIN(암호화 값)을 마지막으로 가져온 것
   // boss: 직원 관리 권한(이사범님) · role: 직책 · mustpin: 처음 들어오면 PIN 바꾸기 · aid: 출석부 사범님 id · shared: 공용 계정
-  for (const [c, t] of [['boss', 'INTEGER DEFAULT 0'], ['role', 'TEXT'], ['mustpin', 'INTEGER DEFAULT 0'], ['aid', 'TEXT'], ['shared', 'INTEGER DEFAULT 0']])
+  for (const [c, t] of [['boss', 'INTEGER DEFAULT 0'], ['role', 'TEXT'], ['mustpin', 'INTEGER DEFAULT 0'], ['aid', 'TEXT'], ['shared', 'INTEGER DEFAULT 0'], ['ledger', 'INTEGER DEFAULT 0']])
     if (!mcols.includes(c)) { try { await env.DB.prepare('ALTER TABLE members ADD COLUMN ' + c + ' ' + t).run(); } catch (_) {} }
   ready = true;
   await migrate2026(env).catch(() => {});
@@ -175,12 +175,12 @@ async function route(path, req, env, ctx) {
   // ═════════ 장부 서버에서 부름 — 서비스 바인딩으로만 (주소 이름이 'team'인 요청은 바깥에서 올 수 없음) ═════════
   if (path.startsWith('/ledger/')) {
     if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
-    if (path === '/ledger/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared FROM members ORDER BY name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared })) });
+    if (path === '/ledger/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared, ledger FROM members ORDER BY name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared, ledger: !!m.ledger })) });
     if (path === '/ledger/pin-check') {
       let m = await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
       if (m && !(await sameText(await pinHash(m.salt, b.pin), m.pin))) { await importTeachers(env, true).catch(() => {}); m = await one(env, 'SELECT * FROM members WHERE id = ?', m.id); }
       if (!m || !(await sameText(await pinHash(m.salt, b.pin), m.pin))) return json({ ok: false });
-      return json({ ok: true, id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared });
+      return json({ ok: true, id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared, ledger: !!m.ledger });
     }
     return json({ ok: false, error: 'not found' }, 404);
   }
@@ -316,6 +316,7 @@ async function route(path, req, env, ctx) {
     const name = str(b.name, 12).trim(); if (!name) return json({ ok: false, error: '이름을 적어 주세요' });
     if (name !== m.name) { if (await one(env, 'SELECT id FROM members WHERE name = ? AND id <> ?', name, m.id)) return json({ ok: false, error: '같은 이름이 이미 있어요' }); await renameMember(env, m.id, m.name, name); }
     await run(env, 'UPDATE members SET role = ? WHERE id = ?', str(b.role, 20), m.id);
+    if (typeof b.ledger === 'boolean') await run(env, 'UPDATE members SET ledger = ? WHERE id = ?', b.ledger ? 1 : 0, m.id); // 장부 '직원이에요' 허락
     if (typeof b.boss === 'boolean') { // 관리자 지정 (관리자가 한 명은 남아야 함)
       if (!b.boss && (await one(env, 'SELECT COUNT(*) AS n FROM members WHERE boss = 1 AND id <> ?', m.id)).n < 1) return json({ ok: false, error: '관리자가 한 명은 있어야 해요' });
       await run(env, 'UPDATE members SET boss = ? WHERE id = ?', b.boss ? 1 : 0, m.id);
@@ -459,7 +460,7 @@ async function route(path, req, env, ctx) {
   if (path === '/api/sync') {
     const since = Math.max(0, Number(b.since) || 0), lastMsg = Math.max(0, b.lastMsg | 0), first = !since;
     const [members, msgs, items, comments, pickup, logs] = await Promise.all([
-      all(env, 'SELECT id, name, role, boss, shared FROM members ORDER BY shared, created'),
+      all(env, 'SELECT id, name, role, boss, shared, ledger FROM members ORDER BY shared, created'),
       first ? all(env, 'SELECT * FROM (SELECT id, mid, text, photo, refs, reply, rx, upd, at, room, ed FROM msgs WHERE (room IS NULL OR room = \'\' OR instr(room, ?) > 0) ORDER BY id DESC LIMIT 300) ORDER BY id', me.id) : all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room, ed FROM msgs WHERE (id > ? OR (upd > ? AND id <= ?)) AND (room IS NULL OR room = \'\' OR instr(room, ?) > 0) ORDER BY id LIMIT 300', lastMsg, since, lastMsg, me.id),
       all(env, 'SELECT id, type, data, upd, del, mid FROM items WHERE upd > ?' + (first ? ' AND del = 0' : ''), since),
       all(env, 'SELECT id, item, mid, text, at FROM comments WHERE at > ?', since),

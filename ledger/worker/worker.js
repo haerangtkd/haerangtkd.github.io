@@ -1,7 +1,7 @@
 // 해랑 장부 서버 (haerang-ledger) — 2026-11-12
 // 필요한 설정(바인딩): D1 DB → haerang-ledger, Service TEAM → haerang-team, Service NOTICE → haerang-push(관리자 비밀번호 확인)
 // 기기 등록: 폰에 처음 깔면 관리자 비밀번호(알림 앱 ADMIN_PASSWORD, 알림 서버가 확인) 한 번 → 이 기기에서 관리자가 PIN으로 장부 전체를 열 수 있음.
-// 로그인은 열 때마다 PIN (12시간 지나면 다시). 관리자(boss) = 장부 전체(등록된 기기에서만), '직원이에요' = 관리자가 허락한 직원만, 직원 화면(회원 조회·입력 → 관리자 승인).
+// 로그인은 열 때마다 PIN (12시간 지나면 다시). 관리자(boss) = 장부 전체(등록된 기기에서만), '직원이에요' = 업무 앱 직원 수정에서 '장부 직원 입력'을 켠 직원만, 직원 화면(회원 조회·입력 → 관리자 승인).
 // 공용 계정은 못 들어옴.
 // 데이터: 예전 claude.ai 아티팩트 장부와 같은 모양의 문서(경로 'members/abc')를 그대로 저장.
 const SCHEMA = [
@@ -53,7 +53,7 @@ async function route(path, req, env) {
   if (path === '/') return json({ ok: true, app: '해랑 장부' });
   if (path === '/api/members') {
     const r = await team(env, '/ledger/members', {});
-    return json(r.ok ? { ok: true, members: (r.members || []).filter(m => !m.shared).map(m => ({ id: m.id, name: m.name, boss: !!m.boss })) } : r);
+    return json(r.ok ? { ok: true, members: (r.members || []).filter(m => !m.shared).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, ledger: !!m.ledger })) } : r);
   }
   if (path === '/api/device') { // 이 기기를 관리자 기기로 등록 (장부 비밀번호)
     const k = 'dev:' + ip, lu = await lockUntil(env, k);
@@ -80,8 +80,8 @@ async function route(path, req, env) {
       if (!d) return json({ ok: false, error: '이 기기는 아직 등록되지 않았어요. 장부 비밀번호를 먼저 넣어 주세요', device: true }, 403);
       await run(env, 'UPDATE devices SET used = ? WHERE tok = ?', Date.now(), d.tok); role = 'owner';
     } else {
-      const allow = J((await one(env, "SELECT data FROM docs WHERE path = 'config/staff' AND del = 0") || {}).data, {}) || {};
-      if (!r.boss && !(Array.isArray(allow.ids) && allow.ids.includes(r.id))) return json({ ok: false, error: '아직 장부 사용을 허락받지 않았어요. 관리자에게 말해 주세요' }, 403);
+      // 허락은 업무 앱 관리자 → 직원 수정의 '장부 직원 입력' 체크 (members.ledger)
+      if (!r.boss && !r.ledger) return json({ ok: false, error: '아직 장부 사용을 허락받지 않았어요. 관리자에게 말해 주세요' }, 403);
       role = 'staff';
     }
     const tok = rid(24);

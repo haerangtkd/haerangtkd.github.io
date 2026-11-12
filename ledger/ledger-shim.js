@@ -1,7 +1,7 @@
 // 해랑 장부 — 예전 claude.ai 아티팩트 장부 화면을 그대로 쓰기 위한 연결 (2026-11-12)
 // window.claude.use('db' | 'downloads' | 'sample') 를 장부 서버(haerang-ledger)로 바꿔 준다.
 // 로그인: 폰에 처음 깔면 관리자 비밀번호(알림 앱 ADMIN_PASSWORD)로 기기 등록(한 번) → 그 뒤 관리자는 열 때마다 PIN = 'owner'(장부 전체).
-// '직원이에요' → 관리자가 허락한 직원이 PIN = 'staff'(회원 조회·입력, 관리자 승인 뒤 반영, 합계 없음).
+// '직원이에요' → 업무 앱 직원 수정에서 '장부 직원 입력'을 켠 직원이 PIN = 'staff'(회원 조회·입력, 관리자 승인 뒤 반영, 합계 없음).
 (function () {
   const API = (window.HAERANG_LEDGER_API || '').replace(/\/$/, '');
   const TK = 'haerang-ledger-tok', DK = 'haerang-ledger-dev';
@@ -94,34 +94,10 @@
     await sync();
     window.claude = { use: async n => (n === 'db' ? DB : n === 'downloads' ? DL : null) };
     readyRes();
-    if (j.role === 'owner') addStaffButton();
   }
   // 화면을 3분 넘게 떠나 있으면 다시 PIN (보안)
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => { if (document.hidden) hiddenAt = Date.now(); else if (tok && hiddenAt && Date.now() - hiddenAt > 180000) logout(); });
-
-  // ── 관리자: 직원 권한 (장부 '직원이에요'로 들어올 수 있는 사람) ──
-  function addStaffButton() {
-    const lock = document.getElementById('lockBtn'); if (!lock || document.getElementById('hlStaffBtn')) return;
-    const b = document.createElement('button'); b.id = 'hlStaffBtn'; b.type = 'button'; b.textContent = '직원 권한'; b.style.marginRight = '6px';
-    lock.parentNode.insertBefore(b, lock); b.onclick = staffPanel;
-  }
-  async function staffPanel() {
-    const ov = document.createElement('div');
-    ov.setAttribute('style', 'position:fixed;inset:0;z-index:98;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;font:15px -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif');
-    ov.innerHTML = '<div style="background:#fff;color:#1d2433;width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 18px 28px;max-height:80vh;overflow:auto"><h3 style="margin:0 0 4px">직원 권한</h3><p style="margin:0 0 12px;color:#667085;font-size:13.5px">체크한 직원만 \'직원이에요\'로 장부에 들어와 회원 조회(이번 달 납부 여부)와 입력을 할 수 있어요. 입력은 관리자가 승인해야 반영되고, 합계·거래 목록은 안 보여요.</p><div id="hlSL">불러오는 중…</div><div style="display:flex;gap:8px;margin-top:14px"><button type="button" id="hlSX" style="flex:1;padding:12px;border:1px solid #d0d5dd;border-radius:10px;background:#fff">닫기</button><button type="button" id="hlSS" style="flex:1;padding:12px;border:0;border-radius:10px;background:#1E2A3A;color:#fff;font-weight:700">저장</button></div></div>';
-    document.body.appendChild(ov);
-    const q = id => ov.querySelector('#' + id);
-    q('hlSX').onclick = () => ov.remove();
-    const j = await fetch(API + '/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()).catch(() => ({ ok: false }));
-    if (!j.ok) { q('hlSL').textContent = '직원 목록을 불러오지 못했어요'; return; }
-    const cur = ((cache.config || {}).staff || {}).ids || [];
-    q('hlSL').innerHTML = j.members.map(m => '<label style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid #f1f2f5"><input type="checkbox" data-id="' + m.id + '"' + (m.boss ? ' checked disabled' : cur.includes(m.id) ? ' checked' : '') + ' style="width:20px;height:20px"><span>' + m.name.replace(/[<>&"]/g, '') + (m.boss ? ' <small style="color:#98a2b3">관리자</small>' : '') + '</span></label>').join('');
-    q('hlSS').onclick = async () => {
-      const ids = [...ov.querySelectorAll('input[data-id]:not([disabled])')].filter(x => x.checked).map(x => x.dataset.id);
-      try { await write('set', 'config/staff', { ids, at: new Date().toISOString() }); ov.remove(); } catch (e) { alert((e && e.message) || '저장하지 못했어요'); }
-    };
-  }
 
   // ── 로그인 화면: 기기 등록(장부 비밀번호, 한 번) → 관리자 PIN / '직원이에요' → 직원 PIN ──
   function loginScreen(mode) {
@@ -154,7 +130,7 @@
     let who = '';
     fetch(API + '/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()).then(j => {
       if (!j.ok) { msg(j.error || '직원 목록을 불러오지 못했어요'); return; }
-      const list = mode === 'owner' ? j.members.filter(m => m.boss) : j.members;
+      const list = mode === 'owner' ? j.members.filter(m => m.boss) : j.members.filter(m => m.boss || m.ledger);
       $('hlWho').innerHTML = list.map(m => '<button type="button" data-id="' + m.id + '" style="padding:10px 14px;border:1px solid #d0d5dd;border-radius:99px;background:#fff;font-size:15px">' + m.name.replace(/[<>&"]/g, '') + '</button>').join('');
     }).catch(() => msg('인터넷 연결을 확인해 주세요'));
     $('hlWho').onclick = e => { const b = e.target.closest('[data-id]'); if (!b) return; who = b.dataset.id; [...$('hlWho').children].forEach(x => { const on = x === b; x.style.background = on ? '#1E2A3A' : '#fff'; x.style.color = on ? '#fff' : ''; }); $('hlPin').focus(); };
