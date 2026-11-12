@@ -197,7 +197,9 @@
 
 ### 장부 앱 `ledger/` (2026-11-13, claude.ai 아티팩트 장부를 옮김)
 - 화면: 예전 아티팩트 장부 HTML을 거의 그대로(`ledger/index.html`). `ledger-shim.js`가 `window.claude.use('db'|'downloads'|'sample')`을 장부 서버로 바꿔 줌(문서 경로 `members/…`, `ledger/YYYY-MM`, `config/main` 등 그대로, `update`는 안쪽까지 합침, 20초마다·화면 돌아올 때 바뀐 것만 받음). 'sample'(AI 해석)은 없음 → 앱이 알아서 '간단 해석 모드'(단어로 알아듣기).
-- 로그인: 업무 앱 이름 + PIN → 장부 서버 `/api/login` → 업무 서버 `/ledger/pin-check`(서비스 바인딩으로만, 주소 이름이 'team'일 때만 받음 — SYNC_KEY 필요 없음). **관리자(boss) = owner(장부 전체), 다른 직원 = staff(직원 입력만, 관리자 승인)**, 공용 계정은 못 들어옴(사용자 결정). 예전 장부 비밀번호 화면은 안 씀.
+- 로그인(2026-11-13 사용자 결정): **폰에 처음 깔면 장부 비밀번호(장부 설정의 그 비밀번호, config/main pwHash)로 기기 등록 한 번**(`/api/device`, 표 `devices`, localStorage `haerang-ledger-dev`. 장부가 비어 있을 때만 비밀번호 없이 등록) → 그 기기에서 **관리자(boss)는 열 때마다 이름 + 업무 앱 PIN**(`/api/login {as:'owner', dev}`). 로그인은 sessionStorage에만(앱을 닫거나 3분 넘게 떠나면 다시 PIN, 서버 세션 12시간).
+- **'직원이에요'**: 관리자가 장부 위 '직원 권한'에서 체크한 직원만(`config/staff {ids}`) 이름 + PIN → staff. 직원 화면 = 입력 + 회원 조회(이번 달 납부 여부), 입력은 승인 대기(`pending`)로만 → 관리자 승인. 합계·거래 목록 없음. 서버도 직원에게 ledger는 **회비(kind 'fee') 기록만** 주고 울산페이·메모·승인 대기는 안 줌.
+- PIN 확인은 업무 서버 `/ledger/pin-check`(서비스 바인딩으로만, 주소 이름이 'team'일 때만 받음 — SYNC_KEY 필요 없음). 공용 계정은 못 들어옴. 예전 장부의 비밀번호 잠금 화면은 안 씀.
 - 서버 `haerang-ledger` · D1 `haerang-ledger`(바인딩 DB, Service TEAM → haerang-team). 표 `docs(path, coll, data, upd, del)`, `sessions`, `fails`. 직원은 서버에서도 config(비밀번호 칸 뺌)·members·families만 읽고 `pending/*` 새로 쓰기만 됨. 회비 자동 생성은 관리자 화면에서만.
 - 데이터 옮기기: 아티팩트 장부 → 백업 JSON 내려받기 → 새 장부(관리자) 설정 → 백업 파일로 복원. 그 뒤 회원·거래 수, 이번 달 수입·미납 비교. **장부 데이터는 저장소에 넣지 않는다.**
 - 남은 일: 매달 5일 미납 가정에 학부모 앱 자동 안내(독촉 아님, '매달 5일 자동 안내'), 알림 앱 회비 탭 납부 표시는 관리자만.

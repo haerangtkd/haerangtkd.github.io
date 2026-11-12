@@ -1,16 +1,19 @@
 // 해랑 장부 서버 (haerang-ledger) — 2026-11-12
 // 필요한 설정(바인딩): D1 DB → haerang-ledger, Service TEAM → haerang-team
-// 로그인: 업무 앱 이름 + PIN (업무 서버가 확인). 관리자(boss) = 장부 전체, 다른 직원 = 직원 입력(승인 대기)만, 공용 계정은 못 들어옴.
+// 기기 등록: 폰에 처음 깔면 장부 비밀번호(장부 설정의 비밀번호) 한 번 → 이 기기에서 관리자가 PIN으로 장부 전체를 열 수 있음.
+// 로그인은 열 때마다 PIN (12시간 지나면 다시). 관리자(boss) = 장부 전체(등록된 기기에서만), '직원이에요' = 관리자가 허락한 직원만, 직원 화면(회원 조회·입력 → 관리자 승인).
+// 공용 계정은 못 들어옴.
 // 데이터: 예전 claude.ai 아티팩트 장부와 같은 모양의 문서(경로 'members/abc')를 그대로 저장.
 const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS docs (path TEXT PRIMARY KEY, coll TEXT, data TEXT, upd INTEGER, del INTEGER DEFAULT 0)',
   'CREATE INDEX IF NOT EXISTS docs_upd ON docs (upd)',
   'CREATE TABLE IF NOT EXISTS sessions (tok TEXT PRIMARY KEY, mid TEXT, name TEXT, role TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS fails (ip TEXT PRIMARY KEY, n INTEGER, until INTEGER, at INTEGER)',
+  'CREATE TABLE IF NOT EXISTS devices (tok TEXT PRIMARY KEY, created INTEGER, used INTEGER)',
 ];
 const COLLS = ['config', 'members', 'families', 'ledger', 'pending', 'notes', 'ulsanpay', 'snapshots'];
-const STAFF_READ = ['config', 'members', 'families']; // 직원 입력에 필요한 것만 (거래·울산페이·메모는 안 보임)
-const SESSION_DAYS = 180;
+const STAFF_READ = ['config', 'members', 'families', 'ledger']; // 직원 화면에 필요한 것만 (ledger는 회비 기록만, 울산페이·메모·승인 대기는 안 보임)
+const SESSION_HOURS = 12;
 
 export default {
   async fetch(req, env, ctx) {
@@ -50,7 +53,16 @@ async function route(path, req, env) {
   if (path === '/') return json({ ok: true, app: '해랑 장부' });
   if (path === '/api/members') {
     const r = await team(env, '/ledger/members', {});
-    return json(r.ok ? { ok: true, members: (r.members || []).filter(m => !m.shared).map(m => ({ id: m.id, name: m.name })) } : r);
+    return json(r.ok ? { ok: true, members: (r.members || []).filter(m => !m.shared).map(m => ({ id: m.id, name: m.name, boss: !!m.boss })) } : r);
+  }
+  if (path === '/api/device') { // 이 기기를 관리자 기기로 등록 (장부 비밀번호)
+    const k = 'dev:' + ip, lu = await lockUntil(env, k);
+    if (lu) return json({ ok: false, error: lockText(lu) }, 429);
+    const cfg = J((await one(env, "SELECT data FROM docs WHERE path = 'config/main' AND del = 0") || {}).data, null);
+    if (cfg && cfg.pwHash && (await sha(cfg.pwSalt + ':' + String(b.pw || ''))) !== cfg.pwHash) return json({ ok: false, error: failText('장부 비밀번호가 맞지 않아요', await failAdd(env, k)) }, 401);
+    await failClear(env, k);
+    const tok = rid(24); await run(env, 'INSERT INTO devices (tok, created, used) VALUES (?, ?, ?)', tok, Date.now(), Date.now());
+    return json({ ok: true, dev: tok, first: !cfg });
   }
   if (path === '/api/login') {
     const k = 'pin:' + ip, lu = await lockUntil(env, k);
@@ -59,14 +71,24 @@ async function route(path, req, env) {
     if (r.error) return json({ ok: false, error: r.error }, 503);
     if (!r.ok || r.shared) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, k)) }, 401);
     await failClear(env, k);
-    const tok = rid(24), role = r.boss ? 'owner' : 'staff';
+    let role;
+    if (b.as === 'owner') {
+      if (!r.boss) return json({ ok: false, error: '관리자만 장부 전체를 열 수 있어요. 아래 \'직원이에요\'로 들어가 주세요' }, 403);
+      const d = await one(env, 'SELECT tok FROM devices WHERE tok = ?', str(b.dev, 64));
+      if (!d) return json({ ok: false, error: '이 기기는 아직 등록되지 않았어요. 장부 비밀번호를 먼저 넣어 주세요', device: true }, 403);
+      await run(env, 'UPDATE devices SET used = ? WHERE tok = ?', Date.now(), d.tok); role = 'owner';
+    } else {
+      const allow = J((await one(env, "SELECT data FROM docs WHERE path = 'config/staff' AND del = 0") || {}).data, {}) || {};
+      if (!r.boss && !(Array.isArray(allow.ids) && allow.ids.includes(r.id))) return json({ ok: false, error: '아직 장부 사용을 허락받지 않았어요. 관리자에게 말해 주세요' }, 403);
+      role = 'staff';
+    }
+    const tok = rid(24);
     await run(env, 'INSERT INTO sessions (tok, mid, name, role, created) VALUES (?, ?, ?, ?, ?)', tok, r.id, r.name, role, Date.now());
     return json({ ok: true, tok, name: r.name, role });
   }
   // ── 아래는 로그인 필요 ──
   const s = b.tok ? await one(env, 'SELECT * FROM sessions WHERE tok = ?', str(b.tok, 64)) : null;
-  if (!s || s.created < Date.now() - SESSION_DAYS * 86400e3) return json({ ok: false, relogin: true, error: '다시 로그인해 주세요' }, 401);
-  if (s.created < Date.now() - 86400e3) await run(env, 'UPDATE sessions SET created = ? WHERE tok = ?', Date.now(), s.tok);
+  if (!s || s.created < Date.now() - SESSION_HOURS * 3600e3) { if (s) await run(env, 'DELETE FROM sessions WHERE tok = ?', s.tok); return json({ ok: false, relogin: true, error: '다시 PIN을 넣어 주세요' }, 401); }
   const owner = s.role === 'owner';
   const canRead = c => owner || STAFF_READ.includes(c);
   if (path === '/api/logout') { await run(env, 'DELETE FROM sessions WHERE tok = ?', s.tok); return json({ ok: true }); }
@@ -77,6 +99,7 @@ async function route(path, req, env) {
     const docs = rows.filter(r => canRead(r.coll)).map(r => {
       let d = r.del ? null : J(r.data, null);
       if (!owner && r.coll === 'config' && d) { d = { ...d }; for (const k of Object.keys(d)) if (/Hash$|Salt$/.test(k)) delete d[k]; }
+      if (!owner && r.coll === 'ledger' && d) { const e = {}; for (const [id, x] of Object.entries(d.entries || {})) if (x && x.kind === 'fee') e[id] = x; d = { ...d, entries: e }; } // 직원: 회비 기록만
       return { path: r.path, data: d, upd: r.upd };
     });
     return json({ ok: true, now, docs, role: s.role, colls: COLLS.filter(canRead) });
@@ -84,7 +107,10 @@ async function route(path, req, env) {
   if (path === '/api/get') {
     const p = str(b.path, 100); if (!okPath(p) || !canRead(p.split('/')[0])) return json({ ok: false, error: '볼 수 없는 기록이에요', code: 'permission_denied' }, 403);
     const r = await one(env, 'SELECT data, del FROM docs WHERE path = ?', p);
-    return json({ ok: true, exists: !!(r && !r.del), data: r && !r.del ? J(r.data, null) : null });
+    let d = r && !r.del ? J(r.data, null) : null;
+    if (!owner && d && p.startsWith('ledger/')) { const e = {}; for (const [id, x] of Object.entries(d.entries || {})) if (x && x.kind === 'fee') e[id] = x; d = { ...d, entries: e }; }
+    if (!owner && d && p.startsWith('config/')) { d = { ...d }; for (const k of Object.keys(d)) if (/Hash$|Salt$/.test(k)) delete d[k]; }
+    return json({ ok: true, exists: !!d, data: d });
   }
   if (path === '/api/write') { // ops: [{op:'set'|'update'|'delete', path, data}]
     const ops = Array.isArray(b.ops) ? b.ops.slice(0, 50) : [];
@@ -122,6 +148,7 @@ async function failAdd(env, k) {
 async function failClear(env, k) { await run(env, 'DELETE FROM fails WHERE ip = ?', k); }
 const lockText = u => '여러 번 틀려서 잠깐 잠겼어요. ' + Math.ceil((u - Date.now()) / 60000) + '분 뒤에 다시 해 주세요';
 const failText = (t, n) => t + ' (' + (((n - 1) % 5) + 1) + '/5번 틀림)';
+async function sha(t) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join(''); }
 function json(o, status = 200) { return new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } }); }
 function cors(r) {
   const h = new Headers(r.headers);
