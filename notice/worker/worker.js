@@ -110,12 +110,13 @@ async function route(path, req, env) {
     // 가입 또는 정보 수정. token 이 있으면 그 보호자 정보를 고침
     const kids = cleanNames(b.children);
     const rel = RELATIONS.includes(b.relation) ? b.relation : '';
-    const ph = String(b.phone4 || '').replace(/\D/g, '');
-    if (!kids.length || !rel || ph.length !== 4) return json({ ok: false, error: '아이 이름, 관계, 전화번호 뒷자리를 확인해 주세요' }, 400);
+    const ph = String(b.phone || b.phone4 || '').replace(/\D/g, ''); // 2026-11-13: 휴대폰 번호 전체 (예전 가입은 뒷자리 4개)
+    if (!kids.length || !rel) return json({ ok: false, error: '아이 이름과 관계를 확인해 주세요' }, 400);
+    if (!/^01[016789]\d{7,8}$/.test(ph)) return json({ ok: false, error: '휴대폰 번호를 010부터 모두 적어 주세요' }, 400);
     const sub = b.subscription && b.subscription.endpoint && /^https:\/\//.test(b.subscription.endpoint) && b.subscription.keys ? b.subscription : null;
     let p = b.token ? await one(env, 'SELECT * FROM parents WHERE tok = ?', String(b.token)) : null;
     if (p) {
-      const same = p.rel === rel && p.ph === ph && sameList(J(p.kids, []), kids);
+      const same = p.rel === rel && (p.ph === ph || (String(p.ph || '').length === 4 && ph.endsWith(p.ph))) && sameList(J(p.kids, []), kids); // 예전 뒷자리 → 전체 번호로 바꿔도 승인 유지
       await run(env, 'UPDATE parents SET kids = ?, rel = ?, ph = ?, ok = ?, ep = COALESCE(?, ep), p256 = COALESCE(?, p256), auth = COALESCE(?, auth) WHERE id = ?',
         JSON.stringify(kids), rel, ph, same ? p.ok : 0, sub ? sub.endpoint : null, sub ? sub.keys.p256dh : null, sub ? sub.keys.auth : null, p.id);
       return json({ ok: true, token: p.tok, approved: !!(same && p.ok) });
@@ -361,7 +362,11 @@ async function route(path, req, env) {
       });
       const freq = await all(env, 'SELECT kids, rel, ph FROM famreq WHERE at > ?', Date.now() - 60 * 86400e3);
       const invs = await all(env, 'SELECT code, name FROM invites');
-      const pending = parents.filter(p => !p.ok).map(p => ({ id: p.id, children: J(p.kids, []), rel: p.rel, ph: p.ph, at: p.created, famreq: freq.some(f => f.ph === p.ph && J(f.kids, []).some(k => J(p.kids, []).includes(k))),
+      const pl = parents.some(p => !p.ok) ? await attSync(env, '/sync/roster', { all: true, phones: true }) : {};
+      const phOf = new Map(((pl && pl.students) || []).map(x => [x.name, x.phone || '']));
+      const pending = parents.filter(p => !p.ok).map(p => ({ id: p.id, children: J(p.kids, []), rel: p.rel, ph: p.ph, at: p.created,
+        phMatch: J(p.kids, []).map(k => phOf.get(k) || '').some(x => x && x === p.ph) ? 'same' : J(p.kids, []).some(k => phOf.get(k)) ? 'diff' : 'none',
+        famreq: freq.some(f => f.ph === String(p.ph || '').slice(-4) && J(f.kids, []).some(k => J(p.kids, []).includes(k))),
         inv: p.inv || '', invName: p.inv ? ((invs.find(i => i.code === p.inv) || {}).name || '') : '' }));
       const inviteOpen = ((await one(env, "SELECT v FROM kv WHERE k = 'inviteOpen'")) || {}).v === '1';
       return json({ ok: true, devices: parents.filter(p => p.ep).length, kids: list, pending, inviteOpen });
@@ -370,13 +375,8 @@ async function route(path, req, env) {
       const p = await one(env, 'SELECT * FROM parents WHERE id = ?', String(b.id || ''));
       if (!p) return json({ ok: false, error: '이미 지워진 등록입니다' });
       if (!b.approve) { await run(env, 'DELETE FROM parents WHERE id = ?', p.id); return json({ ok: true }); }
-      // 승인하면 아이를 명단에 넣고, 보호자 휴대폰 뒷자리를 출결번호로 연결
-      for (const n of J(p.kids, [])) {
-        const k = await one(env, 'SELECT codes FROM kids WHERE name = ?', n);
-        const codes = k ? J(k.codes, []) : [];
-        if (p.ph && !codes.includes(p.ph)) codes.push(p.ph);
-        await run(env, 'INSERT INTO kids (name, codes, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET codes = excluded.codes', n, JSON.stringify(codes), Date.now());
-      }
+      // 승인하면 아이를 명단에 넣음 (출석번호는 업무 앱 원생 정보에서 — 보호자 번호를 태블릿 번호로 넣지 않음, 2026-11-13)
+      for (const n of J(p.kids, [])) await run(env, 'INSERT INTO kids (name, codes, created) VALUES (?, ?, ?) ON CONFLICT(name) DO NOTHING', n, '[]', Date.now());
       await run(env, 'UPDATE parents SET ok = 1 WHERE id = ?', p.id);
       return json({ ok: true });
     }

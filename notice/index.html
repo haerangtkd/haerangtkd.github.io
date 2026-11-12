@@ -350,13 +350,14 @@
   <div class="brandline"><img src="icon-192.png" alt=""><b>해랑경희 태권도장</b></div>
 
   <section class="card" id="g-inapp" hidden>
-    <h2>다른 브라우저에서 열어 주세요</h2>
-    <p>카카오톡이나 인스타그램 안에서는 알림을 받을 수 없습니다. 아래 버튼을 누르거나, 오른쪽 위 메뉴에서 <b>다른 브라우저로 열기</b>를 선택해 주세요.</p>
+    <h2 id="inappT">Safari·Chrome으로 열어 주세요</h2>
+    <p>카카오톡·인스타그램 안에서는 앱을 설치하거나 알림을 받을 수 없어요. <b>아이폰은 Safari</b>, <b>갤럭시(안드로이드)는 Chrome</b>으로 열어 주세요.</p>
     <a class="btn" id="openExternal" href="#">브라우저로 열기</a>
+    <p class="note" id="inappHelp"></p>
     <button class="btn ghost copyLink">주소 복사하기</button>
   </section>
 
-  <div class="card invHint" id="invHint" hidden>초대번호 <b id="invHintN"></b><br><small>앱을 설치한 뒤 가입할 때 이 번호를 넣어 주세요. 잊지 않게 적어 두세요.</small></div>
+  <div class="card invHint" id="invHint" hidden>초대번호 <b id="invHintN"></b><br><small>앱을 설치한 뒤 가입할 때 이 번호를 넣어 주세요. 먼저 복사해 두세요.</small><button class="btn ghost" id="invCopy" type="button" style="margin-top:10px">초대번호 복사하기</button></div>
 
   <section class="card" id="g-ios" hidden>
     <h2>홈 화면에 추가해 주세요</h2>
@@ -412,7 +413,7 @@
     <p id="joinDesc">가입하면 등원·하원 알림, 알림장, 공지, 앨범, 출석부를 이 휴대폰에서 볼 수 있습니다.</p>
     <div id="invBox">
       <label class="f">초대번호 6자리</label>
-      <input class="ph" id="inv" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="off">
+      <div style="display:flex;gap:8px"><input class="ph" id="inv" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="off" style="flex:1;min-width:0"><button class="btn ghost" id="invPaste" type="button" style="width:auto;margin:0;padding:0 14px;white-space:nowrap">붙여넣기</button></div>
       <p class="note" id="invMsg">도장에서 받은 초대번호(큐알)를 넣어 주세요. 한 번호로 가입할 수 있는 휴대폰 수가 정해져 있어요.</p>
     </div>
     <label class="f">아이 이름</label>
@@ -425,9 +426,9 @@
       <button type="button">할머니</button><button type="button">할아버지</button>
       <button type="button">이모</button><button type="button">고모</button><button type="button">삼촌</button>
     </div>
-    <label class="f">휴대폰 번호 뒷자리 4자리</label>
-    <input class="ph" id="ph" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="1234" autocomplete="off">
-    <p class="note">아이가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원합니다. 도장에서 확인한 뒤부터 이용할 수 있고, 적은 정보는 출결과 알림에만 씁니다.</p>
+    <label class="f">보호자 휴대폰 번호</label>
+    <input class="ph" id="ph" type="tel" inputmode="numeric" maxlength="13" placeholder="010-1234-5678" autocomplete="tel">
+    <p class="note">도장에 등록된 번호와 같은지 확인한 뒤 승인해요. 적은 정보는 출결과 알림에만 써요.</p>
     <button class="btn" id="joinBtn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
       <span>가입하고 알림 켜기</span>
@@ -499,6 +500,8 @@
   const curKid = () => { const s = me() || {}; return (s.children || [])[s.kid | 0] || (s.children || [])[0] || ''; };
   const copy = async () => { try { await navigator.clipboard.writeText(PAGE); toast('주소를 복사했습니다'); } catch (_) { prompt('아래 주소를 복사해 주세요', PAGE); } };
   document.querySelectorAll('.copyLink').forEach(b => b.onclick = copy);
+  $('invCopy').onclick = async () => { const c = $('invHintN').textContent; try { await navigator.clipboard.writeText(c); toast('초대번호를 복사했어요'); } catch (_) { prompt('아래 번호를 복사해 주세요', c); } };
+  $('invPaste').onclick = async () => { try { const t = ((await navigator.clipboard.readText()) || '').replace(/\D/g, '').slice(0, 6); if (t.length !== 6) return toast('복사한 초대번호가 없어요. 직접 넣어 주세요'); $('inv').value = t; $('inv').dispatchEvent(new Event('input')); } catch (_) { toast('붙여넣기가 막혀 있어요. 칸을 길게 눌러 붙여넣어 주세요'); } };
 
   function show(view, sub) {
     ['v-gate', 'v-home'].forEach(v => $(v).hidden = v !== view);
@@ -566,17 +569,17 @@
 
   $('joinBtn').onclick = async () => {
     const children = [...$('kids').querySelectorAll('input')].map(i => i.value.replace(/\s+/g, '')).filter(Boolean);
-    const ph = $('ph').value;
+    const ph = $('ph').value.replace(/\D/g, '');
     if (!children.length) { toast('아이 이름을 적어 주세요'); return; }
     if (!rel) { toast('아이와의 관계를 골라 주세요'); return; }
-    if (!/^\d{4}$/.test(ph)) { toast('휴대폰 번호 뒷자리 4자리를 적어 주세요'); $('ph').focus(); return; }
+    if (!/^01[016789]\d{7,8}$/.test(ph)) { toast('휴대폰 번호를 010부터 모두 적어 주세요'); $('ph').focus(); return; }
     const invite = me() ? '' : $('inv').value;
     if (!me() && invOk === false) { toast($('invMsg').textContent); $('inv').focus(); return; }
     const btn = $('joinBtn'); btn.disabled = true;
     try {
       const s = me();
       const subscription = s ? null : await subscribePush();
-      const j = await post('/join', { children, relation: rel, phone4: ph, subscription, invite });
+      const j = await post('/join', { children, relation: rel, phone: ph, subscription, invite });
       if (!j.ok) { if (j.needInvite) { $('invMsg').className = 'note bad'; $('invMsg').textContent = j.error; $('inv').focus(); } throw new Error(j.error); }
       if (!s) store.set(INVK, null);
       store.set(LS, { ...(s || {}), token: j.token, children, relation: rel, phone4: ph, approved: j.approved, push: s ? s.push : !!subscription, kid: 0 });
@@ -989,7 +992,7 @@
     const kidSel = s.children.length > 1 ? '<div class="chips">' + s.children.map((c, i) => '<button data-k="' + i + '" class="' + (c === k ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' : '';
     const settings = '<section class="sec"><h2>설정</h2><div class="list">' +
       '<button class="li" data-x="fee"><span class="lic">' + IC.fee + '</span><span class="lt"><b>회비 안내</b></span>' + ICON.right + '</button>' +
-      '<button class="li" data-x="edit"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 수정 · 자녀 추가</b><small>' + esc(s.relation || '') + ' · 출결번호 ' + esc(s.phone4 || '') + '</small></span>' + ICON.right + '</button>' +
+      '<button class="li" data-x="edit"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 수정 · 자녀 추가</b><small>' + esc(s.relation || '') + ' · ' + esc(String(s.phone4 || '').replace(/^(\d{3})(\d{3,4})(\d{4})$/, '$1-$2-$3')) + '</small></span>' + ICON.right + '</button>' +
       (canPush ? '<button class="li" data-x="push"><span class="lic">' + IC.bell + '</span><span class="lt"><b>알림</b><small>' + (pushOk ? '켜져 있어요 · 눌러서 확인' : '꺼져 있어요 · 눌러서 켜기') + '</small></span>' + ICON.right + '</button>' : '') +
       (s.approved ? '<button class="li" data-x="fam"><span class="lic">' + IC.share + '</span><span class="lt"><b>도장에 가족 추가 요청하기</b><small>할머니·아빠 등 다른 가족도 알림을 받을 수 있게 도장에서 도와드려요</small></span>' + ICON.right + '</button>' : '') +
       '<button class="li danger" data-x="leave"><span class="lic">' + IC.out + '</span><span class="lt"><b>이 휴대폰 등록 해제</b></span>' + ICON.right + '</button></div></section>';
@@ -1153,9 +1156,13 @@
   async function init() {
     if (isInApp) {
       show('v-gate', 'g-inapp');
-      $('openExternal').href = isKakao ? 'kakaotalk://web/openExternal?url=' + encodeURIComponent(PAGE)
-        : isAndroid ? 'intent://' + PAGE.replace(/^https:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end' : PAGE;
-      if (!isKakao && !isAndroid) $('openExternal').hidden = true;
+      // 아이폰 → Safari, 갤럭시(안드로이드) → Chrome 으로 확실하게 (2026-11-13)
+      $('inappT').textContent = isIOS ? 'Safari로 열어 주세요' : isAndroid ? 'Chrome으로 열어 주세요' : 'Safari·Chrome으로 열어 주세요';
+      $('openExternal').textContent = isIOS ? 'Safari로 열기' : isAndroid ? 'Chrome으로 열기' : '브라우저로 열기';
+      $('openExternal').href = isAndroid ? 'intent://' + PAGE.replace(/^https:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(PAGE) + ';end'
+        : isIOS ? (isKakao ? 'kakaotalk://web/openExternal?url=' + encodeURIComponent(PAGE) : 'x-safari-' + PAGE) : PAGE;
+      $('inappHelp').innerHTML = isIOS ? '버튼이 안 되면: 화면 오른쪽 아래(또는 위) <b>⋯ / 공유</b> → <b>Safari로 열기</b>. 그래도 안 되면 아래 <b>주소 복사하기</b> 후 Safari 주소창에 붙여넣기.'
+        : '버튼이 안 되면: 오른쪽 위 <b>⋮</b> → <b>다른 브라우저로 열기</b> → <b>Chrome</b>. 그래도 안 되면 <b>주소 복사하기</b> 후 Chrome 주소창에 붙여넣기.';
       return;
     }
     if (isIOS && !standalone) return show('v-gate', 'g-ios');
