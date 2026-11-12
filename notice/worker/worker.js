@@ -294,6 +294,11 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     return json(await send(env, { kind: '숙제', title: b.title, body: b.body, children: b.children, view: '', offset: b.offset | 0 })); // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
   }
+  // 업무 앱 '한 파일 백업': 표 목록·표 내용 (관리자 비밀번호는 업무 서버가 먼저 확인)
+  if (path === '/sync/bk-tables' || path === '/sync/bk-dump') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    return json(path === '/sync/bk-tables' ? { ok: true, tables: await bkTables(env) } : await bkDump(env, String(b.table || ''), b.after));
+  }
   // 업무 앱 원생 화면: 그 제자의 가족 초대번호(QR)·학부모 앱 가입 상태 (2026-11-13)
   if (path === '/sync/kid-family' || path === '/sync/invite-save') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
@@ -825,6 +830,17 @@ function unb64u(str) {
   return Uint8Array.from(s, c => c.charCodeAt(0));
 }
 function hex(b) { return [...b].map(x => x.toString(16).padStart(2, '0')).join(''); }
+// ─────────── 한 파일 백업 (업무 앱 관리자가 매달 말일에 받음, 2026-11-13) — 로그인 열쇠·PIN 값은 빼고 ───────────
+const BK_SKIP = ['sessions', 'subs', 'fails', 'kiosks', 'asess', 'devices', 'pushhold', 'pushq', 'pushq2'];
+const BK_HIDE = ['salt', 'pin', 'tok', 'asrc', 'p256', 'auth', 'ep'];
+async function bkTables(env) { return (await all(env, "SELECT name FROM sqlite_master WHERE type = 'table'")).map(r => r.name).filter(n => /^[a-z0-9]+$/.test(n) && !BK_SKIP.includes(n)); }
+async function bkDump(env, table, after) {
+  if (!(await bkTables(env)).includes(String(table))) return { ok: false, error: '없는 표' };
+  const lim = ['photos', 'contracts'].includes(table) ? 10 : 500;
+  const rows = await all(env, 'SELECT rowid AS _r, * FROM ' + table + ' WHERE rowid > ? ORDER BY rowid LIMIT ?', Math.max(0, Number(after) || 0), lim);
+  const out = rows.filter(r => !(table === 'kv' && /vapid|dlpin|^sent:|^bktok:/i.test(r.k || ''))).map(r => { const o = {}; for (const [k, v] of Object.entries(r)) if (k !== '_r' && !BK_HIDE.includes(k)) o[k] = v; return o; });
+  return { ok: true, rows: out, next: rows.length === lim ? rows[rows.length - 1]._r : 0 };
+}
 function json(o, status = 200) {
   return new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }

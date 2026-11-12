@@ -640,6 +640,7 @@ async function sync(first) {
   const pt = JSON.stringify([j.ptpl, j.rels]); if (pt !== S._pt) { S._pt = pt; S.ptpl = j.ptpl || []; S.rels = j.rels || []; }
   for (const h of (j.hidden || [])) if (!S.hidden.has(h)) { S.hidden.add(h); changed = true; }
   if ((j.docNew | 0) !== (S.docNew | 0)) { S.docNew = j.docNew | 0; changed = true; }
+  if ((j.bkDue || '') !== (S.bkDue || '')) { S.bkDue = j.bkDue || ''; changed = true; }
   for (const m of j.msgs) {
     m.rx = m.rx || {}; m.room = m.room || '';
     const i = S.msgs.findIndex(x => x.id === m.id);
@@ -896,7 +897,7 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'] };
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['appGns', '📈', '성장'], ['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '📒', '숙제'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
+const SHORT = [['backup', '📦', '백업'], ['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['appGns', '📈', '성장'], ['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '📒', '숙제'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -930,6 +931,7 @@ function renderHome() {
   $('v-home').innerHTML =
     '<div class="greet"><div><small>' + (+t.slice(5, 7)) + '월 ' + (+t.slice(8)) + '일 ' + wd(t) + '요일</small><b>' + (h < 11 ? '좋은 아침이에요 ☀️' : h < 18 ? '즐거운 오후예요 😊' : '오늘도 수고 많았어요 🌙') + '</b></div></div>' + appsRow() +
     (!pushOk ? '<div class="notice"><b>알림을 켜야 채팅·업무 알림이 와요</b><button class="btn g" id="pushOn">알림 켜기</button></div>' : '') +
+    (S.bkDue && isBoss() ? '<div class="notice"><b>📦 ' + (+S.bkDue.slice(5)) + '월 백업을 받아 주세요</b><button class="btn g" id="bkGo">백업 받기</button></div>' : '') +
     ((S.joins || []).length ? '<div class="sec joinq"><div class="sh"><h2>들어오려는 사람</h2></div>' + S.joins.map(x => '<div class="mem"><span class="av l" style="background:#9AA1B0">' + esc(avName(x.name)) + '</span><b>' + esc(x.name) + '</b><button class="btn g" data-jok="' + x.id + '">승인</button><button class="btn" data-jno="' + x.id + '">거절</button></div>').join('') + '<p class="help">직원이면 승인해 주세요. 승인하면 그 사람 이름으로 들어가져요.</p></div>' : '') +
     '<div class="kpis"><button data-go="task" data-tk="due"><small>오늘 할 일</small><b>' + todayT.length + '</b>' + (late ? '<em class="r">지난 ' + late + '</em>' : '<em>완료 ' + doneToday.length + '</em>') + '</button>' +
     '<button data-go="table"><small>진행 중 행사</small><b>' + evs.length + '</b><em>' + (evs.find(x => x.date && x.date >= t) ? dday(evs.find(x => x.date && x.date >= t).date) + ' ' + esc(evs.find(x => x.date && x.date >= t).title).slice(0, 6) : '&nbsp;') + '</em></button>' +
@@ -951,6 +953,7 @@ async function onPickupClick(e, view) {
 }
 $('v-home').onclick = async e => {
   if (e.target.id === 'pushOn') return enablePush();
+  if (e.target.id === 'bkGo') return backupSheet();
   if (e.target.id === 'pkChk') return pkCheck(false);
   if (e.target.id === 'pkUn') { if (confirm('확인을 취소할까요?')) pkCheck(true); return; }
   if (await onCleanClick(e)) return;
@@ -979,7 +982,7 @@ function renderMore() {
   const t = today(), evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
   const soon = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 30)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   $('v-more').innerHTML =
-    '<div class="sgrid">' + SHORT.map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' +
+    '<div class="sgrid">' + SHORT.filter(([k]) => k !== 'backup' || isBoss()).map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' +
     '<div class="sec"><div class="sh"><h2>업무</h2><button class="more" data-go="task">더보기 ›</button></div>' +
     '<button class="sbox" data-tk="due">오늘까지 해야 할 업무<b>' + itemsOf('todo').filter(x => !isDone(x) && x.due && x.due <= t).length + ' ›</b></button><button class="sbox" data-tk="mine">내가 담당한 업무<b>' + itemsOf('todo').filter(x => !isDone(x) && whosOf(x).includes(S.me.name)).length + ' ›</b></button></div>' +
     '<div class="sec"><div class="sh"><h2>다가오는 일정</h2><button class="more" data-go="cal">달력 ›</button></div>' + (soon.length ? soon.slice(0, 8).map(schLi).join('') : '<p class="empty">한 달 안에 일정이 없어요</p>') + '</div>' +
@@ -993,6 +996,7 @@ $('v-more').onclick = async e => {
     if (k === 'kids') return setTab('kids');
     if (k === 'hw') return hwListSheet();
     if (k === 'docs') return docsSheet();
+    if (k === 'backup') return backupSheet();
     if (k === 'cal') return setTab('cal'); if (k === 'mine') { S.tkf = 'mine'; return setTab('task'); }
     if (k === 'notice') { openRoom(''); return S.notice ? jumpTo(S.notice.id) : toast('올라온 공지가 없어요. 단체방 메시지를 길게 눌러 공지로 올려요'); }
     if (k === 'photo') return gallerySheet(); if (k === 'log') return setTab('log'); }
@@ -2246,6 +2250,54 @@ async function enablePush() {
 let sheetOnClose = null;
 let sheetHist = false, skipPop = 0;
 window.addEventListener('popstate', () => { if (skipPop) { skipPop--; return; } if (sheetHist) { sheetHist = false; closeSheet(false, true); } });
+// ═════════ 한 파일 백업 (관리자, 매달 말일 알림) — 출석부·업무·알림·장부·성장 측정을 zip 하나로 ═════════
+const LEDGER_API = 'https://haerang-ledger.labkhu.workers.dev';
+function backupSheet() {
+  if (!isBoss()) return toast('백업은 관리자만 받을 수 있어요');
+  sheet('<h2>📦 앱 전체 백업</h2><p class="hint">출석부 · 업무 · 알림 · 장부 · 성장 측정을 <b>파일 하나</b>로 받아요. 받은 파일은 컴퓨터나 개인 드라이브에 보관해 주세요. (개인정보가 들어 있어요)</p>' +
+    '<input class="inp" id="bkPw" type="password" maxlength="100" autocomplete="off" placeholder="관리자 비밀번호"><p id="bkMsg" class="hint" style="margin-top:8px"></p>' +
+    '<div class="foot"><span class="sp"></span><button data-close>닫기</button><button class="btn g" id="bkRun">백업 만들기</button></div>', el => {
+    const msg = t => { el.querySelector('#bkMsg').textContent = t; };
+    el.querySelector('#bkRun').onclick = async ev => {
+      const btn = ev.target, pw = el.querySelector('#bkPw').value; if (!pw) return msg('관리자 비밀번호를 적어 주세요');
+      btn.disabled = true;
+      try {
+        msg('비밀번호 확인 중…');
+        const st = await api('/api/backup-start', { pw }); if (!st.ok) throw new Error(st.error || '확인하지 못했어요');
+        if (!window.JSZip) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('압축 도구를 불러오지 못했어요')); document.head.appendChild(sc); });
+        const now = new Date().toISOString(), day = today(), zip = new JSZip(), notes = [];
+        const dump = async (app, tables) => { const out = {}; for (const t of tables) { out[t] = []; let after = 0; do { msg((app === 'team' ? '업무' : '알림') + ' · ' + t + ' 받는 중… (' + out[t].length + ')'); const j = await api('/api/backup-part', { bk: st.bk, app, table: t, after }); if (!j.ok) throw new Error(j.error || t + '를 받지 못했어요'); out[t].push(...j.rows); after = j.next; } while (after); } return out; };
+        msg('출석부 받는 중…');
+        const att = await api('/api/backup-part', { bk: st.bk, app: 'att' }); if (!att.ok) throw new Error('출석부: ' + (att.error || '받지 못했어요'));
+        zip.file('1_출석부_백업.json', JSON.stringify(att.backup));
+        const team = await dump('team', st.team);
+        zip.file('2_업무_전체.json', JSON.stringify({ app: '해랑 업무', exportedAt: now, tables: team }));
+        const gd = (team.gdocs || []).map(r => ({ path: r.path, data: JSON.parse(r.data || '{}') }));
+        if (gd.length) zip.file('5_성장측정_백업.json', JSON.stringify({ kind: 'haerang-guinness-backup', at: now, docs: gd }));
+        if (st.notice.length) zip.file('3_알림_전체.json', JSON.stringify({ app: '해랑 학부모 알림', exportedAt: now, tables: await dump('notice', st.notice) }));
+        else notes.push('알림 앱: ' + (st.noticeErr || '받지 못했어요'));
+        msg('장부 받는 중…');
+        try { const r = await (await fetch(LEDGER_API + '/api/backup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bk: st.bk }) })).json(); if (!r.ok) throw new Error(r.error); zip.file('4_장부_백업.json', JSON.stringify(r.backup)); }
+        catch (e) { notes.push('장부: ' + (e.message || '받지 못했어요')); }
+        zip.file('읽어 주세요.txt', ['해랑경희 앱 전체 백업 · ' + day + ' · ' + S.me.name, '',
+          '1_출석부_백업.json  → 출석부 > 사범님 공간 > 백업 불러오기 로 다시 넣을 수 있어요',
+          '2_업무_전체.json    → 업무 앱 모든 표 (보관용)', '3_알림_전체.json    → 학부모 알림 앱 모든 표 (보관용, 사진 포함)',
+          '4_장부_백업.json    → 장부 > 설정 > 백업 파일로 복원 으로 다시 넣을 수 있어요', '5_성장측정_백업.json → 성장 측정 > 백업 불러오기 로 다시 넣을 수 있어요', '',
+          '로그인 열쇠·PIN 값은 들어 있지 않아요. 개인정보가 있으니 공개된 곳에 올리지 마세요.'].concat(notes.length ? ['', '못 받은 것:'].concat(notes) : []).join('\r\n'));
+        msg('파일로 묶는 중…');
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }), name = '해랑경희_전체백업_' + day + '.zip';
+        await api('/api/backup-done', { bk: st.bk }); S.bkDue = ''; renderHome();
+        msg('다 만들었어요 (' + (blob.size / 1048576).toFixed(1) + 'MB)' + (notes.length ? ' · 못 받은 것: ' + notes.join(', ') : '') + '. 아래 버튼으로 저장해 주세요.');
+        btn.disabled = false; btn.textContent = '💾 저장하기';
+        btn.onclick = async () => {
+          const file = new File([blob], name, { type: 'application/zip' });
+          if (matchMedia('(pointer:coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+          const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        };
+      } catch (e) { msg(e.message || '백업을 만들지 못했어요'); btn.disabled = false; }
+    };
+  });
+}
 function sheet(html, mount, cls) {
   closeSheet(true, true);
   if (!sheetHist) { history.pushState({ sheet: 1 }, ''); sheetHist = true; } // 휴대폰 뒤로 가기로 닫기

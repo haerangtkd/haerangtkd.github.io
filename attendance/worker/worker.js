@@ -109,6 +109,7 @@ async function route(path, req, env) {
       const salt = rid(8); await run(env, "INSERT INTO kv (k, v) VALUES ('dlpin', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ salt, h: await pinHash(salt, pin) }));
       return json({ ok: true });
     }
+    if (path === '/sync/export') return json({ ok: true, backup: await exportAll(env) }); // 업무 앱 '한 파일 백업' (관리자 비밀번호는 업무 서버가 먼저 확인)
     if (path === '/sync/dlpin-check') return json(await dlCheck(env, b.pin, 'team:' + str(b.who, 20)));
     if (path === '/sync/history') return json({ ok: true, items: await all(env, 'SELECT id, sid, tid, at, text, who FROM history WHERE sid = ? ORDER BY at DESC LIMIT 100', str(b.sid, 60)) });
     if (path === '/sync/teachers') { // 업무 앱: 사범님 이름·PIN(암호화된 값)을 그대로 가져가 같은 PIN으로 로그인
@@ -352,23 +353,7 @@ async function route(path, req, env) {
   if (path === '/api/export') { // 백업 파일 (예전 출석부와 같은 모양) — 내려받기 비밀번호 필요
     if (!me.boss) return json({ ok: false, error: '백업 파일은 관리자만 받을 수 있어요' }, 403); // 2026-11-13 사용자 결정
     const dl = await dlCheck(env, b.dlpin, 'att:' + me.id); if (!dl.ok) return json(dl);
-    const [students, att, absences, trials, history, closed] = await Promise.all([
-      all(env, 'SELECT id, data FROM students'), all(env, 'SELECT day, sid, r, p, w, mk FROM att ORDER BY day'),
-      all(env, 'SELECT sid, date, why FROM absences'), all(env, 'SELECT id, data FROM trials'),
-      all(env, 'SELECT id, sid, tid, at, text, who FROM history'), all(env, 'SELECT day, why FROM closed'),
-    ]);
-    const out = { app: '해랑 출석부', exportedAt: new Date().toISOString(), att: {}, absences: {}, trials: {}, students: {}, history: {}, closed: {}, makeup: {} };
-    for (const s of students) out.students[s.id] = J(s.data, {});
-    for (const a of att) {
-      const d = out.att[a.day] || (out.att[a.day] = { ym: a.day.slice(0, 7), r: {}, p: {}, w: {} });
-      d.r[a.sid] = a.r; if (a.p) d.p[a.sid] = a.p; if (a.w) d.w[a.sid] = a.w;
-      if (a.mk) (out.makeup[a.day] || (out.makeup[a.day] = [])).push(a.sid);
-    }
-    for (const a of absences) out.absences[a.sid + '_' + a.date] = { sid: a.sid, date: a.date, why: a.why, ym: a.date.slice(0, 7) };
-    for (const t of trials) out.trials[t.id] = J(t.data, {});
-    for (const h of history) out.history[h.id] = { sid: h.sid, tid: h.tid, at: new Date(h.at).toISOString(), text: h.text, who: h.who || '' };
-    for (const c of closed) out.closed[c.day] = c.why || '';
-    return json({ ok: true, backup: out });
+    return json({ ok: true, backup: await exportAll(env) });
   }
 
   return json({ ok: false, error: 'not found' }, 404);
@@ -525,6 +510,25 @@ function kstDay(d = new Date()) { return new Date(d.getTime() + 9 * 3600e3).toIS
 function addDays(day, n) { return new Date(Date.parse(day + 'T00:00:00Z') + n * 86400e3).toISOString().slice(0, 10); }
 function enc(s) { return new TextEncoder().encode(s); }
 function hex(b) { return [...b].map(x => x.toString(16).padStart(2, '0')).join(''); }
+async function exportAll(env) { // 백업 파일 (예전 출석부와 같은 모양 — '백업 불러오기'로 다시 넣을 수 있음)
+  const [students, att, absences, trials, history, closed] = await Promise.all([
+    all(env, 'SELECT id, data FROM students'), all(env, 'SELECT day, sid, r, p, w, mk FROM att ORDER BY day'),
+    all(env, 'SELECT sid, date, why FROM absences'), all(env, 'SELECT id, data FROM trials'),
+    all(env, 'SELECT id, sid, tid, at, text, who FROM history'), all(env, 'SELECT day, why FROM closed'),
+  ]);
+  const out = { app: '해랑 출석부', exportedAt: new Date().toISOString(), att: {}, absences: {}, trials: {}, students: {}, history: {}, closed: {}, makeup: {} };
+  for (const s of students) out.students[s.id] = J(s.data, {});
+  for (const a of att) {
+    const d = out.att[a.day] || (out.att[a.day] = { ym: a.day.slice(0, 7), r: {}, p: {}, w: {} });
+    d.r[a.sid] = a.r; if (a.p) d.p[a.sid] = a.p; if (a.w) d.w[a.sid] = a.w;
+    if (a.mk) (out.makeup[a.day] || (out.makeup[a.day] = [])).push(a.sid);
+  }
+  for (const a of absences) out.absences[a.sid + '_' + a.date] = { sid: a.sid, date: a.date, why: a.why, ym: a.date.slice(0, 7) };
+  for (const t of trials) out.trials[t.id] = J(t.data, {});
+  for (const h of history) out.history[h.id] = { sid: h.sid, tid: h.tid, at: new Date(h.at).toISOString(), text: h.text, who: h.who || '' };
+  for (const c of closed) out.closed[c.day] = c.why || '';
+  return out;
+}
 function json(o, status = 200) { return new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } }); }
 function cors(r) {
   const h = new Headers(r.headers);

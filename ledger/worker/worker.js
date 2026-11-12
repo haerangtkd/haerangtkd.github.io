@@ -53,6 +53,17 @@ async function route(path, req, env) {
   const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   const ip = req.headers.get('cf-connecting-ip') || 'x';
   if (path === '/') return json({ ok: true, app: '해랑 장부' });
+  if (path === '/api/backup') { // 업무 앱 '한 파일 백업' — 업무 서버가 관리자 비밀번호로 열어 준 백업 열쇠(bk)만 받음. 장부 '백업 파일로 복원'과 같은 모양
+    const ok = await team(env, '/ledger/bk-check', { bk: str(b.bk, 40) });
+    if (!ok.ok) return json({ ok: false, error: ok.error || '백업 열쇠가 맞지 않아요' }, 403);
+    const data = { config: {}, members: {}, families: {}, ledger: {}, pending: {}, notes: {}, ulsanpay: {} };
+    for (const r of await all(env, 'SELECT path, coll, data FROM docs WHERE del = 0')) {
+      const id = r.path.slice(r.coll.length + 1), d = J(r.data, {});
+      if (r.path === 'config/main') { const c = { ...d }; for (const k of ['pwSalt', 'pwHash', 'recSalt', 'recHash']) delete c[k]; data.config = c; }
+      else if (data[r.coll] && r.coll !== 'config') data[r.coll][id] = d;
+    }
+    return json({ ok: true, backup: { app: 'haerang-ledger', version: 1, exportedAt: new Date().toISOString(), data } });
+  }
   if (path === '/api/members') {
     const r = await team(env, '/ledger/members', {});
     return json(r.ok ? { ok: true, members: (r.members || []).filter(m => !m.shared).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, ledger: !!m.ledger })) } : r);

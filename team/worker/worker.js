@@ -175,6 +175,7 @@ async function route(path, req, env, ctx) {
   // ═════════ 장부 서버에서 부름 — 서비스 바인딩으로만 (주소 이름이 'team'인 요청은 바깥에서 올 수 없음) ═════════
   if (path.startsWith('/ledger/')) {
     if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
+    if (path === '/ledger/bk-check') { const t = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'bktok:' + str(b.bk, 40)) || {}).v, null); return json({ ok: !!(t && t.exp > Date.now()) }); }
     if (path === '/ledger/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared, ledger FROM members ORDER BY name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared, ledger: !!m.ledger })) });
     if (path === '/ledger/families') { // 장부: 업무 앱 형제·자매 묶음 (확인 알림용, B안)
     if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
@@ -440,6 +441,30 @@ async function route(path, req, env, ctx) {
   }
   // 내려받기 비밀번호 (출석부 서버에 보관) — 정하기는 이사범님만, 확인은 누구나
   if (path === '/api/dlpin-set') { const nb = needBoss(); if (nb) return nb; return json(await attSync(env, '/sync/dlpin-set', { pin: String(b.pin || '') })); }
+  // 한 파일 백업 (관리자 + 관리자 비밀번호) — 화면이 표마다 나눠 받아서 zip 하나로 묶음
+  if (path === '/api/backup-start') {
+    const nb = needBoss(); if (nb) return nb;
+    const r = await attSync(env, '/sync/dlpin-check', { pin: str(b.pw, 100), who: me.name }); if (!r.ok) return json(r);
+    const bk = rid(16); await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?)', 'bktok:' + bk, JSON.stringify({ mid: me.id, exp: Date.now() + 30 * 60e3 }));
+    await run(env, "DELETE FROM kv WHERE k LIKE 'bktok:%' AND json_extract(v, '$.exp') < ?", Date.now());
+    const nt = await noticeSync(env, '/sync/bk-tables', {});
+    return json({ ok: true, bk, team: await bkTables(env), notice: nt.ok ? nt.tables : [], noticeErr: nt.ok ? '' : nt.error || '' });
+  }
+  if (path === '/api/backup-part' || path === '/api/backup-done') {
+    const t = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'bktok:' + str(b.bk, 40)) || {}).v, null);
+    if (!t || t.mid !== me.id || t.exp < Date.now()) return json({ ok: false, error: '시간이 지났어요. 처음부터 다시 받아 주세요' });
+    if (path === '/api/backup-done') {
+      const ym = kstDay().slice(0, 7);
+      await run(env, "INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", 'bk:' + ym, JSON.stringify({ at: Date.now(), name: me.name }));
+      if (kstDay().slice(8) <= '10') await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'bk:' + addDays(kstDay().slice(0, 8) + '01', -1).slice(0, 7), JSON.stringify({ at: Date.now(), name: me.name }));
+      await run(env, 'DELETE FROM kv WHERE k = ?', 'bktok:' + str(b.bk, 40));
+      await addLog(env, me.id, 'backup', me.name + '님이 앱 전체 백업 파일을 받았어요', '');
+      return json({ ok: true });
+    }
+    if (b.app === 'att') return json(await attSync(env, '/sync/export', {}));
+    if (b.app === 'notice') return json(await noticeSync(env, '/sync/bk-dump', { table: str(b.table, 30), after: b.after }));
+    return json(await bkDump(env, str(b.table, 30), b.after));
+  }
   if (path === '/api/dl-check') { if (!me.boss) return json({ ok: false, error: '백업 파일은 관리자만 받을 수 있어요' }); return json(await attSync(env, '/sync/dlpin-check', { pin: String(b.pin || ''), who: me.name })); } // 성장 측정 백업: 관리자 + 관리자 비밀번호
   if (path === '/api/member-pin') { // 내 PIN 바꾸기, 또는 다른 사람 PIN 새로 정하기
     const pin = String(b.pin || '');
@@ -486,7 +511,9 @@ async function route(path, req, env, ctx) {
     const cleanchk = await all(env, 'SELECT day, task, mid, at FROM cleanchk WHERE day >= ?', addDays(td, -14));
     const pmsg = (await all(env, 'SELECT * FROM pmsg WHERE upd > ? AND at > ?', since, Date.now() - 60 * 86400e3)).map(r => ({ ...r, short: pmShort(r) }));
     const hws = await all(env, 'SELECT id, data, upd, del, mid FROM hw WHERE upd > ?', since), hwchk = hws.length ? await all(env, 'SELECT hw, kid, day, at, rel FROM hwchk WHERE hw IN (' + hws.map(() => '?').join(',') + ')', ...hws.map(h => h.id)) : [];
-    return json({ ok: true, now: Date.now(), me, members,
+    const bkYm = addDays(td, 1).slice(8) === '01' ? td.slice(0, 7) : td.slice(8) <= '10' ? addDays(td.slice(0, 8) + '01', -1).slice(0, 7) : ''; // 말일 ~ 다음 달 10일
+    const bkDue = me.boss && bkYm && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + bkYm)) ? bkYm : '';
+    return json({ ok: true, now: Date.now(), me, members, bkDue,
       msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
@@ -920,6 +947,11 @@ async function runTimed(env, now = Date.now()) {
   const k = new Date(now + 9 * 3600e3), day = k.toISOString().slice(0, 10), m = k.getUTCHours() * 60 + k.getUTCMinutes(), wd = k.getUTCDay();
   if (m >= 8 * 60 && m < 21 * 60) { const q2 = await all(env, 'SELECT id, text FROM pushq2 ORDER BY id LIMIT 30'); if (q2.length) { await run(env, 'DELETE FROM pushq2 WHERE id <= ?', q2[q2.length - 1].id); await pushAll(env, '', '💬 밤사이 학부모 연락 ' + q2.length + '건', q2.slice(0, 3).map(x => x.text).join('\n') + (q2.length > 3 ? '\n외 ' + (q2.length - 3) + '건' : ''), 'home'); } }
   await runPickupAlerts(env, day);
+  // 매달 말일 12시: 관리자에게 '앱 전체 백업 받기' (주말이면 월요일 12시에 — 직원 알림 시간 규칙)
+  if (m >= 12 * 60 && addDays(day, 1).slice(8) === '01' && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + day.slice(0, 7))) && await onceAt(env, 'sent:' + day + ':bk')) {
+    const ids = (await all(env, 'SELECT id FROM members WHERE boss = 1')).map(x => x.id);
+    if (ids.length) await pushTo(env, await all(env, 'SELECT * FROM subs WHERE mid IN (' + ids.map(() => '?').join(',') + ')', ...ids), '📦 이번 달 백업을 받아 주세요', '출석부·업무·알림·장부·성장 측정을 파일 하나로 받아 보관해요', 'home');
+  }
   if (wd === 0 || wd === 6) return;
   const win = h => m >= h && m < h + 20;
   const members = await all(env, 'SELECT id, name FROM members');
@@ -1113,6 +1145,17 @@ function unb64u(str) {
   return Uint8Array.from(s, c => c.charCodeAt(0));
 }
 function hex(b) { return [...b].map(x => x.toString(16).padStart(2, '0')).join(''); }
+// ─────────── 한 파일 백업 (업무 앱 관리자가 매달 말일에 받음, 2026-11-13) — 로그인 열쇠·PIN 값은 빼고 ───────────
+const BK_SKIP = ['sessions', 'subs', 'fails', 'kiosks', 'asess', 'devices', 'pushhold', 'pushq', 'pushq2'];
+const BK_HIDE = ['salt', 'pin', 'tok', 'asrc', 'p256', 'auth', 'ep'];
+async function bkTables(env) { return (await all(env, "SELECT name FROM sqlite_master WHERE type = 'table'")).map(r => r.name).filter(n => /^[a-z0-9]+$/.test(n) && !BK_SKIP.includes(n)); }
+async function bkDump(env, table, after) {
+  if (!(await bkTables(env)).includes(String(table))) return { ok: false, error: '없는 표' };
+  const lim = ['photos', 'contracts'].includes(table) ? 10 : 500;
+  const rows = await all(env, 'SELECT rowid AS _r, * FROM ' + table + ' WHERE rowid > ? ORDER BY rowid LIMIT ?', Math.max(0, Number(after) || 0), lim);
+  const out = rows.filter(r => !(table === 'kv' && /vapid|dlpin|^sent:|^bktok:/i.test(r.k || ''))).map(r => { const o = {}; for (const [k, v] of Object.entries(r)) if (k !== '_r' && !BK_HIDE.includes(k)) o[k] = v; return o; });
+  return { ok: true, rows: out, next: rows.length === lim ? rows[rows.length - 1]._r : 0 };
+}
 function json(o, status = 200) {
   return new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
