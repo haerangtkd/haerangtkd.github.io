@@ -434,7 +434,7 @@ async function route(path, req, env, ctx) {
   }
   // 내려받기 비밀번호 (출석부 서버에 보관) — 정하기는 이사범님만, 확인은 누구나
   if (path === '/api/dlpin-set') { const nb = needBoss(); if (nb) return nb; return json(await attSync(env, '/sync/dlpin-set', { pin: String(b.pin || '') })); }
-  if (path === '/api/dl-check') return json(await attSync(env, '/sync/dlpin-check', { pin: String(b.pin || ''), who: me.name }));
+  if (path === '/api/dl-check') { if (!me.boss) return json({ ok: false, error: '백업 파일은 관리자만 받을 수 있어요' }); return json(await attSync(env, '/sync/dlpin-check', { pin: String(b.pin || ''), who: me.name })); } // 성장 측정 백업: 관리자 + 관리자 비밀번호
   if (path === '/api/member-pin') { // 내 PIN 바꾸기, 또는 다른 사람 PIN 새로 정하기
     const pin = String(b.pin || '');
     if (!/^\d{4,6}$/.test(pin)) return json({ ok: false, error: 'PIN은 숫자 4~6자리로 정해 주세요' });
@@ -639,6 +639,10 @@ async function route(path, req, env, ctx) {
   }
   // 원생 화면: 학부모 앱 가족 초대번호(QR)·가입 상태 (알림 서버에 있음) — 2026-11-13
   if (path === '/api/kid-family') return json(await noticeSync(env, '/sync/kid-family', { name: str(b.name, 20) }));
+  if (path === '/api/inv-tpl') { // 가족 초대 안내 문구 (관리자가 기본 문구 저장)
+    if (b.tpl != null) { const nb = needBoss(); if (nb) return nb; await run(env, "INSERT INTO kv (k, v) VALUES ('invTpl', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", str(b.tpl, 2000)); return json({ ok: true }); }
+    return json({ ok: true, tpl: ((await one(env, "SELECT v FROM kv WHERE k = 'invTpl'")) || {}).v || '' });
+  }
   if (path === '/api/kid-invite') {
     if (me.shared) return json({ ok: false, error: '공용 계정으로는 만들 수 없어요' });
     const r = await noticeSync(env, '/sync/invite-save', { code: b.code ? str(b.code, 10) : '', name: str(b.name, 30), kids: Array.isArray(b.kids) ? b.kids.map(x => str(x, 20)).slice(0, 6) : [], max: b.max | 0, off: !!b.off });

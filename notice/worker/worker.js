@@ -294,7 +294,7 @@ async function route(path, req, env) {
   // 업무 앱 원생 화면: 그 제자의 가족 초대번호(QR)·학부모 앱 가입 상태 (2026-11-13)
   if (path === '/sync/kid-family' || path === '/sync/invite-save') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
-    if (path === '/sync/invite-save') return json(await inviteSave(env, b));
+    if (path === '/sync/invite-save') { await run(env, "DELETE FROM kv WHERE k = 'kidStatus'"); try { await kidStatus(env); } catch (_) {} return json(await inviteSave(env, b)); } // 방금 등록한 원생도 바로 명단에
     const name = cleanNames([b.name])[0]; if (!name) return json({ ok: false, error: '이름' });
     const k = await one(env, 'SELECT codes FROM kids WHERE name = ?', name);
     const parents = (await all(env, 'SELECT rel, ok, created, inv, kids FROM parents')).filter(p => J(p.kids, []).includes(name)).map(p => ({ rel: p.rel, ok: !!p.ok, at: p.created, inv: p.inv || '' }));

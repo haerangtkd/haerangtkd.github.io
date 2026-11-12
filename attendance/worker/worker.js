@@ -196,7 +196,8 @@ async function route(path, req, env) {
 
   // ═════════ 관장님 비밀번호가 필요한 일 ═════════
   if (path.startsWith('/api/admin/')) { // 로그인한 사범님(PIN)이면 됨. 관장님 비밀번호로도 가능
-    if (!(await auth(env, b.tok))) { const e = await checkAdmin(env, ip, b.password); if (e) return e; }
+    const am = await auth(env, b.tok); // 백업 불러오기·초기화 등은 관리자만 (업무 앱 관리자로 로그인했거나 관리자 비밀번호) 2026-11-13
+    if (!am || !am.boss) { const e = await checkAdmin(env, ip, b.password); if (e) return e; }
     if (path === '/api/admin/check') return json({ ok: true });
     if (/^\/api\/admin\/teacher-/.test(path)) return json({ ok: false, error: '사범님 추가·PIN·삭제는 업무 앱 → 설정 → 직원 관리에서 해요' }); // 2026-11-13
     if (path === '/api/admin/teacher-add') return json(await addTeacher(env, b.name, b.pin));
@@ -338,6 +339,7 @@ async function route(path, req, env) {
   }
 
   if (path === '/api/export') { // 백업 파일 (예전 출석부와 같은 모양) — 내려받기 비밀번호 필요
+    if (!me.boss) return json({ ok: false, error: '백업 파일은 관리자만 받을 수 있어요' }, 403); // 2026-11-13 사용자 결정
     const dl = await dlCheck(env, b.dlpin, 'att:' + me.id); if (!dl.ok) return json(dl);
     const [students, att, absences, trials, history, closed] = await Promise.all([
       all(env, 'SELECT id, data FROM students'), all(env, 'SELECT day, sid, r, p, w, mk FROM att ORDER BY day'),
