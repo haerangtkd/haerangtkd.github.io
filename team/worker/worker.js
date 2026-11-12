@@ -41,6 +41,8 @@ const SCHEMA = [
   'CREATE INDEX IF NOT EXISTS esign_upd ON esign (upd)',
   // 쉬는 시간에 모아서 보낼 휴대폰 알림
   'CREATE TABLE IF NOT EXISTS pushq (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, at INTEGER)',
+  // 직원 알림은 평일 12:00~22:00 에만 울림 — 그 밖에 생긴 알림은 사람마다 모아 두었다가 다음 평일 12시에 (2026-11-12 사용자 결정)
+  'CREATE TABLE IF NOT EXISTS pushhold (id INTEGER PRIMARY KEY AUTOINCREMENT, mid TEXT, title TEXT, body TEXT, view TEXT, at INTEGER)',
   // 청소 체크 (day: 날짜, task: 청소 이름, mid: 체크한 사람)
   'CREATE TABLE IF NOT EXISTS cleanchk (day TEXT, task TEXT, mid TEXT, at INTEGER, PRIMARY KEY (day, task))',
   // 학부모 앱 '사범님께 연락' (kind: 버튼 종류, act: absent 결석 / in·out 보호자 등·하원, ack: 확인한 직원)
@@ -68,6 +70,11 @@ const ROLES0 = ['사범', '코치', '공용'];
 // 학부모 신청 알림을 울려도 되는 때 (평일, 한국 시간): 12:00~14:00, 20:00~21:00 은 바로 / 14:00~20:00 은 쉬는 시간에만
 const RING_OPEN = [[12 * 60, 14 * 60], [20 * 60, 21 * 60]];
 const RING_BREAK = [[14 * 60 + 50, 15 * 60], [15 * 60 + 50, 16 * 60], [16 * 60 + 50, 17 * 60], [17 * 60 + 50, 18 * 60 + 40], [19 * 60 + 30, 20 * 60]];
+// 직원 알림이 울려도 되는 때: 평일 12:00~22:00 (한국 시간)
+function staffHours(t = Date.now()) {
+  const k = new Date(t + 9 * 3600e3), wd = k.getUTCDay(), h = k.getUTCHours();
+  return wd !== 0 && wd !== 6 && h >= 12 && h < 22;
+}
 function canRing(t = Date.now()) {
   const k = new Date(t + 9 * 3600e3), wd = k.getUTCDay(), m = k.getUTCHours() * 60 + k.getUTCMinutes();
   if (wd === 0 || wd === 6) return false;
@@ -141,7 +148,7 @@ async function renameMember(env, id, from, to) {
 
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); await runReminders(env); await runPushQueue(env); await runTimed(env); })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); await runReminders(env); await runHeld(env); await runPushQueue(env); await runTimed(env); })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -672,9 +679,15 @@ async function pushAll(env, myId, title, body, view) {
   const subs = await all(env, 'SELECT * FROM subs WHERE mid <> ?', myId);
   return pushTo(env, subs, title, body, view);
 }
-async function pushTo(env, subs, title, body, view) {
-  if (env.TEST_PUSH) { env.TEST_PUSH.push({ title, body, to: subs.map(x => x.mid) }); return { sent: subs.length, total: subs.length }; } // 컴퓨터 시험용
+async function pushTo(env, subs, title, body, view, now) {
+  if (env.TEST_PUSH && !env.TEST_HOURS) { env.TEST_PUSH.push({ title, body, to: subs.map(x => x.mid) }); return { sent: subs.length, total: subs.length }; } // 컴퓨터 시험용
   if (!subs.length) return { sent: 0, total: 0 };
+  if (!now && !staffHours()) { // 평일 12~22시 밖: 사람마다 모아 두기
+    const mids = [...new Set(subs.map(x => x.mid))], at = Date.now();
+    await env.DB.batch(mids.map(m => q(env, 'INSERT INTO pushhold (mid, title, body, view, at) VALUES (?, ?, ?, ?, ?)', m, str(title, 60), str(body, 300), str(view, 12), at)));
+    return { sent: 0, held: mids.length, total: subs.length };
+  }
+  if (env.TEST_PUSH) { env.TEST_PUSH.push({ title, body, to: subs.map(x => x.mid) }); return { sent: subs.length, total: subs.length }; }
   const vapid = await getVapid(env), auths = new Map();
   const tab = { chat: 'chat', notice: 'chat', sched: 'cal', event: 'table', buy: 'table', home: 'home', pickup: 'home', todo: 'home' }[view] || 'log';
   const payload = JSON.stringify({ title, body, url: SITE + '/team/#' + tab, tag: 'team-' + Date.now() });
@@ -844,6 +857,18 @@ function nextDay(d, r) {
 }
 async function bumpItem(env, id) { await run(env, 'UPDATE items SET upd = ? WHERE id = ?', Date.now(), id); }
 // 5분마다: 울려도 되는 때면 모아 둔 신청 알림을 한 번에 보냄
+// 모아 둔 직원 알림 보내기 (평일 12~22시가 되면 사람마다 한 번에)
+async function runHeld(env) {
+  if (!staffHours()) return;
+  const rs = await all(env, 'SELECT id, mid, title, body, view FROM pushhold ORDER BY id LIMIT 200'); if (!rs.length) return;
+  await run(env, 'DELETE FROM pushhold WHERE id <= ?', rs[rs.length - 1].id);
+  const by = new Map(); rs.forEach(r => { if (!by.has(r.mid)) by.set(r.mid, []); by.get(r.mid).push(r); });
+  for (const [mid, list] of by) {
+    const subs = await all(env, 'SELECT * FROM subs WHERE mid = ?', mid); if (!subs.length) continue;
+    if (list.length === 1) await pushTo(env, subs, list[0].title, list[0].body, list[0].view, true);
+    else await pushTo(env, subs, '🔔 쉬는 동안 온 알림 ' + list.length + '건', list.slice(-3).map(x => x.title + ' · ' + x.body).join('\n').slice(0, 300) + (list.length > 3 ? '\n외 ' + (list.length - 3) + '건' : ''), 'log', true);
+  }
+}
 async function runPushQueue(env) {
   if (!canRing()) return;
   const q0 = await all(env, 'SELECT id, text FROM pushq ORDER BY id LIMIT 50'); if (!q0.length) return;
