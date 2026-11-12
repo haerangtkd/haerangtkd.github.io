@@ -195,6 +195,13 @@
 - **알림 관리**(`notice/admin.html`): 이름 고르기 + PIN → 알림 서버 `/staff/login` → 표 `asess(tok, mid, name, shared, created)` 토큰(180일, 쓰는 동안 유지). 관리 요청은 `{tok}`. '나가기' = `/staff/logout`. 공용 계정으로도 들어갈 수 있음(도장 컴퓨터). 예전 관리자 비밀번호(`password`)도 서버는 아직 받음(화면에서는 없앰, 저장돼 있던 값은 지움).
 - **출결 태블릿**: 등록(`/admin/kiosk-token {spin}`)과 오른쪽 위 관리자(`/kiosk/admin {pin}`)는 공용 PIN. 직원 개인 PIN은 안 됨. 예전 비밀번호도 서버는 받음.
 
+### 장부 앱 `ledger/` (2026-11-13, claude.ai 아티팩트 장부를 옮김)
+- 화면: 예전 아티팩트 장부 HTML을 거의 그대로(`ledger/index.html`). `ledger-shim.js`가 `window.claude.use('db'|'downloads'|'sample')`을 장부 서버로 바꿔 줌(문서 경로 `members/…`, `ledger/YYYY-MM`, `config/main` 등 그대로, `update`는 안쪽까지 합침, 20초마다·화면 돌아올 때 바뀐 것만 받음). 'sample'(AI 해석)은 없음 → 앱이 알아서 '간단 해석 모드'(단어로 알아듣기).
+- 로그인: 업무 앱 이름 + PIN → 장부 서버 `/api/login` → 업무 서버 `/ledger/pin-check`(서비스 바인딩으로만, 주소 이름이 'team'일 때만 받음 — SYNC_KEY 필요 없음). **관리자(boss) = owner(장부 전체), 다른 직원 = staff(직원 입력만, 관리자 승인)**, 공용 계정은 못 들어옴(사용자 결정). 예전 장부 비밀번호 화면은 안 씀.
+- 서버 `haerang-ledger` · D1 `haerang-ledger`(바인딩 DB, Service TEAM → haerang-team). 표 `docs(path, coll, data, upd, del)`, `sessions`, `fails`. 직원은 서버에서도 config(비밀번호 칸 뺌)·members·families만 읽고 `pending/*` 새로 쓰기만 됨. 회비 자동 생성은 관리자 화면에서만.
+- 데이터 옮기기: 아티팩트 장부 → 백업 JSON 내려받기 → 새 장부(관리자) 설정 → 백업 파일로 복원. 그 뒤 회원·거래 수, 이번 달 수입·미납 비교. **장부 데이터는 저장소에 넣지 않는다.**
+- 남은 일: 매달 5일 미납 가정에 학부모 앱 자동 안내(독촉 아님, '매달 5일 자동 안내'), 알림 앱 회비 탭 납부 표시는 관리자만.
+
 ### 틀린 횟수 잠금 (2026-11-12, 사용자 결정)
 - 비밀번호·PIN·초대번호 모두 같은 규칙: **5번 틀릴 때마다 잠금, 1분 → 2분 → 3분 …** 맞히면 처음부터, 하루 동안 안 틀리면 처음부터.
 - 세 서버에 같은 도우미 `lockUntil / failAdd / failClear / lockText / failText` (표 fails에 `at` 칸 추가). 적용: 알림 관리 비밀번호, 태블릿 관리자, 초대번호, 출석부 PIN·관리자 비밀번호·내려받기 비밀번호, 업무 앱 PIN. 기기(IP)마다 따로 셈.
@@ -231,4 +238,4 @@ node tools/local-test/server.mjs     # Node 22+
 
 - 업무 앱: 실제 서버에서 첫 설정·사람 추가·휴대폰 알림을 아직 사용자가 확인 중. FamilyLog와 며칠 같이 쓰며 불편한 점 받기로 함.
 - 출석부: 예전 앱 최신 백업을 '합치기'로 넣고 예전 앱 중단, 다른 사범님 추가, 알림 앱 '출석부와 비교'로 태블릿 명단 등록 — 사용자가 진행.
-- 관장님용 장부 앱은 별도(claude.ai 아티팩트, 이 저장소 아님).
+- 장부 앱은 `ledger/`로 옮기는 중(2026-11-13). 옛 아티팩트 장부는 지우지 않고 보관.

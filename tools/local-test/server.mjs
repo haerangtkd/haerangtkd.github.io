@@ -1,7 +1,7 @@
 // 세 서버(Worker)를 컴퓨터에서 한 번에 돌려 보는 테스트용 서버 (Cloudflare 없이)
 // 필요: Node 22 이상 (node:sqlite 사용)
 // 실행: 저장소 맨 위에서  node tools/local-test/server.mjs
-// 열기: http://localhost:8787/attendance/  /team/  /notice/admin.html
+// 열기: http://localhost:8787/attendance/  /team/  /notice/admin.html  /ledger/
 // 비밀값(테스트용): ADMIN_PASSWORD = kwanjang, SYNC_KEY = sync123  → 실제 서버 값과 다름
 // 데이터는 tools/local-test/*.db 에 저장 (지우면 처음부터)
 import { DatabaseSync } from 'node:sqlite';
@@ -19,6 +19,7 @@ const load = async p => { // .js 를 모듈로 읽으려고 임시 .mjs 로 복�
 const aw = await load(path.join(ROOT, 'attendance/worker/worker.js'));
 const nw = await load(path.join(ROOT, 'notice/worker/worker.js'));
 const tw = await load(path.join(ROOT, 'team/worker/worker.js'));
+const lw = await load(path.join(ROOT, 'ledger/worker/worker.js'));
 
 function D1(file) { // Cloudflare D1 흉내 (prepare/bind/first/all/run/batch)
   const db = new DatabaseSync(path.join(HERE, file));
@@ -36,13 +37,15 @@ const ctx = { waitUntil: p => p && p.catch && p.catch(() => {}) };
 const aenv = { DB: D1('att.db'), ADMIN_PASSWORD: 'kwanjang', SYNC_KEY: 'sync123' };
 const nenv = { DB: D1('notice.db'), ADMIN_PASSWORD: 'kwanjang', SYNC_KEY: 'sync123' };
 const tenv = { DB: D1('team.db'), SYNC_KEY: 'sync123' };
-aenv.NOTICE = bind(nw, nenv); nenv.ATT = bind(aw, aenv); tenv.ATT = bind(aw, aenv); tenv.NOTICE = bind(nw, nenv); nenv.TEAM = bind(tw, tenv);
+const lenv = { DB: D1('ledger.db') };
+aenv.NOTICE = bind(nw, nenv); nenv.ATT = bind(aw, aenv); tenv.ATT = bind(aw, aenv); tenv.NOTICE = bind(nw, nenv); nenv.TEAM = bind(tw, tenv); lenv.TEAM = bind(tw, tenv);
 
-const API = { A: [aw, aenv], N: [nw, nenv], T: [tw, tenv] }; // /A/… 출석부, /N/… 알림, /T/… 업무
+const API = { A: [aw, aenv], N: [nw, nenv], T: [tw, tenv], L: [lw, lenv] }; // /A/… 출석부, /N/… 알림, /T/… 업무, /L/… 장부
 const CONFIG = {
   '/attendance/config.js': "window.HAERANG_ATT_API='http://localhost:8787/A';",
   '/notice/config.js': "window.HAERANG_PUSH_API='http://localhost:8787/N';",
   '/team/config.js': "window.HAERANG_TEAM_API='http://localhost:8787/T';",
+  '/ledger/config.js': "window.HAERANG_LEDGER_API='http://localhost:8787/L';",
 };
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 http.createServer(async (req, res) => {

@@ -172,6 +172,18 @@ const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
 async function route(path, req, env, ctx) {
   const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   const ip = req.headers.get('cf-connecting-ip') || 'x';
+  // ═════════ 장부 서버에서 부름 — 서비스 바인딩으로만 (주소 이름이 'team'인 요청은 바깥에서 올 수 없음) ═════════
+  if (path.startsWith('/ledger/')) {
+    if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
+    if (path === '/ledger/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared FROM members ORDER BY name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared })) });
+    if (path === '/ledger/pin-check') {
+      let m = await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
+      if (m && !(await sameText(await pinHash(m.salt, b.pin), m.pin))) { await importTeachers(env, true).catch(() => {}); m = await one(env, 'SELECT * FROM members WHERE id = ?', m.id); }
+      if (!m || !(await sameText(await pinHash(m.salt, b.pin), m.pin))) return json({ ok: false });
+      return json({ ok: true, id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared });
+    }
+    return json({ ok: false, error: 'not found' }, 404);
+  }
   // ═════════ 알림 서버(학부모 앱)에서 부름 — 서비스 바인딩 + SYNC_KEY ═════════
   if (path.startsWith('/sync/')) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
