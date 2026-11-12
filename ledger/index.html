@@ -250,7 +250,7 @@ details > summary { cursor: pointer; font-weight: 600; }
 </style>
 <header class="top">
   <div><h1>해랑경희 장부</h1><div class="date num" id="hdrDate"></div></div>
-  <div class="right"><span id="modeBadge" class="badge warn" hidden>직원 입력 모드</span><span id="aiBadge" class="badge" hidden>간단 해석 모드</span><button id="lockBtn" type="button" hidden>나가기</button></div>
+  <div class="right"><span id="modeBadge" class="badge warn" hidden>직원 입력 모드</span><span id="aiBadge" class="badge" hidden>간단 해석 모드</span><button id="lockBtn" type="button" hidden>잠금</button></div>
 </header>
 <div id="alerts"></div>
 <main id="main">
@@ -4193,7 +4193,7 @@ function buildSettings() {
     h('div', { class: 'row' }, h('button', { class: 'small', type: 'button', onclick: downloadTemplate }, '회원 명단 양식 내려받기'), h('button', { class: 'small', type: 'button', onclick: () => fileXlsx.click() }, '엑셀로 회원 가져오기'), fileXlsx),
     h('div', { id: 'undoImportBox', class: 'row', hidden: true }, h('span', { class: 'sub grow' }), h('button', { class: 'small', type: 'button', onclick: openUndoImport }, '마지막 엑셀 가져오기 되돌리기')),
     h('div', { id: 'setBackupLog' })));
-  box.append(h('div', { class: 'card' }, h('h3', { text: '장부 정보' }), h('div', { id: 'setStart', class: 'sub' }), h('div', { class: 'row' }, h('button', { class: 'small', type: 'button', onclick: lock }, '잠그기'))));
+  box.append(h('div', { class: 'card' }, h('h3', { text: '장부 정보' }), h('div', { id: 'setStart', class: 'sub' }), h('div', { class: 'row' }, h('button', { class: 'small', type: 'button', onclick: lock }, '잠금'), h('button', { class: 'small', type: 'button', onclick: () => window.HL_FORGET && window.HL_FORGET() }, '로그아웃')), h('div', { class: 'sub', text: '잠금: 다음에 PIN만 다시 넣어요. 로그아웃: 이 기기 등록도 풀려서 다음에 관리자 비밀번호부터 다시 넣어요.' })));
   box.append(h('div', { class: 'card' }, h('h3', { text: '처음 쓰는 순서' }), h('ol', { class: 'sub', html: GUIDE.map((x) => `<li>${x}</li>`).join('') })));
   box.append(h('div', { class: 'card' }, h('h3', { text: '삭제 기록' }), h('div', { id: 'setDeleteLog' })));
   box.append(h('div', { class: 'card' }, h('h3', { text: '전체 데이터 초기화' }), h('div', { class: 'sub', text: '연습으로 넣어 본 데이터를 지우고 처음부터 시작할 때만 쓰세요. 지우기 전에 JSON 백업이 자동으로 내려받아져요.' }), h('div', { class: 'row end' }, h('button', { class: 'danger', type: 'button', onclick: openResetSheet }, '전체 데이터 초기화…'))));
