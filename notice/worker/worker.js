@@ -31,6 +31,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS reads (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))',
   'CREATE TABLE IF NOT EXISTS acks (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 학부모가 '확인했어요'를 누른 기록
   'CREATE TABLE IF NOT EXISTS famreq (id TEXT PRIMARY KEY, kids TEXT, rel TEXT, ph TEXT, by TEXT, at INTEGER)', // 학부모 앱 '도장에 가족 추가 요청'
+  'CREATE TABLE IF NOT EXISTS invites (code TEXT PRIMARY KEY, name TEXT, kids TEXT, max INTEGER DEFAULT 2, off INTEGER DEFAULT 0, created INTEGER)', // 가정별 초대번호 (가입할 수 있는 휴대폰 수 제한)
 ];
 let ready = false;
 async function setup(env) {
@@ -40,6 +41,8 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE att ADD COLUMN tin_at INTEGER').run(); } catch (_) {}
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN urgent INTEGER DEFAULT 0').run(); } catch (_) {} // 긴급 공지
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ask INTEGER DEFAULT 0').run(); } catch (_) {}    // '확인했어요' 받기
+  try { await env.DB.prepare('ALTER TABLE parents ADD COLUMN inv TEXT').run(); } catch (_) {}               // 가입할 때 쓴 초대번호
+  try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   ready = true;
 }
 
@@ -72,6 +75,11 @@ async function route(path, req, env) {
   if (path === '/notices') return json({ ok: true, notices: await listPosts(env, 'notice', null, 50) });
 
   // ═════════ 학부모용 ═════════
+  if (path === '/invite' && req.method === 'POST') { // 초대번호 확인 (가입 화면에서 미리 보기)
+    const r = await checkInvite(env, req, b.code);
+    if (!r.ok) return json(r);
+    return json({ ok: true, name: r.inv.name || '', kids: J(r.inv.kids, []), left: r.left });
+  }
   if (path === '/join' && req.method === 'POST') {
     // 가입 또는 정보 수정. token 이 있으면 그 보호자 정보를 고침
     const kids = cleanNames(b.children);
@@ -86,10 +94,20 @@ async function route(path, req, env) {
         JSON.stringify(kids), rel, ph, same ? p.ok : 0, sub ? sub.endpoint : null, sub ? sub.keys.p256dh : null, sub ? sub.keys.auth : null, p.id);
       return json({ ok: true, token: p.tok, approved: !!(same && p.ok) });
     }
+    // 새 가입: 초대번호 확인 (관리 화면에서 '초대번호 없이도 가입 받기'를 켜면 번호 없이도 됨)
+    let inv = '';
+    const code = String(b.invite || '').replace(/\D/g, '');
+    const open = ((await one(env, "SELECT v FROM kv WHERE k = 'inviteOpen'")) || {}).v === '1';
+    if (code || !open) {
+      if (!code) return json({ ok: false, error: '도장에서 받은 초대번호를 넣어 주세요', needInvite: true });
+      if (sub) await run(env, 'DELETE FROM parents WHERE ep = ? AND ok = 0', sub.endpoint); // 같은 휴대폰이 다시 신청하면 자리를 먼저 비움
+      const r = await checkInvite(env, req, code); if (!r.ok) return json({ ...r, needInvite: true });
+      inv = code;
+    }
     if (sub) await run(env, 'DELETE FROM parents WHERE ep = ?', sub.endpoint); // 같은 휴대폰의 예전 등록 정리
     const id = rid(8), tok = rid(16);
-    await run(env, 'INSERT INTO parents (id, tok, kids, rel, ph, ok, created, ep, p256, auth) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
-      id, tok, JSON.stringify(kids), rel, ph, Date.now(), sub ? sub.endpoint : null, sub ? sub.keys.p256dh : null, sub ? sub.keys.auth : null);
+    await run(env, 'INSERT INTO parents (id, tok, kids, rel, ph, ok, created, ep, p256, auth, inv) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)',
+      id, tok, JSON.stringify(kids), rel, ph, Date.now(), sub ? sub.endpoint : null, sub ? sub.keys.p256dh : null, sub ? sub.keys.auth : null, inv || null);
     return json({ ok: true, token: tok, approved: false });
   }
 
@@ -199,11 +217,20 @@ async function route(path, req, env) {
       return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: kids.map(n => { const a = att.find(x => x.name === n) || {}; return { name: n, in: a.tin || null, out: a.tout || null, inAt: a.tin_at || null, outFrom: a.tin_at ? kstTime(new Date(a.tin_at + MIN_STAY)) : null }; }) });
     }
     if (path === '/kiosk/check') return json(await checkIn(env, b.name, b.act, true));
+    // 등록 서류 (상담 모드): 비용 설정 받기 · 제출 → 업무 서버에 저장 (학부모 앱 서버에는 남기지 않음)
+    if (path === '/kiosk/contract-cfg') return json(await teamSync(env, '/sync/contract-cfg', {}));
+    if (path === '/kiosk/contract-save') {
+      const rec = b.rec && typeof b.rec === 'object' ? b.rec : null, sign = String(b.sign || '');
+      if (!rec || !String(rec.name || '').trim()) return json({ ok: false, error: '이름이 없어요' });
+      if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sign) || sign.length > 400000) return json({ ok: false, error: '서명을 다시 해 주세요' });
+      if (JSON.stringify(rec).length > 120000) return json({ ok: false, error: '내용이 너무 길어요' });
+      return json(await teamSync(env, '/sync/contract-save', { rec, sign }));
+    }
     if (path === '/kiosk/admin') { // 태블릿 관리자 모드 (모드 바꾸기·소리 확인) — 관리자 비밀번호
-      const k = 'kad:' + (req.headers.get('cf-connecting-ip') || 'x'), f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', k);
-      if (f && f.until > Date.now()) return json({ ok: false, error: '여러 번 틀려서 15분 동안 잠겼어요' });
-      if (!env.ADMIN_PASSWORD || !(await sameText(String(b.password || ''), env.ADMIN_PASSWORD))) { const n = (f && f.until && f.until <= Date.now() ? 0 : (f ? f.n : 0)) + 1; await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', k, n, n >= 10 ? Date.now() + 15 * 60000 : 0); return json({ ok: false, error: '비밀번호가 맞지 않아요' }); }
-      if (f) await run(env, 'DELETE FROM fails WHERE ip = ?', k);
+      const k = 'kad:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, k);
+      if (lu) return json({ ok: false, error: lockText(lu) });
+      if (!env.ADMIN_PASSWORD || !(await sameText(String(b.password || ''), env.ADMIN_PASSWORD))) return json({ ok: false, error: failText('비밀번호가 맞지 않아요', await failAdd(env, k)) });
+      await failClear(env, k);
       return json({ ok: true });
     }
   }
@@ -249,18 +276,14 @@ async function route(path, req, env) {
   // ═════════ 관장님 전용 ═════════
   if (path.startsWith('/admin/')) {
     const ip = req.headers.get('cf-connecting-ip') || 'x';
-    const f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', ip);
-    if (f && f.until > Date.now()) return json({ ok: false, error: '비밀번호를 여러 번 틀려 15분 동안 잠겼습니다' }, 429);
-    if (!env.ADMIN_PASSWORD || !(await sameText(b.password || '', env.ADMIN_PASSWORD))) {
-      const n = (f && f.until <= Date.now() && f.n >= 10 ? 0 : (f ? f.n : 0)) + 1;  // 비밀번호 10번 틀리면 15분 잠금
-      await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', ip, n, n >= 10 ? Date.now() + 15 * 60000 : 0);
-      return json({ ok: false, error: '비밀번호가 맞지 않습니다' }, 401);
-    }
-    if (f) await run(env, 'DELETE FROM fails WHERE ip = ?', ip);
+    const lu = await lockUntil(env, ip);
+    if (lu) return json({ ok: false, error: lockText(lu) }, 429);
+    if (!env.ADMIN_PASSWORD || !(await sameText(b.password || '', env.ADMIN_PASSWORD))) return json({ ok: false, error: failText('비밀번호가 맞지 않습니다', await failAdd(env, ip)) }, 401);
+    await failClear(env, ip);
 
     if (path === '/admin/status') {
       const today = kstDay(new Date());
-      const parents = await all(env, 'SELECT id, kids, rel, ph, ok, created, ep FROM parents ORDER BY created DESC');
+      const parents = await all(env, 'SELECT id, kids, rel, ph, ok, created, ep, inv FROM parents ORDER BY created DESC');
       const kids = await all(env, 'SELECT name, codes FROM kids'), kst8 = await kidStatus(env);
       const att = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', today);
       const list = kids.map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko')).map(n => {
@@ -271,8 +294,11 @@ async function route(path, req, env) {
         };
       });
       const freq = await all(env, 'SELECT kids, rel, ph FROM famreq WHERE at > ?', Date.now() - 60 * 86400e3);
-      const pending = parents.filter(p => !p.ok).map(p => ({ id: p.id, children: J(p.kids, []), rel: p.rel, ph: p.ph, at: p.created, famreq: freq.some(f => f.ph === p.ph && J(f.kids, []).some(k => J(p.kids, []).includes(k))) }));
-      return json({ ok: true, devices: parents.filter(p => p.ep).length, kids: list, pending });
+      const invs = await all(env, 'SELECT code, name FROM invites');
+      const pending = parents.filter(p => !p.ok).map(p => ({ id: p.id, children: J(p.kids, []), rel: p.rel, ph: p.ph, at: p.created, famreq: freq.some(f => f.ph === p.ph && J(f.kids, []).some(k => J(p.kids, []).includes(k))),
+        inv: p.inv || '', invName: p.inv ? ((invs.find(i => i.code === p.inv) || {}).name || '') : '' }));
+      const inviteOpen = ((await one(env, "SELECT v FROM kv WHERE k = 'inviteOpen'")) || {}).v === '1';
+      return json({ ok: true, devices: parents.filter(p => p.ep).length, kids: list, pending, inviteOpen });
     }
     if (path === '/admin/approve') {
       const p = await one(env, 'SELECT * FROM parents WHERE id = ?', String(b.id || ''));
@@ -288,6 +314,29 @@ async function route(path, req, env) {
       await run(env, 'UPDATE parents SET ok = 1 WHERE id = ?', p.id);
       return json({ ok: true });
     }
+    // ── 초대번호 (가정마다 따로, 가입할 수 있는 휴대폰 수 제한) ──
+    if (path === '/admin/invites') {
+      const invs = await all(env, 'SELECT code, name, kids, max, off, created FROM invites ORDER BY created DESC');
+      const ps = await all(env, 'SELECT id, kids, rel, ph, ok, created, inv FROM parents WHERE inv IS NOT NULL');
+      return json({ ok: true, items: invs.map(i => ({ code: i.code, name: i.name || '', kids: J(i.kids, []), max: i.max, off: !!i.off, created: i.created,
+        used: ps.filter(p => p.inv === i.code).map(p => ({ id: p.id, rel: p.rel, ph: p.ph, ok: !!p.ok, at: p.created, kids: J(p.kids, []) })) })) });
+    }
+    if (path === '/admin/invite-save') {
+      const name = String(b.name || '').trim().slice(0, 30), kids = cleanNames(Array.isArray(b.kids) ? b.kids : []);
+      const max = Math.max(1, Math.min(9, b.max | 0 || 2));
+      if (b.code) {
+        const i = await one(env, 'SELECT code FROM invites WHERE code = ?', String(b.code)); if (!i) return json({ ok: false, error: '없는 초대번호예요' });
+        await run(env, 'UPDATE invites SET name = ?, kids = ?, max = ?, off = ? WHERE code = ?', name, JSON.stringify(kids), max, b.off ? 1 : 0, i.code);
+        return json({ ok: true, code: i.code });
+      }
+      let code = '';
+      for (let t = 0; t < 20 && !code; t++) { const c = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000)); if (!(await one(env, 'SELECT code FROM invites WHERE code = ?', c))) code = c; }
+      if (!code) return json({ ok: false, error: '번호를 만들지 못했어요. 다시 눌러 주세요' });
+      await run(env, 'INSERT INTO invites (code, name, kids, max, off, created) VALUES (?, ?, ?, ?, 0, ?)', code, name, JSON.stringify(kids), max, Date.now());
+      return json({ ok: true, code });
+    }
+    if (path === '/admin/invite-del') { await run(env, 'DELETE FROM invites WHERE code = ?', String(b.code || '')); return json({ ok: true }); } // 이미 가입한 보호자는 그대로
+    if (path === '/admin/invite-open') { await run(env, "INSERT INTO kv (k, v) VALUES ('inviteOpen', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0'); return json({ ok: true }); }
     if (path === '/admin/remove-device') { await run(env, 'DELETE FROM parents WHERE id = ?', String(b.id || '')); return json({ ok: true }); }
     if (path === '/admin/kid-save') {
       const name = cleanNames([b.name])[0];
@@ -533,6 +582,36 @@ async function send(env, b) {
   }));
   const nextAt = offset + slice.length - removed;   // 만료된 기기가 빠지면 뒤 순서가 당겨짐
   return { ok: true, total, sent, failed, removed, next: nextAt < total - removed ? nextAt : null };
+}
+
+
+// ── 틀린 횟수 잠금 (비밀번호·PIN·초대번호 공통) ──
+// 5번 틀릴 때마다 잠금: 1분 → 2분 → 3분 … (틀릴수록 길어짐). 맞히면 처음부터, 하루 동안 안 틀리면 처음부터.
+const FAIL_STEP = 5;
+async function lockUntil(env, key) { const f = await one(env, 'SELECT until FROM fails WHERE ip = ?', key); return f && f.until > Date.now() ? f.until : 0; }
+async function failAdd(env, key) {
+  const f = await one(env, 'SELECT n, until, at FROM fails WHERE ip = ?', key), now = Date.now();
+  const n = f && (f.at || 0) > now - 86400e3 ? (f.n | 0) + 1 : 1;
+  const lock = n % FAIL_STEP === 0 ? now + (n / FAIL_STEP) * 60000 : 0;
+  await run(env, 'INSERT INTO fails (ip, n, until, at) VALUES (?, ?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until, at = excluded.at', key, n, lock, now);
+  return { n, lock, left: FAIL_STEP - (n % FAIL_STEP) };
+}
+async function failClear(env, key) { await run(env, 'DELETE FROM fails WHERE ip = ?', key); }
+function lockText(until) { const s = Math.max(1, Math.ceil((until - Date.now()) / 1000)); return '여러 번 틀려서 잠겼어요. ' + (s >= 60 ? Math.floor(s / 60) + '분 ' + (s % 60 ? s % 60 + '초 ' : '') : s + '초 ') + '뒤에 다시 해 주세요'; }
+function failText(msg, r) { return r.lock ? FAIL_STEP + '번 틀려서 ' + Math.round((r.lock - Date.now()) / 60000) + '분 동안 잠겼어요. 더 틀리면 더 길게 잠겨요' : msg + ' (' + (r.n % FAIL_STEP) + '/' + FAIL_STEP + '번 틀림)'; }
+
+// 초대번호 확인: 틀린 번호는 5번마다 잠금(1분·2분·3분…), 꺼졌거나 가입 수가 다 차면 막음
+async function checkInvite(env, req, raw) {
+  const code = String(raw || '').replace(/\D/g, '');
+  const k = 'inv:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, k);
+  if (lu) return { ok: false, error: lockText(lu) };
+  const inv = code.length === 6 ? await one(env, 'SELECT * FROM invites WHERE code = ?', code) : null;
+  if (!inv) return { ok: false, error: failText('초대번호가 맞지 않아요. 도장에서 받은 6자리를 확인해 주세요', await failAdd(env, k)) };
+  await failClear(env, k);
+  if (inv.off) return { ok: false, error: '지금은 쓸 수 없는 초대번호예요. 도장에 문의해 주세요' };
+  const used = (await one(env, 'SELECT COUNT(*) AS n FROM parents WHERE inv = ?', code)).n;
+  if (used >= inv.max) return { ok: false, error: '이 초대번호로 가입할 수 있는 휴대폰 수(' + inv.max + '대)가 다 찼어요. 도장에 문의해 주세요' };
+  return { ok: true, inv, left: inv.max - used };
 }
 
 function cleanNames(arr) {

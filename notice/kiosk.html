@@ -105,6 +105,47 @@
   }
   .sndtest{position:fixed;top:calc(14px + env(safe-area-inset-top));right:18px;border:0;background:#fff;border-radius:99px;padding:9px 14px;font:inherit;font-size:14px;font-weight:700;color:var(--muted);box-shadow:0 1px 6px rgba(0,0,0,.06);cursor:pointer}
   .net{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);font-size:13px;color:var(--muted)}
+  /* 등록 서류 (기본정보 + 제자희망서) */
+  .docs button.new{background:var(--brand);color:#fff}.docs button.new small{color:rgba(255,255,255,.85)}
+  #cf{position:fixed;inset:0;background:var(--paper);z-index:45;display:flex;flex-direction:column}
+  #cf .top{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 20px 12px;background:var(--cfc,#A40F16);color:#fff}
+  #cf .top b{font-size:clamp(18px,2.6vh,24px);font-weight:900;flex:1}
+  #cf .top small{font-size:14px;opacity:.9;font-weight:700}
+  #cf .top button{border:0;border-radius:12px;background:rgba(255,255,255,.2);color:#fff;font:inherit;font-weight:800;font-size:15px;padding:10px 14px}
+  #cf .steps{display:flex;gap:6px;padding:10px 20px 0}#cf .steps i{flex:1;height:5px;border-radius:9px;background:#E6DED6}#cf .steps i.on{background:var(--cfc,#A40F16)}
+  #cfB{flex:1;overflow:auto;padding:16px 20px 30px;-webkit-overflow-scrolling:touch}
+  #cfB .w{max-width:880px;margin:0 auto}
+  #cfB h2{font-size:clamp(20px,3vh,28px);font-weight:900;margin:6px 0 4px}
+  #cfB .lead{color:var(--muted);font-size:15px;margin-bottom:12px}
+  #cfB .card{background:#fff;border-radius:18px;padding:16px 18px;margin:12px 0;box-shadow:0 1px 8px rgba(0,0,0,.04)}
+  #cfB .sec{font-size:15px;font-weight:900;color:var(--cfc,#A40F16);margin:18px 2px 4px}
+  #cfB label.q{display:block;font-size:16px;font-weight:800;margin:14px 0 7px}
+  #cfB label.q em{color:var(--brand);font-style:normal}
+  #cfB input[type=text],#cfB input[type=tel],#cfB input[type=date]{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;font-size:17px;background:#fff;-webkit-user-select:text;user-select:text}
+  #cfB .row{display:flex;gap:10px;flex-wrap:wrap}#cfB .row>*{flex:1;min-width:140px}
+  #cfB .ch{display:flex;flex-wrap:wrap;gap:8px}
+  #cfB .ch button{border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 16px;font:inherit;font-size:16px;font-weight:700;color:var(--ink)}
+  #cfB .ch button.on{background:var(--cfc,#A40F16);border-color:var(--cfc,#A40F16);color:#fff}
+  #cfB .more{margin-top:8px;display:grid;gap:8px}
+  #cfB table{width:100%;border-collapse:collapse}#cfB td{padding:3px}#cfB td input{padding:10px!important;font-size:15px!important}
+  #cfB .wk td{text-align:center}#cfB .wk input[type=checkbox]{width:24px;height:24px;accent-color:var(--cfc,#A40F16)}
+  #cfB .fee{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);font-size:17px}
+  #cfB .fee input{width:26px;height:26px;accent-color:var(--cfc,#A40F16)}#cfB .fee span{flex:1;font-weight:700}#cfB .fee b{font-weight:800}
+  #cfB .tot{display:flex;justify-content:space-between;font-size:19px;font-weight:900;padding:14px 4px 4px;color:var(--cfc,#A40F16)}
+  #cfB .art{background:#fff;border-radius:18px;padding:18px;margin:12px 0;border:2px solid transparent}
+  #cfB .art.ok{border-color:var(--cfc,#A40F16)}
+  #cfB .art h3{font-size:18px;font-weight:900;margin-bottom:8px}
+  #cfB .art p{font-size:16px;line-height:1.7;white-space:pre-line;color:#3A3532}
+  #cfB .art .yes{margin-top:12px;border:2px solid var(--cfc,#A40F16);background:#fff;color:var(--cfc,#A40F16);border-radius:14px;padding:13px 20px;font:inherit;font-size:17px;font-weight:900;width:100%}
+  #cfB .art.ok .yes{background:var(--cfc,#A40F16);color:#fff}
+  #cfB .art .pno{margin-top:10px;display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--muted)}#cfB .art .pno input{width:24px;height:24px;accent-color:var(--brand)}
+  #cfB .pad2{position:relative;background:#fff;border:2px dashed #CFC5BC;border-radius:18px;height:clamp(180px,30vh,280px);touch-action:none}
+  #cfB .pad2 canvas{position:absolute;inset:0;width:100%;height:100%}
+  #cfB .pad2 span{position:absolute;left:0;right:0;top:45%;text-align:center;color:#CFC5BC;font-size:20px;font-weight:800;pointer-events:none}
+  #cf .foot{display:flex;gap:12px;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line)}
+  #cf .foot button{border:0;border-radius:14px;padding:16px;font:inherit;font-size:18px;font-weight:900;background:#F1ECE7;color:var(--ink)}
+  #cf .foot .go{flex:1;background:var(--cfc,#A40F16);color:#fff}#cf .foot .go:disabled{opacity:.4}
+  #cf .err{color:var(--brand);font-weight:800;font-size:15px;min-height:1.3em;margin-top:8px}
 </style>
 </head>
 <body>
@@ -162,10 +203,12 @@
 </section>
 
 <div class="net" id="net"></div>
+<div id="cf" hidden><div class="top"><b id="cfT">등록 서류</b><small id="cfK"></small><button id="cfX">그만두기</button></div><div class="steps" id="cfS"></div><div id="cfB"></div><div class="foot"><button id="cfPrev">‹ 앞으로</button><button class="go" id="cfNext">다음 ›</button></div></div>
 <div class="ovl" id="adm" hidden><div class="box" id="admBox"></div></div>
 <div class="viewer" id="viewer" hidden><img id="vImg" alt=""><div class="nav"><button id="vPrev">‹ 앞</button><span id="vNo"></span><button id="vNext">다음 ›</button></div><button class="exit" id="vExit">닫기</button></div>
 
 <script src="config.js"></script>
+<script src="contract-forms.js"></script>
 <script>
 (() => {
   const API = (window.HAERANG_PUSH_API || '').replace(/\/$/, '');
@@ -355,14 +398,167 @@
   async function toConsult() {
     clearTimeout(idle); show('s-consult');
     try { docs = await fetch('consult/list.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []); } catch (_) { docs = []; }
-    $('docs').innerHTML = docs.length ? docs.map((d, i) => '<button data-d="' + i + '">' + esc(d.title) + '<small>' + (d.pages || []).length + '쪽' + (d.desc ? ' · ' + esc(d.desc) : '') + '</small></button>').join('') : '<p style="color:var(--muted);font-size:18px">상담 자료를 준비 중이에요. 자료를 넣으면 여기에 보여요.</p>';
+    $('docs').innerHTML = '<button class="new" data-new="1">📝 등록 서류 작성<small>기본정보 + 제자희망서 서명</small></button>' + (docs.length ? docs.map((d, i) => '<button data-d="' + i + '">' + esc(d.title) + '<small>' + (d.pages || []).length + '쪽' + (d.desc ? ' · ' + esc(d.desc) : '') + '</small></button>').join('') : '');
   }
-  $('docs').onclick = e => { const b = e.target.closest('[data-d]'); if (!b) return; cur = docs[+b.dataset.d]; page = 0; drawPage(); $('viewer').hidden = false; };
+  $('docs').onclick = e => { if (e.target.closest('[data-new]')) return cfOpen(); const b = e.target.closest('[data-d]'); if (!b) return; cur = docs[+b.dataset.d]; page = 0; drawPage(); $('viewer').hidden = false; };
   function drawPage() { const ps = cur.pages || []; $('vImg').src = 'consult/' + ps[page]; $('vNo').textContent = (page + 1) + ' / ' + ps.length; $('vPrev').disabled = page === 0; $('vNext').disabled = page >= ps.length - 1; }
   $('vPrev').onclick = () => { if (page > 0) { page--; drawPage(); } };
   $('vNext').onclick = () => { if (page < (cur.pages || []).length - 1) { page++; drawPage(); } };
   $('vExit').onclick = () => { $('viewer').hidden = true; };
   $('cExit').onclick = () => { $('viewer').hidden = true; toMode(); };
+
+  // ── 등록 서류: 직원 준비(종류·비용) → 기본정보 → 제자희망서 조마다 '네, 알겠습니다' → 비용 확인 + 서명 → 업무 앱으로 ──
+  const F = window.HAERANG_FORMS;
+  let st = null, cfStep = 0, feeCfg = null;
+  const kst = () => { const d = new Date(Date.now() + 9 * 3600e3); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); };
+  async function cfOpen() {
+    if (!F) return;
+    st = { kind: 'kid', type: '신규 제자', fees: null, payDay: '', v: { family: [['', '', '', '', ''], ['', '', '', '', ''], ['', '', '', '', '']], week: {} }, ok: [], photoNo: false, signer: '', signerRel: '', sign: '' };
+    cfStep = 0; $('cf').hidden = false; cfDraw();
+    if (!feeCfg) { const j = await post('/kiosk/contract-cfg', { token }).catch(() => null); feeCfg = j && j.ok && j.fees ? j.fees : null; if (cfStep === 0) cfDraw(); }
+  }
+  const feesOf = k => JSON.parse(JSON.stringify((feeCfg && feeCfg[k]) || F.FEES[k])).map(f => ({ ...f, on: false }));
+  const total = () => (st.fees || []).filter(f => f.on).reduce((a, f) => a + (+f.p || 0), 0);
+  function cfClose(force) { if (!force && !confirm('지금까지 적은 내용이 지워져요. 그만둘까요?')) return; st = null; $('cf').hidden = true; $('cfB').innerHTML = ''; }
+  $('cfX').onclick = () => cfClose(cfStep === 4);
+  function cfDraw() {
+    const k = F.KIND[st.kind]; $('cf').style.setProperty('--cfc', k.color);
+    if (!st.fees) st.fees = feesOf(st.kind);
+    $('cfK').textContent = k.label + ' · ' + st.type;
+    $('cfS').innerHTML = [0, 1, 2, 3].map(i => '<i class="' + (i <= cfStep ? 'on' : '') + '"></i>').join('');
+    $('cfPrev').hidden = cfStep === 0 || cfStep === 4; $('cfNext').hidden = cfStep === 4;
+    const B = $('cfB'), esc2 = F.esc;
+    if (cfStep === 0) {
+      $('cfT').textContent = '등록 서류 · 직원 준비';
+      B.innerHTML = '<div class="w"><h2>상담 직원이 먼저 골라 주세요</h2><p class="lead">고른 뒤 보호자님(제자)께 태블릿을 드려요.</p>' +
+        '<div class="card"><label class="q">서류</label><div class="ch" data-g="kind">' + Object.entries(F.KIND).map(([key, x]) => '<button data-v="' + key + '" class="' + (st.kind === key ? 'on' : '') + '">' + x.label + '</button>').join('') + '</div>' +
+        '<label class="q">구분</label><div class="ch" data-g="type">' + F.TYPES.map(t => '<button data-v="' + t + '" class="' + (st.type === t ? 'on' : '') + '">' + t + '</button>').join('') + '</div></div>' +
+        '<div class="card"><label class="q" style="margin-top:0">비용 (해당하는 것만 체크)</label>' + st.fees.map((f, i) => '<label class="fee"><input type="checkbox" data-fee="' + i + '"' + (f.on ? ' checked' : '') + '><span>' + esc2(f.n) + '</span><b>' + F.won(f.p) + '</b></label>').join('') +
+        '<div class="tot"><span>합계</span><span id="cfTot">' + F.won(total()) + '</span></div>' +
+        '<label class="q">교육비 납부일</label><input type="text" id="cfPay" value="' + esc2(st.payDay) + '" placeholder="예: 매월 20일"></div></div>';
+      $('cfNext').textContent = '보호자님께 드리기 ›'; $('cfNext').disabled = false;
+    } else if (cfStep === 1) {
+      $('cfT').textContent = '기본정보';
+      B.innerHTML = '<div class="w"><h2>해랑경희 태권도장 기본정보</h2><p class="lead">' + (st.kind === 'kid' ? '제자의 기본사항과 가족사항을 함께 작성해 주세요.' : '잘 알아야 잘 지도할 수 있어요. 솔직하게 적어 주세요.') + ' <em style="color:var(--brand);font-style:normal">*</em> 표시만 꼭 적어 주시면 돼요.</p><div class="card" id="cfInfo">' + F.INFO[st.kind].map(fieldHTML).join('') + '</div></div>';
+      $('cfNext').textContent = '다음 ›'; $('cfNext').disabled = false;
+    } else if (cfStep === 2) {
+      $('cfT').textContent = '제자희망서';
+      const arts = F.ART[st.kind];
+      B.innerHTML = '<div class="w"><h2>해랑경희 태권도장 제자희망서</h2><p class="lead">한 조씩 읽고 <b>네, 알겠습니다</b>를 눌러 주세요.</p>' + arts.map((a, i) => '<div class="art' + (st.ok[i] ? ' ok' : '') + '" data-a="' + i + '"><h3>' + esc2(a.t) + '</h3><p>' + esc2(a.b) + '</p>' +
+        (a.photo ? '<label class="pno"><input type="checkbox" id="cfPno"' + (st.photoNo ? ' checked' : '') + '> 사진·영상이 SNS·밴드에 올라가지 않았으면 해요</label>' : '') +
+        '<button class="yes" data-yes="' + i + '">' + (st.ok[i] ? '✓ 네, 알겠습니다' : '네, 알겠습니다') + '</button></div>').join('') + '</div>';
+      $('cfNext').textContent = '다음 ›'; $('cfNext').disabled = !arts.every((_, i) => st.ok[i]);
+    } else if (cfStep === 3) {
+      $('cfT').textContent = '확인 · 서명';
+      const fees = st.fees.filter(f => f.on), kid = st.kind === 'kid';
+      if (!st.signer) st.signer = kid ? '' : (st.v.name || '');
+      B.innerHTML = '<div class="w"><h2>위 사항을 약속합니다</h2><p class="lead">' + kst().replace(/-/g, '. ') + '</p>' +
+        '<div class="card"><label class="q" style="margin-top:0">비용</label>' + (fees.length ? fees.map(f => '<div class="fee"><span>' + esc2(f.n) + '</span><b>' + F.won(f.p) + '</b></div>').join('') + '<div class="tot"><span>합계</span><span>' + F.won(total()) + '</span></div>' : '<p class="lead">도장에서 따로 안내해 드려요.</p>') +
+        (st.payDay ? '<div class="fee"><span>교육비 납부일</span><b>' + esc2(st.payDay) + '</b></div>' : '') + '</div>' +
+        '<div class="card"><label class="q" style="margin-top:0">서명하는 분 <em>*</em></label><div class="ch" data-g="rel">' + (kid ? ['엄마', '아빠', '할머니', '할아버지', '기타 보호자'] : ['본인', '엄마', '아빠', '기타 보호자']).map(r => '<button data-v="' + r + '" class="' + (st.signerRel === r ? 'on' : '') + '">' + r + '</button>').join('') + '</div>' +
+        '<label class="q">이름 <em>*</em></label><input type="text" id="cfSigner" value="' + esc2(st.signer) + '" placeholder="서명하는 분 이름">' +
+        '<label class="q">서명 <em>*</em> <button id="cfClr" style="float:right;border:0;background:#F1ECE7;border-radius:10px;padding:6px 12px;font:inherit;font-weight:800">지우기</button></label><div class="pad2"><span>여기에 손가락으로 서명해 주세요</span><canvas id="cfPad"></canvas></div><div class="err" id="cfErr"></div></div>' +
+        '<p class="lead" style="text-align:center;margin-top:14px">' + esc2(F.CLOSE[st.kind]) + '<br>해랑경희 태권도장 대표 이아빈</p></div>';
+      $('cfNext').textContent = '제출하기'; $('cfNext').disabled = false; padInit();
+    } else {
+      $('cfT').textContent = '제출했어요';
+      B.innerHTML = '<div class="w" style="text-align:center;padding-top:8vh"><div style="font-size:72px">✅</div><h2>제출했어요. 감사합니다!</h2><p class="lead">태블릿을 도장 선생님께 돌려 주세요.</p><button class="back" id="cfEnd" style="margin-top:20px">처음으로</button></div>';
+      $('cfEnd').onclick = () => cfClose(true); clearTimeout(cfDraw.t); cfDraw.t = setTimeout(() => { if (cfStep === 4) cfClose(true); }, 20000);
+    }
+    B.scrollTop = 0;
+  }
+  function fieldHTML(f) {
+    const v = st.v, esc2 = F.esc, need = f.need ? ' <em>*</em>' : '';
+    let h = f.sec ? '<div class="sec">' + esc2(f.sec) + '</div>' : '';
+    const more = (f.more || []).map(m => '<input type="text" data-k="' + m.id + '" placeholder="' + esc2(m.label) + '" value="' + esc2(v[m.id] || '') + '">').join('');
+    if (f.type === 'text' || f.type === 'tel' || f.type === 'date') h += '<label class="q">' + esc2(f.label) + need + '</label><input type="' + f.type + '" data-k="' + f.id + '"' + (f.type === 'tel' ? ' inputmode="tel"' : '') + ' placeholder="' + esc2(f.ph || '') + '" value="' + esc2(v[f.id] || '') + '">';
+    else if (f.type === 'pick' || f.type === 'yn' || f.type === 'multi') {
+      const opts = f.type === 'yn' ? ['네', '아니오'] : f.opts, cur = v[f.id];
+      h += '<label class="q">' + esc2(f.label) + need + '</label><div class="ch" data-pk="' + f.id + '" data-m="' + (f.type === 'multi' ? 1 : 0) + '">' + opts.map(o => '<button data-v="' + esc2(o) + '" class="' + ((f.type === 'multi' ? (cur || []).includes(o) : cur === o) ? 'on' : '') + '">' + esc2(o) + '</button>').join('') + '</div>' + (more ? '<div class="more">' + more + '</div>' : '');
+    } else if (f.type === 'family') {
+      h += '<label class="q">' + esc2(f.label) + need + '</label><table>' + v.family.map((r, i) => '<tr>' + f.cols.map((c, j) => '<td><input type="' + (c === '연락처' ? 'tel' : 'text') + '" data-fam="' + i + ':' + j + '" placeholder="' + c + '" value="' + esc2(r[j] || '') + '"></td>').join('') + '</tr>').join('') + '</table><button class="back" id="cfFamAdd" style="margin-top:8px;padding:10px 18px;font-size:15px">+ 가족 한 줄 더</button>';
+    } else if (f.type === 'week') {
+      h += '<label class="q">' + esc2(f.label) + '</label><table class="wk"><tr><td></td>' + F.WK.map(d => '<td><b>' + d + '</b></td>').join('') + '</tr><tr><td>시간</td>' + F.WK.map(d => '<td><input type="text" data-wk="' + d + '" placeholder="예: 3시" value="' + esc2((v.week[d] || {}).t || '') + '"></td>').join('') + '</tr><tr><td>차량</td>' + F.WK.map(d => '<td><input type="checkbox" data-wc="' + d + '"' + ((v.week[d] || {}).car ? ' checked' : '') + '></td>').join('') + '</tr></table>';
+    }
+    return h;
+  }
+  // 서명 칸
+  let padDirty = false;
+  function padInit() {
+    const c = $('cfPad'); if (!c) return; padDirty = false;
+    const r = c.getBoundingClientRect(), dpr = Math.max(1, window.devicePixelRatio || 1); c.width = r.width * dpr; c.height = r.height * dpr;
+    const g = c.getContext('2d'); g.scale(dpr, dpr); g.lineWidth = 3; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#111';
+    let last = null;
+    const pt = e => { const b = c.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    c.onpointerdown = e => { c.setPointerCapture(e.pointerId); last = pt(e); padDirty = true; c.parentElement.querySelector('span').hidden = true; g.beginPath(); g.arc(last[0], last[1], 1.4, 0, 7); g.fill(); };
+    c.onpointermove = e => { if (!last) return; const p = pt(e); g.beginPath(); g.moveTo(last[0], last[1]); g.lineTo(p[0], p[1]); g.stroke(); last = p; };
+    c.onpointerup = c.onpointercancel = () => { last = null; };
+    $('cfClr').onclick = () => { g.clearRect(0, 0, c.width, c.height); padDirty = false; c.parentElement.querySelector('span').hidden = false; };
+  }
+  function padImage() { // 서명만 잘라서 작은 PNG로
+    const c = $('cfPad'), w = c.width, h = c.height, d = c.getContext('2d').getImageData(0, 0, w, h).data;
+    let x0 = w, y0 = h, x1 = 0, y1 = 0;
+    for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) if (d[(y * w + x) * 4 + 3] > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 <= x0) return '';
+    const pad = 10; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w, x1 + pad); y1 = Math.min(h, y1 + pad);
+    const sc = Math.min(1, 600 / (x1 - x0), 240 / (y1 - y0)), o = document.createElement('canvas'); o.width = Math.round((x1 - x0) * sc); o.height = Math.round((y1 - y0) * sc);
+    o.getContext('2d').drawImage(c, x0, y0, x1 - x0, y1 - y0, 0, 0, o.width, o.height); return o.toDataURL('image/png');
+  }
+  $('cfB').addEventListener('input', e => {
+    const t = e.target, v = st && st.v; if (!v) return;
+    if (t.id === 'cfPay') st.payDay = t.value.trim();
+    else if (t.id === 'cfSigner') st.signer = t.value.trim();
+    else if (t.dataset.k) v[t.dataset.k] = t.value.trim();
+    else if (t.dataset.fam) { const [i, j] = t.dataset.fam.split(':').map(Number); v.family[i][j] = t.value.trim(); }
+    else if (t.dataset.wk) { v.week[t.dataset.wk] = { ...(v.week[t.dataset.wk] || {}), t: t.value.trim() }; }
+  });
+  $('cfB').addEventListener('change', e => {
+    const t = e.target; if (!st) return;
+    if (t.dataset.fee != null) {
+      const f = st.fees[+t.dataset.fee]; f.on = t.checked;
+      if (f.on && f.g) st.fees.forEach((x, i) => { if (x !== f && x.g === f.g) { x.on = false; const el = $('cfB').querySelector('[data-fee="' + i + '"]'); if (el) el.checked = false; } }); // 수강료는 하나만
+      $('cfTot').textContent = F.won(total());
+    } else if (t.dataset.wc) st.v.week[t.dataset.wc] = { ...(st.v.week[t.dataset.wc] || {}), car: t.checked };
+    else if (t.id === 'cfPno') st.photoNo = t.checked;
+  });
+  $('cfB').addEventListener('click', e => {
+    if (!st) return; const b = e.target.closest('button'); if (!b) return;
+    const g = b.closest('[data-g]');
+    if (g && g.dataset.g === 'kind') { if (st.kind !== b.dataset.v) { st.kind = b.dataset.v; st.fees = null; st.ok = []; } return cfDraw(); }
+    if (g && g.dataset.g === 'type') { st.type = b.dataset.v; return cfDraw(); }
+    if (g && g.dataset.g === 'rel') { st.signerRel = b.dataset.v; if (b.dataset.v === '본인' && !st.signer) { st.signer = st.v.name || ''; $('cfSigner').value = st.signer; } g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); return; }
+    const pk = b.closest('[data-pk]');
+    if (pk) { const k = pk.dataset.pk, val = b.dataset.v; if (pk.dataset.m === '1') { const l = st.v[k] || []; st.v[k] = l.includes(val) ? l.filter(x => x !== val) : [...l, val]; b.classList.toggle('on'); } else { st.v[k] = st.v[k] === val ? '' : val; pk.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === st.v[k])); } return; }
+    if (b.id === 'cfFamAdd') { st.v.family.push(['', '', '', '', '']); const y = $('cfB').scrollTop; cfDraw(); $('cfB').scrollTop = y; return; }
+    if (b.dataset.yes != null) { const i = +b.dataset.yes; st.ok[i] = !st.ok[i]; const a = b.closest('.art'); a.classList.toggle('ok', st.ok[i]); b.textContent = st.ok[i] ? '✓ 네, 알겠습니다' : '네, 알겠습니다'; $('cfNext').disabled = !F.ART[st.kind].every((_, j) => st.ok[j]);
+      if (st.ok[i]) { const nx = a.nextElementSibling; if (nx) setTimeout(() => nx.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); } }
+  });
+  $('cfPrev').onclick = () => { if (cfStep > 0) { cfStep--; cfDraw(); } };
+  $('cfNext').onclick = async () => {
+    if (cfStep === 1) {
+      const miss = F.INFO[st.kind].filter(f => f.need && (f.type === 'family' ? !st.v.family.some(r => r.some(x => x)) : !st.v[f.id])).map(f => f.label);
+      if (miss.length) return alertMsg('꼭 적어 주세요: ' + miss.join(', '));
+    }
+    if (cfStep === 3) return cfSubmit();
+    cfStep++; cfDraw();
+  };
+  function alertMsg(m) { const el = document.createElement('div'); el.className = 'err'; el.textContent = m; el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;padding:12px 18px;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:60'; document.body.appendChild(el); setTimeout(() => el.remove(), 2600); }
+  async function cfSubmit() {
+    const err = $('cfErr'); err.textContent = '';
+    const bad = m => { err.textContent = m; alertMsg(m); err.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    if (!st.signerRel) return bad('서명하는 분을 골라 주세요');
+    if (!st.signer) return bad('이름을 적어 주세요');
+    if (!padDirty) return bad('서명해 주세요');
+    const sign = padImage(); if (!sign) return bad('서명해 주세요');
+    const rec = { kind: st.kind, type: st.type, name: (st.v.name || '').replace(/\s+/g, ''), birth: st.v.birth || '', phone: st.v.phone || '', info: F.flatten(st.kind, st.v), raw: st.v,
+      articles: F.ART[st.kind].map((a, i) => ({ t: a.t, b: a.b, photo: !!a.photo, ok: !!st.ok[i] })), photoNo: st.photoNo, closing: F.CLOSE[st.kind],
+      fees: st.fees.map(f => ({ n: f.n, p: f.p, on: f.on })), total: total(), payDay: st.payDay, signer: st.signer, signerRel: st.signerRel, date: kst() };
+    $('cfNext').disabled = true; $('cfNext').textContent = '보내는 중…';
+    const j = await post('/kiosk/contract-save', { token, rec, sign }).catch(() => ({ ok: false, error: '인터넷 연결을 확인해 주세요' }));
+    $('cfNext').disabled = false; $('cfNext').textContent = '제출하기';
+    if (!j.ok) return bad((j.error === 'not found' ? '서버를 새로 올려야 제출할 수 있어요' : j.error || '제출하지 못했어요') + ' · 다시 눌러 주세요');
+    cfStep = 4; cfDraw();
+  }
 })();
 </script>
 </body>

@@ -56,6 +56,10 @@
   .kid{display:flex;gap:8px;margin-bottom:8px}
   .kid input,input.ph{flex:1;min-width:0;width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;font-size:16px;background:#fff}
   input.ph{font-size:20px;letter-spacing:.3em}
+  .invHint{text-align:center;font-size:15px;padding:14px 16px}
+  .invHint b{display:block;font-size:30px;letter-spacing:.25em;color:var(--brand);margin:4px 0}
+  .invHint small{color:var(--muted);font-size:12.5px}
+  #invMsg.ok{color:#1E7B46;font-weight:700} #invMsg.bad{color:var(--brand);font-weight:700}
   .kid input:focus,input.ph:focus{outline:2px solid var(--brand);border-color:transparent}
   .kid button{border:0;background:#F1ECE7;border-radius:12px;width:48px;font-size:20px;color:var(--muted)}
   .add{border:1px dashed #CFC5BC;background:none;border-radius:12px;width:100%;padding:11px;font-size:14px;color:var(--muted)}
@@ -352,6 +356,8 @@
     <button class="btn ghost copyLink">주소 복사하기</button>
   </section>
 
+  <div class="card invHint" id="invHint" hidden>초대번호 <b id="invHintN"></b><br><small>앱을 설치한 뒤 가입할 때 이 번호를 넣어 주세요. 잊지 않게 적어 두세요.</small></div>
+
   <section class="card" id="g-ios" hidden>
     <h2>홈 화면에 추가해 주세요</h2>
     <p>아이폰에서는 홈 화면에 추가해야 앱처럼 쓰고 알림도 받을 수 있습니다. Safari에서 아래 순서대로 진행해 주세요.</p>
@@ -404,6 +410,11 @@
   <section class="card" id="g-join" hidden>
     <h2 id="joinTitle">학부모 가입</h2>
     <p id="joinDesc">가입하면 등원·하원 알림, 알림장, 공지, 앨범, 출석부를 이 휴대폰에서 볼 수 있습니다.</p>
+    <div id="invBox">
+      <label class="f">초대번호 6자리</label>
+      <input class="ph" id="inv" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="off">
+      <p class="note" id="invMsg">도장에서 받은 초대번호(큐알)를 넣어 주세요. 한 번호로 가입할 수 있는 휴대폰 수가 정해져 있어요.</p>
+    </div>
     <label class="f">아이 이름</label>
     <div id="kids"></div>
     <button class="add" id="addKid" type="button">+ 형제·자매 추가</button>
@@ -458,7 +469,8 @@
   const isInApp = isKakao || /Instagram|NAVER\(|FBAN|FBAV|Line\/|DaumApps|everytimeApp|; wv\)/i.test(ua);
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-  const PAGE = location.origin + '/notice/';
+  const INV0 = (new URLSearchParams(location.search).get('c') || '').replace(/\D/g, '');
+  const PAGE = location.origin + '/notice/' + (INV0.length === 6 ? '?c=' + INV0 : ''); // 초대번호가 붙은 주소면 그대로 넘김
   const LS = 'haerang-parent', SEEN = 'haerang-seen';
   const WD = '일월화수목금토';
   let reg = null, vapidKey = null, home = null;
@@ -491,6 +503,8 @@
   function show(view, sub) {
     ['v-gate', 'v-home'].forEach(v => $(v).hidden = v !== view);
     if (view === 'v-gate') ['g-inapp', 'g-ios', 'g-android', 'g-unsupported', 'g-notready', 'g-join'].forEach(g => $(g).hidden = g !== sub);
+    const ic = store.get('haerang-invite'); // 설치 안내 화면에서는 초대번호를 크게 보여 줌 (아이폰은 설치한 앱이 이 번호를 기억하지 못함)
+    $('invHint').hidden = !(view === 'v-gate' && ic && ['g-inapp', 'g-ios', 'g-android'].includes(sub)); $('invHintN').textContent = ic || '';
   }
 
   // ═════════ 가입 ═════════
@@ -506,8 +520,27 @@
   const setRel = r => { rel = r || ''; [...$('rel').children].forEach(x => x.classList.toggle('on', x.textContent === rel)); };
   $('rel').onclick = e => { const b = e.target.closest('button'); if (b) setRel(b.textContent); };
   $('ph').oninput = () => { $('ph').value = $('ph').value.replace(/\D/g, '').slice(0, 4); };
+  // 초대번호: 주소(?c=123456)로 들어오면 기억해 두고 가입 칸에 채움
+  const INVK = 'haerang-invite';
+  let invOk = null;
+  (() => { const c = (new URLSearchParams(location.search).get('c') || '').replace(/\D/g, ''); if (c.length === 6) store.set(INVK, c); })();
+  async function checkInv() {
+    const c = $('inv').value, m = $('invMsg');
+    if (c.length !== 6) { invOk = null; m.className = 'note'; m.textContent = '도장에서 받은 초대번호(큐알)를 넣어 주세요. 한 번호로 가입할 수 있는 휴대폰 수가 정해져 있어요.'; return; }
+    try {
+      const j = await post('/invite', { code: c });
+      if (c !== $('inv').value) return;
+      if (!j.ok) { invOk = false; m.className = 'note bad'; m.textContent = j.error === 'not found' ? '초대번호 확인은 곧 열려요. 그대로 가입해 주세요' : j.error; return; }
+      invOk = true; m.className = 'note ok'; m.textContent = '확인했어요' + (j.name ? ' · ' + j.name : '') + ' · 가입할 수 있는 휴대폰 ' + j.left + '대 남음';
+      const ins = [...$('kids').querySelectorAll('input')];
+      if (j.kids.length && ins.every(i => !i.value.trim())) { $('kids').innerHTML = ''; j.kids.forEach(kidRow); }
+    } catch (_) {}
+  }
+  $('inv').oninput = () => { $('inv').value = $('inv').value.replace(/\D/g, '').slice(0, 6); checkInv(); };
   function fillJoin(s, editing) {
     s = s || {};
+    $('invBox').hidden = !!editing;
+    if (!editing) { $('inv').value = store.get(INVK) || ''; checkInv(); }
     $('kids').innerHTML = ''; ((s.children && s.children.length) ? s.children : ['']).forEach(kidRow);
     setRel(s.relation); $('ph').value = s.phone4 || '';
     $('joinTitle').textContent = editing ? '정보 수정 · 자녀 추가' : '학부모 가입';
@@ -537,12 +570,15 @@
     if (!children.length) { toast('아이 이름을 적어 주세요'); return; }
     if (!rel) { toast('아이와의 관계를 골라 주세요'); return; }
     if (!/^\d{4}$/.test(ph)) { toast('휴대폰 번호 뒷자리 4자리를 적어 주세요'); $('ph').focus(); return; }
+    const invite = me() ? '' : $('inv').value;
+    if (!me() && invOk === false) { toast($('invMsg').textContent); $('inv').focus(); return; }
     const btn = $('joinBtn'); btn.disabled = true;
     try {
       const s = me();
       const subscription = s ? null : await subscribePush();
-      const j = await post('/join', { children, relation: rel, phone4: ph, subscription });
-      if (!j.ok) throw new Error(j.error);
+      const j = await post('/join', { children, relation: rel, phone4: ph, subscription, invite });
+      if (!j.ok) { if (j.needInvite) { $('invMsg').className = 'note bad'; $('invMsg').textContent = j.error; $('inv').focus(); } throw new Error(j.error); }
+      if (!s) store.set(INVK, null);
       store.set(LS, { ...(s || {}), token: j.token, children, relation: rel, phone4: ph, approved: j.approved, push: s ? s.push : !!subscription, kid: 0 });
       if (!s && !subscription) toast('가입했습니다. 알림은 꺼져 있습니다');
       else toast(s ? (j.approved ? '저장했습니다' : '저장했어요. 도장에서 다시 확인해요') : '가입했어요. 도장에서 확인한 뒤 이용할 수 있어요');
@@ -585,7 +621,7 @@
   const won = n => (+n || 0).toLocaleString('ko-KR') + '원';
   const evDay = date => { const d = md(date); return d.m + '월 ' + d.d + '일 (' + d.w + ')'; };
   const evShort = date => { const d = md(date); return d.m + '/' + d.d; };
-  const evPrice = ev => ev.products.length ? ev.products.map(p => p.n + ' ' + won(p.p)).join(' / ') : ev.base ? '참가비 ' + won(ev.base) : '';
+  const evPrice = ev => !(+ev.base) && !ev.products.some(p => +p.p) ? '무료' : ev.products.length ? ev.products.map(p => p.n + (+p.p ? ' ' + won(p.p) : '')).join(' / ') : '참가비 ' + won(ev.base);
   async function loadEvents() {
     if (!(me() || {}).approved) return;
     try { const j = await post('/p/events'); if (j.ok) { evs = j.events || []; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {}
@@ -610,7 +646,7 @@
       const edit = ev.canEdit && !m.byStaff;
       sh.innerHTML = '<div class="in"><h3>' + esc(ev.title) + '</h3><p class="help-l">' + esc([k, ev.date ? evDay(ev.date) : '', ev.canEdit && ev.close ? evShort(ev.close) + '까지 신청' : ''].filter(Boolean).join(' · ')) + '</p>' +
         (ev.desc ? '<p class="d">' + esc(ev.desc) + '</p>' : '') +
-        (ev.products.length ? '<label class="f">신청할 항목</label><div class="opts" data-g="prod">' + ev.products.map((p, i) => '<button data-v="' + i + '" class="' + (st.prods.includes(i) ? 'on' : '') + '">' + esc(p.n) + ' ' + won(p.p) + '</button>').join('') + '</div>' : '') +
+        (ev.products.length ? '<label class="f">신청할 항목</label><div class="opts" data-g="prod">' + ev.products.map((p, i) => '<button data-v="' + i + '" class="' + (st.prods.includes(i) ? 'on' : '') + '">' + esc(p.n) + (+p.p ? ' ' + won(p.p) : '') + '</button>').join('') + '</div>' : '') +
         ev.options.map(o => '<label class="f">' + esc(o.n) + '</label>' + (o.c.length ? '<div class="opts" data-g="opt" data-o="' + esc(o.n) + '">' + o.c.map(c => '<button data-v="' + esc(c) + '" class="' + (st.opts[o.n] === c ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' : '<input class="m" data-o="' + esc(o.n) + '" maxlength="30" value="' + esc(st.opts[o.n] || '') + '">')).join('') +
         (ev.van ? '<label class="f">하원차</label><div class="opts" data-g="van"><button data-v="1" class="' + (st.van === true ? 'on' : '') + '">타요</button><button data-v="0" class="' + (st.van === false ? 'on' : '') + '">안 타요</button></div>' : '') +
         (edit ? '<label class="f">도장에 남길 말 (안 적어도 돼요)</label><input class="m" id="evMemo" maxlength="100" value="' + esc(st.memo) + '">' : '') +

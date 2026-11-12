@@ -133,7 +133,10 @@
   .m.me.cont .bub{border-radius:18px}
   .bub.gone{background:#EEF0F4!important;color:#8C93A3!important;border-color:#EEF0F4!important;display:flex;gap:6px;align-items:center}
   .bub.gone i{width:18px;height:18px;border-radius:50%;background:#8C93A3;color:#fff;font-style:normal;font-size:12px;display:grid;place-items:center;font-weight:700}
-  .bub a{color:inherit;text-decoration:underline;word-break:break-all;-webkit-user-select:auto}
+  .bub a{color:inherit;text-decoration:underline;word-break:break-all;-webkit-user-select:none;-webkit-touch-callout:none}
+  /* 앱 화면에서는 길게 눌러도 글자 선택·복사 메뉴(아이폰 '복사하기·찾아보기')가 뜨지 않게. 글 쓰는 칸만 선택 가능 */
+  html,body,body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  input,textarea,select,[contenteditable],input *,textarea *{-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important}
   .tm{font-size:11px;color:#A0A6B4;white-space:nowrap;flex:none;padding-bottom:2px}
   .ph{width:220px;max-width:62vw;border-radius:16px;background:#E5E9F0;min-height:120px;display:block;object-fit:cover;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .rq{display:block;border-left:3px solid #9DB2DA;padding:1px 8px;margin:2px 0 6px;font-size:13px;color:#5D6578;cursor:pointer;max-width:260px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -532,10 +535,11 @@
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l1 13.5h9l1-13.5M10 10.5v6M14 10.5v6"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14"/><path d="M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
   <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
-  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M8 3.5h8M9 3.5v6L6.5 13h11L15 9.5v-6M12 13v7.5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M8 3.5h8M9 3.5v6L6.5 13h11L15 9.5v-6M12 13v7.5"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
 </svg>
 
 <script src="config.js"></script>
+<script src="/notice/contract-forms.js"></script>
 <script>
 (() => {
 'use strict';
@@ -580,7 +584,7 @@ function parseWhen(text, base = today()) {
 
 
 // ───── 상태 ─────
-const S = { esigns: new Map(), pmsg: new Map(), hw: new Map(), tok: '', me: null, members: [], msgs: [], items: new Map(), comments: new Map(), pickup: new Map(), pickupDefault: {}, logs: [], notice: null, since: 0, lastMsg: 0, roster: [], tab: 'chat', room: '', calM: today().slice(0, 7), calD: today(), tf: 'all', tkf: 'open', homeDay: today(), replyTo: null, logRead: 0, logSeen: 0, readAt: null };
+const S = { hidden: new Set(), esigns: new Map(), pmsg: new Map(), hw: new Map(), tok: '', me: null, members: [], msgs: [], items: new Map(), comments: new Map(), pickup: new Map(), pickupDefault: {}, logs: [], notice: null, since: 0, lastMsg: 0, roster: [], tab: 'chat', room: '', calM: today().slice(0, 7), calD: today(), tf: 'all', tkf: 'open', homeDay: today(), replyTo: null, logRead: 0, logSeen: 0, readAt: null };
 try { S.logRead = +localStorage.getItem('haerang-team-logread') || 0; S.readAt = JSON.parse(localStorage.getItem('haerang-team-read') || 'null'); } catch (_) {}
 const nameOf = id => id === '' ? '학부모 앱' : (S.members.find(m => m.id === id) || {}).name || '?';
 const itemsOf = t => [...S.items.values()].filter(i => i.type === t && !i.del);
@@ -595,7 +599,7 @@ const midOf = name => (S.members.find(m => m.name === name) || {}).id || name;
 const dmRoom = id => 'dm:' + [S.me.id, id].sort().join(':');
 const roomOf = m => m.room || '';
 const roomName = r => r ? nameOf(r.split(':').slice(1).find(x => x !== S.me.id)) : '해랑경희 직원방';
-const roomMsgs = r => S.msgs.filter(m => roomOf(m) === r);
+const roomMsgs = r => S.msgs.filter(m => roomOf(m) === r && !S.hidden.has(m.id));
 const unreadIn = r => { const at = (S.readAt || {})[r] || 0; return S.msgs.filter(m => roomOf(m) === r && m.id > at && m.mid !== S.me.id).length; };
 function markRoomRead(r) { const l = roomMsgs(r); if (!l.length) return; S.readAt = S.readAt || {}; S.readAt[r] = l[l.length - 1].id; try { localStorage.setItem('haerang-team-read', JSON.stringify(S.readAt)); } catch (_) {} }
 
@@ -619,6 +623,8 @@ async function sync(first) {
   for (const x of (j.pmsg || [])) { S.pmsg.set(x.id, x); changed = true; }
   for (const x of (j.hw || [])) { S.hw.set(x.id, x); changed = true; }
   const pt = JSON.stringify([j.ptpl, j.rels]); if (pt !== S._pt) { S._pt = pt; S.ptpl = j.ptpl || []; S.rels = j.rels || []; }
+  for (const h of (j.hidden || [])) if (!S.hidden.has(h)) { S.hidden.add(h); changed = true; }
+  if ((j.docNew | 0) !== (S.docNew | 0)) { S.docNew = j.docNew | 0; changed = true; }
   for (const m of j.msgs) {
     m.rx = m.rx || {}; m.room = m.room || '';
     const i = S.msgs.findIndex(x => x.id === m.id);
@@ -874,7 +880,7 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['🏆', '기네스', '/team/guinness.html'] };
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['appGns', '🏆', '기네스'], ['kids', '🥋', '원생'], ['hw', '📒', '숙제'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
+const SHORT = [['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['appGns', '🏆', '기네스'], ['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '📒', '숙제'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -957,7 +963,7 @@ function renderMore() {
   const t = today(), evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
   const soon = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 30)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   $('v-more').innerHTML =
-    '<div class="sgrid">' + SHORT.map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + '</button>').join('') + '</div>' +
+    '<div class="sgrid">' + SHORT.map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' +
     '<div class="sec"><div class="sh"><h2>업무</h2><button class="more" data-go="task">더보기 ›</button></div>' +
     '<button class="sbox" data-tk="due">오늘까지 해야 할 업무<b>' + itemsOf('todo').filter(x => !isDone(x) && x.due && x.due <= t).length + ' ›</b></button><button class="sbox" data-tk="mine">내가 담당한 업무<b>' + itemsOf('todo').filter(x => !isDone(x) && whosOf(x).includes(S.me.name)).length + ' ›</b></button></div>' +
     '<div class="sec"><div class="sh"><h2>다가오는 일정</h2><button class="more" data-go="cal">달력 ›</button></div>' + (soon.length ? soon.slice(0, 8).map(schLi).join('') : '<p class="empty">한 달 안에 일정이 없어요</p>') + '</div>' +
@@ -970,6 +976,7 @@ $('v-more').onclick = async e => {
     if (k === 'table' || k === 'buy') { S.tf = k === 'buy' ? 'buy' : 'all'; return setTab('table'); }
     if (k === 'kids') return setTab('kids');
     if (k === 'hw') return hwListSheet();
+    if (k === 'docs') return docsSheet();
     if (k === 'cal') return setTab('cal'); if (k === 'mine') { S.tkf = 'mine'; return setTab('task'); }
     if (k === 'notice') { openRoom(''); return S.notice ? jumpTo(S.notice.id) : toast('올라온 공지가 없어요. 단체방 메시지를 길게 눌러 공지로 올려요'); }
     if (k === 'photo') return gallerySheet(); if (k === 'log') return setTab('log'); }
@@ -1072,7 +1079,7 @@ function renderChat(scroll) {
       (mine ? '' : '<div class="avw">' + (cont ? '' : av(m.mid)) + '</div>') +
       '<div class="col">' + (mine || cont ? '' : '<div class="who">' + esc(nameOf(m.mid)) + '</div>') +
       (m.photo && m.text && !gone ? '<div class="ln">' + '<img class="ph" data-ph="' + m.photo + '" alt="">' + '</div><div class="ln" style="margin-top:4px"><div class="bub">' + rq + fmtText(m.text) + '</div>' + (last ? '<span class="tm">' + hm(m.at) + '</span>' : '') + '</div>'
-        : '<div class="ln">' + body + (last ? '<span class="tm">' + hm(m.at) + '</span>' : '') + '</div>') +
+        : '<div class="ln">' + body + (last || m.ed ? '<span class="tm">' + (m.ed && !gone ? '수정됨 ' : '') + (last ? hm(m.at) : '') + '</span>' : '') + '</div>') +
       (rx.length ? '<div class="rxs">' + rx.map(([e, l]) => '<button data-rx="' + e + '" class="' + (l.includes(me) ? 'mine' : '') + '">' + e + ' ' + l.length + '</button>').join('') + '</div>' : '') +
       (rb ? '<div class="refs">' + rb + '</div>' : '') + '</div></div>';
   });
@@ -1114,10 +1121,13 @@ $('msgs').onclick = async e => {
 let mlp, mlpXY;
 $('msgs').addEventListener('pointerdown', e => {
   const b = e.target.closest('.bub, .ph'); if (!b || b.classList.contains('gone')) return; const row = b.closest('.m'); mlpXY = [e.clientX, e.clientY];
-  clearTimeout(mlp); mlp = setTimeout(() => { row.dataset.lp = '1'; if (navigator.vibrate) navigator.vibrate(20); msgMenu(+row.dataset.id); }, 480);
+  clearTimeout(mlp); mlp = setTimeout(() => { row.dataset.lp = '1'; if (navigator.vibrate) navigator.vibrate(20); noSel(); msgMenu(+row.dataset.id); }, 480);
 });
 $('msgs').addEventListener('pointermove', e => { if (mlpXY && Math.hypot(e.clientX - mlpXY[0], e.clientY - mlpXY[1]) > 10) clearTimeout(mlp); });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => $('msgs').addEventListener(n, () => clearTimeout(mlp)));
+// 길게 누를 때 글자 선택 커서·키보드가 뜨지 않게
+const noSel = () => { try { window.getSelection().removeAllRanges(); } catch (_) {} if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); };
+document.addEventListener('selectstart', e => { const t = e.target.nodeType === 1 ? e.target : e.target.parentElement; if (!t || !t.closest('input, textarea, [contenteditable]')) e.preventDefault(); });
 $('msgs').addEventListener('contextmenu', e => { const b = e.target.closest('.bub, .ph'); if (!b || b.classList.contains('gone')) return; e.preventDefault(); clearTimeout(mlp); const row = b.closest('.m'); if (row.dataset.lp) return; msgMenu(+row.dataset.id); });
 function msgMenu(id) {
   const m = S.msgs.find(x => x.id === id); if (!m || m.text === GONE) return;
@@ -1125,7 +1135,8 @@ function msgMenu(id) {
   const act = (a, i, t, red) => '<li><button data-a="' + a + '"' + (red ? ' class="red"' : '') + '>' + ic(i) + t + '</button></li>';
   sheet('<div class="grab"></div><div class="emo">' + EMO.map(e => '<button data-e="' + e + '" class="' + (((m.rx || {})[e] || []).includes(me) ? 'on' : '') + '">' + e + '</button>').join('') + '</div><ul class="acts">' +
     act('reply', 'reply', '답장') + (m.text ? act('copy', 'copy', '텍스트 복사') : '') + (m.text && !S.room ? act('notice', 'mega', isNotice ? '공지 내리기' : '공지로 올리기') : '') +
-    (m.text ? act('todo', 'check', '업무로 만들기') + act('sched', 'cal', '일정으로 만들기') : '') + (mine ? act('del', 'trash', '메시지 삭제(참여자 전체)', true) : '') + '</ul>', ov => {
+    (m.text ? act('todo', 'check', '업무로 만들기') + act('sched', 'cal', '일정으로 만들기') : '') + (mine && m.text ? act('edit', 'edit', '메시지 고치기') : '') +
+    act('hide', 'trash', '나만 삭제 (내 화면에서만)', true) + (mine ? act('del', 'trash', '모두에게서 삭제', true) : '') + '</ul>', ov => {
     ov.onclick = async e => {
       const eb = e.target.closest('[data-e]'); if (eb) { closeSheet(); return react(id, eb.dataset.e); }
       const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a; closeSheet();
@@ -1134,7 +1145,21 @@ function msgMenu(id) {
       if (a === 'notice') { const j = await api('/api/notice', { id: isNotice ? 0 : id }); if (!j.ok) return toast(j.error || '서버를 새로 올려야 쓸 수 있어요'); S.notice = j.notice; renderChat(); return toast(isNotice ? '공지를 내렸어요' : '공지로 올렸어요'); }
       if (a === 'todo') { const w = parseWhen(m.text.replace(/#\S+/g, '')); return taskSheet({ type: 'todo', title: (w.rest || m.text).slice(0, 80), due: w.date, status: '진행', whos: [], checks: [], done: false }, true); }
       if (a === 'sched') { const w = parseWhen(m.text.replace(/#\S+/g, ''), dayOf(m.at)); return itemSheet({ type: 'sched', title: (w.rest || m.text).slice(0, 60), date: w.date || today(), time: w.time, memo: '' }, true); }
+      if (a === 'edit') return editMsg(m);
+      if (a === 'hide') { S.hidden.add(id); renderChat(); const j = await api('/api/msg-hide', { id }); if (!j.ok) { S.hidden.delete(id); renderChat(); return toast(j.error === 'not found' ? '서버를 새로 올려야 쓸 수 있어요' : j.error || '지우지 못했어요'); } return toast('내 화면에서만 지웠어요'); }
       if (a === 'del') { if (!confirm('이 메시지를 모두에게서 지울까요?')) return; const j = await api('/api/msg-del', { id }); if (j.ok) { m.text = GONE; m.photo = ''; m.refs = []; m.rx = {}; if (isNotice) S.notice = null; renderChat(); } else toast(j.error); }
+    };
+  });
+}
+function editMsg(m) {
+  sheet('<div class="grab"></div><h2>메시지 고치기</h2><textarea class="inp" id="edT" rows="4" style="width:100%;resize:vertical">' + esc(m.text) + '</textarea><div class="row" style="margin-top:10px"><button class="btn" data-close style="flex:1">취소</button><button class="btn g" id="edGo" style="flex:2">고치기</button></div>', ov => {
+    const t = ov.querySelector('#edT'); setTimeout(() => { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }, 60);
+    ov.querySelector('#edGo').onclick = async () => {
+      const v = t.value.trim(); if (!v) return toast('내용을 적어 주세요'); if (v === m.text) return closeSheet();
+      const j = await api('/api/msg-edit', { id: m.id, text: v });
+      if (!j.ok) return toast(j.error === 'not found' ? '서버를 새로 올려야 쓸 수 있어요' : j.error || '고치지 못했어요');
+      m.text = v; m.ed = j.ed; if (S.notice && S.notice.id === m.id) S.notice = { ...S.notice, text: v };
+      closeSheet(); renderChat(); toast('고쳤어요');
     };
   });
 }
@@ -1378,10 +1403,15 @@ function itemSheet(it0, isNew) {
 const CAT = { event: '행사', goods: '물품', buy: '구매' };
 const catOf = x => x.type === 'buy' ? 'buy' : x.kind === 'goods' ? 'goods' : 'event';
 const tableItems = () => [...itemsOf('event'), ...itemsOf('buy')];
+// 0원 행사(참가비·품목 값이 모두 0원)는 결제 칸을 안 보여 줌
+const isFree = x => !(+x.base) && !(x.products || []).some(p => +p.p);
 function tableStat(x) {
   if (x.type === 'buy') { const r = x.rows || [], d = r.filter(y => y.done).length; return { pct: r.length ? Math.round(d / r.length * 100) : 0, line: '품목 <b>' + r.length + '개</b> 구매 <b>' + d + '개</b> 합계 <b>' + won(r.reduce((a, y) => a + (+y.price || 0) * (+y.qty || 1), 0)) + '</b>' }; }
   const rows = (x.rows || []).filter(r => !r.wait && !r.appCancel), n = rows.length, paid = rows.filter(r => r.paid).length, given = rows.filter(r => r.given).length, un = n - paid;
   const unTxt = un ? '<b class="o">' + un + '명</b>' : '<b class="o">없음</b>', wait = (x.rows || []).filter(r => r.wait).length;
+  if (isFree(x)) return catOf(x) === 'goods'
+    ? { pct: n ? Math.round(given / n * 100) : 0, line: '<span>주문 <b>' + n + '명</b></span><span>지급 <b>' + given + '명</b></span><span>무료</span>' }
+    : { pct: n ? 100 : 0, line: '<span>신청 <b>' + n + '명</b></span><span>무료</span>' + (wait ? '<span>대기 <b>' + wait + '명</b></span>' : '') };
   if (catOf(x) === 'goods') return { pct: n ? Math.round((paid + given) / (2 * n) * 100) : 0, line: '<span>주문 <b>' + n + '명</b></span><span>결제 <b>' + paid + '명</b> · 지급 <b>' + given + '명</b></span><span>미결제 ' + unTxt + '</span>' };
   return { pct: n ? Math.round(paid / n * 100) : 0, line: '<span>신청 <b>' + n + '명</b></span><span>결제 <b>' + paid + '명</b></span><span>미결제 ' + unTxt + '</span>' + (wait ? '<span>대기 <b>' + wait + '명</b></span>' : '') };
 }
@@ -1470,23 +1500,23 @@ function eventSheet(ev0) {
   const flush = async () => { clearTimeout(tmr); if (!pend.size) return; const w = [...pend]; pend.clear(); await saveItem(ev, '🎟 ' + ev.title + ': ' + w.slice(0, 4).join(', ') + (w.length > 4 ? ' 외 ' + (w.length - 4) + '건' : '')); };
   const draw = () => {
     const rows = ev.rows || [], act = rows.filter(r => !r.wait && !r.appCancel), tot = act.reduce((a, r) => a + rowAmt(ev, r), 0), paidAmt = act.filter(r => r.paid).reduce((a, r) => a + rowAmt(ev, r), 0);
-    const cms = S.comments.get(ev.id) || [];
-    const card = (r, i) => '<div class="er' + (r.wait ? ' wait' : '') + '" data-i="' + i + '"><div class="h"><b>' + esc(r.name) + (r.wait ? ' <span class="tag y">대기</span>' : '') + (r.guest ? ' <span class="tag">비회원</span>' : '') + (r.app ? ' <span class="tag g">앱' + (r.rel ? ' · ' + esc(r.rel) : '') + '</span>' : '') + (r.appCancel ? ' <span class="tag r">학부모 취소</span>' : '') + '</b><span class="amt">' + won(rowAmt(ev, r)) + '</span><button class="lbtn" data-a="rm">✕</button></div>' +
+    const cms = S.comments.get(ev.id) || [], free = isFree(ev);
+    const card = (r, i) => '<div class="er' + (r.wait ? ' wait' : '') + '" data-i="' + i + '"><div class="h"><b>' + esc(r.name) + (r.wait ? ' <span class="tag y">대기</span>' : '') + (r.guest ? ' <span class="tag">비회원</span>' : '') + (r.app ? ' <span class="tag g">앱' + (r.rel ? ' · ' + esc(r.rel) : '') + '</span>' : '') + (r.appCancel ? ' <span class="tag r">학부모 취소</span>' : '') + '</b><span class="amt">' + (free ? '' : won(rowAmt(ev, r))) + '</span><button class="lbtn" data-a="rm">✕</button></div>' +
       ((ev.products || []).length ? '<div class="sub">' + ev.products.map((p, k) => '<button class="tg' + ((r.prods || []).includes(k) ? ' on' : '') + '" data-a="prod" data-k="' + k + '">' + esc(p.n) + '</button>').join('') + '</div>' : '') +
       ((ev.options || []).length ? '<div class="sub">' + ev.options.map(o => o.c.length ? '<select data-a="opt" data-o="' + esc(o.n) + '"><option value="">' + esc(o.n) + '</option>' + o.c.map(c => '<option' + ((r.opts || {})[o.n] === c ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>' : '<input class="tg" data-a="optt" data-o="' + esc(o.n) + '" placeholder="' + esc(o.n) + '" value="' + esc((r.opts || {})[o.n] || '') + '" style="width:110px">').join('') + '</div>' : '') +
       '<div class="sub">' + (ev.checks || []).map(c => '<button class="tg' + ((r.chk || {})[c] ? ' on' : '') + '" data-a="chk" data-c="' + esc(c) + '">' + esc(c) + '</button>').join('') +
-      '<button class="tg pay' + (r.paid ? ' on' : '') + '" data-a="paid">' + (r.paid ? '✓ 결제' : '결제') + '</button><button class="tg pay' + (r.given ? ' on' : '') + '" data-a="given">' + (r.given ? '✓ 지급' : '지급') + '</button>' + (ev.van ? '<button class="tg' + (r.van ? ' on' : '') + '" data-a="van">하원차</button>' : '') + (r.wait ? '<button class="tg" data-a="unwait">참가로</button>' : '') + '</div>' +
+      (free ? '' : '<button class="tg pay' + (r.paid ? ' on' : '') + '" data-a="paid">' + (r.paid ? '✓ 결제' : '결제') + '</button>') + '<button class="tg pay' + (r.given ? ' on' : '') + '" data-a="given">' + (r.given ? '✓ 지급' : '지급') + '</button>' + (ev.van ? '<button class="tg' + (r.van ? ' on' : '') + '" data-a="van">하원차</button>' : '') + (r.wait ? '<button class="tg" data-a="unwait">참가로</button>' : '') + '</div>' +
       (r.pmemo ? '<p class="help" style="margin:4px 2px 0">학부모님 말: ' + esc(r.pmemo) + '</p>' : '') +
       '<input class="memo2" data-a="memo" placeholder="비고" value="' + esc(r.memo || '') + '"></div>';
     S._evDraw = () => { const sh = document.querySelector('.sheet.full'); if (!sh) return; const y = sh.scrollTop; sh.querySelector('#evBody').innerHTML = body(); sh.scrollTop = y; };
-    const body = () => '<div class="sumbar"><div><small>' + W + '</small><b>' + act.length + '명</b></div><div><small>결제</small><b>' + act.filter(r => r.paid).length + '/' + act.length + '</b></div><div><small>' + (goods ? '지급' : '합계') + '</small><b>' + (goods ? act.filter(r => r.given).length + '/' + act.length : won(tot)) + '</b></div></div>' +
-      (act.some(r => !r.paid) ? '<p class="help">미결제: ' + act.filter(r => !r.paid).map(r => esc(r.name)).join(', ') + ' (' + won(tot - paidAmt) + ')</p>' : act.length ? '<p class="help" style="color:var(--ok)">모두 결제했어요 · 합계 ' + won(tot) + '</p>' : '') +
+    const body = () => '<div class="sumbar"><div><small>' + W + '</small><b>' + act.length + '명</b></div>' + (free ? '' : '<div><small>결제</small><b>' + act.filter(r => r.paid).length + '/' + act.length + '</b></div>') + (free && !goods ? '<div><small>참가비</small><b>무료</b></div>' : '<div><small>' + (goods ? '지급' : '합계') + '</small><b>' + (goods ? act.filter(r => r.given).length + '/' + act.length : won(tot)) + '</b></div>') + '</div>' +
+      (free ? '' : act.some(r => !r.paid) ? '<p class="help">미결제: ' + act.filter(r => !r.paid).map(r => esc(r.name)).join(', ') + ' (' + won(tot - paidAmt) + ')</p>' : act.length ? '<p class="help" style="color:var(--ok)">모두 결제했어요 · 합계 ' + won(tot) + '</p>' : '') +
       '<div class="row" style="margin-top:12px"><button class="btn g" id="evAdd" style="flex:1">+ 사람 추가</button><button class="btn" id="evSet">설정</button><button class="btn" id="evDone">' + (ev.closed ? '다시 진행' : '완료로') + '</button></div>' +
       rows.map(card).join('') + (rows.length ? '' : '<p class="empty">+ 사람 추가로 명단을 넣어 주세요</p>') +
       '<h3>댓글 ' + cms.length + '</h3>' + cmList(cms) + '<div class="row" style="margin-top:8px"><input class="inp" id="evC" placeholder="댓글 달기"><button class="btn g" id="evCo">등록</button></div>';
     return body();
   };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(ev.title) + '</h2><span class="bdg ' + catOf(ev) + '" style="background:rgba(255,255,255,.18);color:#fff">' + CAT[catOf(ev)] + '</span></div><p class="help">' + [ev.date ? fullDate(ev.date) + ' · ' + dday(ev.date) : '', (ev.products || []).length ? ev.products.map(p => p.n + ' ' + won(p.p)).join(' / ') : '기본 ' + won(ev.base)].filter(Boolean).join(' · ') + '</p><div id="evBody">' + draw() + '</div>', ov => {
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(ev.title) + '</h2><span class="bdg ' + catOf(ev) + '" style="background:rgba(255,255,255,.18);color:#fff">' + CAT[catOf(ev)] + '</span></div><p class="help">' + [ev.date ? fullDate(ev.date) + ' · ' + dday(ev.date) : '', isFree(ev) ? '무료' : (ev.products || []).length ? ev.products.map(p => p.n + (+p.p ? ' ' + won(p.p) : '')).join(' / ') : '기본 ' + won(ev.base)].filter(Boolean).join(' · ') + '</p><div id="evBody">' + draw() + '</div>', ov => {
     ov.classList.add('full');
     const redraw = () => { draw(); S._evDraw(); };
     ov.addEventListener('click', async e => {
@@ -1633,8 +1663,9 @@ function kidSheet(id) {
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + L.map(x => pmRow(x, false)).join('') : ''; })() +
-    '<h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
+    '<div id="kDocs"></div><h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
     ov.classList.add('full');
+    loadDocs().then(() => { const el = ov.querySelector('#kDocs'); const L = (S.docs || []).filter(d => d.sid === s.id); if (el && L.length) { el.innerHTML = '<h3>등록 서류</h3>' + L.map(docRow).join(''); el.onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); }; } });
     ov.querySelector('#kSt').onclick = () => kidStatusSheet(s);
     ov.querySelector('#kTp').onclick = () => kidTempSheet(s);
     ov.querySelector('#kEd').onclick = () => kidEdit(s);
@@ -1684,8 +1715,8 @@ function kidTempSheet(s) {
     if (cur) g('tpX').onclick = () => save((s.temporarySchedules || []).filter(t => t !== cur));
   });
 }
-function kidEdit(s0) {
-  const s = s0 ? JSON.parse(JSON.stringify(s0)) : { name: '', birth: '', days: [], status: '재원', joined: today(), gender: '', memo: '', no: '', guardian: '', phone: '', inst: '', leavePeriods: [], temporarySchedules: [], statusLog: [] };
+function kidEdit(s0, pre, after) {
+  const s = s0 ? JSON.parse(JSON.stringify(s0)) : { name: '', birth: '', days: [], status: '재원', joined: today(), gender: '', memo: '', no: '', guardian: '', phone: '', inst: '', leavePeriods: [], temporarySchedules: [], statusLog: [], ...(pre || {}) };
   const y = +today().slice(0, 4), years = []; for (let i = y - 3; i >= 1950; i--) years.push(i); let noTouched = !!s.no;
   sheet('<h2>' + (s0 ? '원생 정보 수정' : '새 원생 등록') + '</h2>' +
     '<label class="f">이름</label><input class="inp" id="eName" value="' + esc(s.name) + '">' +
@@ -1721,6 +1752,7 @@ function kidEdit(s0) {
         if (ch.length) h.push('정보 수정: ' + ch.join(', '));
       }
       const id = await saveKid(s, h, s0);
+      if (id && after) await after(id);
       if (id) { toast(s0 ? '저장했어요' : s.name + ' 등록했어요'); kidSheet(id); }
     };
   });
@@ -1989,16 +2021,71 @@ function hwDetail(id) {
   });
 }
 
+// ═════════ 등록 서류 (태블릿 상담 모드에서 받은 기본정보 + 제자희망서) ═════════
+const HF = window.HAERANG_FORMS;
+if (HF) { const st = document.createElement('style'); st.textContent = HF.CSS + '.sgrid .dn{display:inline-block;background:var(--brand);color:#fff;border-radius:99px;font-size:11px;padding:0 6px;margin-left:2px}'; document.head.appendChild(st); }
+async function loadDocs(force) { if (!force && S.docsAt && Date.now() - S.docsAt < 60000) return; const j = await api('/api/contracts'); if (j.ok) { S.docs = j.items; S.docFees = j.fees; S.docsAt = Date.now(); } else S.docsErr = j.error === 'not found' ? '업무 서버를 새로 올려야 볼 수 있어요' : j.error; }
+const docKind = d => HF && HF.KIND[d.kind] ? HF.KIND[d.kind].label : '';
+const docRow = d => { const k = (S.kids || []).find(x => x.id === d.sid); return '<div class="kr" data-doc="' + esc(d.id) + '"><span class="av l" style="background:' + (HF && HF.KIND[d.kind] ? HF.KIND[d.kind].color : '#888') + '">📝</span><div class="t"><b>' + esc(d.name) + '</b><small>' + esc([docKind(d), d.type, md(dayOf(d.at)), d.signer ? '서명 ' + d.signer + (d.signerRel ? '(' + d.signerRel + ')' : '') : ''].filter(Boolean).join(' · ')) + '</small><div>' + (d.sid ? '<span class="tag g">원생 연결됨' + (k ? ' · ' + esc(k.name) : '') + '</span>' : '<span class="tag r">원생 연결 전</span>') + (d.photoNo ? '<span class="tag y">사진 업로드 X</span>' : '') + '</div></div><em>›</em></div>'; };
+async function docsSheet() {
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>등록 서류</h2></div><p class="help">태블릿 상담 모드 → 📝 등록 서류 작성으로 받은 서류예요. 새 서류는 출석부 원생으로 등록하거나 이미 있는 원생과 연결해 주세요.</p><div class="card klist" id="dL"><p class="help">불러오는 중…</p></div>', async ov => {
+    ov.classList.add('full'); loadKids();
+    const draw = () => { const el = ov.querySelector('#dL'); if (!el) return; const L = S.docs || []; el.innerHTML = S.docsErr && !S.docs ? '<p class="empty">' + esc(S.docsErr) + '</p>' : L.length ? [...L.filter(d => !d.sid), ...L.filter(d => d.sid)].map(docRow).join('') : '<p class="empty">아직 받은 서류가 없어요</p>'; };
+    await loadDocs(true); draw();
+    ov.querySelector('#dL').onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); };
+  });
+}
+async function docView(id) {
+  const j = await api('/api/contract-get', { id }); if (!j.ok) return toast(j.error || '서류를 열지 못했어요');
+  const d = j.item, linked = (S.kids || []).find(x => x.id === d.sid);
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(d.name) + ' 등록 서류</h2></div>' +
+    '<div class="row" style="margin:6px 0 12px;flex-wrap:wrap">' + (d.sid ? '<span class="help" style="flex:1">출석부 원생 <b>' + esc(linked ? linked.name : '') + '</b>과 연결돼 있어요</span><button class="btn" id="dvUn">연결 풀기</button>' : '<button class="btn g" id="dvNew" style="flex:1">출석부 원생으로 등록</button><button class="btn" id="dvLink" style="flex:1">있는 원생과 연결</button>') + '<button class="btn" id="dvPr">인쇄·PDF</button>' + (isBoss() ? '<button class="btn" id="dvDel">지우기</button>' : '') + '</div>' +
+    '<div class="card" style="padding:14px 14px 18px">' + HF.view(d) + '</div>', ov => {
+    ov.classList.add('full'); const g = x => ov.querySelector('#' + x);
+    const link = async sid => { const r = await api('/api/contract-link', { id, sid }); if (!r.ok) return toast(r.error || '연결하지 못했어요'); S.docsAt = 0; await loadDocs(true); toast(sid ? '원생과 연결했어요' : '연결을 풀었어요'); docView(id); };
+    if (g('dvUn')) g('dvUn').onclick = () => { if (confirm('원생 연결을 풀까요? 서류는 그대로 남아요.')) link(''); };
+    if (g('dvNew')) g('dvNew').onclick = () => {
+      const r = d.raw || {}, ph = (r.phone || '').replace(/\D/g, ''), fam = (r.family || []).find(x => x && x[3]) || [], gp = (fam[3] || '').replace(/\D/g, '');
+      const days = Object.entries(r.week || {}).filter(([, w]) => w && (w.t || w.car)).map(([k]) => k);
+      const rel = d.signerRel === '엄마' ? '어머니' : d.signerRel === '아빠' ? '아버지' : d.signerRel && d.signerRel !== '본인' ? '기타' : '';
+      const pre = { name: d.name, birth: +(String(d.birth || '').slice(0, 4)) || '', phone: d.kind === 'kid' ? (gp || ph) : (ph || gp), guardian: rel, days: KWEEK.filter(x => days.includes(x)), joined: r.start || today(), inst: /유치원|어린이집/.test(r.school || '') ? r.school : '', memo: ['등록 서류 ' + (d.date || ''), d.photoNo ? '사진·영상 업로드 원하지 않음' : ''].filter(Boolean).join(' · ') };
+      pre.no = pre.phone ? pre.phone.slice(-4) : '';
+      kidEdit(null, pre, async sid => { await api('/api/contract-link', { id, sid }); S.docsAt = 0; loadDocs(true); });
+    };
+    if (g('dvLink')) g('dvLink').onclick = () => {
+      const L = (S.kids || []).filter(x => x.status !== '퇴관').sort((a, b) => (b.name === d.name) - (a.name === d.name) || a.name.localeCompare(b.name, 'ko'));
+      sheet('<h2>어느 원생과 연결할까요?</h2><input class="inp" id="dlQ" placeholder="이름 검색" value="' + esc(d.name) + '"><div class="chips" id="dlC" style="margin-top:10px"></div><div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', o2 => {
+        const dr = () => { const q = o2.querySelector('#dlQ').value.trim(); o2.querySelector('#dlC').innerHTML = L.filter(x => !q || x.name.includes(q)).slice(0, 60).map(x => '<button data-v="' + esc(x.id) + '">' + esc(x.name) + (x.birth ? ' <small>' + x.birth + '</small>' : '') + '</button>').join('') || '<span class="help">찾는 원생이 없어요</span>'; };
+        o2.querySelector('#dlQ').oninput = dr; dr();
+        o2.querySelector('#dlC').onclick = e => { const b = e.target.closest('[data-v]'); if (b) link(b.dataset.v); };
+      });
+    };
+    g('dvPr').onclick = () => { const w = window.open('', '_blank'); if (!w) return toast('새 창이 막혀 있어요'); w.document.write('<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>' + esc(d.name) + ' 등록 서류</title><style>body{font-family:system-ui,sans-serif;max-width:760px;margin:20px auto;padding:0 16px}' + HF.CSS + '@media print{.cf-doc .cf-h,.cf-doc .cf-a{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>' + HF.view(d) + '<script>setTimeout(function(){print()},400)<\/script></body></html>'); w.document.close(); };
+    if (g('dvDel')) g('dvDel').onclick = async () => { if (!confirm(d.name + ' 등록 서류를 지울까요? 되돌릴 수 없어요.')) return; const r = await api('/api/contract-del', { id }); if (!r.ok) return toast(r.error); S.docsAt = 0; await loadDocs(true); closeSheet(); toast('지웠어요'); };
+  });
+}
+function cfeesSheet() {
+  const f = JSON.parse(JSON.stringify(S.docFees || HF.FEES));
+  const row = (k, x, i) => '<div class="row" style="margin-top:6px"><input class="inp" data-k="' + k + '" data-i="' + i + '" data-f="n" value="' + esc(x.n) + '" style="flex:2"><input class="inp" data-k="' + k + '" data-i="' + i + '" data-f="p" inputmode="numeric" value="' + (x.p || 0) + '" style="flex:1"><button class="btn" data-rm="' + k + ':' + i + '">✕</button></div>';
+  const draw = () => Object.entries(HF.KIND).map(([k, x]) => '<h3>' + x.label + '</h3>' + (f[k] || []).map((y, i) => row(k, y, i)).join('') + '<button class="btn" data-add="' + k + '" style="margin-top:6px">+ 항목</button>').join('');
+  sheet('<h2>등록 서류 비용표</h2><p class="help">이름과 금액(원)을 바꿔요. \'수강료\'가 들어간 항목은 태블릿에서 하나만 고를 수 있어요.</p><div id="cfE">' + draw() + '</div><div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="cfS">저장</button></div>', ov => {
+    const box = ov.querySelector('#cfE');
+    box.oninput = e => { const t = e.target; if (!t.dataset.k) return; const x = f[t.dataset.k][+t.dataset.i]; if (t.dataset.f === 'p') x.p = +t.value.replace(/\D/g, '') || 0; else x.n = t.value; };
+    box.onclick = e => { const a = e.target.closest('[data-add]'), r = e.target.closest('[data-rm]'); if (a) { (f[a.dataset.add] = f[a.dataset.add] || []).push({ n: '', p: 0 }); box.innerHTML = draw(); } if (r) { const [k, i] = r.dataset.rm.split(':'); f[k].splice(+i, 1); box.innerHTML = draw(); } };
+    ov.querySelector('#cfS').onclick = async () => { for (const k in f) f[k].forEach(x => { if (/수강료/.test(x.n)) x.g = '수강료'; else delete x.g; }); const j = await api('/api/cfees-set', { fees: f }); if (!j.ok) return toast(j.error === 'not found' ? '업무 서버를 새로 올려야 해요' : j.error); S.docFees = f; closeSheet(); toast('저장했어요'); };
+  });
+}
 function settingsSheet() {
   const pushOk = 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('haerang-team-push') === '1';
   sheet('<h2>설정</h2><p class="help">' + esc(S.me.name) + '님으로 들어와 있어요.</p>' +
     '<h3>알림</h3>' + (pushOk ? '<p class="help">이 기기에서 알림이 켜져 있어요. 채팅·댓글·체크·수정이 생기면 알림이 와요 (내가 한 건 빼고).</p><button class="big" id="sTest">알림 시험 보내기</button><button class="big" id="sOff">이 기기 알림 끄기</button>' : '<button class="big g" id="sOn">이 기기에서 알림 켜기</button><p class="help">아이폰은 Safari에서 공유 → 홈 화면에 추가로 설치한 뒤, 설치한 앱에서 켜야 알림이 와요.</p>') +
     '<h3>요일별 기본 등원 명단</h3><p class="help">매주 데리러 가는 제자를 요일마다 넣어 두면 홈 등원표에 자동으로 나와요.</p><div id="sDef"></div><button class="big" id="sDefSave">기본 명단 저장</button>' +
-    staffHtml() + dlHtml() + cleanHtml() +
+    staffHtml() + dlHtml() + cleanHtml() + (isBoss() ? '<h3>등록 서류 비용표</h3><p class="help">태블릿 등록 서류(제자희망서) 아래 비용표 금액이에요.</p><button class="big" id="sFee">비용표 금액 바꾸기</button>' : '') +
     '<h3>' + (S.me.shared ? '공용 계정' : '내 PIN') + '</h3>' + (S.me.shared ? '<p class="help">공용 계정 PIN은 관리자만 바꿔요.</p>' : '<button class="big" id="sPin">PIN 바꾸기</button>') + '<button class="big" id="sOut">로그아웃</button>' +
     '<h3>홈 화면 위젯</h3><p class="help">이 앱은 홈 화면 위젯을 만들 수 없어요. 대신 앱 아이콘에 남은 할 일·새 채팅 수가 숫자로 떠요(설치한 앱에서 알림을 켰을 때).</p>' +
     '<div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', async ov => {
     const g = id => ov.querySelector('#' + id);
+    if (g('sFee')) g('sFee').onclick = cfeesSheet;
     const def = JSON.parse(JSON.stringify(S.pickupDefault || {})), tms = JSON.parse(JSON.stringify(S.pickupTimes || {}));
     const drawDef = () => { g('sDef').innerHTML = WEEK.map(w => { const tw = tms[w] = tms[w] || {}; const l = (def[w] || []).slice().sort((a, b) => (tw[a] || '99').localeCompare(tw[b] || '99'));
       return '<div class="defrow"><b>' + w + '</b><div style="flex:1">' + l.map(n => '<div class="dtrow"><input type="time" data-tw="' + w + '" data-tn="' + esc(n) + '" value="' + esc(tw[n] || '') + '"><span>' + esc(n) + '</span><button class="lbtn" data-w="' + w + '" data-n="' + esc(n) + '">✕</button></div>').join('') + '<div class="chips"><button data-addw="' + w + '">+ 추가</button></div></div></div>'; }).join(''); };

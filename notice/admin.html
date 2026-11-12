@@ -134,6 +134,27 @@
   .login{max-width:380px;margin:12vh auto 0;padding:0 16px;text-align:center}
   .login img{width:72px}
   .login h1{font-size:20px;font-weight:900;margin:8px 0 18px}
+  /* 초대번호 */
+  .inv{border-top:1px solid var(--line);padding:12px 0}
+  .inv:first-child{border-top:0}
+  .inv .h{display:flex;align-items:center;gap:8px}
+  .inv .code{font-size:22px;font-weight:800;letter-spacing:.12em;color:var(--brand)}
+  .inv.off .code{color:#B9B1AA;text-decoration:line-through}
+  .inv .nm{flex:1;min-width:0;font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .inv .cnt{font-size:13px;font-weight:700;border-radius:99px;padding:3px 9px;background:#EEF1F7;color:#1F3B63}
+  .inv .cnt.full{background:#FBE9EA;color:var(--brand)}
+  .inv small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+  .inv .bt{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .inv .bt button{border:1px solid var(--line);background:#fff;border-radius:9px;font-size:13px;font-weight:700;padding:7px 10px}
+  .invf{display:grid;gap:8px;margin-top:10px}
+  .invf input{border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:inherit;font-size:15px;width:100%}
+  .invf .row{display:flex;gap:8px;align-items:center;font-size:14.5px}
+  .invf .row input{width:70px;text-align:center}
+  .qrbg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:20;padding:20px}
+  .qrbox{background:#fff;border-radius:18px;padding:22px 20px;text-align:center;max-width:340px;width:100%}
+  .qrbox #qrc{display:flex;justify-content:center;margin:14px 0}
+  .qrbox .code{font-size:28px;font-weight:800;letter-spacing:.2em;color:var(--brand)}
+  .qrbox p{font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -254,8 +275,20 @@
         <button class="btn ghost" id="kioskReset">등록된 태블릿 모두 해제</button>
       </div>
       <div class="card">
+        <h2>가족 초대번호</h2>
+        <p class="hint">가정마다 초대번호(큐알)를 만들어 드리면, 그 번호로 정해진 휴대폰 수만큼만 가입할 수 있습니다. 가입한 뒤에도 위 '가입 승인'에서 승인해야 앱이 열립니다.</p>
+        <div class="invf">
+          <input id="invName" maxlength="30" placeholder="가정 이름 (예: 김해랑 가정)">
+          <input id="invKids" maxlength="60" placeholder="제자 이름 (선택, 여러 명은 쉼표로) — 가입 칸에 미리 채워짐">
+          <div class="row">가입할 수 있는 휴대폰 <input id="invMax" type="number" min="1" max="9" value="2"> 대</div>
+        </div>
+        <button class="btn" id="invAdd">+ 초대번호 만들기</button>
+        <ul class="list" id="invList" style="margin-top:10px"></ul>
+        <label class="chk"><input type="checkbox" id="invOpen"> 초대번호 없이도 가입 받기 (평소에는 끄기)</label>
+      </div>
+      <div class="card">
         <h2>학부모님께 보낼 주소</h2>
-        <p class="hint">카카오톡 등으로 보내면 학부모님이 가입할 수 있습니다.</p>
+        <p class="hint">카카오톡 등으로 보내면 학부모님이 가입할 수 있습니다. 초대번호가 붙은 주소는 위 초대번호에서 복사하세요.</p>
         <div class="share"><code class="shareUrl"></code><button class="copyShare">복사</button></div>
       </div>
     </section>
@@ -309,6 +342,8 @@
     $('meta').textContent = '아이 ' + kids.length + '명 · 알림 ' + j.devices + '대';
     $('pendBadge').hidden = !pending.length; $('pendBadge').textContent = pending.length;
     renderKids(); renderPending(); renderRoster(); renderChecks(); renderFees();
+    $('invOpen').checked = !!j.inviteOpen;
+    if (!$('t-roster').hidden) loadInvites();
   }
 
   // ── 탭 ──
@@ -317,6 +352,7 @@
     ['att', 'news', 'fee', 'roster'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
     if (b.dataset.t === 'news') loadNews();
     if (b.dataset.t === 'fee') loadFees();
+    if (b.dataset.t === 'roster') loadInvites();
     scrollTo(0, 0);
   });
 
@@ -336,7 +372,7 @@
   function renderPending() {
     $('pendCard').hidden = !pending.length;
     $('pendN').textContent = pending.length ? pending.length + '건' : '';
-    $('pendList').innerHTML = pending.map(p => '<li class="pd"><div><b>' + p.children.map(esc).join(', ') + (p.famreq ? ' <span class="kst">가족 요청 있음</span>' : '') + '</b><small><b>' + esc(p.rel) + ' · 뒷자리 ' + esc(p.ph) + '</b> · ' + when(p.at) + (p.children.some(c => kids.some(k => k.name === c)) ? ' · 이미 명단에 있는 이름' : ' · 새 아이') + '</small></div><button class="ok" data-id="' + p.id + '">승인</button><button class="no" data-id="' + p.id + '">거절</button></li>').join('');
+    $('pendList').innerHTML = pending.map(p => '<li class="pd"><div><b>' + p.children.map(esc).join(', ') + (p.famreq ? ' <span class="kst">가족 요청 있음</span>' : '') + '</b><small><b>' + esc(p.rel) + ' · 뒷자리 ' + esc(p.ph) + '</b> · ' + (p.inv ? '초대 ' + esc(p.inv) + (p.invName ? ' (' + esc(p.invName) + ')' : '') + ' · ' : '초대번호 없음 · ') + when(p.at) + (p.children.some(c => kids.some(k => k.name === c)) ? ' · 이미 명단에 있는 이름' : ' · 새 아이') + '</small></div><button class="ok" data-id="' + p.id + '">승인</button><button class="no" data-id="' + p.id + '">거절</button></li>').join('');
   }
   $('pendList').onclick = async e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -616,6 +652,75 @@
     };
   }
   $('attDiffBtn').onclick = loadAttDiff;
+
+  // ── 가족 초대번호 ──
+  let invs = [];
+  const invUrl = c => PAGE + '?c=' + c;
+  async function loadInvites() {
+    const j = await post('/admin/invites', {}).catch(() => ({ ok: false }));
+    if (!j.ok) { $('invList').innerHTML = '<li class="hint">' + esc(j.error === 'not found' ? '알림 서버 코드를 새로 바꿔 넣어야 쓸 수 있습니다' : (j.error || '불러오지 못했습니다')) + '</li>'; return; }
+    invs = j.items; renderInvites();
+  }
+  function renderInvites() {
+    $('invList').innerHTML = invs.length ? invs.map(i => {
+      const full = i.used.length >= i.max;
+      return '<li class="inv' + (i.off ? ' off' : '') + '"><div class="h"><span class="code">' + esc(i.code) + '</span><span class="nm">' + esc(i.name || '') + '</span><span class="cnt' + (full ? ' full' : '') + '">' + i.used.length + '/' + i.max + '대</span></div>' +
+        (i.kids.length ? '<small>제자: ' + i.kids.map(esc).join(', ') + '</small>' : '') +
+        (i.used.length ? '<small>가입: ' + i.used.map(u => esc(u.rel) + ' ' + esc(u.ph) + (u.ok ? '' : ' (승인 대기)')).join(' · ') + '</small>' : '<small>아직 가입한 휴대폰이 없습니다</small>') +
+        (i.off ? '<small style="color:var(--brand)">막아 둔 번호 · 새로 가입할 수 없음</small>' : '') +
+        '<div class="bt"><button data-a="qr" data-c="' + i.code + '">큐알 보기</button><button data-a="copy" data-c="' + i.code + '">주소 복사</button><button data-a="max" data-c="' + i.code + '">휴대폰 수 바꾸기</button><button data-a="off" data-c="' + i.code + '">' + (i.off ? '다시 열기' : '막기') + '</button><button data-a="del" data-c="' + i.code + '">지우기</button></div></li>';
+    }).join('') : '<li class="hint">아직 만든 초대번호가 없습니다.</li>';
+  }
+  $('invAdd').onclick = async () => {
+    const name = $('invName').value.trim(), kidsIn = $('invKids').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean);
+    const max = Math.max(1, Math.min(9, +$('invMax').value || 2));
+    if (!name && !kidsIn.length) { toast('가정 이름이나 제자 이름을 적어 주세요'); $('invName').focus(); return; }
+    $('invAdd').disabled = true;
+    const j = await post('/admin/invite-save', { name: name || kidsIn.join(', ') + ' 가정', kids: kidsIn, max }).catch(() => ({ ok: false, error: '서버에 연결하지 못했습니다' }));
+    $('invAdd').disabled = false;
+    if (!j.ok) return toast(j.error === 'not found' ? '알림 서버 코드를 새로 바꿔 넣어야 쓸 수 있습니다' : j.error);
+    $('invName').value = ''; $('invKids').value = '';
+    await loadInvites(); showQr(j.code);
+  };
+  $('invList').onclick = async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const i = invs.find(x => x.code === b.dataset.c); if (!i) return;
+    const save = async ch => { const j = await post('/admin/invite-save', { code: i.code, name: i.name, kids: i.kids, max: i.max, off: i.off, ...ch }); toast(j.ok ? '저장했습니다' : j.error); loadInvites(); };
+    if (b.dataset.a === 'qr') return showQr(i.code);
+    if (b.dataset.a === 'copy') return copyText('[해랑경희 앱 가입]\n' + invUrl(i.code) + '\n초대번호 ' + i.code);
+    if (b.dataset.a === 'max') { const v = prompt('이 번호로 가입할 수 있는 휴대폰 수 (1~9)', i.max); if (v === null) return; const n = +v; if (!(n >= 1 && n <= 9)) return toast('1~9 사이로 적어 주세요'); return save({ max: n }); }
+    if (b.dataset.a === 'off') return save({ off: !i.off });
+    if (b.dataset.a === 'del') { if (!confirm('초대번호 ' + i.code + '를 지울까요? 이미 가입한 보호자는 그대로 남습니다.')) return; const j = await post('/admin/invite-del', { code: i.code }); toast(j.ok ? '지웠습니다' : j.error); loadInvites(); }
+  };
+  $('invOpen').onchange = async () => {
+    const on = $('invOpen').checked;
+    if (on && !confirm('초대번호 없이도 누구나 가입 신청을 할 수 있게 됩니다. 켤까요?')) { $('invOpen').checked = false; return; }
+    const j = await post('/admin/invite-open', { on }); toast(j.ok ? (on ? '초대번호 없이도 가입을 받습니다' : '초대번호가 있어야 가입할 수 있습니다') : j.error);
+  };
+  function loadQrLib() {
+    if (window.QRCode) return Promise.resolve();
+    return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+  }
+  async function showQr(code) {
+    const i = invs.find(x => x.code === code) || { name: '' };
+    const bg = document.createElement('div'); bg.className = 'qrbg';
+    bg.innerHTML = '<div class="qrbox"><b>' + esc(i.name || '해랑경희 앱 가입') + '</b><div id="qrc"></div><div class="code">' + esc(code) + '</div><p>휴대폰 카메라로 찍으면 가입 화면이 열립니다. 아이폰은 앱을 설치한 뒤 이 번호를 넣어야 합니다.</p><button class="btn" id="qrSave">큐알 이미지 저장</button><button class="btn ghost" id="qrX">닫기</button></div>';
+    document.body.appendChild(bg);
+    bg.onclick = e => { if (e.target === bg) bg.remove(); };
+    $('qrX').onclick = () => bg.remove();
+    try { await loadQrLib(); new QRCode($('qrc'), { text: invUrl(code), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M }); }
+    catch (_) { $('qrc').innerHTML = '<p>큐알을 그리지 못했습니다. 주소 복사를 써 주세요.</p>'; }
+    $('qrSave').onclick = () => {
+      const c = $('qrc').querySelector('canvas'); if (!c) return toast('큐알이 아직 없습니다');
+      const W = 600, H = 760, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#A40F16'; g.textAlign = 'center';
+      g.font = '800 40px sans-serif'; g.fillText('해랑경희 앱 가입', W / 2, 70);
+      g.imageSmoothingEnabled = false; g.drawImage(c, 80, 110, 440, 440);
+      g.font = '800 64px sans-serif'; g.fillText(code.split('').join(' '), W / 2, 640);
+      g.fillStyle = '#555'; g.font = '28px sans-serif'; g.fillText(i.name || '', W / 2, 700);
+      const a = document.createElement('a'); a.download = '해랑경희_초대번호_' + code + '.png'; a.href = cv.toDataURL('image/png'); a.click();
+    };
+  }
   $('kioskReset').onclick = async () => {
     if (!confirm('등록된 출결 태블릿을 모두 해제할까요? 태블릿에서 비밀번호를 다시 넣어야 합니다.')) return;
     const j = await post('/admin/kiosk-reset', {}); toast(j.ok ? '태블릿 ' + j.removed + '대를 해제했습니다' : j.error);

@@ -12,7 +12,7 @@
 
 const SITE = 'https://haerangtkd.github.io';
 const SESSION_DAYS = 180;
-const MAX_FAIL = 5, LOCK_MS = 60 * 1000;
+// 틀린 횟수 잠금은 failAdd (5번마다 1분·2분·3분…)
 const TYPES = ['todo', 'sched', 'event', 'buy'];
 const TYPE_KO = { todo: '할 일', sched: '일정', event: '행사표', buy: '구매표' };
 
@@ -22,6 +22,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS sessions (tok TEXT PRIMARY KEY, mid TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS subs (ep TEXT PRIMARY KEY, mid TEXT, p256 TEXT, auth TEXT, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS msgs (id INTEGER PRIMARY KEY AUTOINCREMENT, mid TEXT, text TEXT, photo TEXT, refs TEXT, at INTEGER)',
+  'CREATE TABLE IF NOT EXISTS mhide (mid TEXT, id INTEGER, at INTEGER, PRIMARY KEY (mid, id))', // '나만 삭제'한 메시지
   'CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, type TEXT, data TEXT, upd INTEGER, del INTEGER DEFAULT 0, mid TEXT)',
   'CREATE INDEX IF NOT EXISTS items_upd ON items (upd)',
   'CREATE TABLE IF NOT EXISTS comments (id TEXT PRIMARY KEY, item TEXT, mid TEXT, text TEXT, at INTEGER)',
@@ -46,6 +47,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS pmsg (id INTEGER PRIMARY KEY AUTOINCREMENT, kid TEXT, kind TEXT, label TEXT, act TEXT, who TEXT, why TEXT, text TEXT, day TEXT, rel TEXT, at INTEGER, ack TEXT, ackAt INTEGER, applied INTEGER DEFAULT 0, upd INTEGER)',
   'CREATE INDEX IF NOT EXISTS pmsg_upd ON pmsg (upd)',
   'CREATE TABLE IF NOT EXISTS pushq2 (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, at INTEGER)', // 밤 9시~아침 8시에 온 연락 → 아침에
+  'CREATE TABLE IF NOT EXISTS contracts (id TEXT PRIMARY KEY, kind TEXT, name TEXT, birth TEXT, data TEXT, sign TEXT, at INTEGER, sid TEXT, upd INTEGER, del INTEGER DEFAULT 0)', // 태블릿 등록 서류 (기본정보 + 제자희망서 서명)
   // 숙제 (mode: once 한 번 / daily 기간 동안 매일) + 학부모 체크
   'CREATE TABLE IF NOT EXISTS hw (id TEXT PRIMARY KEY, data TEXT, upd INTEGER, del INTEGER DEFAULT 0, mid TEXT)',
   'CREATE TABLE IF NOT EXISTS hwchk (hw TEXT, kid TEXT, day TEXT, at INTEGER, rel TEXT, PRIMARY KEY (hw, kid, day))',
@@ -72,7 +74,7 @@ function canRing(t = Date.now()) {
   return [...RING_OPEN, ...RING_BREAK].some(([a, z]) => m >= a && m < z);
 }
 // 예전 표에 새 칸 붙이기 (답장·반응·수정 시각) — 이미 있으면 그냥 넘어감
-const ALTERS = ['ALTER TABLE msgs ADD COLUMN reply TEXT', 'ALTER TABLE msgs ADD COLUMN rx TEXT', 'ALTER TABLE msgs ADD COLUMN upd INTEGER', 'ALTER TABLE msgs ADD COLUMN room TEXT'];
+const ALTERS = ['ALTER TABLE msgs ADD COLUMN reply TEXT', 'ALTER TABLE msgs ADD COLUMN rx TEXT', 'ALTER TABLE msgs ADD COLUMN upd INTEGER', 'ALTER TABLE msgs ADD COLUMN room TEXT', 'ALTER TABLE msgs ADD COLUMN ed INTEGER']; // ed: 고친 시각
 // 채팅방: '' = 직원 단체방, 'dm:<id>:<id>' = 1:1 (두 사람 id를 정렬해서)
 const roomOk = (room, me) => room === '' || (/^dm:[0-9a-f]+:[0-9a-f]+$/.test(room) && room.split(':').includes(me));
 let ready = false, migDone = false;
@@ -83,6 +85,7 @@ async function setup(env) {
   for (const a of ALTERS) if (!cols.includes(a.split(' ')[5])) { try { await env.DB.prepare(a).run(); } catch (_) {} }
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS msgs_upd ON msgs (upd)').run();
   const mcols = ((await env.DB.prepare('PRAGMA table_info(members)').all()).results || []).map(c => c.name);
+  try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   if (!mcols.includes('asrc')) { try { await env.DB.prepare('ALTER TABLE members ADD COLUMN asrc TEXT').run(); } catch (_) {} } // 출석부 PIN(암호화 값)을 마지막으로 가져온 것
   // boss: 직원 관리 권한(이사범님) · role: 직책 · mustpin: 처음 들어오면 PIN 바꾸기 · aid: 출석부 사범님 id · shared: 공용 계정
   for (const [c, t] of [['boss', 'INTEGER DEFAULT 0'], ['role', 'TEXT'], ['mustpin', 'INTEGER DEFAULT 0'], ['aid', 'TEXT'], ['shared', 'INTEGER DEFAULT 0']])
@@ -170,6 +173,15 @@ async function route(path, req, env, ctx) {
     if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, label, who, why, text, day, at, ack, ackAt FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 10', ...kids)).map(r => ({ ...r, ack: !!r.ack })) : [] });
     if (path === '/sync/pmsg-send') return json(await pmsgSend(env, b, kids, ctx));
     if (path === '/sync/hw') return json({ ok: true, hw: await hwFor(env, kids) });
+    if (path === '/sync/contract-cfg') return json({ ok: true, fees: J((await one(env, "SELECT v FROM kv WHERE k = 'cfees'") || {}).v, null) });
+    if (path === '/sync/contract-save') { // 태블릿 상담 모드에서 받은 등록 서류
+      const rec = b.rec || {}, id = rid(8), now = Date.now(), name = str(rec.name, 20).replace(/\s+/g, '');
+      if (!name) return json({ ok: false, error: '이름이 없어요' });
+      await run(env, 'INSERT INTO contracts (id, kind, name, birth, data, sign, at, sid, upd, del) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, 0)', id, rec.kind === 'adult' ? 'adult' : 'kid', name, str(rec.birth, 10), JSON.stringify(rec), String(b.sign || ''), now, now);
+      await addLog(env, '', 'doc', '📝 새 등록 서류: ' + name + ' (' + (rec.kind === 'adult' ? '중고등·성인' : '초등부') + ' · ' + str(rec.type, 10) + ')', id);
+      ctx.waitUntil(pushAll(env, '', '📝 새 등록 서류', name + ' 서류가 들어왔어요. 더보기 → 등록 서류에서 확인해 주세요', 'more').catch(() => {}));
+      return json({ ok: true, id });
+    }
     if (path === '/sync/kiosk-repeat') { // 태블릿 두 번째 등·하원 (여러 번 허용일 때) → 맞는지 확인할 일
       const name = str(b.name, 20), act = b.act === 'out' ? '하원' : '등원';
       const r = itemStmt(env, { type: 'todo', title: name + ' 오늘 두 번째 ' + act + ' (' + str(b.time, 20) + ') · 맞는지 확인', due: isDay(b.day) ? b.day : kstDay(), cat: '출결 확인', status: '진행', whos: [], checks: [], done: false }, { id: '' });
@@ -223,16 +235,14 @@ async function route(path, req, env, ctx) {
     return json({ ok: true, status: j.status });
   }
   if (path === '/api/login') {
-    const f = await one(env, 'SELECT n, until FROM fails WHERE ip = ?', ip);
-    if (f && f.until > Date.now()) return json({ ok: false, error: MAX_FAIL + '번 틀려서 잠겼어요. ' + Math.ceil((f.until - Date.now()) / 1000) + '초 뒤에 다시 해 주세요' }, 429);
+    const lu = await lockUntil(env, ip);
+    if (lu) return json({ ok: false, error: lockText(lu) }, 429);
     let m = await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
     if (m && !(await sameText(await pinHash(m.salt, b.pin), m.pin))) { await importTeachers(env, true).catch(() => {}); m = await one(env, 'SELECT * FROM members WHERE id = ?', m.id); } // 출석부에서 막 바꾼 PIN일 수 있음
     if (!m || !(await sameText(await pinHash(m.salt, b.pin), m.pin))) {
-      const n = (f && f.until && f.until <= Date.now() ? 0 : (f ? f.n : 0)) + 1;
-      await run(env, 'INSERT INTO fails (ip, n, until) VALUES (?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until', ip, n, n >= MAX_FAIL ? Date.now() + LOCK_MS : 0);
-      return json({ ok: false, error: n >= MAX_FAIL ? MAX_FAIL + '번 틀려서 1분 동안 잠겼어요' : 'PIN이 맞지 않아요 (' + n + '/' + MAX_FAIL + '번 틀림)' }, 401);
+      return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
     }
-    if (f) await run(env, 'DELETE FROM fails WHERE ip = ?', ip);
+    await failClear(env, ip);
     return json({ ok: true, tok: await newSession(env, m.id), name: m.name, mustPin: !!m.mustpin });
   }
 
@@ -331,6 +341,31 @@ async function route(path, req, env, ctx) {
     await run(env, 'UPDATE pmsg SET ack = ?, ackAt = ?, applied = ?, upd = ? WHERE id = ?', me.name, Date.now(), applied, Date.now(), m.id);
     return json({ ok: true });
   }
+  // ── 등록 서류 (태블릿 상담 모드) ──
+  if (path === '/api/contracts') {
+    const L = await all(env, 'SELECT id, kind, name, birth, data, at, sid FROM contracts WHERE del = 0 ORDER BY at DESC LIMIT 300');
+    return json({ ok: true, items: L.map(r => { const d = J(r.data, {}); return { id: r.id, kind: r.kind, name: r.name, birth: r.birth, at: r.at, sid: r.sid || '', type: d.type || '', signer: d.signer || '', signerRel: d.signerRel || '', photoNo: !!d.photoNo }; }), fees: J((await one(env, "SELECT v FROM kv WHERE k = 'cfees'") || {}).v, null) });
+  }
+  if (path === '/api/contract-get') {
+    const r = await one(env, 'SELECT * FROM contracts WHERE id = ? AND del = 0', str(b.id, 30)); if (!r) return json({ ok: false, error: '지워진 서류예요' });
+    return json({ ok: true, item: { ...J(r.data, {}), id: r.id, sid: r.sid || '', at: r.at, sign: r.sign } });
+  }
+  if (path === '/api/contract-link') { // 출석부 원생과 연결 (sid '' 이면 연결 풀기)
+    const r = await one(env, 'SELECT name FROM contracts WHERE id = ? AND del = 0', str(b.id, 30)); if (!r) return json({ ok: false, error: '지워진 서류예요' });
+    await run(env, 'UPDATE contracts SET sid = ?, upd = ? WHERE id = ?', str(b.sid, 60) || null, Date.now(), str(b.id, 30));
+    if (b.sid) await addLog(env, me.id, 'doc', '📝 ' + r.name + ' 등록 서류를 원생과 연결했어요', str(b.id, 30));
+    return json({ ok: true });
+  }
+  if (path === '/api/contract-del') {
+    const nb = needBoss(); if (nb) return nb;
+    await run(env, 'UPDATE contracts SET del = 1, sign = NULL, data = NULL, upd = ? WHERE id = ?', Date.now(), str(b.id, 30)); return json({ ok: true });
+  }
+  if (path === '/api/cfees-set') { // 관리자: 등록 서류 비용표 금액
+    const nb = needBoss(); if (nb) return nb;
+    const clean = l => (Array.isArray(l) ? l : []).slice(0, 12).map(f => ({ n: str(f.n, 30), p: Math.max(0, Math.min(10000000, +f.p | 0)), ...(f.g ? { g: str(f.g, 20) } : {}) })).filter(f => f.n);
+    const v = { kid: clean((b.fees || {}).kid), adult: clean((b.fees || {}).adult) };
+    await run(env, "INSERT INTO kv (k, v) VALUES ('cfees', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(v)); return json({ ok: true });
+  }
   if (path === '/api/hw-save') {
     const d = b.hw || {}, id = str(d.id, 40) || rid(8);
     const v = { title: str(d.title, 60).trim(), body: str(d.body, 1000), mode: d.mode === 'daily' ? 'daily' : 'once', start: isDay(d.start) ? d.start : kstDay(), end: isDay(d.end) ? d.end : '', kids: (Array.isArray(d.kids) ? d.kids : []).map(x => str(x, 20)).filter(Boolean).slice(0, 200) };
@@ -397,26 +432,27 @@ async function route(path, req, env, ctx) {
     const since = Math.max(0, Number(b.since) || 0), lastMsg = Math.max(0, b.lastMsg | 0), first = !since;
     const [members, msgs, items, comments, pickup, logs] = await Promise.all([
       all(env, 'SELECT id, name, role, boss, shared FROM members ORDER BY shared, created'),
-      first ? all(env, 'SELECT * FROM (SELECT id, mid, text, photo, refs, reply, rx, upd, at, room FROM msgs WHERE (room IS NULL OR room = \'\' OR instr(room, ?) > 0) ORDER BY id DESC LIMIT 300) ORDER BY id', me.id) : all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room FROM msgs WHERE (id > ? OR (upd > ? AND id <= ?)) AND (room IS NULL OR room = \'\' OR instr(room, ?) > 0) ORDER BY id LIMIT 300', lastMsg, since, lastMsg, me.id),
+      first ? all(env, 'SELECT * FROM (SELECT id, mid, text, photo, refs, reply, rx, upd, at, room, ed FROM msgs WHERE (room IS NULL OR room = \'\' OR instr(room, ?) > 0) ORDER BY id DESC LIMIT 300) ORDER BY id', me.id) : all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room, ed FROM msgs WHERE (id > ? OR (upd > ? AND id <= ?)) AND (room IS NULL OR room = \'\' OR instr(room, ?) > 0) ORDER BY id LIMIT 300', lastMsg, since, lastMsg, me.id),
       all(env, 'SELECT id, type, data, upd, del, mid FROM items WHERE upd > ?' + (first ? ' AND del = 0' : ''), since),
       all(env, 'SELECT id, item, mid, text, at FROM comments WHERE at > ?', since),
       all(env, 'SELECT day, data, upd FROM pickup WHERE upd > ? AND day >= ?', since, addDays(kstDay(), -7)),
       first ? all(env, 'SELECT * FROM (SELECT id, mid, kind, text, ref, at FROM logs ORDER BY id DESC LIMIT 120) ORDER BY id') : all(env, 'SELECT id, mid, kind, text, ref, at FROM logs WHERE at > ? ORDER BY id LIMIT 200', since),
     ]);
     const joins = await all(env, "SELECT id, name, created FROM joins WHERE status = 'wait' AND created > ?", Date.now() - 7 * 86400e3);
+    const hidden = (await all(env, 'SELECT id FROM mhide WHERE mid = ? AND at > ?', me.id, since)).map(r => r.id);
     const esigns = (await all(env, 'SELECT ev, kid, data, rel, cancel, state, at, upd FROM esign WHERE upd > ?', first ? Date.now() - 120 * 86400e3 : since)).map(r => ({ ...r, data: J(r.data, {}) }));
     const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
     const cleanchk = await all(env, 'SELECT day, task, mid, at FROM cleanchk WHERE day >= ?', addDays(td, -14));
     const pmsg = await all(env, 'SELECT * FROM pmsg WHERE upd > ? AND at > ?', since, Date.now() - 60 * 86400e3);
     const hws = await all(env, 'SELECT id, data, upd, del, mid FROM hw WHERE upd > ?', since), hwchk = hws.length ? await all(env, 'SELECT hw, kid, day, at, rel FROM hwchk WHERE hw IN (' + hws.map(() => '?').join(',') + ')', ...hws.map(h => h.id)) : [];
     return json({ ok: true, now: Date.now(), me, members,
-      msgs: msgs.map(fixMsg), logs, joins, esigns, notice: J(kv('notice'), null),
+      msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
       items: items.map(i => ({ id: i.id, type: i.type, del: !!i.del, upd: i.upd, mid: i.mid, ...J(i.data, {}) })).map(i => canSee(i, me) ? i : { id: i.id, type: i.type, del: true, upd: i.upd }).filter(i => !(first && i.del)),
       comments, pickup: pickup.map(p => ({ day: p.day, upd: p.upd, ...J(p.data, {}) })), pickupDefault: J(kv('pickupDefault'), {}), pickupTimes: J(kv('pickupTimes'), {}) });
   }
-  if (path === '/api/more-msgs') return json({ ok: true, msgs: (await all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room FROM msgs WHERE id < ? AND coalesce(room, \'\') = ? ORDER BY id DESC LIMIT 100', b.before | 0, roomOk(String(b.room || ''), me.id) ? String(b.room || '') : '')).reverse().map(fixMsg) });
+  if (path === '/api/more-msgs') return json({ ok: true, msgs: (await all(env, 'SELECT id, mid, text, photo, refs, reply, rx, upd, at, room, ed FROM msgs WHERE id < ? AND coalesce(room, \'\') = ? ORDER BY id DESC LIMIT 100', b.before | 0, roomOk(String(b.room || ''), me.id) ? String(b.room || '') : '')).reverse().map(fixMsg) });
 
   // 채팅 (해시태그로 만든 항목은 refs 로 연결)
   if (path === '/api/msg') {
@@ -437,6 +473,20 @@ async function route(path, req, env, ctx) {
     const to = room ? room.split(':').slice(1).find(x => x !== me.id) : '';
     notify(room ? me.name + ' (1:1)' : me.name, photo && !text ? '사진을 보냈어요' : text.slice(0, 120), 'chat', '', to);
     return json({ ok: true, id: r.meta && r.meta.last_row_id, refs });
+  }
+  if (path === '/api/msg-edit') { // 내가 보낸 글 고치기
+    const m = await one(env, 'SELECT mid, text FROM msgs WHERE id = ?', b.id | 0), text = str(b.text, 2000).trim();
+    if (!m || m.mid !== me.id) return json({ ok: false, error: '내가 보낸 메시지만 고칠 수 있어요' });
+    if (m.text === '(지운 메시지)') return json({ ok: false, error: '지운 메시지예요' });
+    if (!text) return json({ ok: false, error: '내용을 적어 주세요' });
+    const now = Date.now(); await run(env, 'UPDATE msgs SET text = ?, ed = ?, upd = ? WHERE id = ?', text, now, now, b.id | 0);
+    const n = J((await one(env, "SELECT v FROM kv WHERE k = 'notice'") || {}).v, null);
+    if (n && n.id === (b.id | 0)) await run(env, "UPDATE kv SET v = ? WHERE k = 'notice'", JSON.stringify({ ...n, text }));
+    return json({ ok: true, ed: now });
+  }
+  if (path === '/api/msg-hide') { // 나만 삭제 (내 화면에서만 안 보이게, 다른 사람은 그대로)
+    await run(env, 'INSERT INTO mhide (mid, id, at) VALUES (?, ?, ?) ON CONFLICT(mid, id) DO NOTHING', me.id, b.id | 0, Date.now());
+    return json({ ok: true });
   }
   if (path === '/api/msg-del') {
     const m = await one(env, 'SELECT mid, photo FROM msgs WHERE id = ?', b.id | 0);
@@ -826,6 +876,22 @@ async function auth(env, tok) {
   if (s.created < Date.now() - 86400e3) await run(env, 'UPDATE sessions SET created = ? WHERE tok = ?', Date.now(), str(tok, 64)); // 쓰는 동안 로그인 유지
   return { id: s.mid, name: s.name, boss: !!s.boss, role: s.role || '', mustpin: !!s.mustpin, shared: !!s.shared };
 }
+
+// ── 틀린 횟수 잠금 (비밀번호·PIN·초대번호 공통) ──
+// 5번 틀릴 때마다 잠금: 1분 → 2분 → 3분 … (틀릴수록 길어짐). 맞히면 처음부터, 하루 동안 안 틀리면 처음부터.
+const FAIL_STEP = 5;
+async function lockUntil(env, key) { const f = await one(env, 'SELECT until FROM fails WHERE ip = ?', key); return f && f.until > Date.now() ? f.until : 0; }
+async function failAdd(env, key) {
+  const f = await one(env, 'SELECT n, until, at FROM fails WHERE ip = ?', key), now = Date.now();
+  const n = f && (f.at || 0) > now - 86400e3 ? (f.n | 0) + 1 : 1;
+  const lock = n % FAIL_STEP === 0 ? now + (n / FAIL_STEP) * 60000 : 0;
+  await run(env, 'INSERT INTO fails (ip, n, until, at) VALUES (?, ?, ?, ?) ON CONFLICT(ip) DO UPDATE SET n = excluded.n, until = excluded.until, at = excluded.at', key, n, lock, now);
+  return { n, lock, left: FAIL_STEP - (n % FAIL_STEP) };
+}
+async function failClear(env, key) { await run(env, 'DELETE FROM fails WHERE ip = ?', key); }
+function lockText(until) { const s = Math.max(1, Math.ceil((until - Date.now()) / 1000)); return '여러 번 틀려서 잠겼어요. ' + (s >= 60 ? Math.floor(s / 60) + '분 ' + (s % 60 ? s % 60 + '초 ' : '') : s + '초 ') + '뒤에 다시 해 주세요'; }
+function failText(msg, r) { return r.lock ? FAIL_STEP + '번 틀려서 ' + Math.round((r.lock - Date.now()) / 60000) + '분 동안 잠겼어요. 더 틀리면 더 길게 잠겨요' : msg + ' (' + (r.n % FAIL_STEP) + '/' + FAIL_STEP + '번 틀림)'; }
+
 async function pinHash(salt, pin) { return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', enc(salt + ':' + String(pin || ''))))); }
 async function sameText(a, b) {
   const [x, y] = await Promise.all([a, b].map(v => crypto.subtle.digest('SHA-256', enc(String(v)))));
