@@ -2522,8 +2522,14 @@ function renderGate(kind) {
         App.mode = 'owner'; gateState = 'x'; route();
       } catch (e) { err.textContent = `저장하지 못했어요. ${errText(e)}`; go.disabled = false; }
     });
-    card.append(h('h2', { text: '장부 처음 설정' }), h('div', { class: 'sub', text: `미납 관리는 ${HL.monthLabelFull(HL.ym(HL.today()))}부터 시작해요. 비밀번호는 숫자·영문·한글 모두 가능하고 짧아도 돼요.` }),
-      F('비밀번호', pw), F('비밀번호 확인', pw2), F('확인 문구 (비밀번호를 잊었을 때 사용)', ph), err, go);
+    // 예전 장부 백업이 있으면 바로 복원 (장부 비밀번호·설정도 그대로 들어옴) — 처음 설정은 백업이 없을 때만
+    const rf = h('input', { type: 'file', accept: '.json,application/json', hidden: true });
+    rf.addEventListener('change', () => { if (rf.files[0]) startRestore(rf.files[0]); rf.value = ''; });
+    const more = h('div', { hidden: true }, h('div', { class: 'sub', text: `미납 관리는 ${HL.monthLabelFull(HL.ym(HL.today()))}부터 시작해요. 여기서 정한 비밀번호는 새 폰을 등록할 때 써요.` }),
+      F('장부 비밀번호', pw), F('비밀번호 확인', pw2), F('확인 문구 (비밀번호를 잊었을 때 사용)', ph), err, go);
+    card.append(h('h2', { text: '장부 시작하기' }), h('div', { class: 'sub', text: '예전 장부에서 받은 JSON 백업 파일을 고르면 회원·회비·거래·설정(장부 비밀번호 포함)이 그대로 들어와요.' }),
+      h('button', { class: 'primary', type: 'button', onclick: () => rf.click() }, '백업 파일로 시작하기'), rf,
+      h('button', { class: 'small', type: 'button', style: 'margin-top:14px', onclick: (e) => { more.hidden = false; e.target.hidden = true; } }, '백업 없이 새 장부로 시작'), more);
     return;
   }
   if (kind === 'lock') {
@@ -2617,7 +2623,7 @@ function scheduleRender(now) {
 function render() {
   renderAlerts();
   for (const a of App.areas) a.refreshAll();
-  if (!App.mode || !App.ctx || !allReady()) return;
+  if (!App.mode || !App.ctx || !allReady() || !App.data.config) return; // 처음 설정·복원 중에는 화면 그리지 않음
   if (App.mode === 'staff') { renderStaffLookup(); return; }
   if (App.tab === 'home') renderHome();
   if (App.tab === 'members') renderMembers();
