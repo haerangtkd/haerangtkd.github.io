@@ -877,10 +877,10 @@ async function savePickup(p, what) {
   if (!j.ok) toast(j.error || '저장하지 못했어요');
 }
 // 다른 앱 바로 열기 (같은 사이트 안 다른 화면, 따로 불러와서 업무 앱이 무거워지지 않음)
-const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['🏆', '기네스', '/team/guinness.html'] };
+const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'] };
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['appGns', '🏆', '기네스'], ['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '📒', '숙제'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
+const SHORT = [['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['appGns', '📈', '성장'], ['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '📒', '숙제'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사표'], ['buy', '🛒', '구매표'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -1583,7 +1583,7 @@ function buySheet(b0, isNew) {
   });
 }
 
-// ═════════ 원생 (출석부와 같은 원생 기록 — 여기서 바꾸면 출석부·알림 앱·기네스에 같이 반영) ═════════
+// ═════════ 원생 (출석부와 같은 원생 기록 — 여기서 바꾸면 출석부·알림 앱·성장 측정에 같이 반영) ═════════
 const KWEEK = ['월', '화', '수', '목', '금'];
 function kGrade(s, day = today()) {
   if (!s.birth) return { grp: '', label: s.inst || '' };
@@ -1630,7 +1630,7 @@ function renderKids() {
   const n = k => S.kids.filter(s => k === '전체' || s.status === k).length;
   $('v-kids').innerHTML = '<div class="tfil"><input class="inp" id="kQ" placeholder="이름·번호 검색" value="' + esc(S.kq || '') + '" autocomplete="off" style="flex:1;margin:0"><button class="mk" id="kNew">+ 새 원생</button></div>' +
     '<div class="tfil"><div class="fs" id="kFil">' + (isBoss() ? ['재원', '휴원', '퇴관', '전체'] : ['재원', '휴원', '전체']).map(k => '<button data-f="' + k + '" class="' + (f === k ? 'on' : '') + '">' + k + ' ' + n(k) + '</button>').join('') + '</div></div>' +
-    '<div class="card klist" id="kL"></div><p class="hint" style="text-align:center;margin-top:10px">출석부와 같은 명단이에요. 여기서 바꾸면 출석부·알림 앱·기네스에도 같이 반영돼요.<br>잠깐 빠지는 결석은 출석부에서 해요.</p>';
+    '<div class="card klist" id="kL"></div><p class="hint" style="text-align:center;margin-top:10px">출석부와 같은 명단이에요. 여기서 바꾸면 출석부·알림 앱·성장 측정에도 같이 반영돼요.<br>잠깐 빠지는 결석은 출석부에서 해요.</p>';
   drawKidList(); loadKids();
 }
 function drawKidList() {
@@ -1682,7 +1682,7 @@ function kidStatusSheet(s) {
     const draw = () => {
       g('ksC').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === v));
       g('ksDL').textContent = v === '휴원' ? '휴원 시작일' : v === '재원' && s.status !== '재원' ? '복귀일' : v === '퇴관' ? '퇴관일' : '날짜';
-      g('ksH').textContent = v === '휴원' ? '출석부에 —로 표시되고, 알림 앱·기네스에 휴원으로 보여요. 공지는 그대로 받아요.' : v === '퇴관' ? '출석부·등원표·기네스에서 빠지고, 학부모 알림이 멈추고 태블릿 번호가 막혀요. 지난 기록은 남아요.' : v === '재원' && s.status !== '재원' ? '이 날부터 다시 출석부에 나와요.' : '';
+      g('ksH').textContent = v === '휴원' ? '출석부에 —로 표시되고, 알림 앱·성장 측정에 휴원으로 보여요. 공지는 그대로 받아요.' : v === '퇴관' ? '출석부·등원표·성장 측정에서 빠지고, 학부모 알림이 멈추고 태블릿 번호가 막혀요. 지난 기록은 남아요.' : v === '재원' && s.status !== '재원' ? '이 날부터 다시 출석부에 나와요.' : '';
     };
     g('ksC').onclick = e => { const b = e.target.closest('button'); if (b) { v = b.dataset.v; draw(); } };
     draw();
@@ -1838,7 +1838,7 @@ function rolesSheet() {
   });
 }
 function dlHtml() {
-  return '<h3>내려받기 비밀번호</h3><p class="help">원생 명단·출결 기록·백업 파일을 받을 때 넣는 공통 번호예요(출석부·기네스). 직원 PIN과 다른 번호로 정해요.</p>' + (isBoss() ? '<button class="big" id="sDl">내려받기 비밀번호 정하기</button>' : '');
+  return '<h3>내려받기 비밀번호</h3><p class="help">원생 명단·출결 기록·백업 파일을 받을 때 넣는 공통 번호예요(출석부·성장 측정). 직원 PIN과 다른 번호로 정해요.</p>' + (isBoss() ? '<button class="big" id="sDl">내려받기 비밀번호 정하기</button>' : '');
 }
 function dlBind(ov) { const b = ov.querySelector('#sDl'); if (b) b.onclick = async () => { const p1 = prompt('새 내려받기 비밀번호 (숫자 4~8자리)'); if (!p1) return; if (prompt('한 번 더 넣어 주세요') !== p1) return toast('두 번 넣은 번호가 달라요'); const j = await api('/api/dlpin-set', { pin: p1 }); toast(j.ok ? '정했어요. 직원들에게만 알려 주세요' : j.error); }; }
 
