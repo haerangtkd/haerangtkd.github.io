@@ -234,7 +234,7 @@ async function feeInfoPush(env) {
     if (!H.isActiveStatus(H.currentStatus(m, ctx.today))) continue;
     const f = m.fees && m.fees[ym] && !m.fees[ym].cancelled ? m.fees[ym] : null;
     const base = f ? f.base : H.baseFor(m, ctx.cfg, ym).base, disc = f ? (f.disc || 0) : H.familyDiscountFor(m, ctx.today, ctx.members, ctx.families).disc;
-    if (base != null) list.push({ name: m.name, base, disc, ym });
+    if (base != null) list.push({ name: m.name, sid: m.sid || '', base, disc, ym }); // sid: 출석부 원생 번호 (이름이 달라도 찾게)
   }
   return notice(env, { list }, '/ledger/fee-info');
 }
