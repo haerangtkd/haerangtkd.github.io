@@ -111,6 +111,16 @@ async function route(path, req, env) {
       const t = Math.max(...starts) + 45;
       return json({ ok: true, alertAt: String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0') });
     }
+    if (path === '/sync/notes-due') { // 업무 앱 크론: 오늘 '알림'을 켠 중요사항 → 출석한 수업 시작 45분 뒤
+      const day = isDay(b.day) ? b.day : kstDay(), out = [];
+      for (const r of await all(env, 'SELECT id, data FROM students')) {
+        const s = J(r.data, {}); if (s.status === '퇴관') continue;
+        const ns = (s.notes || []).filter(n => n.alarm && noteOn(n, day)); if (!ns.length) continue;
+        const at = await alertAtFor(env, day, r.id); if (!at) continue;
+        for (const n of ns) out.push({ sid: r.id, name: s.name, nid: n.id, text: n.text, alertAt: at });
+      }
+      return json({ ok: true, day, items: out });
+    }
     if (path === '/sync/closed') return json({ ok: true, closed: !!(await one(env, 'SELECT day FROM closed WHERE day = ?', isDay(b.day) ? b.day : kstDay())) });
     if (path === '/sync/dlpin-set') { // 업무 앱 이사범님이 정함
       const pin = String(b.pin || ''); if (!/^\d{4,8}$/.test(pin)) return json({ ok: false, error: '숫자 4~8자리로 정해 주세요' });
@@ -304,6 +314,16 @@ async function route(path, req, env) {
   }
 
   if (path === '/api/student-save') return json(await saveStudentRow(env, b, who));
+  // 중요사항 저장 (그 제자의 notes만 바꿈, 2026-11-13)
+  if (path === '/api/student-notes') {
+    const r = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.id, 60));
+    if (!r) return json({ ok: false, error: '원생을 찾지 못했어요' });
+    const d = J(r.data, {}), before = (d.notes || []).length; d.notes = cleanNotes((Array.isArray(b.notes) ? b.notes : []).map(n => ({ ...n, who: n.who || who }))); const upd = Date.now();
+    const st = [q(env, 'UPDATE students SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), upd, str(b.id, 60))];
+    if (b.log) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), str(b.id, 60), '', upd, '중요사항 ' + str(b.log, 120), who));
+    await env.DB.batch(st);
+    return json({ ok: true, upd, notes: d.notes, before });
+  }
   // '알림은 안 보내도 돼요' → 그 제자만 noAsk 켜기 (다른 칸은 건드리지 않음, 2026-11-13)
   if (path === '/api/student-noask') {
     const r = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.id, 60));
@@ -462,9 +482,33 @@ function cleanStudent(s) {
     leavePeriods: (Array.isArray(s.leavePeriods) ? s.leavePeriods : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end) })).filter(p => p.start || p.end),
     temporarySchedules: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end), days: days(p.days) })).filter(p => p.start),
     noAsk: !!s.noAsk, // 태블릿을 안 눌러도 '등원 알림 보낼까요?'를 묻지 않음 (보호자가 데려다주는 제자)
+    notes: cleanNotes(s.notes), // 중요사항 (오늘 출석 이름 밑, 2026-11-13)
     // 회원 상태 바뀐 기록 (날짜·사유) — 업무 앱 원생 메뉴와 출석부가 같이 씀
     statusLog: (Array.isArray(s.statusLog) ? s.statusLog : []).slice(-40).map(p => ({ date: okDay(p.date), from: ['재원', '휴원', '퇴관', ''].includes(p.from) ? p.from : '', to: ['재원', '휴원', '퇴관'].includes(p.to) ? p.to : '재원', why: str(p.why, 100), who: str(p.who, 20), at: +p.at || 0 })),
   };
+}
+
+// 중요사항: always(지속) / temp(임시: once 그날만 · weekly 매주 그 요일, end까지)
+function cleanNotes(a) {
+  const okDay = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? v : '');
+  return (Array.isArray(a) ? a : []).slice(0, 20).map(n => ({ id: str(n.id, 12) || rid(6), text: str(n.text, 120).trim(), type: n.type === 'temp' ? 'temp' : 'always',
+    start: okDay(n.start), end: okDay(n.end), rep: n.rep === 'weekly' ? 'weekly' : 'once', alarm: !!n.alarm, who: str(n.who, 20), at: +n.at || Date.now() })).filter(n => n.text && (n.type === 'always' || n.start));
+}
+const dowOf = day => new Date(Date.parse(day + 'T00:00:00Z')).getUTCDay();
+function noteOn(n, day) {
+  if (n.type !== 'temp') return true;
+  if (n.rep === 'weekly') return day >= n.start && (!n.end || day <= n.end) && dowOf(day) === dowOf(n.start);
+  return day === n.start;
+}
+// 오늘 그 제자가 출석한 마지막 수업 시작 + 45분 ('HH:MM') — 보호자 하원·중요사항 알림이 같이 씀
+async function alertAtFor(env, day, sid) {
+  const a = await one(env, 'SELECT r, p, tin FROM att WHERE day = ? AND sid = ?', day, sid);
+  if (!a || a.r !== 'o') return null;
+  let ps = String(a.p || '').split('/').filter(Boolean);
+  if (!ps.length && a.tin) { const [h, mi] = a.tin.split(':').map(Number); const pf = periodFor(h * 60 + mi); if (pf) ps = [pf]; }
+  const starts = ps.map(p => (PERIODS.find(x => x[0] === p) || [])[1]).filter(x => x != null); if (!starts.length) return null;
+  const t = Math.max(...starts) + 45;
+  return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
 }
 
 function periodFor(min) { // 도착 시각 → 수업 시간부 (시작 1시간 전 ~ 시작 25분 뒤에 온 수업)
