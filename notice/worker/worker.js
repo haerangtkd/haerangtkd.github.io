@@ -243,6 +243,13 @@ async function route(path, req, env) {
       const rows = await all(env, 'SELECT day, name, tin, tout FROM att WHERE day LIKE ? ORDER BY day', m + '-%');
       return json({ ok: true, me, month: m, items: rows.filter(r => myKids.includes(r.name)).map(r => ({ day: r.day, name: r.name, in: r.tin, out: r.tout })) });
     }
+    if (path === '/p/grow') { // 📈 성장 리포트 (2026-11-14): 달마다 출석 일수(최근 12달) + 성장 측정(업무 서버, 내 제자만)
+      if (!p.ok) return json({ ok: false, error: '도장 확인 후에 볼 수 있어요' });
+      const from = new Date(Date.now() + 9 * 3600e3); from.setUTCDate(1); from.setUTCMonth(from.getUTCMonth() - 11);
+      const ks = myKids.slice(0, 10), rows = ks.length ? await all(env, 'SELECT substr(day, 1, 7) AS m, name, COUNT(*) AS n FROM att WHERE day >= ? AND tin IS NOT NULL AND name IN (' + ks.map(() => '?').join(',') + ') GROUP BY m, name', from.toISOString().slice(0, 10), ...ks) : [];
+      const g = await teamSync(env, '/sync/grow', { names: ks });
+      return json({ ok: true, att: rows.map(r => ({ month: r.m, name: r.name, n: r.n })), events: g.ok ? g.events : [], kids: g.ok ? g.kids : [], growErr: g.ok ? '' : (g.error || '') });
+    }
     // 행사 신청 (업무 앱 행사표에서 '학부모 앱에 신청 받기'를 켠 행사만)
     // 사범님께 연락 (버튼은 업무 앱에서 관리) · 숙제 체크
     if (path === '/p/family-request') { // 도장에 가족 추가 요청 (주소를 아무에게나 보내지 않도록)
