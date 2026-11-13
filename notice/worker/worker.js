@@ -125,15 +125,11 @@ async function route(path, req, env) {
   if (path === '/k/login') {
     const ip = 'kid:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, ip);
     if (lu) return json({ ok: false, error: '잠시 뒤에 다시 해 주세요 (' + Math.ceil((lu - Date.now()) / 60000) + '분)' });
-    // 2026-11-14 사용자 결정: 직원이 자기 PIN으로 확인해야 들어감(도장 공용 PIN은 안 됨) → 업무 앱에 'ㅇㅇ님이 ○○ 제자 모드를 승인했어요'
-    const st = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
-    if (!st.ok) return json({ ok: false, error: failText('직원 PIN이 맞지 않아요', await failAdd(env, ip)) });
-    if (st.shared) return json({ ok: false, error: '도장 공용 PIN은 안 돼요. 사범님 본인 PIN으로 확인해 주세요' });
+    // 2026-11-14 사용자 결정: 코드는 사범님이 업무 앱(더보기 → 🔑 제자 코드)에서 본인 계정으로 만들어 줌 → 제자는 코드만 넣음
     const code = String(b.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12), r = code.length >= 6 ? await one(env, 'SELECT name FROM kcodes WHERE code = ?', code) : null;
     if (!r) return json({ ok: false, error: failText('제자 코드가 맞지 않아요', await failAdd(env, ip)) });
     await failClear(env, ip); const tok = rid(24);
     await run(env, 'INSERT INTO ksess (tok, name, created, seen) VALUES (?, ?, ?, ?)', tok, r.name, Date.now(), Date.now());
-    try { await teamSync(env, '/sync/kid-ok', { staff: st.name, kid: r.name }); } catch (e) {}
     return json({ ok: true, tok, name: r.name });
   }
   if (path.startsWith('/k/')) {
@@ -439,6 +435,19 @@ async function route(path, req, env) {
     if (path === '/sync/staff-members') return json(await teamSync(env, '/sync/members', {}));
     const r = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
     return json(r.ok ? { ok: true, id: r.id, name: r.name, boss: !!r.boss, shared: !!r.shared } : { ok: false, error: r.error || 'PIN이 맞지 않아요' });
+  }
+  // 🔑 업무 앱 더보기 → 제자 코드 만들기 (2026-11-14): 명단 + 새 코드 (예전 기기는 그대로 둠)
+  if (path === '/sync/kcode-list' || path === '/sync/kcode-new') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    if (path === '/sync/kcode-list') {
+      const ks = (await all(env, 'SELECT name FROM kids ORDER BY name')).map(r => r.name), ss = await all(env, 'SELECT name, COUNT(*) AS n FROM ksess GROUP BY name');
+      return json({ ok: true, items: ks.map(n => { const s2 = ss.find(x => x.name === n); return { name: n, devices: s2 ? s2.n : 0 }; }) });
+    }
+    const name = str(b.name, 20).trim(); if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', name))) return json({ ok: false, error: '명단에 없는 제자예요' });
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
+    for (let t = 0; t < 20 && !code; t++) { const c = [...crypto.getRandomValues(new Uint8Array(8))].map(x => A[x % A.length]).join(''); if (!(await one(env, 'SELECT name FROM kcodes WHERE code = ?', c))) code = c; }
+    await run(env, 'INSERT INTO kcodes (name, code, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET code = excluded.code, created = excluded.created', name, code, Date.now());
+    return json({ ok: true, code, name });
   }
   // 업무 앱 첫 화면: 가입 승인 기다리는 보호자 수
   if (path === '/sync/pending') {
