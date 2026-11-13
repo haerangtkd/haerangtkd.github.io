@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>해랑 출석부</title>
 <meta name="theme-color" content="#F8F5F2">
@@ -180,6 +180,9 @@
     .pp .wk{border-left:2.5px solid #000}
     .pp .pg{text-align:right;font-size:9px;color:#666;margin-top:3px}
   }
+  #wmark{position:fixed;inset:0;z-index:2147483000;pointer-events:none;background-repeat:repeat}
+  button,a,input,select,label{touch-action:manipulation} /* 같은 숫자를 빨리 눌러도 화면이 커지지 않게 (2026-11-13) */
+  @media print{#wmark{display:none}}
 </style>
 </head>
 <body>
@@ -353,7 +356,7 @@ async function adminApi(path, password, body = {}) {
 async function boot() {
   const j = await api('/api/boot', {}, true);
   if (!j.ok) { toast(j.error || '불러오지 못했어요'); return false; }
-  S.me = j.me; S.teachers = j.teachers; S.students = j.students; S.trials = j.trials; S.trialHistory = j.trialHistory;
+  S.me = j.me; watermark(S.me && S.me.name); S.teachers = j.teachers; S.students = j.students; S.trials = j.trials; S.trialHistory = j.trialHistory;
   S.closed = new Map(j.closed.map(c => [c.day, c.why || '']));
   for (const a of j.absences) S.ab.set(abKey(a.sid, a.date), a.why || '');
   return true;
@@ -995,7 +998,7 @@ $('spaceBtn').onclick = () => {
   const locked = !getAdmin();
   sheet('<h2>사범님 공간</h2><p class="help">' + esc(S.me.name) + ' 사범님으로 들어와 있어요.</p>' +
     (false ? '<div style="border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px;background:#FCFAF9"><b>관리자 비밀번호</b><p class="help">이 기기에서 처음 한 번만 넣으면 돼요. 관리자 메뉴(사범님 추가, 백업 불러오기, 초기화)를 쓸 때 필요해요.</p><div class="row2" style="margin-top:8px"><input class="inp" id="adPw" type="password" autocomplete="new-password" name="haerang-admin-pw" placeholder="관리자 비밀번호"><button class="sbtn red" id="adOk">확인</button></div><p class="help" id="adMsg" style="color:var(--no)"></p></div>' : '') +
-    '<h3>출결 기록 받기</h3><button class="big" data-x="csvM">' + ymLabel(ym) + ' 출결 기록 내려받기 (CSV)</button><button class="big" data-x="pdf">' + ymLabel(ym) + ' 출석부 가로 PDF</button><button class="big" data-x="csvY">' + yr + '년 전체 출결 받기 (CSV)</button>' +
+    '<h3>출결 기록 받기</h3><button class="big" data-x="csvM">' + ymLabel(ym) + ' 출결 기록 내려받기 (CSV)</button><button class="big" data-x="pdf">' + ymLabel(ym) + ' 출석부 가로 PDF</button>' + (S.me.boss ? '<button class="big" data-x="csvY">' + yr + '년 전체 출결 받기 (CSV)</button>' : '') +
     (S.me.boss ? '<h3>관리자만 · 개인정보 파일</h3><p class="help">원생 명단·백업 파일에는 연락처 등 개인정보가 있어서 관리자 비밀번호를 한 번 더 확인해요.</p><button class="big" data-x="csvS">원생 명단 내려받기 (CSV)</button><button class="big red" data-x="bak">백업 파일 받기 (전체 데이터)</button>' : '') +
     '<h3>내 PIN</h3><p class="help">PIN은 업무 앱과 같아요. 바꾸기·사범님 추가는 업무 앱 → 설정에서 해요.</p><button class="big" data-x="out">로그아웃</button>' +
     (S.me.boss ? '<h3>관리 (관리자만)</h3><button class="big" data-x="imp">백업 파일 불러오기 (예전 출석부 포함)</button><button class="big line" data-x="wipe">출석부 초기화</button>' +
@@ -1019,7 +1022,7 @@ $('spaceBtn').onclick = () => {
       if (x === 'csvY') { b.textContent = '불러오는 중…'; const j = await api('/api/att', { year: yr }, true); if (!j.ok) return toast(j.error); downloadCsv(yr + '_전체출결.csv', yearCsv(yr, j.rows, j.absences)); b.textContent = yr + '년 전체 출결 받기 (CSV)'; }
       if (x === 'bak') { b.textContent = '만드는 중…'; const j = await api('/api/export', { dlpin: S.dlOk && S.dlOk.pin }, true); b.textContent = '백업 파일 받기 (전체 데이터)'; if (!j.ok) return toast(j.error); download('해랑출석부_백업_' + today() + '.json', JSON.stringify(j.backup), 'application/json'); }
       if (x === 'pin') pinSheet();
-      if (x === 'out') { if (confirm('로그아웃할까요?')) { await api('/api/logout', {}, true); logoutLocal(); } }
+      if (x === 'out') { if (confirm('로그아웃할까요?')) { closeSheet(true); await api('/api/logout', {}, true); logoutLocal(); } } // 창을 닫고 바로 로그인 화면
       if (x === 'tch') teacherSheet();
       if (x === 'imp') importSheet();
       if (x === 'wipe') {
@@ -1167,7 +1170,15 @@ setInterval(async () => { if (!S.tok || document.hidden || $('ov')) return; if (
 document.addEventListener('visibilitychange', async () => { if (!document.hidden && S.tok && !$('ov')) { await boot(); await loadMonth(S.day.slice(0, 7), true); if (S.day < today() && S.tab === 'today' && S.lastDay !== today()) S.day = today(); S.lastDay = today(); render(); } });
 
 // ═════════════ 로그인 ═════════════
-function logoutLocal() { S.tok = ''; try { localStorage.removeItem(TOKK); } catch (_) {} $('app').hidden = true; showLogin(); }
+function logoutLocal() { S.tok = ''; try { localStorage.removeItem(TOKK); } catch (_) {} closeSheet(true); $('app').hidden = true; watermark(''); showLogin(); }
+// 화면 전체에 로그인한 사람 이름을 흐리게 (캡처하면 누가 찍었는지 보이게, 2026-11-13). 캡처 자체는 웹앱이 막을 수 없음
+function watermark(name) {
+  let w = document.getElementById('wmark'); if (!name) { if (w) w.remove(); return; }
+  if (!w) { w = document.createElement('div'); w.id = 'wmark'; w.setAttribute('aria-hidden', 'true'); document.body.appendChild(w); }
+  const d = new Date(Date.now() + 9 * 3600e3), t = name + ' · ' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate();
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="140"><text x="10" y="80" transform="rotate(-24 110 70)" font-family="sans-serif" font-size="17" font-weight="700" fill="#000" fill-opacity="0.07">' + t.replace(/[<>&"]/g, '') + '</text></svg>';
+  w.style.backgroundImage = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")';
+}
 async function showLogin() {
   $('loginView').hidden = false;
   const body = $('loginBody');
