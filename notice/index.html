@@ -1142,7 +1142,13 @@
   // 수련 계획 = 도장이 올린 일정 + 홈페이지의 이달 수련 계획(오늘의 운동 주제 · 도장 일정)
   // 2026-11-14 사용자 요청: 새 창 두 개로 묶음 — '알림장 · 미션 · 행사' / '일정 · 공지 · 출석' (홈 타일 모양은 그대로)
   const GROUPS = { plan: ['전체', '알림장', '미션', '행사 신청'], cal: ['전체', '일정', '공지', '출석'] };
-  async function loadSite() { if (site) return site; try { site = await (await fetch('/data.json?t=' + Date.now(), { cache: 'no-store' })).json(); } catch (_) { site = {}; } return site; }
+  async function loadSite() { // 홈페이지 data.json + 알림 관리에서 고친 수련 계획(주간 주제 · 요일별 운동테마 · 이달의 공지, 2026-11-14)
+    if (site) return site;
+    const pl = post('/pub/plan').catch(() => null);
+    try { site = await (await fetch('/data.json?t=' + Date.now(), { cache: 'no-store' })).json(); } catch (_) { site = {}; }
+    const j = await pl; if (j && j.ok && j.plan) site.monthly = { ...(site.monthly || {}), weekday: j.plan.weekday, focus: j.plan.focus, months: j.plan.months };
+    return site;
+  }
   function siteItems(month) { // 홈페이지 도장 일정·수련 주제 → {date, end, title, kind, body}
     const d = site || {}, out = [], m0 = month + '-01', m1 = month + '-31', inM = x => x.date && x.date <= m1 && (x.end || x.date) >= m0;
     (d.schedule || []).filter(inM).forEach(x => out.push({ date: x.date, end: x.end || '', title: x.title || '', kind: x.type || '', body: x.note || '', site: true }));
