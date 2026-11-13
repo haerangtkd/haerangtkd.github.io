@@ -366,7 +366,7 @@ async function adminApi(path, password, body = {}) {
 async function boot() {
   const j = await api('/api/boot', {}, true);
   if (!j.ok) { toast(j.error || '불러오지 못했어요'); return false; }
-  S.me = j.me; watermark(S.me && S.me.name); S.teachers = j.teachers; S.students = j.students; S.trials = j.trials; S.trialHistory = j.trialHistory;
+  S.me = j.me; S.kioskOff = !!j.kioskOff; watermark(S.me && S.me.name); S.teachers = j.teachers; S.students = j.students; S.trials = j.trials; S.trialHistory = j.trialHistory;
   S.closed = new Map(j.closed.map(c => [c.day, c.why || '']));
   for (const a of j.absences) S.ab.set(abKey(a.sid, a.date), a.why || '');
   return true;
@@ -387,7 +387,7 @@ function applyRows(day, rows) { const m = new Map(); for (const r of rows) m.set
 function mismatch(s, d, c) {
   const r = c.r; if (!S.firstTin || d < S.firstTin || d > today()) return '';
   if (c.k === 'x' && r && r.tin) return 'xin';
-  if (c.k === 'o' && r && !r.tin && r.who !== '예전 출석부' && r.who !== '태블릿') return isQuiet(s.id, d) ? '' : 'notab';
+  if (c.k === 'o' && r && !r.tin && r.who !== '예전 출석부' && r.who !== '태블릿') return isQuiet(s.id, d) || S.kioskOff ? '' : 'notab';
   return '';
 }
 
@@ -486,7 +486,7 @@ function rowHtml(s, c) {
   if (tempOn(s, d)) tags.push('<span class="tag yel">임시변경</span>');
   const mm = mismatch(s, d, c);
   if (mm === 'xin') tags.push('<span class="tag red">결석인데 태블릿 등원 ' + esc(c.r.tin) + '</span>');
-  else if (mm === 'notab') tags.push('<span class="tag yel">태블릿 안 누름 · 등원 알림 안 감</span>');
+  else if (mm === 'notab') tags.push('<button class="tag yel" data-nt="1" style="border:0">태블릿 안 누름 · 등원 알림 안 감 ›</button>'); // 눌러서 지금 알림 보내기 / 오늘만 / 앞으로 안 묻기 (2026-11-13)
   else if (c.r && c.r.tin) tags.push('<span class="tag grn">태블릿 ' + esc(c.r.tin) + '</span>');
   else if (c.k === 'o' && isQuiet(s.id, d)) tags.push('<span class="tag">오늘 알림 안 보냄</span>');
   if (c.r && c.r.who && c.r.at && c.r.who !== '태블릿') tags.push('<span class="tag">' + esc(c.r.who) + ' ' + stamp(c.r.at).split(' ')[1] + '</span>');
@@ -512,6 +512,15 @@ $('tList').onclick = async e => {
   const s = stById(li.dataset.id), d = S.day, c = cell(s, d);
   if (e.target.classList.contains('cb')) { e.target.checked ? S.sel.add(s.id) : S.sel.delete(s.id); renderToday(); return; }
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.nt) { // 이미 출석한 제자: 나중에라도 등원 알림 고르기
+    const ask = await askCheckin(s, true); if (!ask) return;
+    if (ask === 'send') { const j = await api('/api/checkin-notify', { sid: s.id }); toast(j.ok ? (j.already ? '이미 등원 알림이 갔어요' : s.name + ' 등원 알림을 보냈어요') : (j.error || '알림을 보내지 못했어요')); }
+    if (ask === 'kid') toast(s.name + '에게 태블릿에서 등원을 누르라고 해 주세요');
+    if (ask === 'today' || ask === 'none') { const j = await api('/api/quiet', { day: d, sids: [s.id] }); if (j.ok) { S.quiet.set(d, new Set(j.sids)); renderToday(); } }
+    if (ask === 'today') toast(s.name + ' 오늘은 등원 알림을 안 보내요');
+    if (ask === 'none') { const j = await api('/api/student-noask', { id: s.id, v: true }); if (j.ok) { s.noAsk = true; noAskNotice(s.name); } }
+    return;
+  }
   if (b.dataset.p) { // 시간부 고르기 (여러 개 가능)
     const ps = new Set((c.p || '').split('/').filter(Boolean)); ps.has(b.dataset.p) ? ps.delete(b.dataset.p) : ps.add(b.dataset.p);
     return setAtt([{ sid: s.id, r: 'o', p: [...ps].join('/') }]);
@@ -521,7 +530,7 @@ $('tList').onclick = async e => {
   if (a === 'o') {
     if (c.k === 'o') return setAtt([extra ? { sid: s.id, r: '', mk: 1 } : { sid: s.id, del: true }]);
     // 오늘 태블릿을 안 누른 제자: 학부모님께 등원 알림을 보낼지 물어봄 (원생 정보에서 '묻지 않기'면 안 물음)
-    const asked = d === today() && !(c.r && c.r.tin) && !s.noAsk;
+    const asked = d === today() && !(c.r && c.r.tin) && !s.noAsk && !S.kioskOff; // 태블릿 출결을 꺼 두면 안 물음
     const ask = asked ? await askCheckin(s) : 'none';
     if (!ask) return;
     await setAtt([{ sid: s.id, r: 'o', p: guessP(s, d), mk: extra ? 1 : 0 }]);
@@ -544,9 +553,9 @@ $('tList').onclick = async e => {
   }
   if (a === 't') return tempSheet(s, d);
 };
-function askCheckin(s) {
+function askCheckin(s, late) {
   return new Promise(res => {
-    sheet('<h2>' + esc(s.name) + ' 태블릿 등원을 안 눌렀어요</h2><p class="help">학부모님께 등원 알림을 보낼까요? 출석은 어느 쪽이든 체크돼요.</p>' +
+    sheet('<h2>' + esc(s.name) + ' 태블릿 등원을 안 눌렀어요</h2><p class="help">학부모님께 등원 알림을 보낼까요? ' + (late ? '출석은 이미 체크돼 있어요.' : '출석은 어느 쪽이든 체크돼요.') + '</p>' +
       '<button class="big" data-ck="send" style="margin-top:12px">등원 알림 보내기</button><button class="big" data-ck="kid">학생이 태블릿에서 직접 누르기</button><button class="big line" data-ck="today">오늘만 안 보내기</button><button class="big line" data-ck="none">앞으로 안 묻기 (늘 알림 안 보냄)</button>' +
       '<p class="help">\'앞으로 안 묻기\'를 누르면 이 제자는 다음부터 이 창이 안 떠요. 바꾸려면 업무 앱 원생 정보 수정에서 \'묻지 않기\'를 꺼 주세요.</p><div class="foot"><span class="sp"></span><button data-close>취소</button></div>', ov => {
       askReason.res = res; // 취소·바깥 누르면 null
@@ -1072,6 +1081,7 @@ $('spaceBtn').onclick = () => {
     (false ? '<div style="border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px;background:#FCFAF9"><b>관리자 비밀번호</b><p class="help">이 기기에서 처음 한 번만 넣으면 돼요. 관리자 메뉴(사범님 추가, 백업 불러오기, 초기화)를 쓸 때 필요해요.</p><div class="row2" style="margin-top:8px"><input class="inp" id="adPw" type="password" autocomplete="new-password" name="haerang-admin-pw" placeholder="관리자 비밀번호"><button class="sbtn red" id="adOk">확인</button></div><p class="help" id="adMsg" style="color:var(--no)"></p></div>' : '') +
     '<h3>출결 기록 받기</h3><button class="big" data-x="csvM">' + ymLabel(ym) + ' 출결 기록 내려받기 (CSV)</button><button class="big" data-x="pdf">' + ymLabel(ym) + ' 출석부 가로 PDF</button>' + (S.me.boss ? '<button class="big" data-x="csvY">' + yr + '년 전체 출결 받기 (CSV)</button>' : '') +
     (S.me.boss ? '<h3>관리자만 · 개인정보 파일</h3><p class="help">원생 명단·백업 파일에는 연락처 등 개인정보가 있어서 관리자 비밀번호를 한 번 더 확인해요.</p><button class="big" data-x="csvS">원생 명단 내려받기 (CSV)</button><button class="big red" data-x="bak">백업 파일 받기 (전체 데이터)</button>' : '') +
+    '<h3>출결 태블릿</h3><p class="help">' + (S.kioskOff ? '지금은 <b>태블릿 출결을 안 써요.</b> 출석을 눌러도 등원 알림 창이 안 뜨고 \'태블릿 안 누름\' 표시도 안 나와요.' : '지금 태블릿 출결을 쓰고 있어요. 태블릿을 안 누른 제자를 출석으로 누르면 등원 알림을 보낼지 물어요.') + '</p><button class="big' + (S.kioskOff ? '' : ' line') + '" data-x="kiosk">' + (S.kioskOff ? '태블릿 출결 다시 쓰기 (알림 창 켜기)' : '태블릿 출결 잠깐 안 쓰기 (알림 창 끄기)') + '</button>' +
     '<h3>내 PIN</h3><p class="help">PIN은 업무 앱과 같아요. 바꾸기·사범님 추가는 업무 앱 → 설정에서 해요.</p><button class="big" data-x="out">로그아웃</button>' +
     (S.me.boss ? '<h3>관리 (관리자만)</h3><button class="big" data-x="imp">백업 파일 불러오기 (예전 출석부 포함)</button><button class="big line" data-x="wipe">출석부 초기화</button>' +
     '<p class="help" style="margin-top:12px">초기화나 복원을 하기 전에 위의 백업 파일을 먼저 받아 두세요. 백업 파일에는 원생 명단, 모든 출결 기록, 결석 예약, 체험 수업, 휴관일, 변경 이력이 들어 있어요.</p>' : '') +
@@ -1086,6 +1096,7 @@ $('spaceBtn').onclick = () => {
     const needAdmin = () => { if (getAdmin()) return false; toast('위에 관리자 비밀번호를 먼저 넣어 주세요'); const el = ov.querySelector('#adPw'); if (el) el.focus(); return true; };
     ov.onclick = async e => {
       const b = e.target.closest('[data-x]'); if (!b) return; const x = b.dataset.x;
+      if (x === 'kiosk') { const j = await api('/api/kiosk-off', { on: !S.kioskOff }); if (!j.ok) return toast(j.error || '바꾸지 못했어요'); S.kioskOff = j.kioskOff; closeSheet(); render(); toast(S.kioskOff ? '태블릿 출결을 껐어요. 알림 창이 안 떠요' : '태블릿 출결을 다시 켰어요'); return; }
       if (['csvS', 'bak', 'imp', 'wipe'].includes(x) && !S.me.boss) return toast('관리자만 할 수 있어요');
       if (['csvS', 'bak'].includes(x) && !(await askDl())) return; // 개인정보 파일(명단·백업)은 관리자 + 관리자 비밀번호. 출결 기록은 사범님 누구나 (2026-11-13)
       if (x === 'csvS') downloadCsv('원생명단_' + today() + '.csv', studentCsv());
