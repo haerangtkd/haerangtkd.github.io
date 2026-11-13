@@ -342,6 +342,25 @@
   .kinfo{background:#fff;border:1px solid var(--line);border-radius:16px;padding:6px 16px;margin-top:10px}.kinfo h3{font-size:17px;margin:12px 0 4px}
   .kinfo .r{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:15px}.kinfo .r:first-of-type{border-top:0}.kinfo .r span{flex:none;width:76px;color:var(--muted)}.kinfo .r b{flex:1;font-weight:600}.kinfo .r small{display:block;color:var(--muted);font-weight:400;font-size:13px;margin-top:2px}
   .tiles button i.n{position:absolute;top:8px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--brand)}
+  .perk-ref{background:linear-gradient(135deg,#A40F16,#7d0b11);color:#fff;border-radius:20px;padding:18px;margin-top:6px}
+  .perk-ref .pr-top{display:flex;gap:12px;align-items:center}
+  .perk-ref .pr-top svg{width:40px;height:40px;flex:none;background:rgba(255,255,255,.16);border-radius:12px;padding:8px;box-sizing:border-box}
+  .perk-ref .pr-top b{display:block;font-size:17px}
+  .perk-ref .pr-top span{font-size:14px;opacity:.95}
+  .perk-ref em{font-style:normal;font-weight:800;color:#FFE08A}
+  .perk-ref p{font-size:14px;line-height:1.6;margin:12px 0 0;opacity:.95}
+  .perk-ref .pr-tip{font-size:12.5px;opacity:.8;margin-top:6px}
+  .pr-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;padding:13px;border-radius:14px;border:0;background:#fff;color:#A40F16;font-size:15px;font-weight:700}
+  .pr-btn.line{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.5)}
+  .pr-btn svg{width:19px;height:19px}
+  .perk-h{font-size:16px;margin:22px 4px 8px}
+  .perk-list{display:flex;flex-direction:column;gap:8px}
+  .perk-co{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px;color:var(--ink);text-decoration:none}
+  .perk-co img,.perk-co .ph{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;background:#f3eeee;display:grid;place-items:center}
+  .perk-co .ph svg{width:28px;height:28px;color:#A40F16}
+  .perk-co b{display:block;font-size:15px}
+  .perk-co small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+  .perk-co small.go{color:#A40F16;font-weight:600}
   .ack-btn.big{background:var(--brand);color:#fff;padding:13px;font-size:16px}
   .ack-btn:disabled{opacity:.5}
   .acked{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:13.5px;color:var(--green);font-weight:600}
@@ -628,6 +647,7 @@
     out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>',
     down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
   };
+  IC.perk = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
   const TYPE_LABEL = { notice: '공지', journal: '알림장', album: '앨범' };
   const fresh = x => { const c = (home && home.counts) || {}, seen = store.get(SEEN) || {}; return c[x] > (seen[x] || 0) && (x === 'notice' || (me() || {}).approved); };
   const markSeen = types => { const c = (home && home.counts) || {}, seen = store.get(SEEN) || {}; types.forEach(x => { if (c[x]) seen[x] = c[x]; }); store.set(SEEN, seen); drawNav(); };
@@ -709,16 +729,17 @@
   async function loadContact() { if (!(me() || {}).approved) return; try { const j = await post('/p/contact'); if (j.ok) { contact = j; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {} }
   async function loadHw() { if (!(me() || {}).approved) return; try { const j = await post('/p/hw'); if (j.ok) { hws = j.hw || []; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {} }
   const dShort = d => { const x = md(d); return x.m + '/' + x.d + '(' + x.w + ')'; };
-  // 홈 메뉴: 공지·알림장·앨범·일정·출석·숙제·행사·연락 (새 소식은 빨간 점)
+  // 홈 메뉴: 공지·알림장·앨범·일정·출석·숙제·행사·제휴·혜택 (새 소식은 빨간 점, 2026-11-13 '연락하기' 대신 제휴·혜택)
   function homeTiles(k) {
     const hwN = (hws || []).filter(h => h.kids.includes(k)).length, evN = (evs || []).length;
     const T = [['journal', '알림장', '#F4A63A', '#fff', fresh('journal')], ['notice', '공지', '#3D8BF2', '#fff', fresh('notice')], ['album', '앨범', '#2BB3A3', '#fff', fresh('album')], ['schedule', '일정', '#F05A3C', '#fff', false],
-      ['kid', '출석', '#F6C21C', '#fff', false], ['hw', '숙제', '#8B6CF0', '#fff', false, hwN], ['ev', '행사 신청', '#E2477B', '#fff', false, evN], ['ct', '연락하기', '#A40F16', '#fff', false]];
+      ['kid', '출석', '#F6C21C', '#fff', false], ['hw', '숙제', '#8B6CF0', '#fff', false, hwN], ['ev', '행사 신청', '#E2477B', '#fff', false, evN], ['perk', '제휴·혜택', '#A40F16', '#fff', false]];
     return '<section class="sec"><div class="tcard"><div class="th">해랑경희 태권도장<small>' + esc(k) + '</small></div><div class="tiles">' + T.map(([key, label, bg, fg, isNew, n]) => '<button data-tile="' + key + '">' + (isNew ? '<i class="n"></i>' : '') + '<span class="ti" style="background:' + bg + ';color:' + fg + '">' + (IC[key] || IC[{ hw: 'edit', ev: 'schedule', ct: 'bell' }[key]] || '') + '</span>' + label + (n ? '<b class="tn">' + n + '</b>' : '') + '</button>').join('') + '</div></div></section>';
   }
   function onTile(key) {
     if (key === 'notice' || key === 'journal' || key === 'album') return openPage(key); // 2026-11-13: 공지·알림장·앨범은 각자 화면으로
     if (key === 'schedule') return showTab('schedule'); if (key === 'kid') return showTab('kid');
+    if (key === 'perk') return openPage('perk');
     const id = { hw: 'secHw', ev: 'secEv', ct: 'secCt' }[key], el = $(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); else toast(key === 'hw' ? '지금 올라온 숙제가 없어요' : key === 'ev' ? '지금 신청 받는 행사가 없어요' : '잠시 후 다시 눌러 주세요');
   }
@@ -1074,7 +1095,7 @@
   }
 
   // ═════════ 하위 화면 (회비 안내) ═════════
-  const PAGES = { fee: '회비 안내', info: '정보 확인', notice: '공지', journal: '알림장', album: '앨범' };
+  const PAGES = { fee: '회비 안내', info: '정보 확인', notice: '공지', journal: '알림장', album: '앨범', perk: '제휴 · 혜택' };
   function openPage(name, push = true) {
     if (!PAGES[name] || !me()) return;
     if (push) history.pushState({ p: name }, '', '#' + name);
@@ -1161,6 +1182,29 @@
       }).join('') +
         '<div class="kinfo"><div class="r"><span>관계</span><b>' + esc(j.rel || '') + '</b></div><div class="r"><span>번호 뒷자리</span><b>' + esc(j.ph || '') + '<small>태블릿에서 아이가 누르는 번호예요</small></b></div></div>' +
         '<p class="note" style="margin:12px 4px">바꿀 것이 있으면 도장에 알려 주세요.</p>');
+    },
+    async perk() { // 제휴·혜택 (2026-11-13): 지인 소개 + 홈페이지·네이버 예약 공유 + 홈페이지의 '제휴업체'만
+      const SITE = 'https://haerangtkd.github.io/';
+      let site = null; try { site = await (await fetch('/data.json?t=' + Date.now(), { cache: 'no-store' })).json(); } catch (_) {}
+      const book = ((site && site.links) || []).find(l => /예약/.test(l.name || '')) || {};
+      const BOOK = book.url || 'https://naver.me/FM9x4hfi';
+      const partners = ((site && site.collabs) || []).filter(c => String(c.kind || '').replace(/\s+/g, '') === '제휴업체');
+      const img = s => s ? (/^https?:/.test(s) ? s : '/' + String(s).replace(/^\//, '')) : '';
+      body('<div class="perk-ref"><div class="pr-top">' + IC.perk + '<div><b>지인 소개 혜택</b><span>소개해 주신 분께 <em>3만 원 상품권</em>을 드려요</span></div></div>' +
+        '<p>해랑경희 홈페이지나 네이버 예약 주소를 가족·친구에게 보내 주세요. 소개받은 분이 등록하면 소개해 주신 가정에 3만 원 상품권을 드려요.</p>' +
+        '<p class="pr-tip">등록할 때 소개해 주신 분 성함을 도장에 말해 달라고 꼭 전해 주세요.</p>' +
+        '<button class="pr-btn" data-share="site">' + IC.share + '해랑경희 홈페이지 보내기</button>' +
+        '<button class="pr-btn line" data-share="book">' + IC.schedule + '네이버 예약(체험 수업) 보내기</button></div>' +
+        '<h3 class="perk-h">제휴 업체</h3>' +
+        (partners.length ? '<div class="perk-list">' + partners.map(c => '<a class="perk-co" href="' + esc(c.url || '#') + '" target="_blank" rel="noopener">' + (c.image ? '<img src="' + esc(img(c.image)) + '" alt="" loading="lazy">' : '<span class="ph">' + IC.perk + '</span>') + '<span><b>' + esc(c.partner || '') + '</b>' + (c.title ? '<small>' + esc(c.title) + '</small>' : '') + (c.url ? '<small class="go">자세히 보기 ›</small>' : '') + '</span></a>').join('') + '</div>' : '<div class="empty">' + (site ? '아직 제휴 업체가 없어요' : '불러오지 못했어요') + '</div>') +
+        '<p class="note" style="margin:12px 4px">혜택은 도장에 말씀하시면 안내해 드려요.</p>');
+      const MSG = { site: ['해랑경희 태권도장', '울산 해랑경희 태권도장을 소개해요. 홈페이지에서 수업과 도장 모습을 볼 수 있어요.', SITE], book: ['해랑경희 태권도장 체험 수업 예약', '해랑경희 태권도장 체험 수업·상담은 네이버 예약으로 할 수 있어요.', BOOK] };
+      $('pBody').onclick = async e => {
+        const b = e.target.closest('[data-share]'); if (!b) return;
+        const [title, text, url] = MSG[b.dataset.share];
+        if (navigator.share) { try { await navigator.share({ title, text, url }); return; } catch (err) { if (err && err.name === 'AbortError') return; } }
+        try { await navigator.clipboard.writeText(text + '\n' + url); toast('주소를 복사했어요. 카톡에 붙여 넣어 보내 주세요'); } catch (_) { prompt('아래 주소를 복사해 보내 주세요', url); }
+      };
     },
     post() { // 소식 자세히 (2026-11-13)
       const x = curPost; if (!x) return closePage();
