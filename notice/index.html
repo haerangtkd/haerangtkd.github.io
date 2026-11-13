@@ -406,6 +406,35 @@
   .att-day .ad-r{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #F1ECE7;font-size:15px}
   .att-day .ad-r span{color:var(--muted)}
   .msec .mlink{float:right;border:0;background:none;color:var(--brand);font-weight:700;font-size:13.5px}
+  /* 월간 수련 계획표 모양 (2026-11-13 사용자 요청: 종이 계획표처럼 — 요일별 운동 테마 · 주간 수련 주제 한 줄 · 토요일 행사 · 일요일 주말) */
+  .pg{border:1px solid #A9D3C3;border-radius:14px;overflow:hidden;background:#fff;font-size:11px;margin-top:8px}
+  .pgw{display:grid;grid-template-columns:.8fr repeat(5,1fr) 1.15fr;border-top:1px solid #CFE6DC}
+  .pgw:first-child{border-top:0}
+  .pgw>div{border-left:1px solid #CFE6DC;padding:5px 2px;text-align:center;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.3;word-break:keep-all;overflow-wrap:anywhere;min-width:0}
+  .pgw>div:first-child{border-left:0}
+  .pgw.hd>div{min-height:0;background:#D6EEE5;font-weight:800;font-size:12.5px;padding:6px 0;color:#2B4A3F}
+  .pgw.th>div{min-height:0;font-size:10px;color:#555;padding:6px 1px}
+  .pgw.th>div:first-child{font-style:italic;color:#7A736E}
+  .pg .f{background:#E4F4ED}
+  .pg [data-day]{cursor:pointer}
+  .pg .r{font-size:10.5px;color:#2F6B55;font-weight:700}
+  .pg .tt{font-size:12px;font-weight:800;color:#1C1A19}
+  .pg .s3 .tt{font-size:14.5px}
+  .pg .ev{font-size:11.5px;font-weight:800;color:#A40F16}
+  .pg .hp{color:#8A827C}
+  .pg .sm{font-size:9.5px;color:#7A736E;font-weight:400}
+  .pg .sun{font-size:9.5px;color:#9C6A3C;font-style:italic;white-space:pre-line}
+  .pg .n{font-size:11px;color:#9A928C}
+  .pg .x{background:#FAF8F6}
+  .pg .t{box-shadow:inset 0 0 0 2px #A40F16}
+  .pg .pk{background:#FBEDEE}
+  /* 수련 계획 표 (홈페이지처럼 '11월 첫째 주', 2026-11-14) */
+  .ftb{background:#fff;border-radius:18px;margin-top:12px;overflow:hidden;border:1px solid var(--line)}
+  .ftb h4{margin:0;padding:14px 16px;background:#F6EFD9;color:#5A4A1A;font-size:16px;font-weight:800}
+  .ftb .r{display:grid;grid-template-columns:1fr 1.15fr;gap:10px;padding:12px 16px;border-top:1px solid var(--line);font-size:14.5px;align-items:start}
+  .ftb .r b{display:block;font-weight:800}.ftb .r small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .ftb .r.past{opacity:.45}.ftb .r.now{background:#FBF6E6}
+  .ftb .r.flash,.list.sch .li.flash{background:var(--brand-soft)}
   .tag.k-수련{background:#EAF6EF;color:#1F7A4A}.cal .evs i.k-수련{background:#3BA86B}
   .more-btn{display:block;width:100%;margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-size:14.5px;font-weight:600;color:var(--muted)}
   /* 하위 화면 위 띠 */
@@ -806,8 +835,9 @@
     return '<section class="sec"><div class="tcard"><div class="th">해랑경희 태권도장<small>' + esc(k) + '</small></div><div class="tiles">' + T.map(([key, label, bg, fg, isNew, n]) => '<button data-tile="' + key + '">' + (isNew ? '<i class="n"></i>' : '') + '<span class="ti" style="background:' + bg + ';color:' + fg + '">' + (IC[key] || IC[{ hw: 'edit', ev: 'schedule', ct: 'bell' }[key]] || '') + '</span>' + label + (n ? '<b class="tn">' + n + '</b>' : '') + '</button>').join('') + '</div></div></section>';
   }
   function onTile(key) {
-    if (key === 'notice' || key === 'album') return openPage(key); // 2026-11-13: 공지·앨범은 각자 화면으로
-    if (key === 'journal' || key === 'schedule' || key === 'ev') { planF = { journal: '알림장', schedule: '일정', ev: '행사 신청' }[key]; return openPage('plan'); } // 새 창 '알림장 · 행사 · 일정' (2026-11-13)
+    if (key === 'album') return openPage(key); // 앨범은 따로
+    if (key === 'journal' || key === 'hw' || key === 'ev') { planF = { journal: '알림장', hw: '미션', ev: '행사 신청' }[key]; return openPage('plan'); } // 2026-11-14: 알림장 · 미션 · 행사
+    if (key === 'schedule' || key === 'notice' || key === 'kid') { planF = { schedule: '일정', notice: '공지', kid: '출석' }[key]; return openPage('cal'); } // 2026-11-14: 일정 · 공지 · 출석 // 새 창 '알림장 · 행사 · 일정' (2026-11-13)
     if (key === 'kid') return showTab('kid');
     if (key === 'perk') return openPage('perk');
     const id = { hw: 'secHw', ev: 'secEv', ct: 'secCt' }[key], el = $(id);
@@ -1105,7 +1135,8 @@
 
   // ── 수련 계획 탭(일정만) + 새 창 '알림장 · 행사 · 일정'(분류: 전체 · 알림장 · 행사 신청 · 일정) (2026-11-13) ──
   // 수련 계획 = 도장이 올린 일정 + 홈페이지의 이달 수련 계획(오늘의 운동 주제 · 도장 일정)
-  const PLAN_F = ['전체', '알림장', '행사 신청', '일정'];
+  // 2026-11-14 사용자 요청: 새 창 두 개로 묶음 — '알림장 · 미션 · 행사' / '일정 · 공지 · 출석' (홈 타일 모양은 그대로)
+  const GROUPS = { plan: ['전체', '알림장', '미션', '행사 신청'], cal: ['전체', '일정', '공지', '출석'] };
   async function loadSite() { if (site) return site; try { site = await (await fetch('/data.json?t=' + Date.now(), { cache: 'no-store' })).json(); } catch (_) { site = {}; } return site; }
   function siteItems(month) { // 홈페이지 도장 일정·수련 주제 → {date, end, title, kind, body}
     const d = site || {}, out = [], m0 = month + '-01', m1 = month + '-31', inM = x => x.date && x.date <= m1 && (x.end || x.date) >= m0;
@@ -1116,23 +1147,79 @@
   async function loadJr() { if (!(me() || {}).approved) return (jr = []); try { const j = await post('/p/journal'); jr = (j && j.ok ? j.items : []).map(x => ({ ...x, t: 'journal' })); } catch (_) { jr = jr || []; } return jr; }
   // 아래 탭 '수련 계획' = 수련 계획(일정)만 / 홈 타일(알림장·행사 신청·일정) = 새 창 '알림장 · 행사 · 일정'에서 분류로 (2026-11-13 사용자 설명)
   function drawSchedule(month) { return drawPlan(month, false); }
+  // 홈페이지처럼 '11월 첫째 주 · 11.2(월) ~ 11.5(목) | 수련 주제' (그 주 월요일 기준, 2026-11-14 사용자 요청)
+  function weekLabel(ds) {
+    const dt = new Date(ds + 'T00:00:00Z'), mon = new Date(dt.getTime() - ((dt.getUTCDay() + 6) % 7) * 864e5), base = mon.getUTCMonth() === dt.getUTCMonth() ? mon : dt;
+    const n = Math.ceil(base.getUTCDate() / 7);
+    return (dt.getUTCMonth() + 1) + '월 ' + (['첫째', '둘째', '셋째', '넷째', '다섯째'][n - 1] || n + '번째') + ' 주';
+  }
+  function focusTbl(month, L) {
+    if (!L.length) return '';
+    const one = d => { const x = md(d); return x.m + '.' + x.d + '(' + x.w + ')'; }, td = today();
+    return '<div class="ftb"><h4>' + (+month.slice(5)) + '월 수련 계획</h4>' + L.slice().sort((p, q) => p.date.localeCompare(q.date)).map(x => {
+      const e = x.end && x.end > x.date ? x.end : x.date, cls = x.date <= td && td <= e ? ' now' : e < td ? ' past' : '';
+      return '<div class="r' + cls + '" data-d="' + x.date + '" data-e="' + e + '"><span>' + (e === x.date ? '<b>' + one(x.date) + '</b>' : '<b>' + weekLabel(x.date) + '</b><small>' + one(x.date) + ' ~ ' + one(e) + '</small>') + '</span><span>' + esc(x.title) + '</span></div>';
+    }).join('') + '</div>';
+  }
+  // 월간 수련 계획표 (2026-11-13): items = {date, end, title, kind, body, hp}, kind '수련' = 주간 수련 주제 / themes = {월:[…],…} / wkText = 일요일 글
+  function planGrid(month, items, themes, wkText, o = {}) {
+    const [y, mo] = month.split('-').map(Number), last = new Date(Date.UTC(y, mo, 0)).getUTCDate(), first = new Date(Date.UTC(y, mo - 1, 1)).getUTCDay();
+    const E = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const K = d => month + '-' + String(d).padStart(2, '0'), on = (x, k) => k >= x.date && k <= (x.end || x.date);
+    const day = d => items.filter(x => on(x, K(d))).sort((a, b) => (b.kind === '수련') - (a.kind === '수련') || a.date.localeCompare(b.date));
+    const sig = L => L.map(x => x.date + x.title).join('|'), td = o.today || '', pk = o.pick || '';
+    const WD = ['일', '월', '화', '수', '목', '금', '토'], th = themes || {};
+    const block = (d0, n, L, sun) => {
+      const ks = []; for (let i = 0; i < n; i++) ks.push(K(d0 + i));
+      const cls = (L.some(x => x.kind === '수련') ? ' f' : '') + (n >= 3 ? ' s3' : '') + (ks.includes(td) ? ' t' : '') + (ks.includes(pk) ? ' pk' : '');
+      if (!L.length) return '<div class="' + cls + '"' + (o.empty ? ' data-day="' + ks[0] + '"' : '') + ' style="grid-column:span ' + n + '"><span class="n">' + d0 + '일</span>' + (sun ? '<span class="sun">즐거운 주말 ☺</span>' : '') + '</div>';
+      return '<div class="' + cls + '" data-day="' + ks[0] + '" style="grid-column:span ' + n + '"><span class="r">' + d0 + '일' + (n > 1 ? ' ~ ' + (d0 + n - 1) + '일' : '') + '</span>' +
+        L.map(x => '<span class="' + (x.kind === '수련' ? 'tt' : 'ev') + (x.hp ? ' hp' : '') + '">' + E(x.title) + '</span>' + (x.kind !== '수련' && x.body ? '<span class="sm">' + E(String(x.body).split('\n')[0]).slice(0, 30) + '</span>' : '')).join('') + '</div>';
+    };
+    let h = '<div class="pg"><div class="pgw hd">' + WD.map(w => '<div>' + w + '</div>').join('') + '</div>';
+    if (Object.keys(th).length) h += '<div class="pgw th"><div>요일별<br>운동테마</div>' + WD.slice(1, 6).map(w => '<div>' + (th[w] || []).map(E).join('<br>') + '</div>').join('') + '<div></div></div>';
+    for (let w = 0; w * 7 - first < last; w++) {
+      h += '<div class="pgw">';
+      const dOf = c => w * 7 + c - first + 1, ok = d => d >= 1 && d <= last;
+      h += ok(dOf(0)) ? block(dOf(0), 1, day(dOf(0)), true) : '<div class="x"></div>';
+      for (let c = 1; c <= 5;) {
+        const d = dOf(c); if (!ok(d)) { h += '<div class="x"></div>'; c++; continue; }
+        const L = day(d), s = sig(L); let n = 1;
+        while (L.length && c + n <= 5 && ok(d + n) && sig(day(d + n)) === s) n++;
+        h += block(d, n, L); c += n;
+      }
+      h += ok(dOf(6)) ? block(dOf(6), 1, day(dOf(6))) : '<div class="x"></div>';
+      h += '</div>';
+    }
+    return h + '</div>';
+  }
+
   async function drawPlan(month, inPage) {
     month = schMonth = month || schMonth || thisMonth();
-    const s = me() || {}, k = curKid(), f = inPage ? planF : '수련 계획';
-    const box = inPage ? $('pBody') : $('tBody'), put = inPage ? body : tbody, live = () => inPage ? !$('v-page').hidden && curPg === 'plan' : tab === 'schedule';
-    if (!box.querySelector('.cal, .plan')) put('<div class="empty">불러오는 중…</div>');
-    const [j] = await Promise.all([f === '전체' || (f === '수련 계획' || f === '일정') ? post('/p/schedule', { month }).catch(() => null) : null, loadSite(), f === '전체' || f === '알림장' ? loadJr() : null]);
-    if (!live() || month !== schMonth || (inPage && f !== planF)) return;
-    const chips = !inPage ? '' : '<div class="chips plan">' + PLAN_F.map(x => '<button data-pf="' + x + '" class="' + (x === f ? 'on' : '') + '">' + x + (x === '행사 신청' && evFor(k).length ? ' ' + evFor(k).length : '') + (x === '알림장' && fresh('journal') ? ' •' : '') + '</button>').join('') + '</div>';
+    const s = me() || {}, k = curKid(), pgN = inPage ? curPg : '', G = GROUPS[pgN] || [], f = inPage ? (G.includes(planF) ? planF : '전체') : '수련 계획';
+    const sh = sec => inPage ? f === sec || (f === '전체' && G.includes(sec)) : sec === '일정';
+    const box = inPage ? $('pBody') : $('tBody'), put = inPage ? body : tbody, live = () => inPage ? !$('v-page').hidden && curPg === pgN : tab === 'schedule';
+    if (!box.querySelector('.pg, .plan')) put('<div class="empty">불러오는 중…</div>');
+    const [j, , , nt, at] = await Promise.all([sh('일정') ? post('/p/schedule', { month }).catch(() => null) : null, loadSite(), sh('알림장') ? loadJr() : null,
+      sh('공지') && s.approved ? post('/p/notices').catch(() => null) : null, sh('출석') && s.approved ? attSec(month, k).catch(() => null) : null, sh('미션') && !hws ? loadHw() : null]);
+    if (!live() || month !== schMonth || (inPage && f !== (G.includes(planF) ? planF : '전체'))) return;
+    if (nt && nt.ok) { news = news || { notice: [], journal: [], album: [] }; news.notice = (nt.items || []).map(x => ({ ...x, t: 'notice' })); }
+    const hwN = (hws || []).filter(x => x.kids.includes(k)).length;
+    const chips = !inPage ? '' : '<div class="chips plan">' + G.map(x => '<button data-pf="' + x + '" class="' + (x === f ? 'on' : '') + '">' + x + (x === '행사 신청' && evFor(k).length ? ' ' + evFor(k).length : '') + (x === '미션' && hwN ? ' ' + hwN : '') + (x === '알림장' && fresh('journal') ? ' •' : '') + (x === '공지' && fresh('notice') ? ' •' : '') + '</button>').join('') + '</div>';
     let h = chips;
+    // 미션
+    if (sh('미션')) {
+      if (!s.approved) h += f === '미션' ? '<div class="empty">도장에서 확인이 끝나면 볼 수 있어요</div>' : '';
+      else h += hwSection(k) || (f === '미션' ? '<div class="calm" style="margin-top:12px"><span>' + (hws ? '지금 올라온 미션이 없어요' : '불러오는 중…') + '</span></div>' : '');
+    }
     // 행사 신청
-    if (f === '전체' || f === '행사 신청') {
+    if (sh('행사 신청')) {
       if (!s.approved) h += f === '행사 신청' ? '<div class="empty">도장에서 확인이 끝나면 신청할 수 있어요</div>' : '';
       else if (evFor(k).length) h += evSection(k);
       else if (f === '행사 신청') h += '<div class="calm" style="margin-top:12px"><span>' + (evs ? '지금 신청 받는 행사가 없어요' : '불러오는 중…') + '</span></div>';
     }
     // 수련 계획 (달력 + 목록)
-    if (f === '전체' || (f === '수련 계획' || f === '일정')) {
+    if (sh('일정')) {
       if (!j || !j.ok) h += '<div class="empty">수련 계획을 불러오지 못했어요</div>';
       else {
         const mine = j.items.map(x => ({ date: x.date, end: x.end || '', title: x.title, kind: x.kind || '', body: x.body || '' }));
@@ -1150,15 +1237,32 @@
         }
         const rng = x => { const d = md(x.date); if (!x.end || x.end === x.date) return { top: d.w, big: d.d }; const e = md(x.end); return { top: d.m === e.m ? d.d + '~' + e.d : '', big: d.d, sub: '~' + (d.m === e.m ? '' : e.m + '/') + e.d }; };
         h += (f === '전체' ? '<div class="msec">' + mLabel(month) + ' 일정</div>' : '') + '<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
-          '<div class="cal"><div class="wk">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
-          (items.length ? '<div class="list sch">' + items.map(x => {
+          planGrid(month, items, (site.monthly || {}).weekday, (site.monthly || {}).weekendText, { today: today() }) +
+          focusTbl(month, items.filter(x => x.kind === '수련')) +
+          (items.some(x => x.kind !== '수련') ? '<div class="msec">도장 일정</div><div class="list sch">' + items.filter(x => x.kind !== '수련').map(x => {
             const r = rng(x), past = (x.end || x.date) < today();
             return '<div class="li' + (past ? ' past' : '') + '" data-d="' + x.date + '"><span class="dchip"><small>' + md(x.date).w + '</small><b>' + r.big + '</b>' + (r.sub ? '<small>' + r.sub + '</small>' : '') + '</span><span class="lt">' + (x.kind ? '<span class="tag k-' + esc(x.kind) + '">' + esc(x.kind === '수련' ? '수련 주제' : x.kind) + '</span>' : '') + '<b>' + esc(x.title) + '</b>' + (x.body ? '<small class="pre">' + esc(x.body) + '</small>' : '') + '</span></div>';
-          }).join('') + '</div>' : '<div class="calm" style="margin-top:12px"><span>이 달 수련 계획이 없어요</span></div>');
+          }).join('') + '</div>' : items.length ? '' : '<div class="calm" style="margin-top:12px"><span>이 달 수련 계획이 없어요</span></div>');
       }
     }
+    // 공지
+    if (sh('공지')) {
+      if (!s.approved) h += f === '공지' ? '<div class="empty">도장에서 확인이 끝나면 볼 수 있어요</div>' : '';
+      else if (!nt || !nt.ok) h += '<div class="empty">공지를 불러오지 못했어요</div>';
+      else {
+        const L = news.notice.slice().sort((p, q) => (q.urgent && !q.acked) - (p.urgent && !p.acked) || q.at - p.at), show = f === '전체' ? L.slice(0, 3) : L;
+        h += (f === '전체' ? '<div class="msec">공지' + (L.length > 3 ? '<button class="mlink" data-pf="공지">모두 보기 ›</button>' : '') + '</div>' : '') +
+          (show.length ? (f === '전체' ? show.map(feedRow).join('') : grouped(show, feedRow)) : '<div class="calm" style="margin-top:12px"><span>아직 공지가 없어요</span></div>');
+        if (f === '공지') markSeen(['notice']);
+      }
+    }
+    // 출석
+    if (sh('출석')) {
+      if (!s.approved) h += '<div class="calm" style="margin-top:12px"><span>도장에서 확인이 끝나면 출석 기록을 볼 수 있어요</span></div>';
+      else h += at ? at.html.replace('<h2>출석 기록</h2>', '<h2>출석 기록<small>' + (+month.slice(5)) + '월 ' + at.n + '일</small></h2>').replace(f === '전체' && sh('일정') ? /<div class="mhead">[\s\S]*?<\/div>/ : /^$/, '') : '<div class="empty">출석 기록을 불러오지 못했어요</div>';
+    }
     // 알림장
-    if (f === '전체' || f === '알림장') {
+    if (sh('알림장')) {
       if (!s.approved) h += f === '알림장' ? '<div class="empty">도장에서 확인이 끝나면 볼 수 있어요</div>' : '';
       else {
         const L = (jr || []).slice().sort((p, q) => q.at - p.at), show = f === '전체' ? L.slice(0, 3) : L;
@@ -1172,12 +1276,33 @@
       const pf = e.target.closest('[data-pf]'); if (pf) { planF = pf.dataset.pf; $('v-page').scrollTop = 0; return drawPlan(month, true); }
       const b = e.target.closest('.mhead button'); if (b) return drawPlan(addMonth(month, +b.dataset.m), inPage);
       const ev = e.target.closest('[data-ev]'); if (ev) return evSheet(ev.dataset.ev);
-      const o = e.target.closest('[data-open]'); if (o) { const x = (jr || []).find(y => y.id === +o.dataset.open.split(':')[1]); if (x) openPost(x); return; }
-      const c = e.target.closest('[data-day]'); if (c) { const el = [...box.querySelectorAll('.list.sch .li')].find(li => { const d0 = li.dataset.d; return d0 === c.dataset.day; }) || [...box.querySelectorAll('.list.sch .li')].reverse().find(li => li.dataset.d <= c.dataset.day); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); } }
+      const o = e.target.closest('[data-open]'); if (o) { const [tt, id] = o.dataset.open.split(':'), x = (tt === 'notice' ? (news || {}).notice || [] : jr || []).find(y => y.id === +id); if (x) openPost(x); return; }
+      const hc = e.target.closest('[data-hwc]'); if (hc) { hwToggle(hc.dataset.hwc); return drawPlan(month, inPage); }
+      const hw = e.target.closest('[data-hw]'); if (hw) return hwSheet(hw.dataset.hw);
+      const ad = e.target.closest('[data-ad]'); if (ad) { attSel = ad.dataset.ad; return drawPlan(month, inPage); }
+      const c = e.target.closest('[data-day]'); if (c) { const all = [...box.querySelectorAll('.list.sch .li, .ftb .r')].sort((p, q) => p.dataset.d.localeCompare(q.dataset.d)), el = all.find(li => li.dataset.d === c.dataset.day) || all.reverse().find(li => li.dataset.d <= c.dataset.day && c.dataset.day <= (li.dataset.e || li.dataset.d)) || all.find(li => li.dataset.d <= c.dataset.day); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); } }
     };
   }
 
   // ── 우리 아이: 출석 기록 + 정보 · 설정 ──
+  // 출석 기록 한 달 (우리 아이 탭 · '일정 · 공지 · 출석' 창에서 같이 씀, 2026-11-14)
+  async function attSec(month, k) {
+    const j = await post('/p/attendance', { month });
+    if (!j || !j.ok) return null;
+    const rows = j.items.filter(x => x.name === k), by = {}; rows.forEach(r => by[r.day] = r);
+    const [y, mo] = month.split('-').map(Number);
+    const first = new Date(Date.UTC(y, mo - 1, 1)).getUTCDay(), last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+    let cells = '';
+    for (let i = 0; i < first; i++) cells += '<div class="c"></div>';
+    // 2026-11-13: 날짜를 누르면 그날 등원·하원 시각 (전에는 모든 날 목록을 한꺼번에)
+    if (!attSel || attSel.slice(0, 7) !== month) attSel = by[today()] ? today() : rows.length ? rows[rows.length - 1].day : '';
+    for (let d = 1; d <= last; d++) { const key = month + '-' + String(d).padStart(2, '0'); cells += '<div class="c' + (key === today() ? ' t' : '') + (by[key] ? ' att' : '') + (key === attSel ? ' sel' : '') + '"' + (by[key] ? ' data-ad="' + key + '"' : '') + '><span class="n">' + d + '</span>' + (by[key] ? '<span class="mk">' + ICON.check + '</span>' : '') + '</div>'; }
+    const sr = by[attSel], sd = attSel ? md(attSel) : null;
+    return { n: rows.length, html: '<section class="sec"><h2>출석 기록</h2><div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
+      '<div class="cal"><div class="wk">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
+      (sr ? '<div class="att-day"><b>' + sd.m + '월 ' + sd.d + '일 (' + sd.w + ')</b><div class="ad-r"><span>등원</span><b>' + esc(sr.in || '-') + '</b></div>' + (sr.out ? '<div class="ad-r"><span>하원</span><b>' + esc(sr.out) + '</b></div>' : '') + '</div>'
+        : '<p class="note" style="margin:10px 4px 0">' + (rows.length ? '✓ 표시된 날짜를 누르면 그날 등원·하원 시각이 보여요' : '이 달 출석 기록이 없어요') + '</p>') + '</section>' };
+  }
   async function drawKid(month) {
     month = attMonth = month || attMonth || thisMonth();
     const s = me() || {}, k = curKid();
@@ -1193,25 +1318,13 @@
     if (!s.approved) att = '<div class="calm" style="margin-top:12px"><span>도장에서 확인이 끝나면 출석 기록을 볼 수 있어요</span></div>';
     else {
       if (!$('tBody').querySelector('.cal')) tbody(head + '<div class="empty">불러오는 중…</div>' + settings);
-      const j = await post('/p/attendance', { month }).catch(() => null);
+      const r = await attSec(month, k).catch(() => null);
       if (tab !== 'kid' || month !== attMonth) return;
-      if (!j || !j.ok) att = '<div class="empty">출석 기록을 불러오지 못했어요</div>';
+      if (!r) att = '<div class="empty">출석 기록을 불러오지 못했어요</div>';
       else {
-        const rows = j.items.filter(x => x.name === k), by = {}; rows.forEach(r => by[r.day] = r);
-        const [y, mo] = month.split('-').map(Number);
-        const first = new Date(Date.UTC(y, mo - 1, 1)).getUTCDay(), last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
-        let cells = '';
-        for (let i = 0; i < first; i++) cells += '<div class="c"></div>';
-        // 2026-11-13: 날짜를 누르면 그날 등원·하원 시각 (전에는 모든 날 목록을 한꺼번에)
-        if (!attSel || attSel.slice(0, 7) !== month) attSel = by[today()] ? today() : rows.length ? rows[rows.length - 1].day : '';
-        for (let d = 1; d <= last; d++) { const key = month + '-' + String(d).padStart(2, '0'); cells += '<div class="c' + (key === today() ? ' t' : '') + (by[key] ? ' att' : '') + (key === attSel ? ' sel' : '') + '"' + (by[key] ? ' data-ad="' + key + '"' : '') + '><span class="n">' + d + '</span>' + (by[key] ? '<span class="mk">' + ICON.check + '</span>' : '') + '</div>'; }
-        const sr = by[attSel], sd = attSel ? md(attSel) : null;
-        att = '<section class="sec"><h2>출석 기록</h2><div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
-          '<div class="cal"><div class="wk">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
-          (sr ? '<div class="att-day"><b>' + sd.m + '월 ' + sd.d + '일 (' + sd.w + ')</b><div class="ad-r"><span>등원</span><b>' + esc(sr.in || '-') + '</b></div>' + (sr.out ? '<div class="ad-r"><span>하원</span><b>' + esc(sr.out) + '</b></div>' : '') + '</div>'
-            : '<p class="note" style="margin:10px 4px 0">' + (rows.length ? '✓ 표시된 날짜를 누르면 그날 등원·하원 시각이 보여요' : '이 달 출석 기록이 없어요') + '</p>') + '</section>';
+        att = r.html;
         tbody(head + att + settings);
-        $('attCnt').textContent = (+month.slice(5)) + '월 출석 ' + rows.length + '일';
+        $('attCnt').textContent = (+month.slice(5)) + '월 출석 ' + r.n + '일';
         bindKid(month);
         return;
       }
@@ -1246,7 +1359,7 @@
   }
 
   // ═════════ 하위 화면 (회비 안내) ═════════
-  const PAGES = { fee: '회비 안내', info: '정보 확인', notice: '공지', journal: '알림장', album: '앨범', perk: '제휴 · 혜택', plan: '알림장 · 행사 · 일정' };
+  const PAGES = { fee: '회비 안내', info: '정보 확인', notice: '공지', journal: '알림장', album: '앨범', perk: '제휴 · 혜택', plan: '알림장 · 미션 · 행사', cal: '일정 · 공지 · 출석' };
   function openPage(name, push = true) {
     if (!PAGES[name] || !me()) return;
     if (push) history.pushState({ p: name }, '', '#' + name);
@@ -1320,7 +1433,7 @@
     $('pBody').onclick = e => { const f = e.target.closest('[data-open]'); if (f) { const [tt, id] = f.dataset.open.split(':'); const x = (news[tt] || []).find(y => y.id === +id); if (x) openPost(x); } };
   }
   const RENDER = {
-    plan() { return drawPlan(null, true); },
+    plan() { return drawPlan(null, true); }, cal() { return drawPlan(null, true); },
     notice() { return listPage('notice'); }, journal() { return listPage('journal'); }, album() { return listPage('album'); },
     async info() { // 정보 확인 (2026-11-13): 바꾸는 것은 도장에서
       const j = await post('/p/kid-info').catch(() => null); if (failed(j)) return; if (!j || !j.ok) return body('<div class="empty">불러오지 못했어요</div>');
