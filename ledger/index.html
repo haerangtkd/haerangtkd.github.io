@@ -2684,6 +2684,24 @@ function buildNotesCard() {
   card.append(list);
   return card;
 }
+/* 업무 앱(출석부)에 있는데 장부에 없는 원생 (2026-11-13): 장부 회원은 결제일·결제방법이 필요해서 자동으로 만들지 않고, 관리자가 '장부에 등록'으로 채워서 저장 */
+let ROSTER = { at: 0, list: null };
+function rosterMissCard() {
+  const card = h('div', {});
+  const draw = () => {
+    card.innerHTML = ''; if (!ROSTER.list) return;
+    const c = ctx(), sids = new Set(c.members.map((m) => m.sid).filter(Boolean));
+    const miss = ROSTER.list.filter((s) => s.status !== '퇴관' && !sids.has(s.id) && !c.members.some((m) => m.name === s.name && (!m.birthYear || !s.birth || String(m.birthYear) === String(s.birth).slice(0, 4))));
+    if (!miss.length) return;
+    card.className = 'card'; card.style.borderColor = '#9DB8E8';
+    card.append(h('h3', { text: `업무 앱에만 있는 원생 ${miss.length}명` }), h('div', { class: 'sub', text: '업무 앱(출석부)에 등록됐지만 장부 회원이 아니에요. 결제일·결제방법을 정해서 장부에 등록해 주세요.' }));
+    for (const s of miss) card.append(h('div', { class: 'li' }, h('div', { class: 'main', html: `<div class="t" style="font-weight:600">${esc(s.name)}</div><div class="s">${s.birth ? esc(String(s.birth).slice(0, 4)) + '년생 · ' : ''}${(s.days || []).length ? esc(s.days.join('·')) : '요일 없음'}${s.joined ? ' · ' + esc(s.joined) + ' 시작' : ''} · ${esc(s.status)}</div>` }),
+      h('button', { class: 'small', type: 'button', onclick: () => openMemberForm(null, { prefill: { name: s.name, birthYear: Number(String(s.birth).slice(0, 4)) || null, days: (s.days || []).filter((d) => HL.DAYS.includes(d)), weeklyCount: (s.days || []).length || null, joinDate: s.joined || null, status: '신규' } }) }, '장부에 등록')));
+  };
+  if (Date.now() - ROSTER.at > 120000 && window.HL_CALL) { ROSTER.at = Date.now(); window.HL_CALL('/api/team-roster').then((j) => { if (j && j.ok) { ROSTER.list = j.students || []; draw(); } }).catch(() => {}); }
+  draw();
+  return card;
+}
 /* 업무 앱 형제·자매와 장부 가족이 다를 때 확인 알림 (2026-11-13, B안: 장부는 관리자가 직접 바꿈) */
 let FAMSYNC = { at: 0, groups: null };
 function famSyncCard() {
@@ -2722,7 +2740,7 @@ function renderHome() {
   const active = c.members.filter((m) => HL.isActiveStatus(HL.currentStatus(m, c.today))).length;
   const nDone = v.done.filter((x) => !x.extra).length, nUn = v.unpaid.length, nUp = v.upcoming.length, tot = Math.max(nDone + nUn + nUp, 1);
   box.innerHTML = '';
-  if (window.HL_ROLE === 'owner') box.append(famSyncCard());
+  if (window.HL_ROLE === 'owner') box.append(rosterMissCard(), famSyncCard());
   box.append(buildNotesCard());
   box.append(h('h2', { class: 'sec', text: '오늘 확인할 사항' }), h('div', { html: verifyBanner(v) }));
   const ri = reviewItems(c);
