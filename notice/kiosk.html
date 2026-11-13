@@ -149,6 +149,9 @@
   #cf .foot button{border:0;border-radius:14px;padding:16px;font:inherit;font-size:18px;font-weight:900;background:#F1ECE7;color:var(--ink)}
   #cf .foot .go{flex:1;background:var(--cfc,#A40F16);color:#fff}#cf .foot .go:disabled{opacity:.4}
   #cf .err{color:var(--brand);font-weight:800;font-size:15px;min-height:1.3em;margin-top:8px}
+  .payrow{display:flex;align-items:center;gap:12px;margin-top:6px}.payrow b{font-size:20px}
+  .payed{border:1.5px solid var(--line,#e5ddd8);background:#fff;border-radius:12px;padding:8px 16px;font-size:16px;font-weight:700;color:var(--brand,#A40F16)}
+  .lun{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:17px;font-weight:600}.lun input{width:24px;height:24px}.lun small{font-weight:500;color:#8a827c;font-size:14px}
 </style>
 </head>
 <body>
@@ -416,7 +419,7 @@
   const kst = () => { const d = new Date(Date.now() + 9 * 3600e3); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); };
   async function cfOpen() {
     if (!F) return;
-    st = { kind: 'kid', type: '신규 제자', fees: null, payDay: '', v: { family: [['', '', '', '', ''], ['', '', '', '', ''], ['', '', '', '', '']], week: {} }, ok: [], photoNo: false, signer: '', signerRel: '', sign: '' };
+    st = { kind: 'kid', type: '신규 제자', fees: null, payDay: '매월 ' + (+kst().slice(8)) + '일', payEdit: false, v: { lunar: '양력', family: [['', '', '', '', ''], ['', '', '', '', ''], ['', '', '', '', '']], week: {} }, ok: [], photoNo: false, signer: '', signerRel: '', sign: '' };
     cfStep = 0; $('cf').hidden = false; cfDraw();
     if (!feeCfg) { const j = await post('/kiosk/contract-cfg', { token }).catch(() => null); feeCfg = j && j.ok && j.fees ? j.fees : null; if (cfStep === 0) cfDraw(); }
   }
@@ -438,7 +441,8 @@
         '<label class="q">구분</label><div class="ch" data-g="type">' + F.TYPES.map(t => '<button data-v="' + t + '" class="' + (st.type === t ? 'on' : '') + '">' + t + '</button>').join('') + '</div></div>' +
         '<div class="card"><label class="q" style="margin-top:0">비용 (해당하는 것만 체크)</label>' + st.fees.map((f, i) => '<label class="fee"><input type="checkbox" data-fee="' + i + '"' + (f.on ? ' checked' : '') + '><span>' + esc2(f.n) + '</span><b>' + F.won(f.p) + '</b></label>').join('') +
         '<div class="tot"><span>합계</span><span id="cfTot">' + F.won(total()) + '</span></div>' +
-        '<label class="q">교육비 납부일 <em>*</em> <small style="font-weight:600;color:#8a827c">매월</small></label><div class="ch days" data-g="pay">' + Array.from({ length: 31 }, (_, i) => i + 1).map(d => '<button data-v="' + d + '" class="' + (st.payDay === '매월 ' + d + '일' ? 'on' : '') + '">' + d + '</button>').join('') + '</div></div></div>';
+        '<label class="q">교육비 납부일 <em>*</em></label><div class="payrow"><b>' + esc2(st.payDay || '골라 주세요') + '</b><button id="cfPayEd" class="payed">' + (st.payEdit ? '닫기' : '변경하기') + '</button></div>' +
+        (st.payEdit ? '<div class="ch days" data-g="pay">' + Array.from({ length: 31 }, (_, i) => i + 1).map(d => '<button data-v="' + d + '" class="' + (st.payDay === '매월 ' + d + '일' ? 'on' : '') + '">' + d + '</button>').join('') + '</div>' : '') + '</div></div>';
       $('cfNext').textContent = '보호자님께 드리기 ›'; $('cfNext').disabled = false;
     } else if (cfStep === 1) {
       $('cfT').textContent = '기본정보';
@@ -487,6 +491,7 @@
     let h = f.sec ? '<div class="sec">' + esc2(f.sec) + '</div>' : '';
     const more = (f.more || []).map(m => '<input type="text" data-k="' + m.id + '" placeholder="' + esc2(m.label) + '" value="' + esc2(v[m.id] || '') + '">').join('');
     if (f.type === 'hidden') return h;
+    if (f.type === 'lunar') return h + '<label class="lun"><input type="checkbox" id="cfLunar"' + (v.lunar === '음력' ? ' checked' : '') + '> 음력이에요 <small>(안 누르면 양력)</small></label>';
     if (f.type === 'receipt') return h + '<label class="q">' + esc2(f.label) + '</label><div class="ch" data-pk="receipt" data-m="0">' + f.opts.map(o => '<button data-v="' + o + '" class="' + (v.receipt === o ? 'on' : '') + '">' + o + '</button>').join('') + '</div><div id="cfRc"></div>';
     if (f.type === 'text' || f.type === 'tel' || f.type === 'date') h += '<label class="q">' + esc2(f.label) + need + (f.id === 'birth' ? ' <span id="cfAge" class="age">' + (v.birth ? '한국 나이 ' + F.ageOf(v.birth) + '살' : '') + '</span>' : '') + '</label><input type="' + f.type + '" data-k="' + f.id + '"' + (f.type === 'tel' ? ' inputmode="tel"' : '') + (f.mob ? ' data-mob="1"' : '') + ' placeholder="' + esc2(f.ph || '') + '" value="' + esc2(v[f.id] || (f.mob ? '010-' : '')) + '">';
     else if (f.type === 'pick' || f.type === 'yn' || f.type === 'multi') {
@@ -541,13 +546,15 @@
       $('cfTot').textContent = F.won(total());
     } else if (t.dataset.wc) st.v.week[t.dataset.wc] = { ...(st.v.week[t.dataset.wc] || {}), car: t.checked };
     else if (t.id === 'cfPno') st.photoNo = t.checked;
+    else if (t.id === 'cfLunar') st.v.lunar = t.checked ? '음력' : '양력';
   });
   $('cfB').addEventListener('click', e => {
     if (!st) return; const b = e.target.closest('button'); if (!b) return;
     const g = b.closest('[data-g]');
     if (g && g.dataset.g === 'kind') { if (st.kind !== b.dataset.v) { st.kind = b.dataset.v; st.fees = null; st.ok = []; } return cfDraw(); }
     if (g && g.dataset.g === 'type') { st.type = b.dataset.v; return cfDraw(); }
-    if (g && g.dataset.g === 'pay') { st.payDay = '매월 ' + b.dataset.v + '일'; g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); return; }
+    if (g && g.dataset.g === 'pay') { st.payDay = '매월 ' + b.dataset.v + '일'; st.payEdit = false; const y = $('cfB').scrollTop; cfDraw(); $('cfB').scrollTop = y; return; }
+    if (b.id === 'cfPayEd') { st.payEdit = !st.payEdit; const y = $('cfB').scrollTop; cfDraw(); $('cfB').scrollTop = y; return; }
     if (g && g.dataset.g === 'rc') { const v = b.dataset.v; st.rcPick = v; st.v.receiptNo = v === 'no' ? (st.rcOwn || '') : (st.v.family[+v] || [])[3] || ''; return drawRc(); }
     if (g && g.dataset.g === 'rel') { st.signerRel = b.dataset.v; if (b.dataset.v === '본인' && !st.signer) { st.signer = st.v.name || ''; $('cfSigner').value = st.signer; } g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); return; }
     const pk = b.closest('[data-pk]');
