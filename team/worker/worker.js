@@ -244,6 +244,25 @@ async function route(path, req, env, ctx) {
       await addLog(env, '', 'event', '🎟 행사 신청표 만듦 (알림 관리 일정표' + (b.who ? ' · ' + str(b.who, 12) : '') + '): ' + title, r.id);
       return json({ ok: true, id: r.id });
     }
+    // 📩 봉투 ↔ 신청표 (2026-11-13): 봉투에서 '참가'를 누르면 신청표 명단으로 (학부모 앱 신청과 같은 길: esign → 신청표를 열면 명단에)
+    if (path === '/sync/ev-tables') return json({ ok: true, items: (await all(env, "SELECT id, data FROM items WHERE type = 'event' AND del = 0")).map(r => ({ id: r.id, d: J(r.data, {}) })).filter(x => !x.d.closed && x.d.kind !== 'goods').map(x => ({ id: x.id, title: str(x.d.title, 100), date: x.d.date || '' })).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999')) });
+    if (path === '/sync/ev-new') { // 봉투 제목으로 새 신청표 (학부모 앱 '행사 신청'에는 안 보임, 봉투로만 받음)
+      const title = str(b.title, 100).trim(); if (!title) return json({ ok: false, error: '제목이 없어요' });
+      const r = itemStmt(env, { type: 'event', kind: '', title, date: isDay(b.date) ? b.date : '', base: 0, products: [], options: [], checks: [], van: false, rows: [], pub: false, env: true }, { id: '' });
+      await r.stmt.run(); await addLog(env, '', 'event', '📩 봉투 신청표 만듦 (알림 관리' + (b.who ? ' · ' + str(b.who, 12) : '') + '): ' + title, r.id);
+      return json({ ok: true, id: r.id });
+    }
+    if (path === '/sync/env-reply') {
+      const ev = str(b.ev, 40), kid = str(b.kid, 20), it = await one(env, "SELECT data FROM items WHERE id = ? AND type = 'event' AND del = 0", ev); if (!it || !kid) return json({ ok: false, error: '연결된 신청표가 없어요' });
+      const d = J(it.data, {}), now = Date.now(), had = await one(env, 'SELECT cancel FROM esign WHERE ev = ? AND kid = ?', ev, kid), yes = b.ans === 'yes';
+      if (!yes && !had) return json({ ok: true });
+      await run(env, "INSERT INTO esign (ev, kid, data, rel, cancel, state, at, upd) VALUES (?, ?, '{}', ?, ?, '', ?, ?) ON CONFLICT(ev, kid) DO UPDATE SET rel = excluded.rel, cancel = excluded.cancel, state = '', upd = excluded.upd", ev, kid, str(b.rel, 10), yes ? 0 : 1, now, now);
+      const what = kid + ' ' + (yes ? '참가' : '불참') + ' (' + (str(b.rel, 10) || '학부모') + ')';
+      await addLog(env, '', 'event', '📩 ' + d.title + ': ' + what + ' · 봉투 답장', ev);
+      await run(env, 'INSERT INTO pushq (text, at) VALUES (?, ?)', '📩 ' + d.title + ' · ' + what, now);
+      await bumpItem(env, ev); ctx.waitUntil(runPushQueue(env).catch(() => {}));
+      return json({ ok: true });
+    }
     if (path === '/sync/egrps') return json({ ok: true, egrps: await egrpGet(env) }); // 알림 관리 일정표 '신청 대상' 분류
     if (path === '/sync/ev-sched-upd' || path === '/sync/ev-sched-del') { // 일정표에서 고치면 신청표 제목·날짜도 / 지우면 연결만 풂
       const it = await one(env, "SELECT data FROM items WHERE id = ? AND type = 'event' AND del = 0", str(b.ev, 40)); if (!it) return json({ ok: false, error: '업무 앱에서 지워진 신청표예요' });
