@@ -209,6 +209,7 @@
         <div id="fDate" hidden><label class="f">날짜</label><input type="date" id="nDate"></div>
         <div id="fTarget"><label class="f">받는 사람</label>
           <div class="seg" id="nTarget"><button class="on" data-v="all">전체</button><button data-v="pick">아이 선택</button></div>
+          <div id="nEvs" hidden style="margin-top:10px"></div>
           <div id="nPick" hidden><input type="search" id="nq" placeholder="이름 검색" style="margin-top:10px"><div class="checks" id="nChecks"></div><p class="hint" id="nCount" style="margin-top:6px"></p></div>
         </div>
         <div id="fJtpl" hidden><label class="f">알림장 양식 <small style="font-weight:400;color:#8a827c">(업무 앱 설정에서 고쳐요)</small></label><div class="tpl" id="jTpl"></div></div>
@@ -332,6 +333,8 @@
     setStatus(j);
     $('login').hidden = true; $('app').hidden = false;
     loadNews();
+    const wantEv = new URLSearchParams(location.search).get('ev'); // 업무 앱 행사표 '완료로' → 참가자에게 알림장 쓰기
+    if (wantEv) { history.replaceState(null, '', location.pathname); document.querySelector('.tabs [data-t="news"]').click(); setType('journal'); doneEvs = null; await loadDoneEvs(); if (useEv(wantEv)) { $('nTitle').focus(); toast('행사 참가자를 받는 사람으로 골랐어요'); } }
     return null;
   }
   async function showWho() { // 업무 앱 사람 목록 (직원 각자 PIN, 도장 컴퓨터는 '도장 공용')
@@ -396,7 +399,7 @@
     if (!approve && !confirm('거절하면 이 가입 신청이 지워집니다.')) return;
     b.disabled = true;
     const j = await post('/admin/approve', { id: b.dataset.id, approve });
-    toast(!j.ok ? (j.error || '실패했습니다') : approve ? '승인했습니다' : '거절했습니다');
+    toast(!j.ok ? (j.error || '실패했습니다') : approve ? (j.pushed ? '승인했습니다 · 보호자 휴대폰에 알림을 보냈어요' : '승인했습니다 (보호자 휴대폰 알림이 꺼져 있어 알림은 못 보냈어요)') : '거절했습니다');
     refresh();
   };
   function renderKids() {
@@ -452,7 +455,7 @@
     $('nHead').textContent = c.head; $('nHint').textContent = c.hint; $('nListHead').textContent = c.list;
     $('fKind').hidden = !c.kinds; $('fDate').hidden = !c.date; $('fTarget').hidden = !c.target; $('fPhotos').hidden = !c.photos; $('fPin').hidden = !c.pin; $('fUrgent').hidden = nType !== 'notice'; $('fAsk').hidden = nType !== 'notice' && nType !== 'journal';
     $('nMonth').hidden = t !== 'schedule';
-    $('fJtpl').hidden = t !== 'journal'; if (t === 'journal') loadJtpl();
+    $('fJtpl').hidden = t !== 'journal'; if (t === 'journal') { loadJtpl(); loadDoneEvs(); } else $('nEvs').hidden = true;
     $('nNotify').checked = c.notify;
     if (c.kinds) { nKind = c.kinds[0]; $('nKind').innerHTML = c.kinds.map(k => '<button class="' + (k === nKind ? 'on' : '') + '">' + k + '</button>').join(''); renderTpl(); }
     if (c.date && !$('nDate').value) $('nDate').value = today();
@@ -469,13 +472,37 @@
     if (($('nTitle').value.trim() || $('nBody').value.trim()) && !confirm('지금 적은 내용을 양식으로 바꿀까요?')) return;
     const d = new Date(Date.now() + 9 * 3600e3), dt = (d.getUTCMonth() + 1) + '월 ' + d.getUTCDate() + '일(' + '일월화수목금토'[d.getUTCDay()] + ')', f = v => String(v || '').replace(/\{날짜\}/g, dt);
     $('nTitle').value = f(x.title); $('nBody').value = f(x.body); $('nBody').focus(); };
+  // 완료한 행사표의 참가자 → 받는 사람 자동 선택, 명단도 참가자만 (2026-11-13 사용자 요청)
+  let doneEvs = null, evOnly = null, evCur = '';
+  async function loadDoneEvs() {
+    if (!doneEvs) { try { const j = await post('/admin/done-events', {}); doneEvs = j.ok ? j.events || [] : []; } catch (_) { doneEvs = []; } }
+    drawDoneEvs(); return doneEvs;
+  }
+  function drawDoneEvs() {
+    const L = (doneEvs || []).filter(x => x.names.length);
+    $('nEvs').hidden = nType !== 'journal' || !L.length;
+    $('nEvs').innerHTML = '<label class="f" style="margin-top:0">완료한 행사 참가자에게 <small style="font-weight:400;color:#8a827c">(누르면 참가자만 골라져요)</small></label><div class="tpl">' +
+      L.map(x => '<button data-ev="' + esc(x.id) + '"' + (evCur === x.id ? ' style="background:var(--brand);color:#fff"' : '') + '>🎟 ' + esc(x.title) + ' · ' + x.names.length + '명</button>').join('') + '</div>' +
+      (evOnly ? '<button type="button" class="lo" id="nEvAll" style="margin-top:6px;padding:6px 10px;font-size:13px">전체 명단 보기</button>' : '');
+  }
+  function useEv(id) {
+    const x = (doneEvs || []).find(e => e.id === id); if (!x) return false;
+    const have = new Set(kids.map(k => k.name)), names = x.names.filter(n => have.has(n));
+    if (!names.length) { toast('참가자 중 알림 앱 명단에 있는 아이가 없어요'); return false; }
+    evCur = id; evOnly = new Set(names); picked.clear(); names.forEach(n => picked.add(n));
+    nMode = 'pick'; [...$('nTarget').children].forEach(b => b.classList.toggle('on', b.dataset.v === 'pick')); $('nPick').hidden = false; $('nq').value = '';
+    renderChecks(); drawDoneEvs();
+    if (names.length < x.names.length) toast('알림 앱 명단에 없는 ' + (x.names.length - names.length) + '명은 빠졌어요: ' + x.names.filter(n => !have.has(n)).join(', '));
+    return true;
+  }
+  $('nEvs').onclick = e => { if (e.target.id === 'nEvAll') { evOnly = null; evCur = ''; renderChecks(); return drawDoneEvs(); } const b = e.target.closest('[data-ev]'); if (b) useEv(b.dataset.ev); };
   function renderTpl() { const t = TPL[nKind] || []; $('nTpl').innerHTML = nType === 'notice' ? t.map((x, i) => '<button data-i="' + i + '">' + esc(x[0]) + ' 양식</button>').join('') : ''; }
   $('nKind').onclick = e => { const b = e.target.closest('button'); if (!b) return; nKind = b.textContent; [...$('nKind').children].forEach(x => x.classList.toggle('on', x === b)); renderTpl(); };
   $('nTpl').onclick = e => { const b = e.target.closest('button'); if (!b) return; const t = TPL[nKind][b.dataset.i]; $('nTitle').value = t[1]; $('nBody').value = t[2]; };
-  $('nTarget').onclick = e => { const b = e.target.closest('button'); if (!b) return; nMode = b.dataset.v; [...$('nTarget').children].forEach(x => x.classList.toggle('on', x === b)); $('nPick').hidden = nMode !== 'pick'; };
+  $('nTarget').onclick = e => { const b = e.target.closest('button'); if (!b) return; nMode = b.dataset.v; if (nMode === 'all' && evOnly) { evOnly = null; evCur = ''; picked.clear(); renderChecks(); drawDoneEvs(); } [...$('nTarget').children].forEach(x => x.classList.toggle('on', x === b)); $('nPick').hidden = nMode !== 'pick'; };
   function renderChecks() {
     const q = $('nq').value.replace(/\s+/g, '');
-    $('nChecks').innerHTML = kids.filter(c => !q || c.name.includes(q)).map(c => '<label><input type="checkbox" value="' + esc(c.name) + '"' + (picked.has(c.name) ? ' checked' : '') + '>' + esc(c.name) + '</label>').join('') || '<p class="hint">명단이 비어 있습니다</p>';
+    $('nChecks').innerHTML = kids.filter(c => (!evOnly || evOnly.has(c.name)) && (!q || c.name.includes(q))).map(c => '<label><input type="checkbox" value="' + esc(c.name) + '"' + (picked.has(c.name) ? ' checked' : '') + '>' + esc(c.name) + '</label>').join('') || '<p class="hint">명단이 비어 있습니다</p>';
     $('nCount').textContent = picked.size ? picked.size + '명 선택: ' + [...picked].join(', ') : '';
   }
   $('nq').oninput = renderChecks;
