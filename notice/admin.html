@@ -85,6 +85,8 @@
   .pg .x{background:#FAF8F6}
   .pg .t{box-shadow:inset 0 0 0 2.5px #A40F16}
   .pg .pk{background:#FBEDEE}
+  .pfr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px;gap:6px;margin:8px 0;padding-bottom:8px;border-bottom:1px dashed var(--line)}.pfr input{min-width:0;width:100%}.pfr .t{grid-column:1/3}.pfr .del{grid-row:1/3;grid-column:3;border:0;background:#F1ECE7;border-radius:8px}
+  .pfw{display:grid;grid-template-columns:28px 1fr;gap:6px;align-items:center;margin:4px 0}.pfw b{color:#2F6B55}
   .pgt,.pgn{background:#fff;border:1px solid #E4DCD4;border-radius:14px;margin-top:10px;padding:12px 14px;font-size:13.5px;line-height:1.5}
   .pgt b,.pgn b{display:block;font-size:14.5px;margin-bottom:6px}
   .pgt div{display:flex;gap:10px;padding:3px 0}.pgt span{flex:none;width:22px;font-weight:800;color:#2F6B55}
@@ -299,9 +301,10 @@
       <div class="mhead" id="sMonth"><button data-m="-1">‹</button><b id="sMonthLabel"></b><button data-m="1">›</button></div>
       <div class="card" style="padding:12px">
         <div id="sCal"></div>
-        <p class="hint" style="margin-top:8px">칸을 누르면 그날 일정이 아래에 나와요. <span class="tg" style="background:#E4F4ED;color:#2F6B55">초록 = 주간 수련 주제</span><span class="tg" style="color:#1F3B63">남색 = 행사·심사·대회</span><span class="tg" style="color:#D92D20">빨강 = 휴관</span><span class="tg" style="color:#8a827c">회색 = 홈페이지(옮기기 전)</span><br>수련 주제·요일별 운동테마·이달의 공지사항은 지금은 홈페이지 관리에서 고쳐요.</p>
+        <button class="btn ghost" id="pEdit" style="margin-top:10px">✏ 이 달 수련 계획 고치기 <small style="font-weight:400">(주간 수련 주제 · 이달의 공지 · 요일별 운동테마)</small></button>
+        <p class="hint" style="margin-top:8px">칸을 누르면 그날 일정이 아래에 나와요. <span class="tg" style="background:#E4F4ED;color:#2F6B55">초록 = 주간 수련 주제</span><span class="tg" style="color:#1F3B63">남색 = 행사·심사·대회</span><span class="tg" style="color:#D92D20">빨강 = 휴관</span><span class="tg" style="color:#8a827c">회색 = 홈페이지(옮기기 전)</span><br>고치면 홈페이지·학부모 앱에도 바로 보여요.</p>
       </div>
-      <div class="card" id="sImp" hidden><h2>홈페이지에만 있는 일정 <span id="sImpN"></span>개</h2><p class="hint">예전에 홈페이지 관리에서 넣은 일정이에요. 알림 관리로 옮기면 앞으로는 여기서만 고치면 됩니다. 학부모님께 알림은 가지 않아요.</p><ul class="list" id="sImpList" style="font-size:14px"></ul><button class="btn" id="sImpGo" style="margin-top:8px">알림 관리로 옮기기</button></div>
+      <div class="card" id="sImp" hidden><h2>홈페이지에만 있는 자료 <span id="sImpN"></span></h2><p class="hint">예전에 홈페이지 관리에서 넣은 일정이에요. 알림 관리로 옮기면 앞으로는 여기서만 고치면 됩니다. 학부모님께 알림은 가지 않아요.</p><ul class="list" id="sImpList" style="font-size:14px"></ul><button class="btn" id="sImpGo" style="margin-top:8px">알림 관리로 옮기기</button></div>
       <div class="card"><h2>이 달 일정</h2><button class="btn" id="sAdd" style="margin:6px 0 4px">+ 일정 넣기</button><ul class="list" id="sList"></ul></div>
     </section>
 
@@ -744,9 +747,13 @@
   // ═════ 일정 (2026-11-13): 도장 일정은 여기 한 곳에서 넣으면 학부모 앱·업무 앱·홈페이지에 다 보임 ═════
   let sMonth = thisMonth(), sItems = [], hpAll = null, hpMonthly = null, hpWeek = {}, hpWkText = '', hpMonths = [], sPick = '';
   const dkey = x => x.date + '|' + x.title.replace(/\s+/g, '');
+  let hpPlan = null, hpRaw = null; // hpPlan = 알림 서버에 저장된 수련 계획 (없으면 홈페이지 data.json 것을 씀)
+  function usePlan(pl) { hpPlan = pl; if (pl) { hpMonthly = pl.focus || []; hpWeek = pl.weekday || {}; hpMonths = pl.months || []; } }
   async function loadHp() { // 홈페이지(data.json)에 아직 남은 일정·이번 주 수련 주제
     if (hpAll) return;
-    try { const d = await (await fetch('../data.json?t=' + Date.now(), { cache: 'no-store' })).json(); hpAll = (d.schedule || []).filter(x => x && x.date && x.title); hpMonthly = (d.monthly && d.monthly.focus) || []; hpWeek = (d.monthly && d.monthly.weekday) || {}; hpWkText = (d.monthly && d.monthly.weekendText) || ''; hpMonths = (d.monthly && d.monthly.months) || []; } catch (_) { hpAll = []; hpMonthly = []; }
+    const pj = post('/admin/plan-get', {}).catch(() => null);
+    try { const d = await (await fetch('../data.json?t=' + Date.now(), { cache: 'no-store' })).json(); hpAll = (d.schedule || []).filter(x => x && x.date && x.title); hpMonthly = (d.monthly && d.monthly.focus) || []; hpWeek = (d.monthly && d.monthly.weekday) || {}; hpWkText = (d.monthly && d.monthly.weekendText) || ''; hpMonths = (d.monthly && d.monthly.months) || []; hpRaw = { weekday: hpWeek, focus: hpMonthly, months: hpMonths }; } catch (_) { hpAll = []; hpMonthly = []; }
+    const j = await pj; if (j && j.ok && j.plan) usePlan(j.plan);
   }
   async function loadSched() {
     if (!pw) return;
@@ -773,17 +780,48 @@
     const ms = [...new Set(hpAll.map(x => x.date.slice(0, 7)))], rs = await Promise.all(ms.map(k => post('/admin/posts', { type: 'schedule', month: k })));
     if (m !== sMonth) return;
     const have = new Set(); rs.forEach(j => j.ok && j.items.forEach(x => have.add(dkey(x))));
-    const hp = hpAll.filter(x => !have.has(dkey(x)));
-    $('sImp').hidden = !hp.length; if (!hp.length) return;
+    const hp = hpAll.filter(x => !have.has(dkey(x))), needPlan = !hpPlan && hpRaw && (hpRaw.focus.length || hpRaw.months.length);
+    $('sImp').hidden = !hp.length && !needPlan; if ($('sImp').hidden) return;
+    $('sImpN').textContent = [hp.length ? '일정 ' + hp.length + '개' : '', needPlan ? '수련 계획 ' + hpRaw.months.length + '달치' : ''].filter(Boolean).join(' · ');
+    if (!hp.length) { $('sImpList').innerHTML = '<li>주간 수련 주제 ' + hpRaw.focus.length + '개 · 이달의 공지 ' + hpRaw.months.length + '달 · 요일별 운동테마</li>'; return; }
     $('sImpList').innerHTML = hp.map(x => '<li>' + esc(x.date.slice(5).replace('-', '/')) + (x.end ? '~' + esc(x.end.slice(5).replace('-', '/')) : '') + ' <b>' + esc(x.title) + '</b>' + (x.type ? ' [' + esc(x.type) + ']' : '') + '</li>').join('');
-    $('sImpN').textContent = hp.length;
+    if (needPlan) $('sImpList').innerHTML += '<li><b>+ 수련 계획</b> 주간 수련 주제 ' + hpRaw.focus.length + '개 · 이달의 공지 ' + hpRaw.months.length + '달 · 요일별 운동테마</li>';
   }
   $('sImpGo').onclick = async () => {
     const items = hpAll.map(x => ({ date: x.date, end: x.end || '', title: x.title, type: x.type || '', note: x.note || '', image: x.image || '' }));
-    if (!confirm('홈페이지에만 있던 일정 ' + $('sImpN').textContent + '개를 알림 관리 일정표로 옮길까요?\n학부모님께 알림은 가지 않아요. 홈페이지 data.json은 그대로 둡니다.')) return;
+    if (!confirm('홈페이지에만 있던 ' + $('sImpN').textContent + '를 알림 관리로 옮길까요?\n학부모님께 알림은 가지 않아요. 홈페이지 data.json은 그대로 둡니다.')) return;
     const b = $('sImpGo'); b.disabled = true;
-    try { const j = await post('/admin/sched-import', { items }); if (!j.ok) throw new Error(j.error || '옮기지 못했어요'); toast('옮겼어요: 새로 ' + j.added + '개' + (j.skipped ? ', 이미 있던 ' + j.skipped + '개는 건너뜀' : '')); loadSched(); }
+    try {
+      if (!hpPlan && hpRaw) { const pj = await post('/admin/plan-save', { plan: hpRaw }); if (!pj.ok) throw new Error(pj.error || '수련 계획을 옮기지 못했어요'); usePlan(pj.plan); }
+      const j = await post('/admin/sched-import', { items }); if (!j.ok) throw new Error(j.error || '옮기지 못했어요'); toast('옮겼어요: 새로 ' + j.added + '개' + (j.skipped ? ', 이미 있던 ' + j.skipped + '개는 건너뜀' : '')); loadSched(); }
     catch (e) { toast(e.message); } finally { b.disabled = false; }
+  };
+  // ✏ 이 달 수련 계획 고치기 (2026-11-14: 홈페이지 관리에서 하던 것을 여기서 — 저장하면 홈페이지·학부모 앱에 같이)
+  $('pEdit').onclick = async () => {
+    await loadHp(); const m = sMonth, base = JSON.parse(JSON.stringify(hpPlan || hpRaw || { weekday: {}, focus: [], months: [] }));
+    const inM = x => x.date.slice(0, 7) === m, F = base.focus.filter(inM), N = ((base.months.find(x => x.month === m) || {}).notices || []);
+    const row = x => '<div class="pfr"><input type="date" class="a" value="' + esc(x.date || '') + '"><input type="date" class="b" value="' + esc(x.end || '') + '"><input type="text" class="t" placeholder="예: 겨루기 스텝 및 개인 품새" value="' + esc(x.title || '') + '"><button class="del" title="지우기">✕</button></div>';
+    const sh = document.createElement('div'); sh.className = 'sheet';
+    sh.innerHTML = '<div class="in"><div class="sh-h"><b>' + mLabel(m) + ' 수련 계획</b><button class="x">닫기</button></div>' +
+      '<h4>주간 수련 주제 <small class="hint">시작 날 · 끝나는 날(하루면 비움)</small></h4><div id="pfL">' + F.map(row).join('') + '</div><button class="btn ghost" id="pfAdd">+ 주제 추가</button>' +
+      '<h4 style="margin-top:14px">' + (+m.slice(5)) + '월의 공지사항 <small class="hint">한 줄에 하나</small></h4><textarea id="pnT" rows="6" style="width:100%">' + esc(N.join('\n')) + '</textarea>' +
+      '<h4 style="margin-top:14px">요일별 운동테마 <small class="hint">매달 같아요 · 쉼표(,)로 나눠요</small></h4>' + ['월', '화', '수', '목', '금', '토'].map(w => '<div class="pfw"><b>' + w + '</b><input type="text" data-w="' + w + '" value="' + esc((base.weekday[w] || []).join(', ')) + '"></div>').join('') +
+      '<button class="btn" id="pSave" style="margin-top:14px">저장 (홈페이지·학부모 앱에 바로 보여요)</button></div>';
+    sh.onclick = async e => {
+      if (e.target === sh || e.target.closest('.x')) return sh.remove();
+      if (e.target.closest('.del')) return e.target.closest('.pfr').remove();
+      if (e.target.closest('#pfAdd')) { const L = sh.querySelectorAll('.pfr'), last = L.length ? L[L.length - 1].querySelector('.b').value || L[L.length - 1].querySelector('.a').value : ''; sh.querySelector('#pfL').insertAdjacentHTML('beforeend', row({ date: last ? new Date(Date.parse(last) + 3 * 864e5).toISOString().slice(0, 10) : m + '-01' })); return; }
+      if (!e.target.closest('#pSave')) return;
+      const nf = [...sh.querySelectorAll('.pfr')].map(r => ({ date: r.querySelector('.a').value, end: r.querySelector('.b').value, title: r.querySelector('.t').value.trim() })).filter(x => x.date && x.title);
+      if (nf.some(x => x.end && x.end < x.date)) return toast('끝나는 날이 시작하는 날보다 빨라요');
+      const nn = sh.querySelector('#pnT').value.split('\n').map(x => x.trim()).filter(Boolean), wd = {};
+      sh.querySelectorAll('[data-w]').forEach(i => { const L = i.value.split(/[,·]/).map(x => x.trim()).filter(Boolean); if (L.length) wd[i.dataset.w] = L; });
+      const plan = { weekday: wd, focus: [...base.focus.filter(x => !inM(x)), ...nf], months: [...base.months.filter(x => x.month !== m), ...(nn.length ? [{ month: m, notices: nn }] : [])] };
+      const b = sh.querySelector('#pSave'); b.disabled = true;
+      try { const j = await post('/admin/plan-save', { plan }); if (!j.ok) throw new Error(j.error || '저장하지 못했어요'); usePlan(j.plan); sh.remove(); toast('저장했어요'); loadSched(); }
+      catch (er) { toast(er.message); b.disabled = false; }
+    };
+    document.body.appendChild(sh);
   };
   $('sMonth').onclick = e => { const b = e.target.closest('button'); if (b) { sMonth = addMonth(sMonth, +b.dataset.m); sPick = ''; loadSched(); } };
   $('sCal').onclick = e => { const b = e.target.closest('[data-day]'); if (!b) return; sPick = sPick === b.dataset.day ? '' : b.dataset.day; loadSched(); };
