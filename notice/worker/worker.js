@@ -34,6 +34,9 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS acks (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 학부모가 '확인했어요'를 누른 기록
   'CREATE TABLE IF NOT EXISTS replies (post INTEGER, kid TEXT, parent TEXT, rel TEXT, ans TEXT, at INTEGER, PRIMARY KEY (post, kid))', // 📩 봉투 답장 (제자마다 참가·불참, 2026-11-13)
   'CREATE TABLE IF NOT EXISTS famreq (id TEXT PRIMARY KEY, kids TEXT, rel TEXT, ph TEXT, by TEXT, at INTEGER)', // 학부모 앱 '도장에 가족 추가 요청'
+  'CREATE TABLE IF NOT EXISTS kcodes (name TEXT PRIMARY KEY, code TEXT UNIQUE, created INTEGER)', // 제자 모드 개인 코드 (관장님이 도장에서 넣어 줌, 2026-11-14)
+  'CREATE TABLE IF NOT EXISTS ksess (tok TEXT PRIMARY KEY, name TEXT, created INTEGER, seen INTEGER)',
+  'CREATE TABLE IF NOT EXISTS kposts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, body TEXT, at INTEGER, del INTEGER DEFAULT 0)', // 선범단 커뮤니티 (선범단만, 글만)
   'CREATE TABLE IF NOT EXISTS invites (code TEXT PRIMARY KEY, name TEXT, kids TEXT, max INTEGER DEFAULT 2, off INTEGER DEFAULT 0, created INTEGER)', // 가정별 초대번호 (가입할 수 있는 휴대폰 수 제한)
 ];
 let ready = false;
@@ -118,6 +121,45 @@ async function route(path, req, env) {
     return json({ ok: true, items: rows.map(r => ({ date: r.date, end: r.dend || '', title: r.title, type: r.kind || '', note: String(r.body || '').split('\n')[0].slice(0, 120), image: r.img || '' })), plan: await getPlan(env) });
   }
   if (path === '/pub/plan') return json({ ok: true, plan: await getPlan(env) }); // 수련 계획(주간 수련 주제 · 요일별 운동테마 · 이달의 공지) — 학부모 앱·홈페이지가 읽음
+  // ═════════ 🥋 제자 모드 (2026-11-14) — 관장님이 도장에서 넣어 준 개인 코드로만 ═════════
+  if (path === '/k/login') {
+    const ip = 'kid:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, ip);
+    if (lu) return json({ ok: false, error: '잠시 뒤에 다시 해 주세요 (' + Math.ceil((lu - Date.now()) / 60000) + '분)' });
+    const code = String(b.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12), r = code.length >= 6 ? await one(env, 'SELECT name FROM kcodes WHERE code = ?', code) : null;
+    if (!r) return json({ ok: false, error: failText('코드가 맞지 않아요', await failAdd(env, ip)) });
+    await failClear(env, ip); const tok = rid(24);
+    await run(env, 'INSERT INTO ksess (tok, name, created, seen) VALUES (?, ?, ?, ?)', tok, r.name, Date.now(), Date.now());
+    return json({ ok: true, tok, name: r.name });
+  }
+  if (path.startsWith('/k/')) {
+    const ks = b.tok ? await one(env, 'SELECT name FROM ksess WHERE tok = ?', String(b.tok)) : null;
+    if (!ks) return json({ ok: false, error: '다시 도장에서 코드를 넣어 주세요', out: true });
+    const name = ks.name, km = J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {};
+    const t = await teamSync(env, '/sync/kmode', { name });
+    if (path === '/k/home') {
+      await run(env, 'UPDATE ksess SET seen = ? WHERE tok = ?', Date.now(), String(b.tok));
+      const today = kstDay(new Date()), rows = await all(env, 'SELECT day FROM att WHERE name = ? AND tin IS NOT NULL ORDER BY day', name);
+      const days = rows.map(r => r.day), wk = d => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - (x.getUTCDay() + 6) % 7); return x.toISOString().slice(0, 10); };
+      const weeks = new Set(days.map(wk)); let streak = 0, w = wk(today); if (!weeks.has(w)) { const x = new Date(w + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - 7); w = x.toISOString().slice(0, 10); }
+      while (weeks.has(w) && streak < 520) { streak++; const x = new Date(w + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - 7); w = x.toISOString().slice(0, 10); }
+      const info = await attSync(env, '/sync/kid-info', { names: [name] }).catch(() => null), kid = info && info.ok ? (info.kids || [])[0] : null, birth = kid ? String(kid.birth || '') : '';
+      const hw = await teamSync(env, '/sync/hw', { kids: [name] });
+      return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '' },
+        belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
+        hw: hw.ok ? (hw.hw || []) : [], best: (km.best || []).slice(-4), comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30) });
+    }
+    if (path === '/k/hw-check') return json(await teamSync(env, '/sync/hw-check', { kids: [name], kid: name, hw: b.hw, day: b.day, on: !!b.on, rel: '본인' }));
+    if (path === '/k/logout') { await run(env, 'DELETE FROM ksess WHERE tok = ?', String(b.tok)); return json({ ok: true }); }
+    if (!t.ok || !t.sb) return json({ ok: false, error: '선범단만 들어갈 수 있어요', notSb: true });
+    if (path === '/k/posts') return json({ ok: true, me: name, posts: (await all(env, 'SELECT id, name, body, at FROM kposts WHERE del = 0 ORDER BY id DESC LIMIT 60')) });
+    if (path === '/k/post') {
+      const body = String(b.body || '').replace(/\s+\n/g, '\n').trim().slice(0, 300); if (!body) return json({ ok: false, error: '글을 적어 주세요' });
+      const last = await one(env, 'SELECT at FROM kposts WHERE name = ? ORDER BY id DESC LIMIT 1', name); if (last && Date.now() - last.at < 20000) return json({ ok: false, error: '조금 뒤에 다시 올려 주세요' });
+      await run(env, 'INSERT INTO kposts (name, body, at) VALUES (?, ?, ?)', name, body, Date.now()); return json({ ok: true });
+    }
+    if (path === '/k/post-del') { await run(env, 'UPDATE kposts SET del = 1 WHERE id = ? AND name = ?', b.id | 0, name); return json({ ok: true }); }
+    return json({ ok: false, error: 'not found' }, 404);
+  }
   if (path === '/vapid') return json({ ok: true, publicKey: (await getVapid(env)).publicKey });
   if (path === '/notices') return json({ ok: true, notices: await listPosts(env, 'notice', null, 50) });
 
@@ -569,6 +611,30 @@ async function route(path, req, env) {
     if (path === '/admin/ev-tables') return json(await teamSync(env, '/sync/ev-tables', {}));
     if (path === '/admin/egrps') return json(await teamSync(env, '/sync/egrps', {}));
     if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', ev: r.ev || '' } } : { ok: false, error: '지워진 일정이에요' }); }
+    // 🥋 제자 모드 관리 (2026-11-14): 개인 코드 · 최우수 수련생 · 대회 기록 · 선범단 커뮤니티 지우기
+    if (path === '/admin/kcodes') {
+      const ks = (await all(env, 'SELECT name FROM kids ORDER BY name')).map(r => r.name), cs = await all(env, 'SELECT name, code FROM kcodes'), ss = await all(env, 'SELECT name, COUNT(*) AS n, MAX(seen) AS seen FROM ksess GROUP BY name');
+      return json({ ok: true, items: ks.map(n => { const c = cs.find(x => x.name === n), s2 = ss.find(x => x.name === n); return { name: n, code: c ? c.code : '', devices: s2 ? s2.n : 0, seen: s2 ? s2.seen : 0 }; }) });
+    }
+    if (path === '/admin/kcode-make') {
+      const name = String(b.name || '').trim().slice(0, 20); if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', name))) return json({ ok: false, error: '명단에 없는 제자예요' });
+      const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
+      for (let t = 0; t < 20 && !code; t++) { const c = [...crypto.getRandomValues(new Uint8Array(8))].map(x => A[x % A.length]).join(''); if (!(await one(env, 'SELECT name FROM kcodes WHERE code = ?', c))) code = c; }
+      await run(env, 'INSERT INTO kcodes (name, code, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET code = excluded.code, created = excluded.created', name, code, Date.now());
+      await run(env, 'DELETE FROM ksess WHERE name = ?', name); // 새 코드 = 예전 기기는 로그아웃
+      return json({ ok: true, code });
+    }
+    if (path === '/admin/kcode-del') { const name = String(b.name || ''); await run(env, 'DELETE FROM kcodes WHERE name = ?', name); await run(env, 'DELETE FROM ksess WHERE name = ?', name); return json({ ok: true }); }
+    if (path === '/admin/kmode-get') return json({ ok: true, km: J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {} });
+    if (path === '/admin/kmode-save') {
+      const T = (v, n) => String(v == null ? '' : v).trim().slice(0, n), G = ['중고등부 남', '중고등부 여', '초등부 남', '초등부 여', '유치부 남', '유치부 여'];
+      const best = (Array.isArray(b.best) ? b.best : []).filter(x => x && /^\d{4}-[1-4]$/.test(x.q || '')).map(x => ({ q: x.q, g: Object.fromEntries(G.map(k => [k, T((x.g || {})[k], 20)]).filter(([, v]) => v)) })).sort((a, c) => a.q.localeCompare(c.q)).slice(-12);
+      const comps = (Array.isArray(b.comps) ? b.comps : []).filter(x => x && /^\d{4}-\d{2}-\d{2}$/.test(x.date || '') && T(x.title, 80)).map(x => ({ id: T(x.id, 20) || rid(4), date: x.date, title: T(x.title, 80), rows: (Array.isArray(x.rows) ? x.rows : []).map(r => ({ name: T(r && r.name, 20), medal: ['금', '은', '동', '참가'].includes(r && r.medal) ? r.medal : '참가', ev: T(r && r.ev, 30) })).filter(r => r.name).slice(0, 60) })).sort((a, c) => a.date.localeCompare(c.date)).slice(-200);
+      const km = { best, comps };
+      await run(env, "INSERT INTO kv (k, v) VALUES ('kmode', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(km)); return json({ ok: true, km });
+    }
+    if (path === '/admin/kposts') return json({ ok: true, posts: await all(env, 'SELECT id, name, body, at FROM kposts WHERE del = 0 ORDER BY id DESC LIMIT 100') });
+    if (path === '/admin/kpost-del') { await run(env, 'UPDATE kposts SET del = 1 WHERE id = ?', b.id | 0); return json({ ok: true }); }
     if (path === '/admin/plan-get') return json({ ok: true, plan: await getPlan(env) });
     if (path === '/admin/plan-save') { // 수련 계획 저장 (2026-11-14: 홈페이지 data.json → 알림 관리에서 관리)
       const p = cleanPlan(b.plan); if (!p) return json({ ok: false, error: '저장할 내용이 이상해요' });
@@ -999,7 +1065,7 @@ function unb64u(str) {
 }
 function hex(b) { return [...b].map(x => x.toString(16).padStart(2, '0')).join(''); }
 // ─────────── 한 파일 백업 (업무 앱 관리자가 매달 말일에 받음, 2026-11-13) — 로그인 열쇠·PIN 값은 빼고 ───────────
-const BK_SKIP = ['sessions', 'subs', 'fails', 'kiosks', 'asess', 'devices', 'pushhold', 'pushq', 'pushq2'];
+const BK_SKIP = ['sessions', 'subs', 'fails', 'kiosks', 'asess', 'devices', 'pushhold', 'pushq', 'pushq2', 'ksess'];
 const BK_HIDE = ['salt', 'pin', 'tok', 'asrc', 'p256', 'auth', 'ep'];
 async function bkTables(env) { return (await all(env, "SELECT name FROM sqlite_master WHERE type = 'table'")).map(r => r.name).filter(n => /^[a-z0-9]+$/.test(n) && !BK_SKIP.includes(n)); }
 async function bkDump(env, table, after) {
