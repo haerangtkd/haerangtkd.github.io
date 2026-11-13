@@ -446,13 +446,37 @@ function normBelt(v){
 const STATUSES=['재원','휴원','퇴관'];
 /* 출석부 회원 상태 (업무 서버를 거쳐 받음). 이름+출생연도로 맞추고, 같은 이름이 하나뿐이면 이름만으로도 맞춤 */
 let ATTST=null;
-function attStatusOf(k){ if(!ATTST) return ''; return ATTST.byId[k.name+'|'+String(k.birth||'').slice(0,4)] || ATTST.byName[k.name] || ''; }
+function attStatusOf(k){ if(!ATTST) return ''; return (k.sid && ATTST.bySid[k.sid] && ATTST.bySid[k.sid].status) || ATTST.byId[k.name+'|'+String(k.birth||'').slice(0,4)] || ATTST.byName[k.name] || ''; }
 async function loadAttStatus(){
-  try{ const j=await tcall('/api/roster-all',{}); const byId={}, cnt={}, byName={};
-    j.students.forEach(x=>{ cnt[x.name]=(cnt[x.name]||0)+1; if(x.birth) byId[x.name+'|'+String(x.birth).slice(0,4)]=x.status; });
+  try{ const j=await tcall('/api/roster-all',{}); const byId={}, cnt={}, byName={}, bySid={};
+    j.students.forEach(x=>{ cnt[x.name]=(cnt[x.name]||0)+1; if(x.birth) byId[x.name+'|'+String(x.birth).slice(0,4)]=x.status; if(x.id) bySid[x.id]=x; });
     j.students.forEach(x=>{ if(cnt[x.name]===1) byName[x.name]=x.status; });
-    ATTST={byId,byName}; renderList(); if(view==='detail'){renderEditor();renderPreview();}
+    ATTST={byId,byName,bySid,list:j.students}; followRoster(); renderList(); if(view==='detail'){renderEditor();renderPreview();}
   }catch(e){}
+}
+/* 출석부 원생 번호(sid)로 잇기 (2026-11-13): 처음엔 이름+출생연도(같은 이름이 하나면 이름만)로 찾아 sid를 적고,
+   그 뒤 출석부에서 이름이 바뀌면 이 결과지의 이름과 그 아이에 묶인 띠·회원 상태·입력 기록 열쇠(이름|출생)도 같이 바꿈 */
+function followRoster(){
+  if(!ATTST || DATA===EMBED || !dbReady) return;
+  let linked=0; const renamed=[];
+  DATA.students.forEach(k=>{
+    if(!k.sid){
+      const y=String(k.birth||'').slice(0,4), c=ATTST.list.filter(x=>x.id && x.name===k.name);
+      const m=c.length>1? c.filter(x=>y && String(x.birth||'').slice(0,4)===y) : c;
+      if(m.length===1 && !DATA.students.some(o=>o!==k && o.sid===m[0].id)){ k.sid=m[0].id; linked++; }
+      return;
+    }
+    const a=ATTST.bySid[k.sid]; if(!a || !a.name || a.name===k.name) return;
+    const oldId=kidId(k), nk=Object.assign({},k,{name:a.name}), newId=kidId(nk);
+    if(DATA.students.some(o=>o!==k && kidId(o)===newId)) return; // 같은 이름+출생이 이미 있으면 건드리지 않음
+    ['belts','status','sb'].forEach(f=>{ const o=settings[f]; if(o && oldId in o){ o[newId]=o[oldId]; delete o[oldId]; } });
+    Object.keys(inputs).forEach(key=>{ if(key.endsWith('|'+oldId)){ inputs[key.slice(0,-oldId.length)+newId]=inputs[key]; delete inputs[key]; } });
+    if(picked.has(oldId)){ picked.delete(oldId); picked.add(newId); }
+    renamed.push(k.name+' → '+a.name); k.name=a.name;
+  });
+  if(!linked && !renamed.length) return;
+  saveLocal(); dbPutAll().catch(()=>{});
+  if(renamed.length) toast('출석부에서 바뀐 이름을 따라갔어요: '+renamed.join(', '));
 }
 const statusOf = k => { const s=attStatusOf(k) || (settings.status||{})[kidId(k)] || String(k.status||'재원').trim(); return STATUSES.includes(s)? s : (/휴/.test(s)?'휴원':/퇴/.test(s)?'퇴관':'재원'); };
 const rateOf = k => { const i=peek(k); return i && i.rate!=null && i.rate!=='' ? i.rate : null; };
@@ -892,7 +916,7 @@ function mergeData(old,neu){
   const byId=new Map(neu.students.map(k=>[kidId(k),k])); let kept=0;
   old.students.forEach(o=>{
     const n=byId.get(kidId(o));
-    if(n){ Object.keys(o.rec||{}).forEach(ev=>{ n.rec[ev]=Object.assign({},o.rec[ev],n.rec[ev]||{}); }); if(!n.belt0) n.belt0=''; }
+    if(n){ Object.keys(o.rec||{}).forEach(ev=>{ n.rec[ev]=Object.assign({},o.rec[ev],n.rec[ev]||{}); }); if(!n.belt0) n.belt0=''; if(o.sid && !n.sid) n.sid=o.sid; }
     else if(old.year===neu.year){ neu.students.push(o); kept++; }
   });
   neu.students.sort((a,b)=>a.name.localeCompare(b.name,'ko'));

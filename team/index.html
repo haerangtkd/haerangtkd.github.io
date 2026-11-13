@@ -629,6 +629,7 @@ async function sync(first) {
   if (syncing || !S.tok) return; syncing = true;
   const j = await api('/api/sync', first ? {} : { since: S.since, lastMsg: S.lastMsg });
   syncing = false; if (!j.ok) { if (j.mustPin) { S.mustPin = true; showMustPin(); } return false; }
+  if (j.restoredAt) { if (S.restoredAt && S.restoredAt !== j.restoredAt) { location.reload(); return false; } S.restoredAt = j.restoredAt; } // 백업을 다시 넣으면 처음부터 다시 불러옴
   S.me = j.me; S.members = j.members; S.pickupDefault = j.pickupDefault || {}; S.pickupTimes = j.pickupTimes || S.pickupTimes || {};
   let changed = false, newIn = false;
   const jn = JSON.stringify(j.joins || []); if (jn !== JSON.stringify(S.joins || [])) { S.joins = j.joins || []; changed = true; }
@@ -2252,49 +2253,118 @@ let sheetHist = false, skipPop = 0;
 window.addEventListener('popstate', () => { if (skipPop) { skipPop--; return; } if (sheetHist) { sheetHist = false; closeSheet(false, true); } });
 // ═════════ 한 파일 백업 (관리자, 매달 말일 알림) — 출석부·업무·알림·장부·성장 측정을 zip 하나로 ═════════
 const LEDGER_API = 'https://haerang-ledger.labkhu.workers.dev';
+async function loadZip() { if (!window.JSZip) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('압축 도구를 불러오지 못했어요')); document.head.appendChild(sc); }); }
+async function makeBackup(st, msg) { // st = /api/backup-start 또는 /api/restore-start 결과 (bk, team, notice)
+  await loadZip();
+  const now = new Date().toISOString(), day = today(), zip = new JSZip(), notes = [];
+  const dump = async (app, tables) => { const out = {}; for (const t of tables) { out[t] = []; let after = 0; do { msg((app === 'team' ? '업무' : '알림') + ' · ' + t + ' 받는 중… (' + out[t].length + ')'); const j = await api('/api/backup-part', { bk: st.bk, app, table: t, after }); if (!j.ok) throw new Error(j.error || t + '를 받지 못했어요'); out[t].push(...j.rows); after = j.next; } while (after); } return out; };
+  msg('출석부 받는 중…');
+  const att = await api('/api/backup-part', { bk: st.bk, app: 'att' }); if (!att.ok) throw new Error('출석부: ' + (att.error || '받지 못했어요'));
+  zip.file('1_출석부_백업.json', JSON.stringify(att.backup));
+  const team = await dump('team', st.team);
+  zip.file('2_업무_전체.json', JSON.stringify({ app: '해랑 업무', exportedAt: now, tables: team }));
+  const gd = (team.gdocs || []).map(r => ({ path: r.path, data: JSON.parse(r.data || '{}') }));
+  if (gd.length) zip.file('5_성장측정_백업.json', JSON.stringify({ kind: 'haerang-guinness-backup', at: now, docs: gd }));
+  if (st.notice.length) zip.file('3_알림_전체.json', JSON.stringify({ app: '해랑 학부모 알림', exportedAt: now, tables: await dump('notice', st.notice) }));
+  else notes.push('알림 앱: ' + (st.noticeErr || '받지 못했어요'));
+  msg('장부 받는 중…');
+  try { const r = await (await fetch(LEDGER_API + '/api/backup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bk: st.bk }) })).json(); if (!r.ok) throw new Error(r.error); zip.file('4_장부_백업.json', JSON.stringify(r.backup)); }
+  catch (e) { notes.push('장부: ' + (e.message || '받지 못했어요')); }
+  zip.file('읽어 주세요.txt', ['해랑경희 앱 전체 백업 · ' + day + ' · ' + S.me.name, '',
+    '1_출석부_백업.json  → 출석부 > 사범님 공간 > 백업 불러오기 로 다시 넣을 수 있어요',
+    '2_업무_전체.json    → 업무 앱 > 더보기 > 📦 백업 > 백업 다시 넣기', '3_알림_전체.json    → 업무 앱 > 더보기 > 📦 백업 > 백업 다시 넣기 (사진 포함)',
+    '4_장부_백업.json    → 장부 > 설정 > 백업 파일로 복원 으로 다시 넣을 수 있어요', '5_성장측정_백업.json → 성장 측정 > 백업 불러오기 로 다시 넣을 수 있어요', '',
+    '로그인 열쇠·PIN 값은 들어 있지 않아요. 개인정보가 있으니 공개된 곳에 올리지 마세요.'].concat(notes.length ? ['', '못 받은 것:'].concat(notes) : []).join('\r\n'));
+  msg('파일로 묶는 중…');
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  await api('/api/backup-done', { bk: st.bk }); S.bkDue = ''; renderHome();
+  return { blob, name: '해랑경희_전체백업_' + day + '.zip', notes };
+}
+async function saveFile(blob, name) {
+  const file = new File([blob], name, { type: 'application/zip' });
+  if (matchMedia('(pointer:coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+}
 function backupSheet() {
   if (!isBoss()) return toast('백업은 관리자만 받을 수 있어요');
   sheet('<h2>📦 앱 전체 백업</h2><p class="hint">출석부 · 업무 · 알림 · 장부 · 성장 측정을 <b>파일 하나</b>로 받아요. 받은 파일은 컴퓨터나 개인 드라이브에 보관해 주세요. (개인정보가 들어 있어요)</p>' +
     '<input class="inp" id="bkPw" type="password" maxlength="100" autocomplete="off" placeholder="관리자 비밀번호"><p id="bkMsg" class="hint" style="margin-top:8px"></p>' +
-    '<div class="foot"><span class="sp"></span><button data-close>닫기</button><button class="btn g" id="bkRun">백업 만들기</button></div>', el => {
+    '<div class="foot"><button id="bkRs">백업 다시 넣기</button><span class="sp"></span><button data-close>닫기</button><button class="btn g" id="bkRun">백업 만들기</button></div>', el => {
     const msg = t => { el.querySelector('#bkMsg').textContent = t; };
+    el.querySelector('#bkRs').onclick = () => { closeSheet(); setTimeout(restoreSheet, 50); };
     el.querySelector('#bkRun').onclick = async ev => {
       const btn = ev.target, pw = el.querySelector('#bkPw').value; if (!pw) return msg('관리자 비밀번호를 적어 주세요');
       btn.disabled = true;
       try {
         msg('비밀번호 확인 중…');
         const st = await api('/api/backup-start', { pw }); if (!st.ok) throw new Error(st.error || '확인하지 못했어요');
-        if (!window.JSZip) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; sc.onload = ok; sc.onerror = () => no(new Error('압축 도구를 불러오지 못했어요')); document.head.appendChild(sc); });
-        const now = new Date().toISOString(), day = today(), zip = new JSZip(), notes = [];
-        const dump = async (app, tables) => { const out = {}; for (const t of tables) { out[t] = []; let after = 0; do { msg((app === 'team' ? '업무' : '알림') + ' · ' + t + ' 받는 중… (' + out[t].length + ')'); const j = await api('/api/backup-part', { bk: st.bk, app, table: t, after }); if (!j.ok) throw new Error(j.error || t + '를 받지 못했어요'); out[t].push(...j.rows); after = j.next; } while (after); } return out; };
-        msg('출석부 받는 중…');
-        const att = await api('/api/backup-part', { bk: st.bk, app: 'att' }); if (!att.ok) throw new Error('출석부: ' + (att.error || '받지 못했어요'));
-        zip.file('1_출석부_백업.json', JSON.stringify(att.backup));
-        const team = await dump('team', st.team);
-        zip.file('2_업무_전체.json', JSON.stringify({ app: '해랑 업무', exportedAt: now, tables: team }));
-        const gd = (team.gdocs || []).map(r => ({ path: r.path, data: JSON.parse(r.data || '{}') }));
-        if (gd.length) zip.file('5_성장측정_백업.json', JSON.stringify({ kind: 'haerang-guinness-backup', at: now, docs: gd }));
-        if (st.notice.length) zip.file('3_알림_전체.json', JSON.stringify({ app: '해랑 학부모 알림', exportedAt: now, tables: await dump('notice', st.notice) }));
-        else notes.push('알림 앱: ' + (st.noticeErr || '받지 못했어요'));
-        msg('장부 받는 중…');
-        try { const r = await (await fetch(LEDGER_API + '/api/backup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bk: st.bk }) })).json(); if (!r.ok) throw new Error(r.error); zip.file('4_장부_백업.json', JSON.stringify(r.backup)); }
-        catch (e) { notes.push('장부: ' + (e.message || '받지 못했어요')); }
-        zip.file('읽어 주세요.txt', ['해랑경희 앱 전체 백업 · ' + day + ' · ' + S.me.name, '',
-          '1_출석부_백업.json  → 출석부 > 사범님 공간 > 백업 불러오기 로 다시 넣을 수 있어요',
-          '2_업무_전체.json    → 업무 앱 모든 표 (보관용)', '3_알림_전체.json    → 학부모 알림 앱 모든 표 (보관용, 사진 포함)',
-          '4_장부_백업.json    → 장부 > 설정 > 백업 파일로 복원 으로 다시 넣을 수 있어요', '5_성장측정_백업.json → 성장 측정 > 백업 불러오기 로 다시 넣을 수 있어요', '',
-          '로그인 열쇠·PIN 값은 들어 있지 않아요. 개인정보가 있으니 공개된 곳에 올리지 마세요.'].concat(notes.length ? ['', '못 받은 것:'].concat(notes) : []).join('\r\n'));
-        msg('파일로 묶는 중…');
-        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' }), name = '해랑경희_전체백업_' + day + '.zip';
-        await api('/api/backup-done', { bk: st.bk }); S.bkDue = ''; renderHome();
+        const { blob, name, notes } = await makeBackup(st, msg);
         msg('다 만들었어요 (' + (blob.size / 1048576).toFixed(1) + 'MB)' + (notes.length ? ' · 못 받은 것: ' + notes.join(', ') : '') + '. 아래 버튼으로 저장해 주세요.');
         btn.disabled = false; btn.textContent = '💾 저장하기';
-        btn.onclick = async () => {
-          const file = new File([blob], name, { type: 'application/zip' });
-          if (matchMedia('(pointer:coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
-          const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-        };
+        btn.onclick = () => saveFile(blob, name);
       } catch (e) { msg(e.message || '백업을 만들지 못했어요'); btn.disabled = false; }
+    };
+  });
+}
+// 백업 다시 넣기 (2026-11-13): 2_업무_전체.json · 3_알림_전체.json → 지금 상태를 먼저 받은 뒤에 넣음. PIN·로그인은 그대로.
+const RS_NAME = { team: '업무', notice: '알림' };
+const RS_TBL = { kv: '설정', members: '직원', msgs: '채팅', mhide: '숨긴 채팅', items: '업무·일정·행사', comments: '댓글', pickup: '등원·픽업', photos: '사진', joins: '가입 요청', reminders: '알림 예약', logs: '알림 기록', gdocs: '성장 측정', esign: '행사 신청', cleanchk: '청소 체크', pmsg: '학부모 연락', contracts: '등록 서류', hw: '숙제', hwchk: '숙제 체크', parents: '보호자', kids: '원생', att: '출결', posts: '소식', fees: '회비', reads: '읽음', acks: '확인했어요', famreq: '가족 요청', invites: '초대번호' };
+function restoreSheet() {
+  if (!isBoss()) return toast('관리자만 할 수 있어요');
+  let file = null, st = null;
+  sheet('<h2>📦 백업 다시 넣기</h2><p class="hint">예전 백업 파일(zip)의 <b>업무 · 알림</b> 내용으로 지금 앱을 되돌려요. 백업 뒤에 생긴 글·기록은 <b>없어져요</b>. 직원 PIN·로그인·휴대폰 알림 설정은 그대로예요. (출석부·장부·성장 측정은 각 앱의 백업 불러오기로)</p>' +
+    '<input class="inp" id="rsFile" type="file" accept=".zip,.json,application/zip,application/json"><div id="rsInfo"></div>' +
+    '<input class="inp" id="rsPw" type="password" maxlength="100" autocomplete="off" placeholder="관리자 비밀번호" style="margin-top:8px"><p id="rsMsg" class="hint" style="margin-top:8px"></p>' +
+    '<div class="foot"><span class="sp"></span><button data-close>닫기</button><button class="btn g" id="rsGo" disabled>확인하기</button></div>', el => {
+    const msg = t => { el.querySelector('#rsMsg').textContent = t; }, go = el.querySelector('#rsGo'), info = el.querySelector('#rsInfo');
+    const pick = () => [...el.querySelectorAll('[data-rsapp]:checked')].map(x => x.dataset.rsapp);
+    el.querySelector('#rsFile').onchange = async ev => {
+      const f = ev.target.files[0]; file = null; st = null; info.innerHTML = ''; go.disabled = true; go.textContent = '확인하기'; if (!f) return;
+      try {
+        msg('파일 읽는 중…'); const got = {};
+        if (/\.zip$/i.test(f.name)) {
+          await loadZip(); const z = await JSZip.loadAsync(f);
+          for (const [k, n] of [['team', '2_업무_전체.json'], ['notice', '3_알림_전체.json']]) { const e = z.file(n); if (e) got[k] = JSON.parse(await e.async('string')); }
+        } else { const j = JSON.parse(await f.text()); if (j && j.app === '해랑 업무') got.team = j; else if (j && j.app === '해랑 학부모 알림') got.notice = j; }
+        for (const k of Object.keys(got)) if (!got[k] || typeof got[k].tables !== 'object') delete got[k];
+        if (!Object.keys(got).length) throw new Error('업무·알림 백업이 들어 있지 않은 파일이에요');
+        file = got; msg(''); go.disabled = false;
+        info.innerHTML = Object.keys(got).map(k => '<label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" data-rsapp="' + k + '" checked> <b>' + RS_NAME[k] + '</b> <span class="hint">' + esc(String(got[k].exportedAt || '').slice(0, 10)) + ' 백업 · ' + Object.values(got[k].tables).reduce((n, r) => n + (r.length || 0), 0) + '줄</span></label>').join('');
+      } catch (e) { msg(e.message || '파일을 읽지 못했어요'); }
+    };
+    go.onclick = async () => {
+      if (!file) return; const pw = el.querySelector('#rsPw').value; if (!st && !pw) return msg('관리자 비밀번호를 적어 주세요');
+      const apps = pick(); if (!apps.length) return msg('다시 넣을 것을 골라 주세요');
+      go.disabled = true;
+      try {
+        if (!st) { // ① 비밀번호 확인 + 지금과 비교해 보여 주기
+          msg('비밀번호 확인 중…'); st = await api('/api/restore-start', { pw }); if (!st.ok) { const e = st.error; st = null; throw new Error(e || '확인하지 못했어요'); }
+          if (apps.includes('notice') && !st.notice.length) throw new Error('알림 서버에 닿지 못했어요: ' + (st.noticeErr || ''));
+          info.innerHTML = apps.map(k => '<p style="margin:10px 0 4px"><b>' + RS_NAME[k] + '</b> · 표마다 지금 → 백업 줄 수</p><div class="hint" style="line-height:1.7">' +
+            Object.keys(file[k].tables).filter(t => (st[k] || []).includes(t)).map(t => { const now = (st.counts[k] || {})[t] || 0, bk = file[k].tables[t].length; return esc(RS_TBL[t] || t) + ' ' + now + ' → ' + (bk < now ? '<b style="color:#c62828">' + bk + '</b>' : bk); }).join(' · ') + '</div>').join('') +
+            '<p class="hint" style="margin-top:8px">빨간 숫자 = 줄어드는 표 (백업 뒤에 생긴 것이 없어져요)</p>' + apps.map(k => '<input type="checkbox" data-rsapp="' + k + '" checked hidden>').join('');
+          msg('먼저 지금 상태를 백업으로 받아요 (되돌릴 수 있게).'); go.textContent = '① 지금 상태 백업 받기'; go.disabled = false; st.step = 1; return;
+        }
+        if (st.step === 1) { // ② 지금 상태 백업 → 저장
+          const b = await makeBackup(st, msg); st.cur = b; st.step = 2;
+          msg('지금 상태 백업을 만들었어요 (' + (b.blob.size / 1048576).toFixed(1) + 'MB). 저장한 뒤 다음으로 가요.'); go.textContent = '💾 지금 상태 저장하기'; go.disabled = false; return;
+        }
+        if (st.step === 2) { await saveFile(st.cur.blob, st.cur.name); st.step = 3; msg('저장했으면 마지막으로 눌러 주세요. 지금 내용이 백업 내용으로 바뀌어요.'); go.textContent = '② 백업 다시 넣기'; go.style.background = '#c62828'; go.disabled = false; return; }
+        // ③ 다시 넣기: 표마다 나눠 넣고, 백업에 없는 줄 지우기
+        let put = 0, del = 0;
+        for (const k of apps) for (const [t, rows] of Object.entries(file[k].tables)) {
+          if (!(st[k] || []).includes(t) || !Array.isArray(rows)) continue;
+          for (let i = 0; i < rows.length;) {
+            const part = []; let size = 0; while (i < rows.length && part.length < 100 && (size < 300000 || !part.length)) { size += JSON.stringify(rows[i]).length; part.push(rows[i++]); }
+            msg(RS_NAME[k] + ' · ' + (RS_TBL[t] || t) + ' 넣는 중… (' + i + '/' + rows.length + ')');
+            const j = await api('/api/restore-part', { rs: st.rs, app: k, table: t, rows: part }); if (!j.ok) throw new Error((RS_TBL[t] || t) + ': ' + (j.error || '넣지 못했어요')); put += j.put | 0;
+          }
+          const pk = ((st.pks || {})[k] || {})[t]; if (!pk) continue;
+          const j = await api('/api/restore-part', { rs: st.rs, app: k, table: t, keep: rows.map(r => pk.map(c => r[c])), n: rows.length }); if (!j.ok) throw new Error((RS_TBL[t] || t) + ': ' + (j.error || '정리하지 못했어요')); del += j.del | 0;
+        }
+        await api('/api/restore-done', { rs: st.rs, apps, from: String(file[apps[0]].exportedAt || '').slice(0, 10) });
+        msg('다 넣었어요 · 바뀐 줄 ' + put + ' · 지운 줄 ' + del + '. 앱을 다시 불러와요…'); setTimeout(() => location.reload(), 2500);
+      } catch (e) { msg(e.message || '하지 못했어요'); go.disabled = false; }
     };
   });
 }
