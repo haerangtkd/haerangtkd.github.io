@@ -439,7 +439,17 @@ async function route(path, req, env, ctx) {
   }
   if (path === '/api/push-status') { // 관리자: 직원마다 알림 켠 기기 수 · 마지막으로 알림이 간 때 (2026-11-13)
     const nb = needBoss(); if (nb) return nb;
-    return json({ ok: true, list: await all(env, 'SELECT m.id, m.name, m.shared, COUNT(s.ep) AS n, MAX(s.last) AS last, MAX(s.created) AS reg FROM members m LEFT JOIN subs s ON s.mid = m.id GROUP BY m.id ORDER BY m.shared, m.name') });
+    return json({ ok: true, testOnly: J((await one(env, "SELECT v FROM kv WHERE k = 'testOnly'") || {}).v, null), list: await all(env, 'SELECT m.id, m.name, m.shared, COUNT(s.ep) AS n, MAX(s.last) AS last, MAX(s.created) AS reg FROM members m LEFT JOIN subs s ON s.mid = m.id GROUP BY m.id ORDER BY m.shared, m.name') });
+  }
+  if (path === '/api/test-push') { // 🧪 시험 모드 (관리자, 2026-11-13 사용자 요청): 켜 두면 직원 휴대폰 알림이 고른 한 사람에게만 감
+    const nb = needBoss(); if (nb) return nb;
+    const m = b.mid ? await one(env, 'SELECT id, name FROM members WHERE id = ?', str(b.mid, 40)) : null;
+    if (b.mid && !m) return json({ ok: false, error: '직원을 찾지 못했어요' });
+    if (m) await run(env, "INSERT INTO kv (k, v) VALUES ('testOnly', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ mid: m.id, name: m.name, by: me.name, at: Date.now() }));
+    else await run(env, "DELETE FROM kv WHERE k = 'testOnly'");
+    await addLog(env, me.id, 'set', m ? '🧪 시험 모드 켬: 직원 알림은 ' + m.name + '님에게만 (' + me.name + ')' : '🧪 시험 모드 끔: 직원 알림이 다시 모두에게 (' + me.name + ')', '');
+    await bumpKv(env);
+    return json({ ok: true, testOnly: m ? { mid: m.id, name: m.name } : null });
   }
   if (path === '/api/egrps-set') { // 행사 신청 대상 분류 (관리자, 2026-11-13)
     const nb = needBoss(); if (nb) return nb;
@@ -654,13 +664,13 @@ async function route(path, req, env, ctx) {
     const joins = await all(env, "SELECT id, name, created FROM joins WHERE status = 'wait' AND created > ?", Date.now() - 7 * 86400e3);
     const hidden = (await all(env, 'SELECT id FROM mhide WHERE mid = ? AND at > ?', me.id, since)).map(r => r.id);
     const esigns = (await all(env, 'SELECT ev, kid, data, rel, cancel, state, at, upd FROM esign WHERE upd > ?', first ? Date.now() - 120 * 86400e3 : since)).map(r => ({ ...r, data: J(r.data, {}) }));
-    const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', 'restoredAt', 'cats', 'egrps', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
+    const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', 'restoredAt', 'cats', 'egrps', 'testOnly', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
     const cleanchk = await all(env, 'SELECT day, task, mid, at FROM cleanchk WHERE day >= ?', addDays(td, -14));
     const pmsg = (await all(env, 'SELECT * FROM pmsg WHERE upd > ? AND at > ?', since, Date.now() - 60 * 86400e3)).map(r => ({ ...r, short: pmShort(r) }));
     const hws = await all(env, 'SELECT id, data, upd, del, mid FROM hw WHERE upd > ?', since), hwchk = hws.length ? await all(env, 'SELECT hw, kid, day, at, rel FROM hwchk WHERE hw IN (' + hws.map(() => '?').join(',') + ')', ...hws.map(h => h.id)) : [];
     const bkYm = addDays(td, 1).slice(8) === '01' ? td.slice(0, 7) : td.slice(8) <= '10' ? addDays(td.slice(0, 8) + '01', -1).slice(0, 7) : ''; // 말일 ~ 다음 달 10일
     const bkDue = me.boss && bkYm && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + bkYm)) ? bkYm : '';
-    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), egrps: (v => Array.isArray(v) && v.length ? v : EGRP0)(J(kv('egrps'), null)), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean), delReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'delreq:%'")).map(r => J(r.v, null)).filter(Boolean),
+    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), egrps: (v => Array.isArray(v) && v.length ? v : EGRP0)(J(kv('egrps'), null)), testOnly: J(kv('testOnly'), null), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean), delReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'delreq:%'")).map(r => J(r.v, null)).filter(Boolean),
       msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: me.boss ? ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0 : 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
@@ -985,6 +995,8 @@ async function pushAll(env, myId, title, body, view) {
   return pushTo(env, subs, title, body, view);
 }
 async function pushTo(env, subs, title, body, view, now) {
+  const tOnly = J((await one(env, "SELECT v FROM kv WHERE k = 'testOnly'") || {}).v, null); // 🧪 시험 모드: 고른 한 사람에게만
+  if (tOnly && tOnly.mid) subs = subs.filter(x => x.mid === tOnly.mid);
   if (env.TEST_PUSH && !env.TEST_HOURS) { env.TEST_PUSH.push({ title, body, to: subs.map(x => x.mid) }); return { sent: subs.length, total: subs.length }; } // 컴퓨터 시험용
   if (!subs.length) return { sent: 0, total: 0 };
   if (!now && !staffHours()) { // 평일 12~22시 밖: 사람마다 모아 두기
