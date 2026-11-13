@@ -430,9 +430,10 @@ async function route(path, req, env) {
     return json({ ok: true, onKiosk: !!k, codes: k ? J(k.codes, []) : [], invites: await inviteList(env, name), parents });
   }
   // 출석부 로그인: 업무 앱 직원 이름·PIN 확인을 대신 전해 줌 (출석부에는 업무 서버 연결이 없음) 2026-11-13
-  if (path === '/sync/staff-members' || path === '/sync/staff-pin') {
+  if (path === '/sync/staff-members' || path === '/sync/staff-pin' || path === '/sync/staff-tok') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     if (path === '/sync/staff-members') return json(await teamSync(env, '/sync/members', {}));
+    if (path === '/sync/staff-tok') return json(await teamSync(env, '/sync/tok-check', { tok: str(b.ttok, 64) })); // 출석부 자동 로그인 (2026-11-14)
     const r = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
     return json(r.ok ? { ok: true, id: r.id, name: r.name, boss: !!r.boss, shared: !!r.shared } : { ok: false, error: r.error || 'PIN이 맞지 않아요' });
   }
@@ -467,6 +468,13 @@ async function route(path, req, env) {
     const r = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
     if (!r.ok) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
     await failClear(env, ip);
+    const tok = rid(24);
+    await run(env, 'INSERT INTO asess (tok, mid, name, shared, created, boss) VALUES (?, ?, ?, ?, ?, ?)', tok, r.id, r.name, r.shared ? 1 : 0, Date.now(), r.boss ? 1 : 0);
+    return json({ ok: true, tok, name: r.name });
+  }
+  // 업무 앱에서 열면 자동 로그인 (2026-11-14 사용자 결정): 업무 앱 로그인(같은 휴대폰)을 업무 서버에 확인 → 알림 관리 세션
+  if (path === '/staff/sso') {
+    const r = await teamSync(env, '/sync/tok-check', { tok: str(b.ttok, 64) }); if (!r.ok) return json({ ok: false });
     const tok = rid(24);
     await run(env, 'INSERT INTO asess (tok, mid, name, shared, created, boss) VALUES (?, ?, ?, ?, ?, ?)', tok, r.id, r.name, r.shared ? 1 : 0, Date.now(), r.boss ? 1 : 0);
     return json({ ok: true, tok, name: r.name });
