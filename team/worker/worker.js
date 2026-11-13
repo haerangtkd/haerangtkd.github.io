@@ -187,8 +187,8 @@ async function route(path, req, env, ctx) {
     if (path === '/ledger/bk-check') { const t = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'bktok:' + str(b.bk, 40)) || {}).v, null); return json({ ok: !!(t && t.exp > Date.now()) }); }
     if (path === '/ledger/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared, ledger FROM members ORDER BY name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared, ledger: !!m.ledger })) });
     if (path === '/ledger/roster') { // 장부: 출석부 원생 번호·이름 (장부 회원을 원생 번호로 잇고 이름을 따라감, 2026-11-13)
-      const r = await attSync(env, '/sync/roster', { all: true }); if (!r.ok) return json(r);
-      return json({ ok: true, students: r.students.map(x => ({ id: x.id, name: x.name, birth: x.birth || '', status: x.status || '재원' })) });
+      const r = await attSync(env, '/sync/students', {}); if (!r.ok) return json(r);
+      return json({ ok: true, students: r.students.filter(x => x.name).map(x => ({ id: x.id, name: x.name, birth: x.birth || '', status: x.status || '재원', days: Array.isArray(x.days) ? x.days : [], joined: x.joined || '' })) }); // days·joined: 장부 '업무 앱에만 있는 원생' 등록 칸 채우기
     }
     if (path === '/ledger/families') { // 장부: 업무 앱 형제·자매 묶음 (확인 알림용, B안)
     if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
@@ -365,6 +365,17 @@ async function route(path, req, env, ctx) {
     const r = await noticeSync(env, '/sync/kiosk-multi', { on: !!b.on }); if (!r.ok) return json(r);
     await run(env, "INSERT INTO kv (k, v) VALUES ('kioskMulti', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0');
     return json({ ok: true });
+  }
+  if (path === '/api/cats-set') { // 업무 카테고리 (관리자): 순서·이름·색, 이름을 바꾸면 그 카테고리 업무도 같이 (2026-11-13)
+    const nb = needBoss(); if (nb) return nb;
+    const cats = (Array.isArray(b.cats) ? b.cats : []).slice(0, 20).map(c => ({ n: str(c.n, 20).trim(), c: /^#[0-9A-Fa-f]{6}$/.test(c.c || '') ? c.c : '' })).filter(c => c.n);
+    if (new Set(cats.map(c => c.n)).size !== cats.length) return json({ ok: false, error: '같은 이름이 두 개 있어요' });
+    const ren = (Array.isArray(b.renames) ? b.renames : []).map(r => [str(r[0], 20), str(r[1], 20).trim()]).filter(r => r[0] && r[1] && r[0] !== r[1]);
+    await run(env, "INSERT INTO kv (k, v) VALUES ('cats', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(cats));
+    let moved = 0;
+    if (ren.length) { const now = Date.now(); for (const it of await all(env, "SELECT id, data FROM items WHERE type = 'todo' AND del = 0")) { const d = J(it.data, {}), r = ren.find(x => x[0] === d.cat); if (r) { d.cat = r[1]; moved++; await run(env, 'UPDATE items SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), now, it.id); } } }
+    await bumpKv(env); await addLog(env, me.id, 'set', me.name + '님이 업무 카테고리를 바꿨어요', '');
+    return json({ ok: true, moved });
   }
   if (path === '/api/jtpl') return json({ ok: true, tpl: await jtplGet(env) });
   if (path === '/api/jtpl-set') { // 알림장 양식: 직원 누구나 (공용 계정은 안 됨)
@@ -558,13 +569,13 @@ async function route(path, req, env, ctx) {
     const joins = await all(env, "SELECT id, name, created FROM joins WHERE status = 'wait' AND created > ?", Date.now() - 7 * 86400e3);
     const hidden = (await all(env, 'SELECT id FROM mhide WHERE mid = ? AND at > ?', me.id, since)).map(r => r.id);
     const esigns = (await all(env, 'SELECT ev, kid, data, rel, cancel, state, at, upd FROM esign WHERE upd > ?', first ? Date.now() - 120 * 86400e3 : since)).map(r => ({ ...r, data: J(r.data, {}) }));
-    const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', 'restoredAt', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
+    const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', 'restoredAt', 'cats', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
     const cleanchk = await all(env, 'SELECT day, task, mid, at FROM cleanchk WHERE day >= ?', addDays(td, -14));
     const pmsg = (await all(env, 'SELECT * FROM pmsg WHERE upd > ? AND at > ?', since, Date.now() - 60 * 86400e3)).map(r => ({ ...r, short: pmShort(r) }));
     const hws = await all(env, 'SELECT id, data, upd, del, mid FROM hw WHERE upd > ?', since), hwchk = hws.length ? await all(env, 'SELECT hw, kid, day, at, rel FROM hwchk WHERE hw IN (' + hws.map(() => '?').join(',') + ')', ...hws.map(h => h.id)) : [];
     const bkYm = addDays(td, 1).slice(8) === '01' ? td.slice(0, 7) : td.slice(8) <= '10' ? addDays(td.slice(0, 8) + '01', -1).slice(0, 7) : ''; // 말일 ~ 다음 달 10일
     const bkDue = me.boss && bkYm && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + bkYm)) ? bkYm : '';
-    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '',
+    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean),
       msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
@@ -649,6 +660,32 @@ async function route(path, req, env, ctx) {
 
   // ═════════ 원생 (출석부 원생 기록을 그대로 읽고 씀) ═════════
   if (path === '/api/students') { const r = await attSync(env, '/sync/students', {}); if (r.ok && !me.boss) r.students = r.students.filter(s => s.status !== '퇴관'); return json(r); } // 퇴관 명단은 관리자만
+  if (path === '/api/student-save' && !me.boss && b.student && b.student.status === '퇴관') { // 직원이 퇴관으로 바꾸면 관리자 승인 대기 (2026-11-13)
+    const cur = ((await attSync(env, '/sync/students', {})).students || []).find(x => x.id === b.student.id);
+    if (cur && cur.status !== '퇴관') {
+      const sid = str(cur.id, 60), last = (b.student.statusLog || []).slice(-1)[0] || {};
+      await run(env, "INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", 'outreq:' + sid, JSON.stringify({ sid, name: cur.name, from: cur.status, date: str(last.date, 10), why: str(last.why, 200), mid: me.id, who: me.name, at: Date.now() }));
+      await addLog(env, me.id, 'kid', me.name + '님이 ' + cur.name + ' 퇴관을 요청했어요 (관리자 승인 대기)', '');
+      const subs = await all(env, 'SELECT s.* FROM subs s JOIN members m ON m.id = s.mid WHERE m.boss = 1 AND s.mid <> ?', me.id);
+      ctx.waitUntil(pushTo(env, subs, '해랑 업무 · 퇴관 승인', cur.name + ' 퇴관 요청 (' + me.name + ')', 'home').catch(() => {}));
+      await bumpKv(env);
+      return json({ ok: true, pending: true, id: sid });
+    }
+  }
+  if (path === '/api/outreq-ok' || path === '/api/outreq-no') { // 관리자: 퇴관 요청 승인·거절
+    const nb = needBoss(); if (nb) return nb;
+    const k = 'outreq:' + str(b.sid, 60), rq = J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, null);
+    if (!rq) return json({ ok: false, error: '이미 처리된 요청이에요' });
+    if (path === '/api/outreq-no') { await run(env, 'DELETE FROM kv WHERE k = ?', k); await addLog(env, me.id, 'kid', me.name + '님이 ' + rq.name + ' 퇴관 요청을 돌려보냈어요', ''); await bumpKv(env); return json({ ok: true }); }
+    const cur = ((await attSync(env, '/sync/students', {})).students || []).find(x => x.id === rq.sid);
+    if (!cur) { await run(env, 'DELETE FROM kv WHERE k = ?', k); return json({ ok: false, error: '출석부에 없는 원생이에요' }); }
+    const d = rq.date || kstDay(), n = { ...cur, status: '퇴관', leavePeriods: (cur.leavePeriods || []).map(p => p.end ? p : { ...p, end: d }) };
+    n.statusLog = [...(cur.statusLog || []), { date: d, from: cur.status, to: '퇴관', why: rq.why, who: rq.who + ' (승인 ' + me.name + ')', at: Date.now() }];
+    const r = await attSync(env, '/sync/student-save', { student: n, history: ['회원 상태 변경: ' + cur.status + ' → 퇴관 (' + rq.who + ' 요청, ' + me.name + ' 승인)'].concat(rq.why ? ['사유: ' + rq.why + ' (' + d + ')'] : []), upd: cur.upd, who: me.name, noRevive: false });
+    if (!r.ok) return json(r);
+    await run(env, 'DELETE FROM kv WHERE k = ?', k); await addLog(env, me.id, 'kid', me.name + '님이 ' + rq.name + ' 퇴관을 승인했어요', ''); await bumpKv(env);
+    return json({ ok: true });
+  }
   if (path === '/api/student-save') return json(await attSync(env, '/sync/student-save', { student: b.student, history: b.history, upd: b.upd, who: me.name, noRevive: !me.boss }));
   if (path === '/api/student-history') return json(await attSync(env, '/sync/history', { sid: str(b.sid, 60) }));
   // 첫 화면 카드: 학부모 앱 가입 승인 대기 수
