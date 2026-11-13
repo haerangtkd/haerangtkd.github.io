@@ -278,11 +278,12 @@
   .ov.pop .sheet{max-height:85dvh}
   .shead.srch .inp{flex:1;padding:8px 12px}.shead.srch .sbtn{background:var(--brand);color:#fff;font-weight:700;border-radius:12px;padding:8px 14px}
   .pksum{display:flex;gap:6px;margin:2px 0 8px}.pksum span{flex:1;text-align:center;background:var(--soft);color:var(--brand);border-radius:12px;padding:8px 4px;font-size:13px;font-weight:700}.pksum span b{display:block;font-size:22px;font-weight:900;line-height:1.1}.pksum span.ab{background:var(--nobg);color:var(--no)}
-  #pkL{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  #pkL .kid{display:flex;align-items:center;gap:8px;margin:0;padding:11px 10px;border-radius:14px;font-size:16px;font-weight:700;text-align:left;-webkit-touch-callout:none;touch-action:manipulation;transition:transform .12s}
-  #pkL .kid .ktm{flex:none;min-width:44px;font-size:14px;font-weight:800;color:var(--brand);background:var(--soft);border-radius:8px;padding:3px 6px;text-align:center;margin:0}
+  .pkbar{display:flex;align-items:center;gap:6px;margin:2px 0 8px}.pkbar .pkn{flex:1;font-size:15px;font-weight:700}.pkbar .pkn b{font-size:20px;color:var(--brand)}.pkbar .pkn em{font-style:normal;color:var(--no);font-size:13px}
+  #pkL{display:block;max-height:228px;overflow-y:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--line);border-bottom:1px solid var(--line)} /* 이름 몇 개만 보이고 스크롤 (2026-11-13) */
+  #pkL .kid{display:flex;width:100%;align-items:center;gap:10px;margin:0;padding:9px 4px;border:0;border-bottom:1px solid #F0F2F6;border-radius:0;background:none;font-size:16px;font-weight:700;text-align:left;-webkit-touch-callout:none;touch-action:manipulation;transition:transform .12s}
+  #pkL .kid .ktm{flex:none;min-width:44px;font-size:14px;font-weight:800;color:var(--brand);background:none;padding:0;text-align:left;margin:0}
   #pkL .kid .knm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #pkL .kid.ab{text-decoration:none;opacity:.9}#pkL .kid.ab .knm{text-decoration:line-through}#pkL .kid.ab .ktm{background:#fff;color:var(--no)}
+  #pkL .kid.ab{text-decoration:none;opacity:.9}#pkL .kid.ab .knm{text-decoration:line-through}#pkL .kid.ab .ktm{color:var(--no)}
   #pkL .kid .abt{flex:none;margin:0;background:var(--no);color:#fff;border-radius:6px;padding:2px 6px;font-size:11px}
   #pkL .kid.press{transform:scale(.95);background:var(--nobg)}
   .orq{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid #F3C9CB;background:#FFF6F6;border-radius:14px;padding:12px;margin-top:8px}.orq small{color:var(--muted)}.orq p{margin:4px 0 0;font-size:13.5px}.orb{display:flex;flex-direction:column;gap:6px;flex:none}
@@ -919,8 +920,9 @@ function pickupCard() {
   const t = today(), hd = S.homeDay, p = pickupFor(hd), tm = (S.pickupTimes || {})[wd(hd)] || {}, aa = attAbsOf(hd); loadAttAbs(hd);
   const kids = [...new Set([...p.list, ...p.absent])].filter(activeKid).sort((a, b) => (tm[a] || '99').localeCompare(tm[b] || '99')); loadRstat();
   const isAb = k => p.absent.includes(k) || aa.includes(k), nAb = kids.filter(isAb).length;
-  return '<div class="sec" id="pkSec"><div class="sh"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button><button class="lbtn" id="pkEdit">명단 수정</button></div>' +
-    (kids.length ? '<div class="pksum"><span>픽업<b>' + (kids.length - nAb) + '</b></span><span class="' + (nAb ? 'ab' : '') + '">결석<b>' + nAb + '</b></span><span>전체<b>' + kids.length + '</b></span></div><div id="pkL">' + kids.map(k => '<button class="kid' + (isAb(k) ? ' ab' : '') + '" data-k="' + esc(k) + '">' + (tm[k] ? '<small class="ktm">' + tmKo(tm[k]) + '</small>' : '') + '<span class="knm">' + esc(k) + '</span>' + (isAb(k) ? '<em class="abt">' + (aa.includes(k) && !p.absent.includes(k) ? '출석부' : '결석') + '</em>' : '') + '</button>').join('') + '</div><p class="hint" style="margin:8px 0 0">이름을 <b>꾹 누르면 결석</b>(다시 꾹 누르면 취소) → 출석부에도 결석 예정으로 들어가요 · 출석부 결석도 여기 자동으로 보여요</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 제자가 없어요. 명단 수정이나 설정의 요일별 기본 명단에서 넣어 주세요.') + '</p>') +
+  return '<div class="sec" id="pkSec"><div class="sh"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button></div>' +
+    '<div class="pkbar"><span class="pkn">픽업 <b>' + (kids.length - nAb) + '</b>명' + (nAb ? ' <em>· 결석 ' + nAb + '</em>' : '') + '</span><button class="lbtn" id="pkEdit">명단 추가</button><button class="lbtn" id="pkTime">픽업 수정</button></div>' +
+    (kids.length ? '<div id="pkL">' + kids.map(k => '<button class="kid' + (isAb(k) ? ' ab' : '') + '" data-k="' + esc(k) + '"><small class="ktm">' + (tm[k] ? tmKo(tm[k]) : '–') + '</small><span class="knm">' + esc(k) + '</span>' + (isAb(k) ? '<em class="abt">' + (aa.includes(k) && !p.absent.includes(k) ? '출석부' : '결석') + '</em>' : '') + '</button>').join('') + '</div><p class="hint" style="margin:8px 0 0">이름을 <b>꾹 누르면 결석</b>(다시 꾹 누르면 취소) · 출석부 결석도 여기 자동으로 보여요</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 제자가 없어요. \'명단 추가\'로 넣어 주세요.') + '</p>') +
     (p.memos.length ? p.memos.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '') + pkCheckRow() + '</div>';
 }
 // 첫 화면 두 번째 줄: 원생 · 오늘 출석(출석부) · 학부모 앱 가입 승인 대기 · 학부모 앱 행사 신청
@@ -966,6 +968,7 @@ function renderHome() {
 async function onPickupClick(e, view) {
   const pd = e.target.closest('[data-pd]'); if (pd) { S.homeDay = addDays(S.homeDay, +pd.dataset.pd); render(); return true; }
   if (e.target.id === 'pkEdit') { pickupSheet(S.homeDay); return true; }
+  if (e.target.id === 'pkTime') { pickupTimeSheet(S.homeDay); return true; }
   const k = e.target.closest('.kid'); if (k) { if (Date.now() - (S.pkLong || 0) > 800) toast('꾹 누르면 결석이에요'); return true; }
   return false;
 }
@@ -1022,7 +1025,7 @@ function renderMore() {
   const t = today(), evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
   const soon = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 30)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   $('v-more').innerHTML =
-    '<div class="sgrid">' + SHORT.filter(([k]) => k !== 'backup' || isBoss()).map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' + '<p class="hint" style="text-align:center;margin-top:14px">출석부 · 알림 관리 · 성장 · 등원·픽업은 대시보드에서 열어요</p>';
+    '<div class="sgrid">' + SHORT.filter(([k]) => (k !== 'backup' && k !== 'docs') || isBoss()).map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' + '<p class="hint" style="text-align:center;margin-top:14px">출석부 · 알림 관리 · 성장 · 등원·픽업은 대시보드에서 열어요</p>';
 }
 $('v-more').onclick = async e => {
   const sc = e.target.closest('[data-sc]'); if (sc) { const k = sc.dataset.sc;
@@ -1052,6 +1055,25 @@ function pickupSheet(d) {
     g('pkC').onclick = e => { const b = e.target.closest('button'); if (!b) return; const n = b.dataset.n; p.list = p.list.includes(n) ? p.list.filter(x => x !== n) : [...p.list, n]; draw(); };
     g('pkAdd').onclick = () => { const n = g('pkIn').value.replace(/\s+/g, ''); if (n && !p.list.includes(n)) p.list.push(n); g('pkIn').value = ''; draw(); };
     g('pkOk').onclick = () => { p.day = d; savePickup(p, md(d) + ' 등원 명단 수정'); closeSheet(); };
+  });
+}
+// 픽업 수정 (2026-11-13): 그 날 명단에 있는 제자의 데리러 가는 시간(그 요일 기본)과 빼기
+function pickupTimeSheet(d) {
+  const w = wd(d); if (!WEEK.includes(w)) return toast('주말에는 픽업 시간이 없어요');
+  const p = JSON.parse(JSON.stringify(pickupFor(d))), tms = JSON.parse(JSON.stringify(S.pickupTimes || {})); tms[w] = tms[w] || {};
+  const kids = () => [...new Set(p.list)].sort((a, b) => (tms[w][a] || '99').localeCompare(tms[w][b] || '99') || a.localeCompare(b, 'ko'));
+  sheet('<h2>픽업 수정 · ' + md(d) + '</h2><p class="help">시간은 매주 ' + w + '요일에 똑같이 써요. ✕는 ' + md(d) + ' 하루만 빼요.</p><div id="ptL"></div><div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="ptOk">저장</button></div>', ov => {
+    const g = id => ov.querySelector('#' + id);
+    const draw = () => { const L = kids(); g('ptL').innerHTML = L.length ? L.map(n => '<div class="dtrow"><input type="time" data-tn="' + esc(n) + '" value="' + esc(tms[w][n] || '') + '"><span>' + esc(n) + '</span><button class="lbtn" data-rm="' + esc(n) + '">✕</button></div>').join('') : '<p class="empty">명단이 비었어요. \'명단 추가\'로 넣어 주세요.</p>'; };
+    draw();
+    g('ptL').addEventListener('change', e => { const i = e.target.closest('[data-tn]'); if (i) tms[w][i.dataset.tn] = i.value; });
+    g('ptL').onclick = e => { const b = e.target.closest('[data-rm]'); if (!b) return; p.list = p.list.filter(x => x !== b.dataset.rm); draw(); };
+    g('ptOk').onclick = async () => {
+      const j = await api('/api/pickup-default', { def: S.pickupDefault || {}, times: tms }); if (!j.ok) return toast(j.error || '저장하지 못했어요');
+      S.pickupTimes = tms; const before = pickupFor(d).list.length;
+      if (p.list.length !== before) { p.day = d; savePickup(p, md(d) + ' 픽업 명단 수정'); }
+      closeSheet(); render(); toast('저장했어요');
+    };
   });
 }
 // 출석부 회원 상태: 휴원·퇴관인 아이는 등원표에서 빼고 보여 줌 (10분마다 새로)
@@ -1728,7 +1750,7 @@ function kidSheet(id) {
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + L.map(x => pmRow(x, false)).join('') : ''; })() +
     '<div id="kSib"></div><div id="kFam"></div><div id="kDocs"></div><h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
     ov.classList.add('full');
-    loadDocs().then(() => { const el = ov.querySelector('#kDocs'); const L = (S.docs || []).filter(d => d.sid === s.id); if (el && L.length) { el.innerHTML = '<h3>등록 서류</h3>' + L.map(docRow).join(''); el.onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); }; } });
+    if (isBoss()) loadDocs().then(() => { const el = ov.querySelector('#kDocs'); const L = (S.docs || []).filter(d => d.sid === s.id); if (el && L.length) { el.innerHTML = '<h3>등록 서류</h3>' + L.map(docRow).join(''); el.onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); }; } });
     kidSiblings(ov.querySelector('#kSib'), s); kidFamily(ov.querySelector('#kFam'), s);
     ov.querySelector('#kSt').onclick = () => kidStatusSheet(s);
     ov.querySelector('#kTp').onclick = () => kidTempSheet(s);
@@ -1949,7 +1971,7 @@ function renderLog() {
 $('v-log').onclick = e => {
   const r = e.target.closest('.lg'); if (!r) return; const g = S.logs.find(x => x.id == r.dataset.id); if (!g) return;
   if (g.kind === 'notice') { openRoom(''); return jumpTo(+g.ref); }
-  if (g.kind === 'doc') return g.ref ? docView(g.ref) : docsSheet(); // 등록 서류 알림은 서류로 (업무 항목이 아님)
+  if (g.kind === 'doc') { if (!isBoss()) return toast('등록 서류는 관리자만 볼 수 있어요'); return g.ref ? docView(g.ref) : docsSheet(); } // 등록 서류 알림은 서류로 (업무 항목이 아님)
   if (g.kind === 'pickup' && g.ref) { S.homeDay = g.ref; return setTab('home'); }
   if (g.ref && S.items.get(g.ref)) openItem(S.items.get(g.ref));
 };
@@ -2033,14 +2055,15 @@ function cleanCard() {
     miss.map(m => '<p class="pksum" style="color:var(--no);margin-top:10px"><b>' + md(m.day) + ' 청소 ' + m.left.length + '개 안 끝남</b></p><div class="clist">' + m.left.map(x => row(m.day, x)).join('') + '</div>').join('') +
     (!me && tasks.length ? '<p class="help">담당자만 체크할 수 있어요. 보기만 돼요.</p>' : '') + '</div>';
 }
-// 다른 날 청소 보기 (2026-11-13): 지난 2주는 한 것·안 한 것, 앞날은 담당·할 일만 (체크는 오늘 카드에서)
+// 다른 날 청소 보기 (2026-11-13): 지난 2주는 한 것·안 한 것, 앞날은 담당·할 일. 그 날 담당자는 여기서도 체크
 function cleanDaySheet(d0) {
   let d = d0 || addDays(today(), -1);
   sheet('<h2>🧹 청소 보기</h2><div class="shead" style="background:none;padding:0;margin:6px 0"><button class="btn" id="cdP">‹</button><b id="cdT" style="flex:1;text-align:center"></b><button class="btn" id="cdN">›</button></div><div id="cdB"></div><div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
     const draw = () => {
       const tasks = cleanTasks(d), who = cleanWho(d), wk = weekKey(d), wkT = (S.clean && S.clean.daily) || [], past = d <= today(), old = d < addDays(today(), -14);
-      const row = (k, x) => { const dn = cleanDone(k, x); return '<div class="cln' + (dn ? ' on' : '') + '" style="cursor:default"><span class="ck">' + (dn ? '✓' : '') + '</span>' + esc(x) + (dn ? '<small>' + esc(nameOf(dn.mid)) + (dn.at ? ' ' + hm(dn.at) : '') + '</small>' : past && !old ? '<small style="color:var(--no)">안 함</small>' : '') + '</div>'; };
+      const mine = who === S.me.id && !old; // 그 날 담당자는 다른 날 청소도 체크 (2026-11-13)
+      const row = (k, x) => { const dn = cleanDone(k, x); return '<' + (mine ? 'button data-cl="' + esc(x) + '" data-cd="' + k + '"' : 'div style="cursor:default"') + ' class="cln' + (dn ? ' on' : '') + '"><span class="ck">' + (dn ? '✓' : '') + '</span>' + esc(x) + (dn ? '<small>' + esc(nameOf(dn.mid)) + (dn.at ? ' ' + hm(dn.at) : '') + '</small>' : past && !old ? '<small style="color:var(--no)">안 함</small>' : '') + '</' + (mine ? 'button' : 'div') + '>'; };
       g('cdT').textContent = md(d) + (d === today() ? ' (오늘)' : '');
       g('cdB').innerHTML = '<p class="pksum">' + (who ? esc(nameOf(who)) + ' 담당' : '담당자 없음') + (old ? ' · 2주보다 지난 날은 기록을 안 불러와요' : '') + '</p>' +
         (tasks.length ? '<div class="clist">' + tasks.map(x => row(d, x)).join('') + '</div>' : '<p class="empty">요일 청소가 없는 날이에요</p>') +
@@ -2048,6 +2071,7 @@ function cleanDaySheet(d0) {
     };
     draw();
     g('cdP').onclick = () => { d = addDays(d, -1); draw(); }; g('cdN').onclick = () => { d = addDays(d, 1); draw(); };
+    g('cdB').onclick = async e => { if (await onCleanClick(e)) draw(); };
   });
 }
 async function onCleanClick(e) {
@@ -2113,7 +2137,7 @@ function pmRow(x, withBtns) {
 }
 // 새 등록 서류 (원생 연결 전) — 학부모 연락처럼 대시보드에 (2026-11-13)
 function docCard() {
-  if (!S.docNew) return '';
+  if (!S.docNew || !isBoss()) return ''; // 등록 서류는 관리자만 (2026-11-13)
   if (!S.docs || Date.now() - (S.docsAt || 0) > 60000) loadDocs().then(() => { if (S.tab === 'home') render(); });
   const L = (S.docs || []).filter(d => !d.sid);
   return '<div class="sec blink"><div class="sh"><h2>📝 새 등록 서류 <em style="color:var(--no);font-style:normal">' + S.docNew + '</em></h2><button class="more" data-sc2="docs">모두 ›</button></div>' + (L.length ? L.slice(0, 5).map(docRow).join('') : '<p class="empty">불러오는 중…</p>') + '<p class="hint" style="margin:6px 0 0">눌러서 서류를 보고 \'출석부 원생으로 등록\'하면 여기서 빠져요</p></div>';
