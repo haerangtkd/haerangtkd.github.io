@@ -50,7 +50,7 @@ const SCHEMA = [
   'CREATE INDEX IF NOT EXISTS pmsg_upd ON pmsg (upd)',
   'CREATE TABLE IF NOT EXISTS pushq2 (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, at INTEGER)', // 밤 9시~아침 8시에 온 연락 → 아침에
   'CREATE TABLE IF NOT EXISTS contracts (id TEXT PRIMARY KEY, kind TEXT, name TEXT, birth TEXT, data TEXT, sign TEXT, at INTEGER, sid TEXT, upd INTEGER, del INTEGER DEFAULT 0)', // 태블릿 등록 서류 (기본정보 + 제자희망서 서명)
-  // 숙제 (mode: once 한 번 / daily 기간 동안 매일) + 학부모 체크
+  // 미션 (mode: once 한 번 / daily 기간 동안 매일) + 학부모 체크
   'CREATE TABLE IF NOT EXISTS hw (id TEXT PRIMARY KEY, data TEXT, upd INTEGER, del INTEGER DEFAULT 0, mid TEXT)',
   'CREATE TABLE IF NOT EXISTS hwchk (hw TEXT, kid TEXT, day TEXT, at INTEGER, rel TEXT, PRIMARY KEY (hw, kid, day))',
 ];
@@ -63,6 +63,19 @@ const JTPL0 = [
   { t: '준비물', title: '{날짜} 준비물 안내', body: '○○일까지 ○○을(를) 챙겨 보내 주세요.' },
 ];
 async function jtplGet(env) { const v = J((await one(env, "SELECT v FROM kv WHERE k = 'jtpl'") || {}).v, null); return Array.isArray(v) ? v : JTPL0; }
+// 행사 신청 대상 분류 (2026-11-13, 관리자가 업무 앱 설정에서 고침): 한국 나이 a~b살
+const EGRP0 = [{ n: '유치부', a: 5, b: 7 }, { n: '초등부', a: 8, b: 13 }, { n: '중등부', a: 14, b: 16 }, { n: '고등부', a: 17, b: 19 }];
+async function egrpGet(env) { const v = J((await one(env, "SELECT v FROM kv WHERE k = 'egrps'") || {}).v, null); return Array.isArray(v) && v.length ? v : EGRP0; }
+// 행사 대상: elig {mode:'age', from, to} 나이(한국 나이) / {mode:'grp', grps:[이름]} 분류 / 없으면 모두
+function eligText(e, grps) { if (!e || !e.mode || e.mode === 'all') return ''; if (e.mode === 'age') return (e.from || '') + '~' + (e.to || '') + '살'; return (e.grps || []).join('·'); }
+function eligOk(e, birth, year, grps) {
+  if (!e || !e.mode || e.mode === 'all') return true;
+  const by = +String(birth || '').slice(0, 4); if (!by) return true; // 출생연도를 모르면 막지 않음
+  const age = year - by + 1;
+  if (e.mode === 'age') return (!e.from || age >= +e.from) && (!e.to || age <= +e.to);
+  return (e.grps || []).some(n => { const g = grps.find(x => x.n === n); return g && age >= +g.a && age <= +g.b; });
+}
+async function kidBirths(env, kids) { const r = await attSync(env, '/sync/roster', {}); const m = {}; for (const s of (r.students || [])) if (kids.includes(s.name)) m[s.name] = s.birth || ''; return m; }
 const PTPL0 = [
   { id: 'in', label: '보호자가 등원시킬게요', ask: 'who', act: 'in', reasons: [] },
   { id: 'out', label: '보호자가 하원시킬게요', ask: 'who', act: 'out', reasons: [] },
@@ -239,12 +252,17 @@ async function route(path, req, env, ctx) {
     }
     if (path === '/sync/hw-check') {
       const kid = str(b.kid, 20), id = str(b.hw, 40), day = isDay(b.day) ? b.day : kstDay(); if (!kids.includes(kid)) return json({ ok: false, error: '제자 이름을 확인해 주세요' });
-      const h = await one(env, 'SELECT data FROM hw WHERE id = ? AND del = 0', id); if (!h) return json({ ok: false, error: '지워진 숙제예요' });
+      const h = await one(env, 'SELECT data FROM hw WHERE id = ? AND del = 0', id); if (!h) return json({ ok: false, error: '지워진 미션이에요' });
       const d = J(h.data, {}), key = d.mode === 'daily' ? day : '';
-      if (d.mode === 'daily' && (day < d.start || (d.end && day > d.end) || day > kstDay())) return json({ ok: false, error: '숙제 기간이 아니에요' });
+      if (d.mode === 'daily' && (day < d.start || (d.end && day > d.end) || day > kstDay())) return json({ ok: false, error: '미션 기간이 아니에요' });
       if (b.on) await run(env, 'INSERT OR REPLACE INTO hwchk (hw, kid, day, at, rel) VALUES (?, ?, ?, ?, ?)', id, kid, key, Date.now(), str(b.rel, 10));
       else await run(env, 'DELETE FROM hwchk WHERE hw = ? AND kid = ? AND day = ?', id, kid, key);
       await run(env, 'UPDATE hw SET upd = ? WHERE id = ?', Date.now(), id);
+      if (b.on) { // 학부모님이 '했어요' → 알림 기록 + 직원 휴대폰 알림 (행사 신청처럼 모아서 보냄, 2026-11-13 사용자 요청)
+        const what = '🎯 ' + kid + ' 미션 했어요: ' + str(d.title, 60) + (b.rel ? ' (' + str(b.rel, 10) + ')' : '');
+        await addLog(env, '', 'hw', what, id);
+        await run(env, 'INSERT INTO pushq (text, at) VALUES (?, ?)', what, Date.now());
+      }
       return json({ ok: true });
     }
     if (path === '/sync/esign-set') return json(await esignSet(env, b, kids));
@@ -366,6 +384,15 @@ async function route(path, req, env, ctx) {
     await run(env, "INSERT INTO kv (k, v) VALUES ('kioskMulti', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0');
     return json({ ok: true });
   }
+  if (path === '/api/egrps-set') { // 행사 신청 대상 분류 (관리자, 2026-11-13)
+    const nb = needBoss(); if (nb) return nb;
+    const L = (Array.isArray(b.grps) ? b.grps : []).slice(0, 20).map(g => ({ n: str(g.n, 12).trim(), a: Math.max(1, Math.min(99, +g.a || 0)), b: Math.max(1, Math.min(99, +g.b || 0)) })).filter(g => g.n && g.a && g.b && g.a <= g.b);
+    if (!L.length) return json({ ok: false, error: '분류를 하나 이상 넣어 주세요' });
+    if (new Set(L.map(g => g.n)).size !== L.length) return json({ ok: false, error: '같은 이름이 두 개 있어요' });
+    await run(env, "INSERT INTO kv (k, v) VALUES ('egrps', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(L));
+    await bumpKv(env); await addLog(env, me.id, 'set', me.name + '님이 행사 신청 분류를 바꿨어요', '');
+    return json({ ok: true, grps: L });
+  }
   if (path === '/api/cats-set') { // 업무 카테고리 (관리자): 순서·이름·색, 이름을 바꾸면 그 카테고리 업무도 같이 (2026-11-13)
     const nb = needBoss(); if (nb) return nb;
     const cats = (Array.isArray(b.cats) ? b.cats : []).slice(0, 20).map(c => ({ n: str(c.n, 20).trim(), c: /^#[0-9A-Fa-f]{6}$/.test(c.c || '') ? c.c : '' })).filter(c => c.n);
@@ -444,15 +471,15 @@ async function route(path, req, env, ctx) {
   if (path === '/api/hw-save') {
     const d = b.hw || {}, id = str(d.id, 40) || rid(8);
     const v = { title: str(d.title, 60).trim(), body: str(d.body, 1000), mode: d.mode === 'daily' ? 'daily' : 'once', start: isDay(d.start) ? d.start : kstDay(), end: isDay(d.end) ? d.end : '', kids: (Array.isArray(d.kids) ? d.kids : []).map(x => str(x, 20)).filter(Boolean).slice(0, 200) };
-    if (!v.title) return json({ ok: false, error: '숙제 이름을 적어 주세요' });
+    if (!v.title) return json({ ok: false, error: '미션 이름을 적어 주세요' });
     if (v.end && v.end < v.start) return json({ ok: false, error: '끝나는 날이 시작일보다 빨라요' });
     if (v.mode === 'daily' && !v.end) return json({ ok: false, error: '매일 체크는 끝나는 날을 정해 주세요' });
     await run(env, 'INSERT INTO hw (id, data, upd, del, mid) VALUES (?, ?, ?, 0, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', id, JSON.stringify(v), Date.now(), me.id);
-    notify(me.name + ' · 숙제', '📒 숙제 ' + (d.id ? '수정' : '올림') + ': ' + v.title, 'home');
+    notify(me.name + ' · 미션', '🎯 미션 ' + (d.id ? '수정' : '올림') + ': ' + v.title, 'home');
     return json({ ok: true, id });
   }
-  if (path === '/api/hw-notify') { // 학부모님께 숙제 알림 (6명씩 나눠서, 화면이 next 로 이어서 부름)
-    const h = await one(env, 'SELECT data FROM hw WHERE id = ? AND del = 0', str(b.id, 40)); if (!h) return json({ ok: false, error: '없는 숙제예요' });
+  if (path === '/api/hw-notify') { // 학부모님께 미션 알림 (6명씩 나눠서, 화면이 next 로 이어서 부름)
+    const h = await one(env, 'SELECT data FROM hw WHERE id = ? AND del = 0', str(b.id, 40)); if (!h) return json({ ok: false, error: '없는 미션이에요' });
     const v = J(h.data, {});
     return json(await noticeSync(env, '/sync/broadcast', { title: '🎯 미션: ' + v.title, body: (v.mode === 'daily' ? (+v.start.slice(5, 7)) + '/' + (+v.start.slice(8)) + '~' + (+v.end.slice(5, 7)) + '/' + (+v.end.slice(8)) + ' 매일 · ' : '') + (v.body || '해 보면 좋아요. 학부모 앱에서 체크해 주세요').slice(0, 120), children: v.kids, offset: b.offset | 0 }));
   }
@@ -570,13 +597,13 @@ async function route(path, req, env, ctx) {
     const joins = await all(env, "SELECT id, name, created FROM joins WHERE status = 'wait' AND created > ?", Date.now() - 7 * 86400e3);
     const hidden = (await all(env, 'SELECT id FROM mhide WHERE mid = ? AND at > ?', me.id, since)).map(r => r.id);
     const esigns = (await all(env, 'SELECT ev, kid, data, rel, cancel, state, at, upd FROM esign WHERE upd > ?', first ? Date.now() - 120 * 86400e3 : since)).map(r => ({ ...r, data: J(r.data, {}) }));
-    const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', 'restoredAt', 'cats', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
+    const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', 'restoredAt', 'cats', 'egrps', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
     const cleanchk = await all(env, 'SELECT day, task, mid, at FROM cleanchk WHERE day >= ?', addDays(td, -14));
     const pmsg = (await all(env, 'SELECT * FROM pmsg WHERE upd > ? AND at > ?', since, Date.now() - 60 * 86400e3)).map(r => ({ ...r, short: pmShort(r) }));
     const hws = await all(env, 'SELECT id, data, upd, del, mid FROM hw WHERE upd > ?', since), hwchk = hws.length ? await all(env, 'SELECT hw, kid, day, at, rel FROM hwchk WHERE hw IN (' + hws.map(() => '?').join(',') + ')', ...hws.map(h => h.id)) : [];
     const bkYm = addDays(td, 1).slice(8) === '01' ? td.slice(0, 7) : td.slice(8) <= '10' ? addDays(td.slice(0, 8) + '01', -1).slice(0, 7) : ''; // 말일 ~ 다음 달 10일
     const bkDue = me.boss && bkYm && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + bkYm)) ? bkYm : '';
-    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean), delReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'delreq:%'")).map(r => J(r.v, null)).filter(Boolean),
+    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), egrps: (v => Array.isArray(v) && v.length ? v : EGRP0)(J(kv('egrps'), null)), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean), delReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'delreq:%'")).map(r => J(r.v, null)).filter(Boolean),
       msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: me.boss ? ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0 : 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
@@ -697,6 +724,7 @@ async function route(path, req, env, ctx) {
   if (path === '/api/student-history') return json(await attSync(env, '/sync/history', { sid: str(b.sid, 60) }));
   // 첫 화면 카드: 학부모 앱 가입 승인 대기 수
   if (path === '/api/dash') { const r = await noticeSync(env, '/sync/pending', {}); return json({ ok: true, pending: r.ok ? r.pending : null, hpSkip: J((await one(env, "SELECT v FROM kv WHERE k = 'hpEvSkip'") || {}).v, []) }); }
+  if (path === '/api/cneed') { const r = await attSync(env, '/sync/cneed', {}); return json(r.ok ? { ok: true, list: r.list || [] } : r); } // 대시보드 '연락 필요' 카드 빨리 새로 (2026-11-13)
   if (path === '/api/hpev-skip') { // 홈페이지 행사 '행사표에 등록 안 함' (2026-11-13, 직원 모두에게서 사라짐)
     const k = str(b.key, 120); if (!k) return json({ ok: false, error: '행사를 확인해 주세요' });
     const list = [...new Set([...J((await one(env, "SELECT v FROM kv WHERE k = 'hpEvSkip'") || {}).v, []), k])].slice(-200);
@@ -922,12 +950,13 @@ function evWindow(d, day) {
 async function openEvents(env, kids) {
   const day = kstDay(), rows = await all(env, "SELECT id, data FROM items WHERE type = 'event' AND del = 0");
   const mine = kids.length ? await all(env, 'SELECT ev, kid, data, cancel, at FROM esign WHERE kid IN (' + kids.map(() => '?').join(',') + ')', ...kids) : [];
-  const out = [];
+  const out = [], grps = await egrpGet(env), births = rows.some(r => { const e = J(r.data, {}).elig; return e && e.mode && e.mode !== 'all'; }) ? await kidBirths(env, kids) : {};
   for (const r of rows) {
     const d = J(r.data, {}); if (!d.pub || d.closed || d.kind === 'goods') continue;
+    const yr = +(d.date || day).slice(0, 4), okKids = kids.filter(k => eligOk(d.elig, births[k], yr, grps)); if (!okKids.length) continue; // 신청 대상이 아닌 가정에는 안 보임 (2026-11-13)
     const w = evWindow(d, day); if (!w.open || (d.date && d.date < day)) continue;
     const staff = new Set((d.rows || []).map(x => x.name));
-    out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), prep: str(d.prep, 300), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit,
+    out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), prep: str(d.prep, 300), elig: okKids, eligText: eligText(d.elig, grps), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit,
       mine: kids.map(k => { const m = mine.find(x => x.ev === r.id && x.kid === k); return { kid: k, applied: !!(m && !m.cancel) || (!m && staff.has(k)), byStaff: !m && staff.has(k), cancel: !!(m && m.cancel), data: m ? J(m.data, {}) : null }; }) });
   }
   return out.sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
@@ -938,6 +967,7 @@ async function esignSet(env, b, kids) {
   const it = await one(env, "SELECT data FROM items WHERE id = ? AND type = 'event' AND del = 0", ev); if (!it) return { ok: false, error: '없어진 행사예요' };
   const d = J(it.data, {}), day = kstDay(), w = evWindow(d, day);
   if (!d.pub || d.closed || !w.open) return { ok: false, error: '지금은 신청을 받지 않아요' };
+  if (!b.cancel && d.elig && d.elig.mode && d.elig.mode !== 'all' && !eligOk(d.elig, (await kidBirths(env, [kid]))[kid], +(d.date || day).slice(0, 4), await egrpGet(env))) return { ok: false, error: kid + '은(는) 이 행사 신청 대상이 아니에요' };
   if (!w.canEdit) return { ok: false, error: '신청 기간이 끝났어요. 바꾸실 내용은 도장에 문자로 알려 주세요' };
   const x = b.data || {}, ps = d.products || [];
   const data = { prods: (Array.isArray(x.prods) ? x.prods : []).map(n => n | 0).filter(n => n >= 0 && n < ps.length), opts: {}, van: x.van === true ? true : x.van === false ? false : null, memo: str(x.memo, 100) };
@@ -951,7 +981,7 @@ async function esignSet(env, b, kids) {
   await bumpItem(env, ev); // 업무 앱이 새로 받아 가도록
   return { ok: true };
 }
-// ─────────── 학부모 연락 · 숙제 ───────────
+// ─────────── 학부모 연락 · 미션 ───────────
 async function ptplGet(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'ptpl'"); const l = r ? J(r.v, PTPL0) : PTPL0; return l.map(t => t.label === '오늘 컨디션이 안 좋아요' ? { ...t, label: '오늘은 운동을 살살 부탁드려요' } : t); } // 2026-11-13 문구 바꿈 (예전에 저장한 목록도)
 // 학부모 연락 짧게: '엄마 하원' · '결석 · 아파요' (업무 앱 카드·학부모 앱 목록·확인 알림이 같이 씀)
 function pmShort(m) {
@@ -1055,7 +1085,7 @@ const weekKey = day => 'w:' + addDays(day, -((new Date(Date.parse(day + 'T00:00:
 async function bumpKv(env) { await run(env, "INSERT INTO kv (k, v) VALUES ('kvupd', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now())); }
 // ─────────── 정해진 시각 알림 (5분 크론에서, 하루 한 번씩) ───────────
 // ─────────── 원생 한 명단 (2026-11-13): 출석부에서 이름이 바뀌면 업무 앱도 따라감 (10분마다) ───────────
-// 출석부 원생 id → 이름을 kv 'rosterIds'에 두고, 바뀐 이름을 등원·픽업 기본 명단·시간, 오늘부터의 픽업표, 학부모 연락·행사 신청·숙제 체크, 안 끝난 하원 할 일에 반영. 지우는 것은 없음.
+// 출석부 원생 id → 이름을 kv 'rosterIds'에 두고, 바뀐 이름을 등원·픽업 기본 명단·시간, 오늘부터의 픽업표, 학부모 연락·행사 신청·미션 체크, 안 끝난 하원 할 일에 반영. 지우는 것은 없음.
 async function rosterFollow(env) {
   const at = await one(env, "SELECT v FROM kv WHERE k = 'rosterAt'"); if (at && Date.now() - Number(at.v) < 600000) return;
   await run(env, "INSERT INTO kv (k, v) VALUES ('rosterAt', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now()));
@@ -1162,7 +1192,8 @@ async function runPushQueue(env) {
   const q0 = await all(env, 'SELECT id, text FROM pushq ORDER BY id LIMIT 50'); if (!q0.length) return;
   await run(env, 'DELETE FROM pushq WHERE id <= ?', q0[q0.length - 1].id);
   const body = q0.length === 1 ? q0[0].text : q0.slice(0, 3).map(x => x.text).join('\n') + (q0.length > 3 ? '\n외 ' + (q0.length - 3) + '건' : '');
-  await pushAll(env, '', '🎟 학부모 앱 행사 신청 ' + q0.length + '건', body, 'event');
+  const allEv = q0.every(x => !/^🎯/.test(x.text)); // 미션 '했어요'도 여기로 모음 (2026-11-13)
+  await pushAll(env, '', (allEv ? '🎟 학부모 앱 행사 신청 ' : '📱 학부모 앱 ') + q0.length + '건', body, allEv ? 'event' : 'more');
 }
 
 async function attSync(env, path, body) {
