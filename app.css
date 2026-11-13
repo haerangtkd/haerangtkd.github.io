@@ -568,6 +568,8 @@
   .qi.f-logo.f-blog img{width:100%;height:100%;border-radius:0}
   .qi.f-logo.f-calendar{background:#fff;border:1px solid var(--line)}
   .qi.f-logo.f-calendar img{width:62%;height:62%;border-radius:0}
+  .qi.f-logo.f-chat{background:#fff;border:1px solid var(--line)}
+  .qi.f-logo.f-chat img{width:70%;height:70%;border-radius:0}
   .qi.f-chat{background:#03C75A;border:0}
   .qi.f-insta{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%);border:0}
   .qi.f-kakao{background:#FEE500;color:#3C1E1E;border:0}
@@ -578,6 +580,7 @@
   .ic.has-logo{background:none!important;padding:0;overflow:hidden}
   .ic .logo-ic{width:100%;height:100%;display:block;border-radius:inherit}
   .ic .logo-ic.lg-calendar{width:80%;height:80%;border-radius:0}
+  .ic .logo-ic.lg-chat{width:72%;height:72%;border-radius:0}
   .totop{position:fixed;right:12px;bottom:20px;z-index:30;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:#fff;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer}
   .totop svg{width:22px;height:22px}
   .totop.on{opacity:.9;pointer-events:auto}
