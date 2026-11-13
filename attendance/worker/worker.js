@@ -208,6 +208,13 @@ async function route(path, req, env) {
     const r = await addTeacher(env, b.name, b.pin); if (!r.ok) return json(r);
     return json({ ok: true, ...(await newSession(env, r.id)), name: r.name });
   }
+  if (path === '/api/sso') { // 업무 앱에서 열면 자동 로그인 (2026-11-14): 업무 앱 로그인 확인 (도장 공용은 안 됨 — PIN 로그인과 같게)
+    const r = await noticeCall(env, '/sync/staff-tok', { ttok: str(b.ttok, 64) });
+    if (!r.ok || r.shared) return json({ ok: false });
+    const tid = 'm:' + str(r.id, 40);
+    await run(env, 'INSERT INTO teachers (id, name, salt, pin, created, boss) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, boss = excluded.boss', tid, str(r.name, 20), rid(8), rid(16), Date.now(), r.boss ? 1 : 0);
+    return json({ ok: true, ...(await newSession(env, tid)), name: r.name });
+  }
   if (path === '/api/login') {
     const lu = await lockUntil(env, ip);
     if (lu) return json({ ok: false, error: lockText(lu) }, 429);
