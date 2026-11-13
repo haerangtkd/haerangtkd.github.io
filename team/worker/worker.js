@@ -170,6 +170,8 @@ const str = (v, n) => String(v == null ? '' : v).slice(0, n);
 const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
 
 async function route(path, req, env, ctx) {
+  // 서버끼리 부르는 길(/sync/)은 서비스 바인딩으로만 — 바깥(workers.dev 주소)에서 오면 주소 이름이 'team'가 아니라서 막힘 (2026-11-13 보안 보강)
+  if (path.startsWith('/sync/') && new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
   const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   const ip = req.headers.get('cf-connecting-ip') || 'x';
   // ═════════ 장부 서버에서 부름 — 서비스 바인딩으로만 (주소 이름이 'team'인 요청은 바깥에서 올 수 없음) ═════════
@@ -177,6 +179,10 @@ async function route(path, req, env, ctx) {
     if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
     if (path === '/ledger/bk-check') { const t = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'bktok:' + str(b.bk, 40)) || {}).v, null); return json({ ok: !!(t && t.exp > Date.now()) }); }
     if (path === '/ledger/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared, ledger FROM members ORDER BY name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared, ledger: !!m.ledger })) });
+    if (path === '/ledger/roster') { // 장부: 출석부 원생 번호·이름 (장부 회원을 원생 번호로 잇고 이름을 따라감, 2026-11-13)
+      const r = await attSync(env, '/sync/roster', { all: true }); if (!r.ok) return json(r);
+      return json({ ok: true, students: r.students.map(x => ({ id: x.id, name: x.name, birth: x.birth || '', status: x.status || '재원' })) });
+    }
     if (path === '/ledger/families') { // 장부: 업무 앱 형제·자매 묶음 (확인 알림용, B안)
     if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
     const r = await attSync(env, '/sync/roster', { all: true, fam: true }); if (!r.ok) return json(r);
@@ -458,12 +464,41 @@ async function route(path, req, env, ctx) {
       await run(env, "INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", 'bk:' + ym, JSON.stringify({ at: Date.now(), name: me.name }));
       if (kstDay().slice(8) <= '10') await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'bk:' + addDays(kstDay().slice(0, 8) + '01', -1).slice(0, 7), JSON.stringify({ at: Date.now(), name: me.name }));
       await run(env, 'DELETE FROM kv WHERE k = ?', 'bktok:' + str(b.bk, 40));
+      for (const r of await all(env, "SELECT k, v FROM kv WHERE k LIKE 'rstok:%'")) { const v = J(r.v, {}); if (v.bk === str(b.bk, 40)) { v.saved = true; await run(env, 'UPDATE kv SET v = ? WHERE k = ?', JSON.stringify(v), r.k); } } // 백업 다시 넣기 전 '지금 상태 받기'를 마침
       await addLog(env, me.id, 'backup', me.name + '님이 앱 전체 백업 파일을 받았어요', '');
       return json({ ok: true });
     }
     if (b.app === 'att') return json(await attSync(env, '/sync/export', {}));
     if (b.app === 'notice') return json(await noticeSync(env, '/sync/bk-dump', { table: str(b.table, 30), after: b.after }));
     return json(await bkDump(env, str(b.table, 30), b.after));
+  }
+  // 백업 다시 넣기 (2026-11-13): 관리자 + 관리자 비밀번호 → 지금 상태를 먼저 백업으로 받아야(backup-done) 넣을 수 있음
+  if (path === '/api/restore-start') {
+    const nb = needBoss(); if (nb) return nb;
+    const r = await attSync(env, '/sync/dlpin-check', { pin: str(b.pw, 100), who: me.name }); if (!r.ok) return json(r);
+    const bk = rid(16), rs = rid(16);
+    await run(env, "DELETE FROM kv WHERE (k LIKE 'bktok:%' OR k LIKE 'rstok:%') AND json_extract(v, '$.exp') < ?", Date.now());
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?)', 'bktok:' + bk, JSON.stringify({ mid: me.id, exp: Date.now() + 30 * 60e3 }));
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?)', 'rstok:' + rs, JSON.stringify({ mid: me.id, exp: Date.now() + 60 * 60e3, bk, saved: false }));
+    const nt = await noticeSync(env, '/sync/rs-count', {});
+    return json({ ok: true, bk, rs, team: await bkTables(env), notice: nt.ok ? nt.tables : [], noticeErr: nt.ok ? '' : nt.error || '', counts: { team: await rsCounts(env), notice: nt.ok ? nt.counts : {} }, pks: { team: await rsPks(env), notice: nt.ok ? nt.pks : {} } });
+  }
+  if (path === '/api/restore-part' || path === '/api/restore-done') {
+    const nb = needBoss(); if (nb) return nb;
+    const t = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'rstok:' + str(b.rs, 40)) || {}).v, null);
+    if (!t || t.mid !== me.id || t.exp < Date.now()) return json({ ok: false, error: '시간이 지났어요. 처음부터 다시 해 주세요' });
+    if (!t.saved) return json({ ok: false, error: '지금 상태 백업을 먼저 받아 주세요' });
+    if (path === '/api/restore-done') {
+      await run(env, 'DELETE FROM kv WHERE k = ?', 'rstok:' + str(b.rs, 40));
+      await run(env, "INSERT INTO kv (k, v) VALUES ('restoredAt', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now())); // 열려 있는 업무 앱은 다시 불러옴
+      await bumpKv(env); // 백업의 rosterIds가 남아 있어서, 그 뒤 출석부에서 바뀐 이름은 10분 맞춤 때 따라감
+      if ((b.apps || []).includes('notice')) await noticeSync(env, '/sync/rs-done', {});
+      await addLog(env, me.id, 'backup', me.name + '님이 백업 파일을 다시 넣었어요 (' + (b.apps || []).map(a => a === 'notice' ? '알림' : '업무').join('·') + (b.from ? ' · ' + str(b.from, 30) : '') + ')', '');
+      return json({ ok: true });
+    }
+    const app = b.app === 'notice' ? 'notice' : 'team', table = str(b.table, 30);
+    if (app === 'notice') return json(await noticeSync(env, b.keep ? '/sync/rs-sweep' : '/sync/rs-put', b.keep ? { table, keep: b.keep, n: b.n } : { table, rows: b.rows }));
+    return json(b.keep ? await rsSweep(env, table, b.keep, b.n) : await rsPut(env, table, b.rows));
   }
   if (path === '/api/dl-check') { if (!me.boss) return json({ ok: false, error: '백업 파일은 관리자만 받을 수 있어요' }); return json(await attSync(env, '/sync/dlpin-check', { pin: String(b.pin || ''), who: me.name })); } // 성장 측정 백업: 관리자 + 관리자 비밀번호
   if (path === '/api/member-pin') { // 내 PIN 바꾸기, 또는 다른 사람 PIN 새로 정하기
@@ -507,13 +542,13 @@ async function route(path, req, env, ctx) {
     const joins = await all(env, "SELECT id, name, created FROM joins WHERE status = 'wait' AND created > ?", Date.now() - 7 * 86400e3);
     const hidden = (await all(env, 'SELECT id FROM mhide WHERE mid = ? AND at > ?', me.id, since)).map(r => r.id);
     const esigns = (await all(env, 'SELECT ev, kid, data, rel, cancel, state, at, upd FROM esign WHERE upd > ?', first ? Date.now() - 120 * 86400e3 : since)).map(r => ({ ...r, data: J(r.data, {}) }));
-    const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
+    const td = kstDay(), kvs = await all(env, "SELECT k, v FROM kv WHERE k IN ('pickupDefault', 'pickupTimes', 'notice', 'clean', 'roles', 'kioskMulti', 'restoredAt', ?)", 'pkchk:' + td), kv = k => (kvs.find(x => x.k === k) || {}).v;
     const cleanchk = await all(env, 'SELECT day, task, mid, at FROM cleanchk WHERE day >= ?', addDays(td, -14));
     const pmsg = (await all(env, 'SELECT * FROM pmsg WHERE upd > ? AND at > ?', since, Date.now() - 60 * 86400e3)).map(r => ({ ...r, short: pmShort(r) }));
     const hws = await all(env, 'SELECT id, data, upd, del, mid FROM hw WHERE upd > ?', since), hwchk = hws.length ? await all(env, 'SELECT hw, kid, day, at, rel FROM hwchk WHERE hw IN (' + hws.map(() => '?').join(',') + ')', ...hws.map(h => h.id)) : [];
     const bkYm = addDays(td, 1).slice(8) === '01' ? td.slice(0, 7) : td.slice(8) <= '10' ? addDays(td.slice(0, 8) + '01', -1).slice(0, 7) : ''; // 말일 ~ 다음 달 10일
     const bkDue = me.boss && bkYm && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + bkYm)) ? bkYm : '';
-    return json({ ok: true, now: Date.now(), me, members, bkDue,
+    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '',
       msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
@@ -697,7 +732,7 @@ async function route(path, req, env, ctx) {
   }
   if (path === '/api/roster-all') { // 출석부 원생 회원 상태 (퇴관 포함) — 등원표에서 휴원·퇴관 빼기, 기네스 결과지 회원 상태
     const r = await attSync(env, '/sync/roster', { all: true });
-    return json(r.ok ? { ok: true, students: r.students.map(s => ({ name: s.name, birth: s.birth || '', status: s.status || '재원' })) } : { ok: false, students: [], error: r.error });
+    return json(r.ok ? { ok: true, students: r.students.map(s => ({ id: s.id, name: s.name, birth: s.birth || '', status: s.status || '재원' })) } : { ok: false, students: [], error: r.error }); // id: 성장 측정이 출석부 원생 번호로 이어짐
   }
   if (path === '/api/roster') { // 출석부 원생 이름 (등원표·행사표에서 고르기)
     const r = await attSync(env, '/sync/roster', {});
@@ -1155,6 +1190,47 @@ async function bkDump(env, table, after) {
   const rows = await all(env, 'SELECT rowid AS _r, * FROM ' + table + ' WHERE rowid > ? ORDER BY rowid LIMIT ?', Math.max(0, Number(after) || 0), lim);
   const out = rows.filter(r => !(table === 'kv' && /vapid|dlpin|^sent:|^bktok:/i.test(r.k || ''))).map(r => { const o = {}; for (const [k, v] of Object.entries(r)) if (k !== '_r' && !BK_HIDE.includes(k)) o[k] = v; return o; });
   return { ok: true, rows: out, next: rows.length === lim ? rows[rows.length - 1]._r : 0 };
+}
+// ─────────── 백업 다시 넣기 (2026-11-13) — 보관용 백업 {tables:{표:[행]}}을 지금 표에 맞춤 ───────────
+// 백업에 없는 칸(로그인 열쇠·PIN·푸시 구독)은 지금 값을 그대로 둠. 같은 줄은 다시 쓰지 않음(D1 쓰기 한도 절약).
+const RS_KEEPKV = /vapid|dlpin|^sent:|^bktok:|^rstok:|^restoredAt$|^bk:|^mig/i; // 열쇠·보낸 기록·한 번만 하는 정리 표시는 건드리지 않음
+async function rsCols(env, table) {
+  if (!(await bkTables(env)).includes(String(table))) return null;
+  const info = await all(env, 'PRAGMA table_info(' + table + ')');
+  const pk = info.filter(c => c.pk > 0).sort((a, c) => a.pk - c.pk).map(c => c.name);
+  return pk.length ? { cols: info.map(c => c.name), pk, where: pk.map(k => k + ' = ?').join(' AND ') } : null;
+}
+async function rsPks(env) { const o = {}; for (const t of await bkTables(env)) { const c = await rsCols(env, t); if (c) o[t] = c.pk; } return o; }
+async function rsCounts(env) { const o = {}; for (const t of await bkTables(env)) o[t] = ((await one(env, 'SELECT COUNT(*) AS n FROM ' + t)) || {}).n || 0; return o; }
+const rsSame = (a, b) => (a ?? null) === (b ?? null) || (a != null && b != null && String(a) === String(b));
+async function rsPut(env, table, rows) {
+  const t = await rsCols(env, table); if (!t) return { ok: false, error: table + ': 넣을 수 없는 표' };
+  rows = (Array.isArray(rows) ? rows : []).filter(r => r && typeof r === 'object' && t.pk.every(k => r[k] != null)).slice(0, 300);
+  if (table === 'kv') rows = rows.filter(r => !RS_KEEPKV.test(String(r.k)));
+  if (!rows.length) return { ok: true, put: 0 };
+  const cur = await env.DB.batch(rows.map(r => env.DB.prepare('SELECT * FROM ' + table + ' WHERE ' + t.where).bind(...t.pk.map(k => r[k]))));
+  const val = v => v != null && typeof v === 'object' ? JSON.stringify(v) : v;
+  const st = [];
+  rows.forEach((r, i) => {
+    const old = ((cur[i] && cur[i].results) || [])[0] || null;
+    let cols = t.cols.filter(c => c in r && !BK_HIDE.includes(c));
+    if (table === 'members') { if (!old) return; cols = ['name', 'role'].filter(c => c in r); } // 직원은 이름·직책만 맞춤 (PIN 그대로, 없는 사람은 만들지 않음)
+    if (old) {
+      const ch = cols.filter(c => !t.pk.includes(c) && !rsSame(old[c], val(r[c])));
+      if (ch.length) st.push(env.DB.prepare('UPDATE ' + table + ' SET ' + ch.map(c => c + ' = ?').join(', ') + ' WHERE ' + t.where).bind(...ch.map(c => val(r[c])), ...t.pk.map(k => r[k])));
+    } else st.push(env.DB.prepare('INSERT INTO ' + table + ' (' + cols.join(', ') + ') VALUES (' + cols.map(() => '?').join(', ') + ')').bind(...cols.map(c => val(r[c]))));
+  });
+  if (st.length) await env.DB.batch(st);
+  return { ok: true, put: st.length };
+}
+async function rsSweep(env, table, keep, n) { // 백업에 없는 줄 지우기 (keep = 백업에 있는 줄의 열쇠 값 목록)
+  const t = await rsCols(env, table); if (!t) return { ok: false, error: table + ': 넣을 수 없는 표' };
+  if (!Array.isArray(keep) || keep.length !== (n | 0)) return { ok: false, error: table + ': 줄 수가 맞지 않아요' };
+  if (table === 'members') return { ok: true, del: 0 }; // 직원은 지우지 않음
+  const ks = new Set(keep.map(k => JSON.stringify((Array.isArray(k) ? k : [k]).map(String))));
+  const gone = (await all(env, 'SELECT ' + t.pk.join(', ') + ' FROM ' + table)).filter(r => !ks.has(JSON.stringify(t.pk.map(k => String(r[k])))) && !(table === 'kv' && RS_KEEPKV.test(String(r.k))));
+  for (let i = 0; i < gone.length; i += 100) await env.DB.batch(gone.slice(i, i + 100).map(r => env.DB.prepare('DELETE FROM ' + table + ' WHERE ' + t.where).bind(...t.pk.map(k => r[k]))));
+  return { ok: true, del: gone.length };
 }
 function json(o, status = 200) {
   return new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
