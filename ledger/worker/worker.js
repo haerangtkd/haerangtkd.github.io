@@ -150,6 +150,10 @@ async function route(path, req, env) {
     }
     return json({ ok: true, at: last });
   }
+  if (path === '/api/team-roster') { // 업무 앱(출석부) 원생 명단 — 장부에 없는 원생 찾기 (관리자)
+    if (!owner) return json({ ok: false, error: '관리자만 볼 수 있어요' }, 403);
+    return json(await team(env, '/ledger/roster', {}));
+  }
   if (path === '/api/team-families') { // 업무 앱 형제·자매 묶음 (장부 확인 알림용)
     if (!owner) return json({ ok: false, error: '관리자만 볼 수 있어요' }, 403);
     return json(await team(env, '/ledger/families', {}));
@@ -167,9 +171,9 @@ async function route(path, req, env) {
 
 // ─────────── 매달 5일 회비 안내 (장부 기준 미납 가정에만, 독촉 아님) ───────────
 const kstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-async function notice(env, body) {
+async function notice(env, body, path) {
   if (!env.NOTICE) return { ok: false, error: '알림 앱이 연결되지 않았어요' };
-  try { return await (await env.NOTICE.fetch('https://notice/ledger/fee-notice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json(); }
+  try { return await (await env.NOTICE.fetch('https://notice' + (path || '/ledger/fee-notice'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json(); }
   catch (_) { return { ok: false, error: '알림 앱에 연결하지 못했어요' }; }
 }
 // 장부 화면과 같은 계산(HL)으로 미납 회비 → 가족별로 묶음 (재원·신규만, 휴원·퇴관 미수는 관리자가 직접)
@@ -212,8 +216,25 @@ async function rosterFollow(env, force) {
     }
     if (up) await run(env, 'UPDATE docs SET data = ?, upd = ? WHERE path = ?', JSON.stringify(merge(d, up)), Date.now(), x.path);
   }
+  try { await feeInfoPush(env); } catch (_) {} // 학부모 앱 '정보 확인'의 회비 금액
   if (log.length) await run(env, "UPDATE docs SET data = ?, upd = ? WHERE path = 'snapshots/roster-follow'", JSON.stringify({ at: now, renamed: [...(last.renamed || []), { at: kstToday(), list: log }].slice(-20) }), Date.now());
   return { ok: true, renamed: log };
+}
+// 회원별 이번 달 회비(기본 금액·가족 할인)를 알림 서버에 알려 줌 (2026-11-13). 장부 화면과 같은 계산(HL.baseFor·familyDiscountFor)
+async function feeInfoPush(env) {
+  const state = { members: {}, families: {}, ledger: {}, config: null };
+  for (const r of await all(env, "SELECT path, coll, data FROM docs WHERE del = 0 AND coll IN ('config', 'members', 'families')")) {
+    const id = r.path.slice(r.coll.length + 1), d = J(r.data, null); if (!d) continue;
+    if (r.coll === 'config') { if (id === 'main') state.config = d; } else state[r.coll][id] = { ...d, id };
+  }
+  const H = globalThis.HL, ctx = H.makeCtx(state, { today: kstToday() }), ym = kstToday().slice(0, 7), list = [];
+  for (const m of ctx.members) {
+    if (!H.isActiveStatus(H.currentStatus(m, ctx.today))) continue;
+    const f = m.fees && m.fees[ym] && !m.fees[ym].cancelled ? m.fees[ym] : null;
+    const base = f ? f.base : H.baseFor(m, ctx.cfg, ym).base, disc = f ? (f.disc || 0) : H.familyDiscountFor(m, ctx.today, ctx.members, ctx.families).disc;
+    if (base != null) list.push({ name: m.name, base, disc, ym });
+  }
+  return notice(env, { list }, '/ledger/fee-info');
 }
 async function feeNoticeRun(env, force) {
   const today = kstToday(), ym = today.slice(0, 7), key = 'snapshots/feenotice-' + ym;
