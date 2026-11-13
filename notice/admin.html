@@ -87,6 +87,9 @@
   .pg .pk{background:#FBEDEE}
   .pfr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px;gap:6px;margin:8px 0;padding-bottom:8px;border-bottom:1px dashed var(--line)}.pfr input{min-width:0;width:100%}.pfr .t{grid-column:1/3}.pfr .del{grid-row:1/3;grid-column:3;border:0;background:#F1ECE7;border-radius:8px}
   .pfw{display:grid;grid-template-columns:28px 1fr;gap:6px;align-items:center;margin:4px 0}.pfw b{color:#2F6B55}
+  .kbg{display:grid;grid-template-columns:1fr 1fr;gap:6px}.kbg label{font-size:12.5px;color:var(--muted);font-weight:700}.kbg input{width:100%;margin-top:2px}
+  .kcomp{display:grid;grid-template-columns:140px 1fr;gap:6px}.kcomp input{min-width:0}
+  .kcode{font-family:ui-monospace,Menlo,monospace;font-size:18px;font-weight:900;letter-spacing:2px;background:#FFF4EA;border-radius:8px;padding:2px 8px}
   .pgt,.pgn{background:#fff;border:1px solid #E4DCD4;border-radius:14px;margin-top:10px;padding:12px 14px;font-size:13.5px;line-height:1.5}
   .pgt b,.pgn b{display:block;font-size:14.5px;margin-bottom:6px}
   .pgt div{display:flex;gap:10px;padding:3px 0}.pgt span{flex:none;width:22px;font-weight:800;color:#2F6B55}
@@ -227,6 +230,7 @@
       <button data-t="sched">일정</button>
       <button data-t="fee">회비</button>
       <button data-t="roster">명단</button>
+      <button data-t="kmode">제자</button>
     </nav>
   </div></header>
 
@@ -370,6 +374,42 @@
         <div class="share"><code class="shareUrl"></code><button class="copyShare">복사</button></div>
       </div>
     </section>
+
+    <!-- ═════ 🥋 제자 모드 (2026-11-14): 개인 코드 · 최우수 수련생 · 대회 기록 · 선범단방 ═════ -->
+    <section id="t-kmode" hidden>
+      <div class="card">
+        <h2>🥋 제자 모드 코드</h2>
+        <p class="hint">제자 휴대폰(또는 태블릿)에서 <b>haerangtkd.github.io/notice/kids.html</b>을 열고, 도장에서 아래 코드를 직접 넣어 주세요. 학부모 앱과 따로예요. '새 코드'를 만들면 예전 기기는 나가져요.</p>
+        <div class="share"><code id="kidsUrl"></code><button id="copyKids">복사</button></div>
+        <input type="search" id="kq" placeholder="제자 이름 검색" style="margin-top:10px">
+        <ul class="list" id="kcList" style="margin-top:8px"></ul>
+      </div>
+      <div class="card">
+        <h2>🏆 분기별 최우수 수련생</h2>
+        <div style="display:flex;gap:8px;align-items:center;margin:6px 0"><select id="kbQ"></select><span class="hint">비우면 그 부는 안 보여요</span></div>
+        <div id="kbG" class="kbg"></div>
+        <datalist id="kNames"></datalist>
+        <button class="btn" id="kbSave" style="margin-top:8px">최우수 수련생 저장</button>
+      </div>
+      <div class="card">
+        <h2>🥇 대회 기록</h2>
+        <p class="hint">제자 모드 '명예의 전당'에 달마다 보여요. 한 줄에 한 명: <b>이름 메달 종목</b> (메달은 금·은·동·참가, 종목은 비워도 돼요)</p>
+        <div class="kcomp"><input type="date" id="kcD"><input type="text" id="kcT" placeholder="대회 이름 (예: 남구청장배 태권도 대회)"></div>
+        <textarea id="kcR" rows="5" placeholder="김해랑 금 품새&#10;이도장 은 겨루기&#10;박선범 참가" style="width:100%;margin-top:6px"></textarea>
+        <button class="btn" id="kcAdd" style="margin-top:6px">대회 기록 올리기</button>
+        <ul class="list" id="kcL" style="margin-top:10px"></ul>
+      </div>
+      <div class="card">
+        <h2>⭐ 선범단 · 띠</h2>
+        <p class="hint">선범단 명단과 제자 띠, '다음 띠까지 %'는 <b>업무 앱 📈 성장</b>(성장 측정지)에서 정한 것이 제자 모드에 그대로 보여요.</p>
+        <a class="btn ghost" href="../team/guinness.html" style="display:block;text-align:center;text-decoration:none">📈 성장 측정 열기</a>
+      </div>
+      <div class="card">
+        <h2>💬 선범단방 글</h2>
+        <p class="hint">선범단만 글을 올릴 수 있어요(사진 없이 글만). 맞지 않는 글은 여기서 지워 주세요.</p>
+        <ul class="list" id="kpL" style="margin-top:8px"></ul>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -445,7 +485,8 @@
   // ── 탭 ──
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
-    ['att', 'news', 'sched', 'fee', 'roster'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
+    ['att', 'news', 'sched', 'fee', 'roster', 'kmode'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
+    if (b.dataset.t === 'kmode') loadKmode();
     if (b.dataset.t === 'news') loadNews();
     if (b.dataset.t === 'sched') loadSched();
     if (b.dataset.t === 'fee') loadFees();
@@ -796,6 +837,54 @@
       const j = await post('/admin/sched-import', { items }); if (!j.ok) throw new Error(j.error || '옮기지 못했어요'); toast('옮겼어요: 새로 ' + j.added + '개' + (j.skipped ? ', 이미 있던 ' + j.skipped + '개는 건너뜀' : '')); loadSched(); }
     catch (e) { toast(e.message); } finally { b.disabled = false; }
   };
+
+  // ═════ 🥋 제자 모드 관리 (2026-11-14) ═════
+  let km = { best: [], comps: [] }, kcItems = [];
+  const KG = ['중고등부 남', '중고등부 여', '초등부 남', '초등부 여', '유치부 남', '유치부 여'];
+  $('kidsUrl').textContent = location.origin + location.pathname.replace(/admin\.html$/, 'kids.html');
+  $('copyKids').onclick = () => { const t = $('kidsUrl').textContent; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요'), () => prompt('복사해 주세요', t)); };
+  async function loadKmode() {
+    const [a, b2, c] = await Promise.all([post('/admin/kcodes', {}), post('/admin/kmode-get', {}), post('/admin/kposts', {})]);
+    if (a.ok) { kcItems = a.items; drawKc(); $('kNames').innerHTML = kcItems.map(x => '<option value="' + esc(x.name) + '">').join(''); }
+    if (b2.ok) { km = { best: b2.km.best || [], comps: b2.km.comps || [] }; drawBest(); drawComps(); }
+    if (c.ok) $('kpL').innerHTML = c.posts.length ? c.posts.map(p => '<li class="nt"><div><b>' + esc(p.name) + '</b><small>' + when(p.at) + '</small><div style="font-size:14px;margin-top:4px;white-space:pre-wrap">' + esc(p.body) + '</div></div><div class="act"><button data-kpd="' + p.id + '">지우기</button></div></li>').join('') : '<li class="empty">아직 글이 없어요</li>';
+    else if (!a.ok) toast(a.error || '불러오지 못했어요');
+  }
+  function drawKc() {
+    const q = $('kq').value.replace(/\s+/g, '');
+    $('kcList').innerHTML = kcItems.filter(x => !q || x.name.includes(q)).map(x => '<li class="nt" style="align-items:center"><div><b>' + esc(x.name) + '</b><small>' + (x.code ? '<span class="kcode">' + esc(x.code) + '</span> · 기기 ' + x.devices + '대' + (x.seen ? ' · 마지막 ' + when(x.seen) : '') : '코드 없음') + '</small></div><div class="act"><button data-kmk="' + esc(x.name) + '">' + (x.code ? '새 코드' : '코드 만들기') + '</button>' + (x.code ? '<button data-kdel="' + esc(x.name) + '">지우기</button>' : '') + '</div></li>').join('') || '<li class="empty">명단에 제자가 없어요</li>';
+  }
+  $('kq').oninput = drawKc;
+  $('kcList').onclick = async e => {
+    const mk = e.target.closest('[data-kmk]'); if (mk) { const n = mk.dataset.kmk, had = kcItems.find(x => x.name === n && x.code); if (had && !confirm(n + ' 제자의 코드를 새로 만들까요? 예전 기기는 나가져요.')) return; const j = await post('/admin/kcode-make', { name: n }); if (!j.ok) return toast(j.error || '만들지 못했어요'); toast(n + ' 코드: ' + j.code); return loadKmode(); }
+    const d = e.target.closest('[data-kdel]'); if (d) { if (!confirm(d.dataset.kdel + ' 제자의 코드를 지울까요? 그 기기는 나가져요.')) return; await post('/admin/kcode-del', { name: d.dataset.kdel }); loadKmode(); }
+  };
+  function qList() { const y = +today().slice(0, 4), cur = y + '-' + Math.ceil(+today().slice(5, 7) / 3), L = []; for (const yy of [y - 1, y]) for (let q = 1; q <= 4; q++) L.push(yy + '-' + q); return { L: L.filter(x => x <= cur).reverse(), cur }; }
+  function drawBest() {
+    const { L, cur } = qList(), sel = $('kbQ').value || cur;
+    $('kbQ').innerHTML = L.map(q => '<option value="' + q + '"' + (q === sel ? ' selected' : '') + '>' + q.slice(0, 4) + '년 ' + q.slice(5) + '분기</option>').join('');
+    const g = ((km.best || []).find(x => x.q === sel) || {}).g || {};
+    $('kbG').innerHTML = KG.map(k => '<label>' + k + '<input type="text" list="kNames" data-kg="' + k + '" value="' + esc(g[k] || '') + '"></label>').join('');
+  }
+  $('kbQ').onchange = drawBest;
+  $('kbSave').onclick = async () => {
+    const q = $('kbQ').value, g = {}; document.querySelectorAll('[data-kg]').forEach(i => { if (i.value.trim()) g[i.dataset.kg] = i.value.trim(); });
+    const best = [...(km.best || []).filter(x => x.q !== q), ...(Object.keys(g).length ? [{ q, g }] : [])];
+    const j = await post('/admin/kmode-save', { best, comps: km.comps }); if (!j.ok) return toast(j.error || '저장하지 못했어요'); km = j.km; drawBest(); toast('저장했어요 · 제자 모드 명예의 전당에 보여요');
+  };
+  function drawComps() {
+    const md = { 금: '🥇', 은: '🥈', 동: '🥉', 참가: '🎽' };
+    $('kcL').innerHTML = [...(km.comps || [])].reverse().map(c => '<li class="nt"><div><b>' + esc(c.title) + '</b><small>' + esc(c.date) + ' · ' + (c.rows || []).length + '명</small><div style="font-size:13.5px;margin-top:4px">' + (c.rows || []).map(r => (md[r.medal] || '') + ' ' + esc(r.name) + (r.ev ? '(' + esc(r.ev) + ')' : '')).join(' · ') + '</div></div><div class="act"><button data-kcd="' + esc(c.id) + '">지우기</button></div></li>').join('') || '<li class="empty">아직 대회 기록이 없어요</li>';
+  }
+  $('kcAdd').onclick = async () => {
+    const date = $('kcD').value, title = $('kcT').value.trim(); if (!date || !title) return toast('날짜와 대회 이름을 적어 주세요');
+    const rows = $('kcR').value.split('\n').map(l => l.trim().split(/\s+/)).filter(a => a[0]).map(a => ({ name: a[0], medal: ['금', '은', '동', '참가'].includes(a[1]) ? a[1] : '참가', ev: (['금', '은', '동', '참가'].includes(a[1]) ? a.slice(2) : a.slice(1)).join(' ') }));
+    if (!rows.length) return toast('나간 제자를 한 줄에 한 명씩 적어 주세요');
+    const j = await post('/admin/kmode-save', { best: km.best, comps: [...(km.comps || []), { date, title, rows }] }); if (!j.ok) return toast(j.error || '올리지 못했어요');
+    km = j.km; $('kcT').value = ''; $('kcR').value = ''; drawComps(); toast('올렸어요');
+  };
+  $('kcL').onclick = async e => { const d = e.target.closest('[data-kcd]'); if (!d || !confirm('이 대회 기록을 지울까요?')) return; const j = await post('/admin/kmode-save', { best: km.best, comps: (km.comps || []).filter(c => c.id !== d.dataset.kcd) }); if (j.ok) { km = j.km; drawComps(); } };
+  $('kpL').onclick = async e => { const d = e.target.closest('[data-kpd]'); if (!d || !confirm('이 글을 지울까요?')) return; await post('/admin/kpost-del', { id: +d.dataset.kpd }); loadKmode(); };
   // ✏ 이 달 수련 계획 고치기 (2026-11-14: 홈페이지 관리에서 하던 것을 여기서 — 저장하면 홈페이지·학부모 앱에 같이)
   $('pEdit').onclick = async () => {
     await loadHp(); const m = sMonth, base = JSON.parse(JSON.stringify(hpPlan || hpRaw || { weekday: {}, focus: [], months: [] }));
