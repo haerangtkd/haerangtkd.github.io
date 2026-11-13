@@ -1581,7 +1581,7 @@ const onDash = x => catOf(x) === 'event' || !!x.dash; // 행사는 항상, 물�
 function tableCard(x) {
   const c = catOf(x), st = tableStat(x), t = today(), ns = signsOf(x.id).filter(y => y.state === '' && !y.cancel).length;
   return '<div class="tc" data-id="' + x.id + '"><div class="h"><span class="bdg ' + (x.closed ? 'done' : c) + '">' + (x.closed ? '완료 · ' : '') + CAT[c] + '</span>' + (x.date && !x.closed ? '<span class="dd' + (x.date < t ? ' over' : '') + '">' + dday(x.date) + '</span>' : '') + '</div>' +
-    '<b>' + esc(x.title) + '</b>' + (x.pub ? ' <span class="tag g">학부모 앱 신청</span>' : '') + (x.sp ? ' <span class="tag">📣 일정표</span>' : '') + (ns ? ' <span class="tag r">새 신청 ' + ns + '</span>' : '') + ((S.delReq || []).some(r => r.id === x.id) ? ' <span class="tag r">삭제 승인 대기</span>' : '') + (x.date ? '<div class="dt">' + fullDate(x.date) + (eligTxt(x.elig) ? ' · 대상 ' + esc(eligTxt(x.elig)) : '') + '</div>' : eligTxt(x.elig) ? '<div class="dt">대상 ' + esc(eligTxt(x.elig)) + '</div>' : '') + '<div class="ct">' + st.line + '</div>' +
+    '<b>' + esc(x.title) + '</b>' + (x.pub ? ' <span class="tag g">학부모 앱 신청</span>' : '') + (x.sp ? ' <span class="tag">📣 일정표</span>' : '') + (x.env ? ' <span class="tag">📩 봉투</span>' : '') + (ns ? ' <span class="tag r">새 신청 ' + ns + '</span>' : '') + ((S.delReq || []).some(r => r.id === x.id) ? ' <span class="tag r">삭제 승인 대기</span>' : '') + (x.date ? '<div class="dt">' + fullDate(x.date) + (eligTxt(x.elig) ? ' · 대상 ' + esc(eligTxt(x.elig)) : '') + '</div>' : eligTxt(x.elig) ? '<div class="dt">대상 ' + esc(eligTxt(x.elig)) + '</div>' : '') + '<div class="ct">' + st.line + '</div>' +
     '<div class="pg"><i class="' + (st.pct >= 100 ? 'full' : '') + '" style="width:' + st.pct + '%"></i></div></div>';
 }
 function renderTable() {
@@ -2566,7 +2566,7 @@ function backupSheet() {
 }
 // 백업 다시 넣기 (2026-11-13): 2_업무_전체.json · 3_알림_전체.json → 지금 상태를 먼저 받은 뒤에 넣음. PIN·로그인은 그대로.
 const RS_NAME = { team: '업무', notice: '알림' };
-const RS_TBL = { kv: '설정', members: '직원', msgs: '채팅', mhide: '숨긴 채팅', items: '업무·일정·행사', comments: '댓글', pickup: '등원·픽업', photos: '사진', joins: '가입 요청', reminders: '알림 예약', logs: '알림 기록', gdocs: '성장 측정', esign: '행사 신청', cleanchk: '청소 체크', pmsg: '학부모 연락', contracts: '등록 서류', hw: '미션', hwchk: '미션 체크', parents: '보호자', kids: '원생', att: '출결', posts: '소식', fees: '회비', reads: '읽음', acks: '확인했어요', famreq: '가족 요청', invites: '초대번호' };
+const RS_TBL = { kv: '설정', members: '직원', msgs: '채팅', mhide: '숨긴 채팅', items: '업무·일정·행사', comments: '댓글', pickup: '등원·픽업', photos: '사진', joins: '가입 요청', reminders: '알림 예약', logs: '알림 기록', gdocs: '성장 측정', esign: '행사 신청', cleanchk: '청소 체크', pmsg: '학부모 연락', contracts: '등록 서류', hw: '미션', hwchk: '미션 체크', parents: '보호자', kids: '원생', att: '출결', posts: '소식', fees: '회비', reads: '읽음', acks: '확인했어요', famreq: '가족 요청', invites: '초대번호', replies: '봉투 답장' };
 function restoreSheet() {
   if (!isBoss()) return toast('관리자만 할 수 있어요');
   let file = null, st = null;
