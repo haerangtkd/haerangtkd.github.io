@@ -292,7 +292,8 @@ async function route(path, req, env) {
     else return json({ ok: false, error: '기간을 확인해 주세요' });
     const ym = b.ym || (b.day ? b.day.slice(0, 7) : null);
     const ab = ym ? await all(env, 'SELECT sid, date, why FROM absences WHERE date LIKE ?', ym + '-%') : await all(env, 'SELECT sid, date, why FROM absences WHERE date LIKE ?', b.year + '-%');
-    return json({ ok: true, rows, absences: ab });
+    const quiet = {}; for (const r of await all(env, 'SELECT k, v FROM kv WHERE k LIKE ?', 'quiet:' + (ym || b.year) + '%')) quiet[r.k.slice(6)] = J(r.v, []); // 오늘만 등원 알림 안 보냄
+    return json({ ok: true, rows, absences: ab, quiet });
   }
 
   if (path === '/api/att-set') { // 여러 명 한 번에: r 'o' 출석 / 'x' 결석 / '' 미확인, del 이면 줄 지움(보강 취소 등)
@@ -323,6 +324,14 @@ async function route(path, req, env) {
     if (b.log) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), str(b.id, 60), '', upd, '중요사항 ' + str(b.log, 120), who));
     await env.DB.batch(st);
     return json({ ok: true, upd, notes: d.notes, before });
+  }
+  // '오늘만 안 보내기': 그날 그 제자는 '태블릿 안 누름' 표시를 하지 않음 (kv 'quiet:날짜' = [sid], 2026-11-13)
+  if (path === '/api/quiet') {
+    if (!isDay(b.day)) return json({ ok: false, error: '날짜를 확인해 주세요' });
+    const k = 'quiet:' + b.day, cur = new Set(J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, []));
+    for (const id of (Array.isArray(b.sids) ? b.sids : []).slice(0, 200)) { const s = str(id, 60); if (b.on === false) cur.delete(s); else cur.add(s); }
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify([...cur]));
+    return json({ ok: true, day: b.day, sids: [...cur] });
   }
   // '알림은 안 보내도 돼요' → 그 제자만 noAsk 켜기 (다른 칸은 건드리지 않음, 2026-11-13)
   if (path === '/api/student-noask') {
