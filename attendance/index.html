@@ -293,7 +293,7 @@ const API = (window.HAERANG_ATT_API || '').replace(/\/$/, '');
 const TOKK = 'haerang-att-tok';
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const toast = t => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600); };
+const toast = (t, ms) => { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), ms || 2600); };
 
 // ───────── 날짜 ─────────
 const DOW = '일월화수목금토', WEEK = ['월', '화', '수', '목', '금'];
@@ -502,9 +502,16 @@ $('tList').onclick = async e => {
   if (a === 'o') {
     if (c.k === 'o') return setAtt([extra ? { sid: s.id, r: '', mk: 1 } : { sid: s.id, del: true }]);
     // 오늘 태블릿을 안 누른 제자: 학부모님께 등원 알림을 보낼지 물어봄 (원생 정보에서 '묻지 않기'면 안 물음)
-    const ask = d === today() && !(c.r && c.r.tin) && !s.noAsk ? await askCheckin(s) : 'none';
+    const asked = d === today() && !(c.r && c.r.tin) && !s.noAsk;
+    const ask = asked ? await askCheckin(s) : 'none';
     if (!ask) return;
     await setAtt([{ sid: s.id, r: 'o', p: guessP(s, d), mk: extra ? 1 : 0 }]);
+    // '알림은 안 보내도 돼요' → 이 제자는 앞으로 묻지 않음 (업무 앱 원생 정보의 '묻지 않기'와 같은 값)
+    if (asked && ask === 'none') {
+      const j = await api('/api/student-noask', { id: s.id, v: true });
+      if (j.ok) { s.noAsk = true; noAskNotice(s.name); } else toast(j.error || '설정을 저장하지 못했어요');
+      return;
+    }
     if (ask === 'send') { const j = await api('/api/checkin-notify', { sid: s.id }); toast(j.ok ? (j.already ? '이미 등원 알림이 갔어요' : s.name + ' 등원 알림을 보냈어요') : (j.error || '알림을 보내지 못했어요')); }
     if (ask === 'kid') toast(s.name + '에게 태블릿에서 등원을 누르라고 해 주세요');
     return;
@@ -520,12 +527,15 @@ $('tList').onclick = async e => {
 function askCheckin(s) {
   return new Promise(res => {
     sheet('<h2>' + esc(s.name) + ' 태블릿 등원을 안 눌렀어요</h2><p class="help">학부모님께 등원 알림을 보낼까요? 출석은 어느 쪽이든 체크돼요.</p>' +
-      '<button class="big" data-ck="send" style="margin-top:12px">등원 알림 보내기</button><button class="big" data-ck="kid">학생이 태블릿에서 직접 누르기</button><button class="big line" data-ck="none">알림은 안 보내도 돼요</button>' +
-      '<p class="help">보호자가 늘 데려다주는 제자는 원생 정보 수정에서 \'묻지 않기\'를 켜 두면 이 창이 안 떠요.</p><div class="foot"><span class="sp"></span><button data-close>취소</button></div>', ov => {
+      '<button class="big" data-ck="send" style="margin-top:12px">등원 알림 보내기</button><button class="big" data-ck="kid">학생이 태블릿에서 직접 누르기</button><button class="big line" data-ck="none">알림은 안 보내도 돼요 (앞으로 안 묻기)</button>' +
+      '<p class="help">\'안 보내도 돼요\'를 누르면 이 제자는 앞으로 이 창이 안 떠요. 바꾸려면 업무 앱 원생 정보 수정에서 \'묻지 않기\'를 꺼 주세요.</p><div class="foot"><span class="sp"></span><button data-close>취소</button></div>', ov => {
       askReason.res = res; // 취소·바깥 누르면 null
       ov.onclick = e => { const b = e.target.closest('[data-ck]'); if (b) { askReason.res = null; closeSheet(true); res(b.dataset.ck); } };
     });
   });
+}
+function noAskNotice(name) {
+  toast(name + ' 앞으로 등원 알림 안 물어요 · 바꾸려면 업무 앱 원생 정보 수정에서 \'묻지 않기\'를 꺼 주세요', 6000);
 }
 function guessP(s, d) {
   if (d === today()) { const p = nowPeriod(); if (p) return p; }
