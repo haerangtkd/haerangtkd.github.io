@@ -277,7 +277,8 @@ async function route(path, req, env) {
       all(env, "SELECT id, sid, tid, at, text, who FROM history WHERE tid <> '' ORDER BY at DESC LIMIT 500"),
       all(env, 'SELECT id, name FROM teachers ORDER BY created'),
     ]);
-    return json({ ok: true, me: { id: me.id, name: me.name, boss: me.boss }, teachers,
+    const kOff = await one(env, "SELECT v FROM kv WHERE k = 'kioskOff'");
+    return json({ ok: true, me: { id: me.id, name: me.name, boss: me.boss }, teachers, kioskOff: !!(kOff && kOff.v === '1'),
       students: students.map(r => ({ id: r.id, ...J(r.data, {}) })).filter(x => me.boss || x.status !== '퇴관'), // 퇴관 원생은 관리자만 (2026-11-13)
       trials: trials.map(r => ({ id: r.id, ...J(r.data, {}) })),
       absences, closed, trialHistory: th });
@@ -324,6 +325,11 @@ async function route(path, req, env) {
     if (b.log) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), str(b.id, 60), '', upd, '중요사항 ' + str(b.log, 120), who));
     await env.DB.batch(st);
     return json({ ok: true, upd, notes: d.notes, before });
+  }
+  // 태블릿 출결을 잠깐 안 쓸 때: 출석부에서 '등원 알림 보낼까요?' 창과 '태블릿 안 누름' 표시를 끔 (kv 'kioskOff', 2026-11-13)
+  if (path === '/api/kiosk-off') {
+    await run(env, "INSERT INTO kv (k, v) VALUES ('kioskOff', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0');
+    return json({ ok: true, kioskOff: !!b.on });
   }
   // '오늘만 안 보내기': 그날 그 제자는 '태블릿 안 누름' 표시를 하지 않음 (kv 'quiet:날짜' = [sid], 2026-11-13)
   if (path === '/api/quiet') {
