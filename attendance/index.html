@@ -1130,7 +1130,7 @@ $('spaceBtn').onclick = () => {
       if (x === 'csvY') { b.textContent = '불러오는 중…'; const j = await api('/api/att', { year: yr }, true); if (!j.ok) return toast(j.error); downloadCsv(yr + '_전체출결.csv', yearCsv(yr, j.rows, j.absences)); b.textContent = yr + '년 전체 출결 받기 (CSV)'; }
       if (x === 'bak') { b.textContent = '만드는 중…'; const j = await api('/api/export', { dlpin: S.dlOk && S.dlOk.pin }, true); b.textContent = '백업 파일 받기 (전체 데이터)'; if (!j.ok) return toast(j.error); download('해랑출석부_백업_' + today() + '.json', JSON.stringify(j.backup), 'application/json'); }
       if (x === 'pin') pinSheet();
-      if (x === 'out') { if (confirm('로그아웃할까요?')) { closeSheet(true); await api('/api/logout', {}, true); logoutLocal(); } } // 창을 닫고 바로 로그인 화면
+      if (x === 'out') { if (confirm('로그아웃할까요?')) { closeSheet(true); await api('/api/logout', {}, true); try { sessionStorage.removeItem('haerang-from-team'); } catch (_) {} logoutLocal(); } } // 창을 닫고 바로 로그인 화면
       if (x === 'tch') teacherSheet();
       if (x === 'imp') importSheet();
       if (x === 'wipe') {
@@ -1335,6 +1335,10 @@ async function loggedIn(tok) {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   let tok = ''; try { tok = localStorage.getItem(TOKK) || ''; } catch (_) {}
   if (tok && API) { S.tok = tok; if (await boot()) { $('app').hidden = false; S.lastDay = today(); await loadMonth(S.day.slice(0, 7)); setTab('today'); return; } S.tok = ''; }
+  // 업무 앱에서 열었으면 업무 앱 로그인으로 자동 로그인 (2026-11-14). 따로 설치한 출석부 앱은 따로 로그인
+  let ft = false; try { if (new URLSearchParams(location.search).get('from') === 'team') { sessionStorage.setItem('haerang-from-team', '1'); history.replaceState(null, '', location.pathname); } ft = sessionStorage.getItem('haerang-from-team') === '1'; } catch (_) {}
+  let tt = ''; try { tt = localStorage.getItem('haerang-team-tok') || ''; } catch (_) {}
+  if (ft && tt && API) { const r = await fetch(API + '/api/sso', { method: 'POST', body: JSON.stringify({ ttok: tt }) }).then(r => r.json()).catch(() => ({ ok: false })); if (r.ok) return loggedIn(r.tok); }
   showLogin();
 })();
 })();
