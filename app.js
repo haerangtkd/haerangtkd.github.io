@@ -1064,8 +1064,21 @@ function setupTop(){
   window.addEventListener('scroll', f, {passive:true}); f();
 }
 
+// 도장 일정은 알림 관리 일정표에서 (2026-11-13): 알림 서버에서 받아 data.json 일정과 합침 (같은 날짜·제목은 하나만, 서버가 안 되면 data.json만)
+const PUSH_API = window.HAERANG_PUSH_API || 'https://haerang-push.labkhu.workers.dev';
+function withSched(d){
+  const ctl = 'AbortController' in window ? new AbortController() : null, t = ctl && setTimeout(() => ctl.abort(), 3500);
+  return fetch(PUSH_API + '/pub/schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: ctl && ctl.signal })
+    .then(r => r.json()).then(j => {
+      if(!j || !j.ok || !Array.isArray(j.items)) return d;
+      const k = x => x.date + '|' + String(x.title || '').replace(/\s/g, ''), have = new Set(j.items.map(k));
+      d.schedule = j.items.concat(list(d.schedule).filter(x => !have.has(k(x))));
+      return d;
+    }).catch(() => d).finally(() => t && clearTimeout(t));
+}
 fetch('data.json?t=' + Date.now())
   .then(r => { if(!r.ok) throw 0; return r.json(); })
+  .then(withSched)
   .then(render)
   .catch(() => {
     document.getElementById('app').innerHTML = '<p style="padding:40px 20px;text-align:center;color:#6B6460">내용을 불러오지 못했어요. 잠시 후 새로고침해 주세요.</p>';
