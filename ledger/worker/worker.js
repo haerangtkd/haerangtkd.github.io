@@ -17,7 +17,7 @@ const SESSION_HOURS = 12;
 
 export default {
   // 매달 5일 낮 12시(크론 '0 3 5 * *' = UTC 3시): 장부 기준 미납 가정에만 학부모 앱 회비 안내 (2026-11-13 사용자 결정)
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); await feeNoticeRun(env, false); })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); await rosterFollow(env, true).catch(() => {}); await feeNoticeRun(env, false); })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     const url = new URL(req.url);
@@ -109,6 +109,7 @@ async function route(path, req, env) {
   if (path === '/api/logout') { await run(env, 'DELETE FROM sessions WHERE tok = ?', s.tok); return json({ ok: true }); }
   if (path === '/api/me') return json({ ok: true, name: s.name, role: s.role });
   if (path === '/api/sync') { // since 이후 바뀐 문서 (처음엔 0 = 전부)
+    if (owner) await rosterFollow(env, false).catch(() => {}); // 10분에 한 번: 출석부 원생 번호로 잇기·이름 따라가기
     const since = Number(b.since) || 0, now = Date.now();
     const rows = await all(env, 'SELECT path, coll, data, upd, del FROM docs WHERE upd > ? ORDER BY upd', since);
     const docs = rows.filter(r => canRead(r.coll)).map(r => {
@@ -187,6 +188,32 @@ async function feeNoticePlan(env) {
     const f = fam.get(k); if (!f.kids.includes(x.m.name)) f.kids.push(x.m.name); if (!f.months.includes(x.ym)) f.months.push(x.ym);
   }
   return [...fam.values()].map(f => ({ kids: f.kids, months: f.months.sort() }));
+}
+// ─────────── 원생 한 명단 (2026-11-13): 장부 회원(members/*)을 출석부 원생 번호(sid)로 잇고, 출석부에서 이름이 바뀌면 장부 이름도 따라감 ───────────
+// 처음엔 이름(+출생연도)이 하나로 맞는 원생과 연결. 지우거나 새로 만들지는 않음. 형제·가족·회비 기록은 회원 id로 이어져 있어서 그대로.
+async function rosterFollow(env, force) {
+  const mark = await one(env, "SELECT data FROM docs WHERE path = 'snapshots/roster-follow'"), last = J(mark && mark.data, {});
+  if (!force && last.at && last.at > Date.now() - 10 * 60e3) return { ok: true, skip: true };
+  const now = Date.now();
+  await run(env, "INSERT INTO docs (path, coll, data, upd, del) VALUES ('snapshots/roster-follow', 'snapshots', ?, ?, 0) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd", JSON.stringify({ ...last, at: now }), now);
+  const r = await team(env, '/ledger/roster', {}); if (!r.ok || !Array.isArray(r.students)) return { ok: false, error: r.error };
+  const byId = new Map(r.students.filter(x => x.id).map(x => [x.id, x]));
+  const rows = (await all(env, "SELECT path, data FROM docs WHERE coll = 'members' AND del = 0")).map(x => ({ path: x.path, d: J(x.data, null) })).filter(x => x.d && x.d.name);
+  const used = new Set(rows.map(x => x.d.sid).filter(Boolean)), log = [];
+  for (const x of rows) {
+    const d = x.d; let up = null;
+    if (!d.sid) {
+      const y = String(d.birthYear || '').slice(0, 4), c = r.students.filter(s => s.id && s.name === d.name && !used.has(s.id));
+      const m = c.length > 1 ? c.filter(s => y && String(s.birth || '').slice(0, 4) === y) : c;
+      if (m.length === 1) { up = { sid: m[0].id }; used.add(m[0].id); }
+    } else {
+      const a = byId.get(d.sid);
+      if (a && a.name && a.name !== d.name) { up = { name: a.name, nameLog: [...(Array.isArray(d.nameLog) ? d.nameLog : []), { from: d.name, to: a.name, at: kstToday() }].slice(-10) }; log.push(d.name + ' → ' + a.name); }
+    }
+    if (up) await run(env, 'UPDATE docs SET data = ?, upd = ? WHERE path = ?', JSON.stringify(merge(d, up)), Date.now(), x.path);
+  }
+  if (log.length) await run(env, "UPDATE docs SET data = ?, upd = ? WHERE path = 'snapshots/roster-follow'", JSON.stringify({ at: now, renamed: [...(last.renamed || []), { at: kstToday(), list: log }].slice(-20) }), Date.now());
+  return { ok: true, renamed: log };
 }
 async function feeNoticeRun(env, force) {
   const today = kstToday(), ym = today.slice(0, 7), key = 'snapshots/feenotice-' + ym;
