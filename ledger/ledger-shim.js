@@ -4,7 +4,7 @@
 // '직원이에요' → 업무 앱 직원 수정에서 '장부 직원 입력'을 켠 직원이 PIN = 'staff'(회원 조회·입력, 관리자 승인 뒤 반영, 합계 없음).
 (function () {
   const API = (window.HAERANG_LEDGER_API || '').replace(/\/$/, '');
-  const TK = 'haerang-ledger-tok', DK = 'haerang-ledger-dev';
+  const TK = 'haerang-ledger-tok', DK = 'haerang-ledger-dev', WK = 'haerang-ledger-who'; // WK: 이 기기에서 고른 이름 (로그아웃 전까지 기억, 2026-11-13)
   const mk = st => ({ get: k => { try { return st.getItem(k) || ''; } catch (_) { return ''; } }, set: (k, v) => { try { v ? st.setItem(k, v) : st.removeItem(k); } catch (_) {} } });
   const LS = mk(window.localStorage), SS = mk(window.sessionStorage); // 기기 등록은 계속, 로그인은 이번에 연 동안만
   let tok = SS.get(TK), since = 0, readable = [];
@@ -87,7 +87,7 @@
   function logout() { const t = tok; tok = ''; SS.set(TK, ''); if (t) fetch(API + '/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tok: t }) }).catch(() => {}); setTimeout(() => location.reload(), 50); }
   window.HL_LOGOUT = logout;
   window.HL_CALL = (path, body) => call(path, body || {}); // 장부 서버의 다른 기능 (예: 5일 회비 안내 미리 보기)
-  window.HL_FORGET = () => { LS.set(DK, ''); logout(); }; // 로그아웃: 이 기기 등록도 풀기
+  window.HL_FORGET = () => { LS.set(DK, ''); LS.set(WK, ''); logout(); }; // 로그아웃: 이 기기 등록·고른 이름도 풀기
 
   async function start() {
     const j = await call('/api/me', {});
@@ -132,15 +132,21 @@
     fetch(API + '/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json()).then(j => {
       if (!j.ok) { msg(j.error || '직원 목록을 불러오지 못했어요'); return; }
       const list = mode === 'owner' ? j.members.filter(m => m.boss) : j.members.filter(m => m.boss || m.ledger);
-      $('hlWho').innerHTML = list.map(m => '<button type="button" data-id="' + m.id + '" style="padding:10px 14px;border:1px solid #d0d5dd;border-radius:99px;background:#fff;font-size:15px">' + m.name.replace(/[<>&"]/g, '') + '</button>').join('');
+      const chip = (m, on) => '<button type="button" data-id="' + m.id + '" style="padding:10px 14px;border:1px solid ' + (on ? '#1E2A3A' : '#d0d5dd') + ';border-radius:99px;background:' + (on ? '#1E2A3A;color:#fff' : '#fff') + ';font-size:15px">' + m.name.replace(/[<>&"]/g, '') + '</button>';
+      const saved = (() => { try { return JSON.parse(LS.get(WK) || '{}')[mode] || ''; } catch (_) { return ''; } })(), pick = list.find(m => m.id === saved);
+      if (pick) { who = pick.id; $('hlWho').innerHTML = chip(pick, true) + '<button type="button" data-other="1" style="padding:10px 6px;border:0;background:none;color:#667085;font-size:14px;text-decoration:underline">다른 이름</button>'; setTimeout(() => $('hlPin').focus(), 50); } // 고른 이름은 그대로, PIN만
+      else $('hlWho').innerHTML = list.map(m => chip(m, false)).join('');
+      $('hlWho').dataset.all = JSON.stringify(list.map(m => ({ id: m.id, name: m.name })));
     }).catch(() => msg('인터넷 연결을 확인해 주세요'));
-    $('hlWho').onclick = e => { const b = e.target.closest('[data-id]'); if (!b) return; who = b.dataset.id; [...$('hlWho').children].forEach(x => { const on = x === b; x.style.background = on ? '#1E2A3A' : '#fff'; x.style.color = on ? '#fff' : ''; }); $('hlPin').focus(); };
+    $('hlWho').onclick = e => { if (e.target.closest('[data-other]')) { who = ''; const l = JSON.parse($('hlWho').dataset.all || '[]'); $('hlWho').innerHTML = l.map(m => '<button type="button" data-id="' + m.id + '" style="padding:10px 14px;border:1px solid #d0d5dd;border-radius:99px;background:#fff;font-size:15px">' + String(m.name).replace(/[<>&"]/g, '') + '</button>').join(''); return; }
+      const b = e.target.closest('[data-id]'); if (!b) return; who = b.dataset.id; [...$('hlWho').children].forEach(x => { const on = x === b; x.style.background = on ? '#1E2A3A' : '#fff'; x.style.color = on ? '#fff' : ''; }); $('hlPin').focus(); };
     const go = async () => {
       msg('');
       if (!who) { msg('이름을 먼저 골라 주세요'); return; }
       const j = await fetch(API + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mid: who, pin: $('hlPin').value, as: mode, dev }) }).then(r => r.json()).catch(() => ({ ok: false, error: '인터넷 연결을 확인해 주세요' }));
       if (!j.ok) { if (j.device) { LS.set(DK, ''); return loginScreen('device'); } msg(j.error || 'PIN이 맞지 않아요'); $('hlPin').value = ''; return; }
       tok = j.tok; SS.set(TK, tok); box.remove();
+      try { const w = JSON.parse(LS.get(WK) || '{}'); w[mode] = who; LS.set(WK, JSON.stringify(w)); } catch (_) {}
       start().catch(e => { alertBox(e && e.message); });
     };
     $('hlGo').onclick = go; $('hlPin').onkeydown = e => { if (e.key === 'Enter') go(); };
