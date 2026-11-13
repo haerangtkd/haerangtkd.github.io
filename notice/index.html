@@ -682,7 +682,7 @@
     if (!evFor(k).length) return '';
     return '<section class="sec" id="secEv"><h2>행사 신청</h2>' + evFor(k).map(ev => {
       const m = (ev.mine || []).find(x => x.kid === k) || {};
-      const st = m.applied ? '<span class="ev-st">' + (m.byStaff ? '도장에서 접수했어요' : '신청했어요') + '</span>' : m.cancel ? '<span class="ev-st c">취소했어요</span>' : !ev.canEdit ? '<span class="ev-st c">신청 마감</span>' : '';
+      const st = m.applied ? '<span class="ev-st">' + (m.byStaff ? '도장에서 접수했어요' : '신청했어요') + '</span>' : m.cancel ? '<span class="ev-st c">' + (m.staffCx ? '도장에서 취소했어요' : '취소했어요') + '</span>' : !ev.canEdit ? '<span class="ev-st c">신청 마감</span>' : '';
       return '<button class="evc" data-ev="' + esc(ev.id) + '"><div class="eh"><b>' + esc(ev.title) + '</b>' + st + '</div><div class="em">' + esc([ev.date ? evDay(ev.date) : '', evPrice(ev), ev.canEdit && ev.close ? evShort(ev.close) + '까지 신청' : ''].filter(Boolean).join(' · ')) + '</div>' + (ev.prep ? '<div class="em">🎒 ' + esc(ev.prep) + '</div>' : '') + (ev.eligText ? '<div class="em">👥 대상 ' + esc(ev.eligText) + '</div>' : '') +
         (!m.applied && ev.canEdit ? '<span class="ack-btn">' + (m.cancel ? '다시 신청하기' : '신청하기') + '</span>' : '') + '</button>';
     }).join('') + '</section>';
