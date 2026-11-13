@@ -643,6 +643,7 @@ async function sync(first) {
   const jn = JSON.stringify(j.joins || []); if (jn !== JSON.stringify(S.joins || [])) { S.joins = j.joins || []; changed = true; }
   if (JSON.stringify(j.cats || null) !== JSON.stringify(S.cats || null)) { S.cats = j.cats || null; changed = true; }
   if (j.egrps) S.egrps = j.egrps;
+  if ('testOnly' in j) S.testOnly = j.testOnly; // 🧪 시험 모드
   if (JSON.stringify(j.outReq || []) !== JSON.stringify(S.outReq || [])) { S.outReq = j.outReq || []; changed = true; }
   if (JSON.stringify(j.delReq || []) !== JSON.stringify(S.delReq || [])) { S.delReq = j.delReq || []; changed = true; }
   const ex = JSON.stringify([j.clean, j.cleanchk, j.roles, j.pkchk]); if (ex !== S._ex) { S._ex = ex; S.clean = j.clean; S.cleanchk = j.cleanchk || []; S.roles = j.roles || []; S.pkchk = j.pkchk; changed = true; }
@@ -1010,6 +1011,7 @@ function renderHome() {
   $('v-home').innerHTML =
     '<div class="greet"><div><small>' + (+t.slice(5, 7)) + '월 ' + (+t.slice(8)) + '일 ' + wd(t) + '요일</small><b>' + (h < 11 ? '좋은 아침이에요 ☀️' : h < 18 ? '즐거운 오후예요 😊' : '오늘도 수고 많았어요 🌙') + '</b></div></div>' + appsRow() +
     (!pushOk ? '<div class="notice"><b>알림을 켜야 채팅·업무 알림이 와요</b><button class="btn g" id="pushOn">알림 켜기</button></div>' : '') +
+    (S.testOnly && S.testOnly.mid ? '<div class="notice" style="background:#FFF4D6;border-color:#F0C24B"><b>🧪 시험 모드 · 직원 휴대폰 알림은 ' + esc(S.testOnly.name) + '님에게만 가요</b>' + (isBoss() ? '<button class="btn" id="testOff">끄기</button>' : '') + '</div>' : '') +
     (S.bkDue && isBoss() ? '<div class="notice"><b>📦 ' + (+S.bkDue.slice(5)) + '월 백업을 받아 주세요</b><button class="btn g" id="bkGo">백업 받기</button></div>' : '') +
     ((S.joins || []).length ? '<div class="sec joinq"><div class="sh"><h2>들어오려는 사람</h2></div>' + S.joins.map(x => '<div class="mem"><span class="av l" style="background:#9AA1B0">' + esc(avName(x.name)) + '</span><b>' + esc(x.name) + '</b><button class="btn g" data-jok="' + x.id + '">승인</button><button class="btn" data-jno="' + x.id + '">거절</button></div>').join('') + '<p class="help">직원이면 승인해 주세요. 승인하면 그 사람 이름으로 들어가져요.</p></div>' : '') +
     '<div class="kpis"><button data-go="task" data-tk="due"><small>오늘 할 일</small><b>' + todayT.length + '</b>' + (late ? '<em class="r">지난 ' + late + '</em>' : '<em>완료 ' + doneToday.length + '</em>') + '</button>' +
@@ -1049,6 +1051,7 @@ function pkToggle(n) { // 등원·픽업 결석 표시 (꾹 누르기, 2026-11-1
 $('v-home').onclick = async e => {
   if (await onHomeExtra(e)) return;
   if (e.target.id === 'pushOn') return enablePush();
+  if (e.target.id === 'testOff') { if (!confirm('시험 모드를 끌까요? 다시 모든 직원에게 알림이 가요.')) return; const r = await api('/api/test-push', { mid: '' }); if (!r.ok) return toast(r.error || '끄지 못했어요'); S.testOnly = null; toast('시험 모드를 껐어요'); return render(); }
   if (e.target.id === 'bkGo') return backupSheet();
   if (e.target.id === 'pkChk') return pkCheck(false);
   if (e.target.id === 'pkUn') { if (confirm('확인을 취소할까요?')) pkCheck(true); return; }
@@ -2299,9 +2302,13 @@ function catsSheet() {
 async function pushStatusSheet() {
   const j = await api('/api/push-status'); if (!j.ok) return toast(j.error || '불러오지 못했어요');
   const ago = t => { if (!t) return '아직 없음'; const m = Math.round((Date.now() - t) / 60000); return m < 60 ? m + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; };
-  sheet('<h2>직원 알림 상태</h2><p class="help">\'알림 꺼짐\'이면 그 직원 휴대폰 업무 앱(홈 화면에 추가한 앱)에서 대시보드의 \'알림 켜기\'를 눌러야 해요. 알림은 평일 12~22시에만 울려요.</p>' +
+  const tO = j.testOnly && j.testOnly.mid ? j.testOnly.mid : '';
+  sheet('<h2>직원 알림 상태</h2>' +
+    '<div style="border:1px solid #F0C24B;background:#FFF9E8;border-radius:14px;padding:10px 12px;margin:8px 0 12px"><b>🧪 시험 모드</b><p class="help" style="margin:4px 0 8px">켜면 업무 앱 직원 알림(채팅·업무·행사 신청·연락 필요 등)이 고른 한 사람에게만 가요. 시험이 끝나면 꼭 꺼 주세요. 학부모 알림은 그대로예요.</p><div class="chips" id="psT"><button data-tm="" class="' + (tO ? '' : 'on') + '">끔 (모두에게)</button>' + j.list.filter(x => !x.shared).map(x => '<button data-tm="' + esc(x.id) + '" class="' + (tO === x.id ? 'on' : '') + '">' + esc(x.name) + '에게만</button>').join('') + '</div></div>' +
+    '<p class="help">\'알림 꺼짐\'이면 그 직원 휴대폰 업무 앱(홈 화면에 추가한 앱)에서 대시보드의 \'알림 켜기\'를 눌러야 해요. 알림은 평일 12~22시에만 울려요.</p>' +
     j.list.map(x => '<div class="mem"><span class="av l" style="background:' + (x.n ? 'var(--ok)' : '#9AA1B0') + '">' + esc(avName(x.name)) + '</span><b>' + esc(x.name) + (x.shared ? ' <small>(공용)</small>' : '') + '</b><small style="margin-left:auto;text-align:right">' + (x.n ? '알림 켜짐 · 기기 ' + x.n + '대<br>마지막 알림 ' + ago(x.last) : '<span style="color:var(--no)">알림 꺼짐</span>') + '</small></div>').join('') +
-    '<div class="foot"><span class="sp"></span><button id="psBack">닫기</button></div>', ov => { ov.querySelector('#psBack').onclick = () => settingsSheet(); });
+    '<div class="foot"><span class="sp"></span><button id="psBack">닫기</button></div>', ov => { ov.querySelector('#psBack').onclick = () => settingsSheet();
+      ov.querySelector('#psT').onclick = async e => { const b = e.target.closest('[data-tm]'); if (!b) return; const r = await api('/api/test-push', { mid: b.dataset.tm }); if (!r.ok) return toast(r.error || '바꾸지 못했어요'); S.testOnly = r.testOnly; toast(r.testOnly ? '🧪 시험 모드: ' + r.testOnly.name + '님에게만 알림이 가요' : '시험 모드를 껐어요. 다시 모두에게 알림이 가요'); closeSheet(); pushStatusSheet(); render(); }; });
 }
 // 행사 신청 분류 (관리자, 2026-11-13): 이름 + 한국 나이 몇 살~몇 살 → kv 'egrps'
 function egrpSheet() {
