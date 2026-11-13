@@ -465,6 +465,7 @@ async function route(path, req, env) {
       await run(env, 'DELETE FROM acks WHERE post = ?', b.id | 0);
       return json({ ok: true });
     }
+    if (path === '/admin/jtpl') return json(await teamSync(env, '/sync/jtpl', {})); // 알림장 양식 (업무 앱에서 관리)
     if (path === '/admin/posts') {
       const type = POST_TYPES.includes(b.type) ? b.type : 'notice';
       if (type === 'schedule') return json({ ok: true, items: await listSchedule(env, b.month) });
