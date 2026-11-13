@@ -113,6 +113,7 @@ async function setup(env) {
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS msgs_upd ON msgs (upd)').run();
   const mcols = ((await env.DB.prepare('PRAGMA table_info(members)').all()).results || []).map(c => c.name);
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
+  try { await env.DB.prepare('ALTER TABLE subs ADD COLUMN last INTEGER').run(); } catch (_) {} // 마지막으로 알림이 간 때 (2026-11-13)
   if (!mcols.includes('asrc')) { try { await env.DB.prepare('ALTER TABLE members ADD COLUMN asrc TEXT').run(); } catch (_) {} } // 출석부 PIN(암호화 값)을 마지막으로 가져온 것
   // boss: 직원 관리 권한(이사범님) · role: 직책 · mustpin: 처음 들어오면 PIN 바꾸기 · aid: 출석부 사범님 id · shared: 공용 계정
   for (const [c, t] of [['boss', 'INTEGER DEFAULT 0'], ['role', 'TEXT'], ['mustpin', 'INTEGER DEFAULT 0'], ['aid', 'TEXT'], ['shared', 'INTEGER DEFAULT 0'], ['ledger', 'INTEGER DEFAULT 0']])
@@ -168,7 +169,8 @@ async function renameMember(env, id, from, to) {
 
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); await runReminders(env); await runHeld(env); await runPushQueue(env); await runTimed(env); try { await rosterFollow(env); } catch (_) {} })().catch(() => {})); },
+  // 2026-11-13: 하나가 실패해도 나머지는 돌게 각각 따로, 시간이 정해진 알림(runTimed)을 먼저
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, rosterFollow]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -262,10 +264,17 @@ async function route(path, req, env, ctx) {
         const what = '🎯 ' + kid + ' 미션 했어요: ' + str(d.title, 60) + (b.rel ? ' (' + str(b.rel, 10) + ')' : '');
         await addLog(env, '', 'hw', what, id);
         await run(env, 'INSERT INTO pushq (text, at) VALUES (?, ?)', what, Date.now());
+        ctx.waitUntil(runPushQueue(env).catch(() => {})); // 바로 알림 (2026-11-13)
       }
       return json({ ok: true });
     }
-    if (path === '/sync/esign-set') return json(await esignSet(env, b, kids));
+    if (path === '/sync/join-alert') { // 학부모 앱 새 가입 요청 → 직원 모두에게 바로 (2026-11-13)
+      const who = (Array.isArray(b.kids) ? b.kids : []).map(x => str(x, 20)).join('·') + ' ' + str(b.rel, 10);
+      await addLog(env, '', 'home', '👪 학부모 가입 요청: ' + who + (b.matched === false ? ' (번호 다름)' : '') + ' · 알림 관리에서 승인해 주세요', '');
+      ctx.waitUntil(pushAll(env, '', '👪 학부모 가입 요청', who + ' · 알림 관리 → 명단에서 승인해 주세요', 'home').catch(() => {}));
+      return json({ ok: true });
+    }
+    if (path === '/sync/esign-set') { const r = await esignSet(env, b, kids); ctx.waitUntil(runPushQueue(env).catch(() => {})); return json(r); } // 바로 알림 (2026-11-13)
     return json({ ok: false, error: 'not found' }, 404);
   }
   if (!path.startsWith('/api/')) return json({ ok: true, app: '해랑 업무' });
@@ -383,6 +392,10 @@ async function route(path, req, env, ctx) {
     const r = await noticeSync(env, '/sync/kiosk-multi', { on: !!b.on }); if (!r.ok) return json(r);
     await run(env, "INSERT INTO kv (k, v) VALUES ('kioskMulti', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0');
     return json({ ok: true });
+  }
+  if (path === '/api/push-status') { // 관리자: 직원마다 알림 켠 기기 수 · 마지막으로 알림이 간 때 (2026-11-13)
+    const nb = needBoss(); if (nb) return nb;
+    return json({ ok: true, list: await all(env, 'SELECT m.id, m.name, m.shared, COUNT(s.ep) AS n, MAX(s.last) AS last, MAX(s.created) AS reg FROM members m LEFT JOIN subs s ON s.mid = m.id GROUP BY m.id ORDER BY m.shared, m.name') });
   }
   if (path === '/api/egrps-set') { // 행사 신청 대상 분류 (관리자, 2026-11-13)
     const nb = needBoss(); if (nb) return nb;
@@ -924,14 +937,18 @@ async function pushTo(env, subs, title, body, view, now) {
   const tab = { chat: 'chat', notice: 'chat', sched: 'cal', event: 'table', buy: 'table', home: 'home', pickup: 'home', todo: 'home' }[view] || 'log';
   const payload = JSON.stringify({ title, body, url: SITE + '/team/#' + tab, tag: 'team-' + Date.now() });
   let sent = 0;
-  await Promise.all(subs.slice(0, 12).map(async s => {
+  // 사람마다 가장 최근 기기 2대까지만 (예전 기기가 쌓여 12대 제한에 다른 직원이 밀리던 것, 무료 CPU 한도도 아낌 — 2026-11-13)
+  const per = new Map(); [...subs].sort((a, b) => (b.created || 0) - (a.created || 0)).forEach(s => { const l = per.get(s.mid) || []; if (l.length < 2) l.push(s); per.set(s.mid, l); });
+  const pick = [...per.values()].flat().slice(0, 12), okEps = [];
+  await Promise.all(pick.map(async s => {
     try {
       const aud = new URL(s.ep).origin;
       if (!auths.has(aud)) auths.set(aud, vapidHeader(s.ep, vapid));
       const res = await webPush({ endpoint: s.ep, p256dh: s.p256, auth: s.auth }, payload, await auths.get(aud));
-      if (res.status === 404 || res.status === 410) await run(env, 'DELETE FROM subs WHERE ep = ?', s.ep); else if (res.ok) sent++;
+      if (res.status === 404 || res.status === 410) await run(env, 'DELETE FROM subs WHERE ep = ?', s.ep); else if (res.ok) { sent++; okEps.push(s.ep); }
     } catch (_) {}
   }));
+  if (okEps.length) try { await run(env, 'UPDATE subs SET last = ? WHERE ep IN (' + okEps.map(() => '?').join(',') + ')', Date.now(), ...okEps); } catch (_) {} // 마지막으로 알림이 간 때 (설정 '직원 알림 상태')
   return { sent, total: subs.length };
 }
 
@@ -1188,7 +1205,7 @@ async function runHeld(env) {
   }
 }
 async function runPushQueue(env) {
-  if (!canRing()) return;
+  if (!staffHours()) return; // 2026-11-13 사용자 요청: 쉬는 시간까지 기다리지 않고 직원 알림 시간(평일 12~22시) 안이면 바로
   const q0 = await all(env, 'SELECT id, text FROM pushq ORDER BY id LIMIT 50'); if (!q0.length) return;
   await run(env, 'DELETE FROM pushq WHERE id <= ?', q0[q0.length - 1].id);
   const body = q0.length === 1 ? q0[0].text : q0.slice(0, 3).map(x => x.text).join('\n') + (q0.length > 3 ? '\n외 ' + (q0.length - 3) + '건' : '');
