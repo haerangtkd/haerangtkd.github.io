@@ -348,6 +348,12 @@ async function route(path, req, env, ctx) {
       ctx.waitUntil(pushAll(env, '', '👪 학부모 가입 요청', who + ' · 알림 관리 → 명단에서 승인해 주세요', 'home').catch(() => {}));
       return json({ ok: true });
     }
+    if (path === '/sync/kid-ok') { // 🥋 제자 모드 들어감 — 직원이 자기 PIN으로 확인 (2026-11-14)
+      const t = str(b.staff, 20) + '님이 ' + str(b.kid, 20) + ' 제자 모드를 승인했어요';
+      await addLog(env, '', 'home', '🥋 ' + t, '');
+      ctx.waitUntil(pushAll(env, '', '🥋 제자 모드 승인', t, 'home').catch(() => {}));
+      return json({ ok: true });
+    }
     if (path === '/sync/esign-set') { const r = await esignSet(env, b, kids); ctx.waitUntil(runPushQueue(env).catch(() => {})); return json(r); } // 바로 알림 (2026-11-13)
     return json({ ok: false, error: 'not found' }, 404);
   }
