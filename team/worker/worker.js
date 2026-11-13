@@ -228,7 +228,7 @@ async function route(path, req, env, ctx) {
       if (!name) return json({ ok: false, error: '이름이 없어요' });
       await run(env, 'INSERT INTO contracts (id, kind, name, birth, data, sign, at, sid, upd, del) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, 0)', id, rec.kind === 'adult' ? 'adult' : 'kid', name, str(rec.birth, 10), JSON.stringify(rec), String(b.sign || ''), now, now);
       await addLog(env, '', 'doc', '📝 새 등록 서류: ' + name + ' (' + (rec.kind === 'adult' ? '중고등·성인' : '초등부') + ' · ' + str(rec.type, 10) + ')', id);
-      ctx.waitUntil(pushAll(env, '', '📝 새 등록 서류', name + ' 서류가 들어왔어요. 더보기 → 등록 서류에서 확인해 주세요', 'more').catch(() => {}));
+      ctx.waitUntil((async () => pushTo(env, await all(env, 'SELECT s.* FROM subs s JOIN members m ON m.id = s.mid WHERE m.boss = 1'), '📝 새 등록 서류', name + ' 서류가 들어왔어요. 더보기 → 등록 서류에서 확인해 주세요', 'more'))().catch(() => {})); // 관리자에게만
       return json({ ok: true, id });
     }
     if (path === '/sync/kiosk-repeat') { // 태블릿 두 번째 등·하원 (여러 번 허용일 때) → 맞는지 확인할 일
@@ -416,6 +416,7 @@ async function route(path, req, env, ctx) {
     return json({ ok: true });
   }
   // ── 등록 서류 (태블릿 상담 모드) ──
+  if (path.startsWith('/api/contract') && !me.boss) return json({ ok: false, error: '등록 서류는 관리자만 볼 수 있어요' }, 403); // 2026-11-13 사용자 요청
   if (path === '/api/contracts') {
     const L = await all(env, 'SELECT id, kind, name, birth, data, at, sid FROM contracts WHERE del = 0 ORDER BY at DESC LIMIT 300');
     return json({ ok: true, items: L.map(r => { const d = J(r.data, {}); return { id: r.id, kind: r.kind, name: r.name, birth: r.birth, at: r.at, sid: r.sid || '', type: d.type || '', signer: d.signer || '', signerRel: d.signerRel || '', photoNo: !!d.photoNo }; }), fees: J((await one(env, "SELECT v FROM kv WHERE k = 'cfees'") || {}).v, null) });
@@ -576,7 +577,7 @@ async function route(path, req, env, ctx) {
     const bkYm = addDays(td, 1).slice(8) === '01' ? td.slice(0, 7) : td.slice(8) <= '10' ? addDays(td.slice(0, 8) + '01', -1).slice(0, 7) : ''; // 말일 ~ 다음 달 10일
     const bkDue = me.boss && bkYm && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + bkYm)) ? bkYm : '';
     return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean),
-      msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0, esigns, notice: J(kv('notice'), null),
+      msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: me.boss ? ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0 : 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
       items: items.map(i => ({ id: i.id, type: i.type, del: !!i.del, upd: i.upd, mid: i.mid, ...J(i.data, {}) })).map(i => canSee(i, me) ? i : { id: i.id, type: i.type, del: true, upd: i.upd }).filter(i => !(first && i.del)),
@@ -737,7 +738,7 @@ async function route(path, req, env, ctx) {
     const d = {}; for (const w of ['월', '화', '수', '목', '금']) d[w] = (Array.isArray(b.def && b.def[w]) ? b.def[w] : []).map(x => str(x, 20)).filter(Boolean).slice(0, 60);
     await run(env, "INSERT INTO kv (k, v) VALUES ('pickupDefault', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(d));
     if (b.times && typeof b.times === 'object') { // 요일별 데리러 가는 시간 {월: {이름: '13:30'}}
-      const t = {}; for (const w of ['월', '화', '수', '목', '금']) { t[w] = {}; for (const n of d[w]) { const v = String((b.times[w] || {})[n] || ''); if (/^\d{2}:\d{2}$/.test(v)) t[w][n] = v; } }
+      const t = {}; for (const w of ['월', '화', '수', '목', '금']) { t[w] = {}; for (const [n, x] of Object.entries(b.times[w] || {}).slice(0, 100)) { const v = String(x || ''); if (/^\d{2}:\d{2}$/.test(v)) t[w][str(n, 20)] = v; } } // 기본 명단에 없는 제자도 시간 저장 (대시보드 '픽업 수정', 2026-11-13)
       await run(env, "INSERT INTO kv (k, v) VALUES ('pickupTimes', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(t));
     }
     return json({ ok: true });
