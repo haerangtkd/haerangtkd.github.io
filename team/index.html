@@ -1449,11 +1449,12 @@ const onDay = (x, d) => x.start ? x.start <= d && d <= (x.due || x.start) : x.du
 // 반복 일정: 첫 날부터 반복 규칙대로 (끝나는 날까지)
 function schedOn(x, d) {
   if (!x.date) return false; if (x.date === d) return true;
+  if (x.ds && x.end && x.date <= d && d <= x.end) return true; // 📣 도장 일정이 여러 날이면 그 기간 모든 날에
   if (!x.repeat || d < x.date || (x.repEnd && d > x.repEnd)) return false;
   let n = x.date; for (let i = 0; i < 800 && n && n < d; i++) n = nextDue(n, x.repeat); return n === d;
 }
 // 📣 도장 일정 = 알림 관리 일정표 (학부모 앱에 뜨는 일정, 업무 앱에선 보기만 · 2026-11-13 사용자 결정)
-const dsItems = () => (S.dsched || []).map(x => ({ type: 'sched', ds: true, id: 'ds' + x.id, dsid: x.id, title: '📣 ' + x.title, date: x.date, memo: x.body, kind: x.kind, ev: x.ev, color: '#B42318' }));
+const dsItems = () => (S.dsched || []).map(x => ({ type: 'sched', ds: true, id: 'ds' + x.id, dsid: x.id, title: '📣 ' + x.title, date: x.date, end: x.end || '', memo: x.body, kind: x.kind, ev: x.ev, color: '#B42318' }));
 const getIt = id => S.items.get(id) || dsItems().find(x => x.id === id);
 async function loadDs() { if (S.dsAt && Date.now() - S.dsAt < 180000) return; S.dsAt = Date.now(); const t = today(); const j = await api('/api/dsched', { from: addDays(t, -120), to: addDays(t, 400) }).catch(() => ({ ok: false })); if (j.ok) { S.dsched = j.items; S.dsErr = ''; } else S.dsErr = j.error || '불러오지 못했어요'; if (S.tab === 'home' || S.tab === 'cal') render(); }
 function dsSheet(x) {
