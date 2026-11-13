@@ -84,8 +84,9 @@ async function route(path, req, env) {
     // 업무 앱 '원생' 메뉴: 명단 보기·등록·회원 상태·임시변경 (출석부와 같은 원생 기록을 씀)
     if (path === '/sync/students') {
       const rows = await all(env, 'SELECT id, data, upd FROM students');
-      const day = kstDay(), att = await all(env, "SELECT sid FROM att WHERE day = ? AND r = 'o'", day);
-      return json({ ok: true, day, students: rows.map(r => ({ id: r.id, upd: r.upd, ...J(r.data, {}) })), here: att.map(r => r.sid) });
+      const day = kstDay(), att = await all(env, "SELECT sid, r FROM att WHERE day = ? AND r IN ('o', 'x')", day), ab = await all(env, 'SELECT sid FROM absences WHERE date = ?', day);
+      const here = att.filter(r => r.r === 'o').map(r => r.sid), absent = [...new Set([...att.filter(r => r.r === 'x'), ...ab].map(r => r.sid))].filter(id => !here.includes(id)); // 결석 = 출석부 '결석' + 미리 연락 온 결석 (2026-11-13)
+      return json({ ok: true, day, students: rows.map(r => ({ id: r.id, upd: r.upd, ...J(r.data, {}) })), here, absent });
     }
     if (path === '/sync/student-save') {
       const cur = b.student && b.student.id ? await one(env, 'SELECT upd, data FROM students WHERE id = ?', str(b.student.id, 60)) : null;
