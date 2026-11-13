@@ -1,1 +1,244 @@
-
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>해랑경희 제자</title>
+<meta name="theme-color" content="#A40F16">
+<link rel="manifest" href="kids.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="해랑 제자">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<!-- 🥋 제자 모드 (2026-11-14 사용자 요청): 관장님이 도장에서 넣어 준 개인 코드로만 들어옴. 학부모 앱과 같은 알림 서버(/k/…)를 씀.
+     생일 축하 · 내 띠 · 출석 불꽃 · 오늘의 미션 · 오늘의 운동 · 내 성장 기록 · 배지 · 명예의 전당(최우수 수련생·대회·선범단) · 선범단방(선범단만) -->
+<style>
+  :root{--brand:#A40F16;--ink:#1C1A19;--muted:#7A736E;--bg:#FFF8EF;--card:#fff;--line:#F0E6DA;--gold:#F2B705}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Pretendard Variable',Pretendard,system-ui,sans-serif}
+  button{font:inherit;color:inherit;cursor:pointer}
+  .wrap{max-width:520px;margin:0 auto;padding:14px 14px calc(96px + env(safe-area-inset-bottom))}
+  [hidden]{display:none!important}
+  /* 로그인 */
+  .login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+  .login .logo{font-size:64px}.login h1{font-size:26px;margin:8px 0 4px}.login p{color:var(--muted);margin:0 0 20px;line-height:1.6}
+  .login input{width:100%;max-width:320px;font-size:28px;font-weight:900;letter-spacing:6px;text-align:center;text-transform:uppercase;border:3px solid var(--line);border-radius:18px;padding:16px;background:#fff}
+  .login input:focus{outline:none;border-color:var(--brand)}
+  .big{border:0;background:var(--brand);color:#fff;font-size:20px;font-weight:900;border-radius:18px;padding:16px 28px;margin-top:14px;width:100%;max-width:320px}
+  .err{color:#D92D20;font-weight:700;min-height:22px;margin-top:10px}
+  /* 머리 */
+  .hi{display:flex;align-items:center;gap:12px;margin:4px 2px 12px}
+  .hi .av{width:58px;height:58px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:900;flex:none}
+  .hi b{display:block;font-size:24px;font-weight:900}.hi small{color:var(--muted);font-size:14px}
+  .sbtag{display:inline-block;background:linear-gradient(135deg,#F2B705,#E08E00);color:#fff;border-radius:999px;font-size:12px;font-weight:900;padding:3px 9px;margin-left:6px;vertical-align:middle}
+  .card{background:var(--card);border-radius:24px;padding:16px;margin-top:12px;box-shadow:0 2px 0 rgba(164,15,22,.06)}
+  .card h2{font-size:18px;margin:0 0 10px;display:flex;align-items:center;gap:6px}.card h2 small{margin-left:auto;font-size:13px;color:var(--muted);font-weight:600}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.row2 .card{margin-top:0}
+  .row2-wrap{margin-top:12px}
+  /* 띠 */
+  .belt{height:34px;border-radius:8px;position:relative;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12),0 1px 0 rgba(0,0,0,.06);margin:6px 0 10px;overflow:hidden}
+  .belt i{position:absolute;left:0;right:0;top:50%;height:10px;transform:translateY(-50%)}
+  .belt .knot{position:absolute;left:50%;top:-4px;width:30px;height:42px;transform:translateX(-50%);border-radius:6px;background:inherit;box-shadow:0 0 0 2px rgba(0,0,0,.08)}
+  .bname{font-size:26px;font-weight:900;text-align:center}
+  .bar{height:16px;border-radius:999px;background:#F3ECE3;overflow:hidden;margin-top:10px}.bar b{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#F2B705,var(--brand));transition:width 1s}
+  .barl{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:6px;font-weight:700}
+  /* 숫자 카드 */
+  .num{font-size:46px;font-weight:900;line-height:1;letter-spacing:-1px}.num small{font-size:18px;margin-left:2px}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.5}
+  .fire{font-size:30px;display:inline-block;animation:flick 1.2s infinite alternate}
+  @keyframes flick{from{transform:scale(1) rotate(-4deg)}to{transform:scale(1.15) rotate(4deg)}}
+  /* 미션 */
+  .hw{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}.hw:first-of-type{border-top:0}
+  .hw .t{flex:1;min-width:0}.hw .t b{display:block;font-size:16px}.hw .t small{color:var(--muted);font-size:12.5px}
+  .hw button{border:0;border-radius:16px;padding:12px 16px;font-size:16px;font-weight:900;background:#F3ECE3;color:var(--ink);white-space:nowrap}
+  .hw button.on{background:#1E9E5A;color:#fff}
+  /* 오늘의 운동 */
+  .today .tags{display:flex;flex-wrap:wrap;gap:8px}.today .tags span{background:#FFF0E0;color:#9A4A12;border-radius:999px;padding:8px 14px;font-weight:800;font-size:15px}
+  .focus{margin-top:12px;background:linear-gradient(135deg,#E4F4ED,#D2EEE2);border-radius:16px;padding:12px 14px}.focus small{color:#2F6B55;font-weight:800;font-size:12.5px}.focus b{display:block;font-size:19px;margin-top:2px}
+  /* 성장 */
+  .grow{display:flex;align-items:center;gap:14px}.grow .num{font-size:40px}
+  .up{display:inline-block;background:var(--brand);color:#fff;border-radius:999px;padding:4px 12px;font-weight:900;font-size:15px}
+  .best{display:inline-block;background:var(--gold);color:#5A3B00;border-radius:999px;padding:4px 12px;font-weight:900;font-size:13px;margin-left:6px;animation:shine 1.6s infinite}
+  @keyframes shine{50%{filter:brightness(1.25)}}
+  /* 배지 */
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .bd{text-align:center;font-size:11.5px;font-weight:800;color:var(--ink);line-height:1.3}
+  .bd .ic{width:58px;height:58px;margin:0 auto 4px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:radial-gradient(circle at 30% 30%,#FFF6D6,#F7D774);box-shadow:0 3px 0 #D9A80B}
+  .bd.off{color:#B5ADA5}.bd.off .ic{background:#EFE9E2;box-shadow:none;filter:grayscale(1);opacity:.55}
+  /* 명예의 전당 */
+  .bestg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bestg div{background:#FFF7E6;border-radius:16px;padding:10px 12px}.bestg small{display:block;color:#9A6A12;font-size:12px;font-weight:800}.bestg b{font-size:17px}
+  .bestg div.me{background:linear-gradient(135deg,#F2B705,#E08E00);color:#fff}.bestg div.me small{color:#fff}
+  .comp{padding:10px 0;border-top:1px dashed var(--line)}.comp:first-of-type{border-top:0}.comp b{font-size:16px}.comp small{color:var(--muted);margin-left:6px}
+  .medals{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.medals span{background:#F7F2EC;border-radius:999px;padding:5px 10px;font-size:13.5px;font-weight:700}.medals span.me{background:#FFE7A3}
+  .mon{font-size:13px;font-weight:900;color:var(--brand);margin:12px 0 2px}
+  .sbl{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.sbl div{display:flex;align-items:center;gap:8px;background:#FFF7E6;border-radius:14px;padding:8px 10px}.sbl div.me{outline:3px solid var(--gold)}
+  .sbl i{width:26px;height:12px;border-radius:3px;flex:none;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}.sbl b{font-size:15px}.sbl small{color:var(--muted);font-size:12px;margin-left:auto}
+  /* 선범단방 */
+  .post{background:#fff;border-radius:18px;padding:12px 14px;margin-top:10px}.post .h{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}.post .h b{color:var(--ink);font-size:15px}.post p{margin:6px 0 0;font-size:16px;line-height:1.55;white-space:pre-wrap;word-break:break-all}
+  .post .x{margin-left:auto;border:0;background:none;color:#B5ADA5;font-size:13px}
+  .write{display:flex;gap:8px;margin-top:12px}.write textarea{flex:1;border:2px solid var(--line);border-radius:16px;padding:12px;font:inherit;font-size:16px;resize:none;min-height:56px;background:#fff}
+  .write button{border:0;background:var(--brand);color:#fff;border-radius:16px;padding:0 18px;font-weight:900;font-size:16px}
+  .lock{text-align:center;padding:30px 10px}.lock div{font-size:54px}.lock b{display:block;font-size:20px;margin-top:8px}.lock p{color:var(--muted);line-height:1.6}
+  .empty{color:var(--muted);text-align:center;padding:14px 0;font-size:14px}
+  /* 아래 메뉴 */
+  .nav{position:fixed;left:0;right:0;bottom:0;background:#fff;display:flex;justify-content:center;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+  .nav button{flex:1;max-width:160px;border:0;background:none;border-radius:16px;padding:8px 4px;font-size:13px;font-weight:800;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+  .nav button span{font-size:26px}.nav button.on{background:#FFF0E0;color:var(--brand)}
+  /* 생일 */
+  .bday{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(40,10,10,.55)}
+  .bday .box{position:relative;z-index:2;background:#fff;border-radius:28px;padding:26px 22px;text-align:center;width:min(86vw,360px);animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+  .bday .box div{font-size:72px}.bday .box b{display:block;font-size:26px;margin-top:6px}.bday .box p{color:var(--muted);line-height:1.6;margin:8px 0 0}
+  @keyframes pop{from{transform:scale(.4);opacity:0}}
+  #fx{position:fixed;inset:0;z-index:51;pointer-events:none}
+  .out{display:block;margin:22px auto 0;border:0;background:none;color:#B5ADA5;font-size:13px;text-decoration:underline}
+</style>
+</head>
+<body>
+<section class="login" id="vLogin" hidden>
+  <div class="logo">🥋</div>
+  <h1>해랑경희 제자</h1>
+  <p>관장님께 받은 <b>나만의 코드</b>를 넣어요</p>
+  <input id="code" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="코드">
+  <button class="big" id="go">들어가기</button>
+  <div class="err" id="err"></div>
+</section>
+<div class="wrap" id="vApp" hidden><div id="body"></div><button class="out" id="out">이 기기에서 나가기</button></div>
+<nav class="nav" id="nav" hidden><button data-v="home" class="on"><span>🏠</span>나의 수련</button><button data-v="fame"><span>🏆</span>명예의 전당</button><button data-v="room"><span>💬</span>선범단방</button></nav>
+<canvas id="fx" hidden></canvas>
+<script src="config.js"></script>
+<script>
+  const API = window.HAERANG_PUSH_API || '', TK = 'haerang-kid-tok', $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const store = { get: k => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } }, set: (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (_) {} } };
+  const post = async (path, body = {}) => { try { return await (await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tok: store.get(TK), ...body }) })).json(); } catch (_) { return { ok: false, error: '인터넷 연결을 확인해 주세요' }; } };
+  const WD = ['일', '월', '화', '수', '목', '금', '토'];
+  const callName = n => { n = String(n || '').trim(); const g = n.length >= 4 ? n.slice(2) : n.length === 3 ? n.slice(1) : n; const c = g.charCodeAt(g.length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 > 0 ? g + '이' : g; };
+  const voc = n => { const g = firstName(n), c = g.charCodeAt(g.length - 1) - 0xAC00; return g + (c >= 0 && c <= 11171 && c % 28 > 0 ? '아' : '야'); }; // 해랑아 · 서아야
+  const firstName = n => { n = String(n || '').trim(); return n.length >= 3 ? n.slice(1) : n; };
+  let D = null, view = 'home', plan = null, toastT;
+  // ── 띠 (해랑경희 띠 순서, 2026-10 사용자 정리) ──
+  const BELTS = ['흰띠', '노란줄띠', '노란띠', '초록줄띠', '초록띠', '초록검은띠', '보라띠', '보라검은띠', '파란띠', '파란검은띠', '주황띠', '주황검은띠', '분홍띠', '밤띠', '빨간띠', '1품', '2품', '3품', '4품'];
+  const BC = { 흰: '#FFFFFF', 노란: '#F6C21C', 초록: '#2E9E4F', 보라: '#7B4FB8', 파란: '#2F6FDE', 주황: '#F08A24', 분홍: '#F07AA8', 밤: '#6B3E26', 빨간: '#D92D20' };
+  function beltStyle(b) {
+    b = String(b || ''); if (/품/.test(b)) return { bg: 'linear-gradient(180deg,#D92D20 50%,#1C1A19 50%)', st: '' };
+    const k = Object.keys(BC).find(x => b.startsWith(x)); const base = k ? BC[k] : '#EEE';
+    if (/줄띠/.test(b)) return { bg: '#FFFFFF', st: base }; if (/검은띠/.test(b)) return { bg: base, st: '#1C1A19' }; return { bg: base, st: '' };
+  }
+  const beltHtml = b => { const s = beltStyle(b); return '<div class="belt" style="background:' + s.bg + (s.bg === '#FFFFFF' ? ';outline:2px solid #EEE6DC' : '') + '">' + (s.st ? '<i style="background:' + s.st + '"></i>' : '') + '<span class="knot" style="background:' + s.bg + '"></span></div>'; };
+  const beltDot = b => { const s = beltStyle(b); return '<i style="background:' + (s.st ? 'linear-gradient(180deg,' + s.bg + ' 35%,' + s.st + ' 35% 65%,' + s.bg + ' 65%)' : s.bg) + (s.bg === '#FFFFFF' ? ';outline:1px solid #DDD' : '') + '"></i>'; };
+  // ── 로그인 ──
+  async function login() {
+    const code = $('code').value.trim(); if (code.length < 6) { $('err').textContent = '코드를 끝까지 넣어 주세요'; return; }
+    $('go').disabled = true; const j = await post('/k/login', { code }); $('go').disabled = false;
+    if (!j.ok) { $('err').textContent = j.error || '다시 해 주세요'; return; }
+    store.set(TK, j.tok); $('code').value = ''; start();
+  }
+  $('go').onclick = login; $('code').onkeydown = e => { if (e.key === 'Enter') login(); };
+  $('out').onclick = async () => { if (!confirm('이 기기에서 나갈까요? 다시 들어오려면 관장님께 코드를 받아야 해요.')) return; await post('/k/logout'); store.set(TK, ''); location.reload(); };
+  function showLogin() { $('vLogin').hidden = false; $('vApp').hidden = true; $('nav').hidden = true; }
+  async function start() {
+    if (!store.get(TK)) return showLogin();
+    $('vLogin').hidden = true; $('vApp').hidden = false; $('nav').hidden = false;
+    if (!D) $('body').innerHTML = '<div class="empty">불러오는 중…</div>';
+    const [j] = await Promise.all([post('/k/home'), loadPlan()]);
+    if (!j.ok) { if (j.out) { store.set(TK, ''); return showLogin(); } $('body').innerHTML = '<div class="empty">' + esc(j.error || '불러오지 못했어요') + '</div>'; return; }
+    D = j; draw(); bdayCheck();
+  }
+  async function loadPlan() { // 수련 계획(오늘의 운동·이번 주 수련 주제): 알림 관리에서 고친 것 → 없으면 홈페이지 자료
+    if (plan) return; let p = null; const r = await post('/pub/plan'); if (r && r.ok && r.plan) p = r.plan;
+    if (!p) try { const d = await (await fetch('../data.json?t=' + Date.now(), { cache: 'no-store' })).json(); p = d.monthly || {}; } catch (_) { p = {}; }
+    plan = p;
+  }
+  // ── 그리기 ──
+  function draw() { $('body').innerHTML = view === 'home' ? home() : view === 'fame' ? fame() : room(); [...$('nav').children].forEach(b => b.classList.toggle('on', b.dataset.v === view)); if (view === 'room' && D.sb) loadRoom(); }
+  $('nav').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; view = b.dataset.v; scrollTo(0, 0); draw(); };
+  function evStat(ev, rec) {
+    const r = (rec || {})[ev.name] || {}, ms = ev.months.filter(m => r[m] != null).map(m => ({ m, v: r[m] })), sc = ms.filter(x => x.v != null && typeof x.v !== 'object');
+    if (!ms.length) return null; let best = sc[0] || null; sc.forEach(x => { if (ev.lower ? +x.v < +best.v : +x.v > +best.v) best = x; });
+    const last = sc[sc.length - 1] || null, prev = sc[sc.length - 2] || null;
+    return { ms, sc, best, last, d: last && prev ? (ev.lower ? +prev.v - +last.v : +last.v - +prev.v) : 0, isBest: !!(last && best && last.m === best.m && sc.length > 1) };
+  }
+  const f1 = v => (Math.round(+v * 10) / 10).toString();
+  function badges() {
+    const a = D.att || {}, mine = (D.comps || []).flatMap(c => (c.rows || []).filter(r => r.name === D.name)), bestMe = (D.best || []).some(q => Object.values(q.g || {}).includes(D.name));
+    const grew = (D.events || []).some(e => { const s = evStat(e, D.rec); return s && s.sc.length > 1 && s.best && s.sc[0] !== s.best; });
+    const hwDone = (D.hw || []).some(h => (h.chk || []).some(c => c.kid === D.name));
+    return [['🌱', '첫 출석', a.total >= 1], ['🔟', '출석 10일', a.total >= 10], ['💪', '출석 30일', a.total >= 30], ['🏅', '출석 50일', a.total >= 50], ['💯', '출석 100일', a.total >= 100], ['👑', '출석 200일', a.total >= 200],
+      ['🔥', '4주 연속', a.streak >= 4], ['☄️', '12주 연속', a.streak >= 12], ['📈', '기록 갱신', grew], ['✅', '미션 완료', hwDone], ['🥋', '대회 출전', mine.length > 0], ['🥇', '금메달', mine.some(r => r.medal === '금')],
+      ['🏆', '최우수 수련생', bestMe], ['⭐', '선범단', !!D.sb]];
+  }
+  function home() {
+    const nm = firstName(D.name), today = D.today, dow = WD[new Date(today + 'T00:00:00Z').getUTCDay()], a = D.att || {};
+    const bi = BELTS.indexOf(D.belt), next = bi >= 0 && bi < BELTS.length - 1 ? BELTS[bi + 1] : '';
+    let h = '<div class="hi"><span class="av">' + esc(nm.slice(0, 1)) + '</span><div><b>안녕, ' + esc(nm) + '! 👋' + (D.sb ? '<span class="sbtag">⭐ 선범단</span>' : '') + '</b><small>' + (+today.slice(5, 7)) + '월 ' + (+today.slice(8)) + '일 ' + dow + '요일 · 오늘도 기합 크게!</small></div></div>';
+    // 내 띠
+    h += '<section class="card"><h2>🥋 내 띠</h2>' + (D.belt ? beltHtml(D.belt) + '<div class="bname">' + esc(D.belt) + '</div>' +
+      (next ? '<div class="bar"><b style="width:' + (D.beltPct != null ? D.beltPct : 0) + '%"></b></div><div class="barl"><span>' + (D.beltPct != null ? '다음 띠까지 ' + D.beltPct + '% 왔어요' : '열심히 하면 다음 띠!') + '</span><span>다음: ' + esc(next) + '</span></div>' : '<p class="sub" style="text-align:center">최고의 띠예요! 멋져요 👏</p>')
+      : '<p class="sub">사범님이 곧 띠를 넣어 주실 거예요</p>') + '</section>';
+    // 출석 · 성장
+    const ev = [...(D.events || [])].reverse().find(e => evStat(e, D.rec)), st = ev ? evStat(ev, D.rec) : null;
+    h += '<div class="row2 row2-wrap"><section class="card"><h2>🔥 출석</h2><div class="num">' + (a.streak || 0) + '<small>주</small> <span class="fire">' + (a.streak ? '🔥' : '🌱') + '</span></div><div class="sub">' + (a.streak ? a.streak + '주 연속으로 왔어요!' : '이번 주에 오면 불꽃이 켜져요') + '<br>이번 달 <b>' + (a.month || 0) + '일</b> · 지금까지 <b>' + (a.total || 0) + '일</b></div></section>' +
+      '<section class="card"><h2>📈 내 기록</h2>' + (st && st.last ? '<div class="sub" style="margin:0 0 4px">' + esc(ev.name) + '</div><div class="num" style="font-size:38px">' + f1(st.last.v) + '<small>' + esc(ev.unit) + '</small></div><div style="margin-top:8px">' + (st.d > 0 ? '<span class="up">' + (ev.lower ? '−' : '+') + f1(st.d) + ' ▲</span>' : '') + (st.isBest ? '<span class="best">⭐ 최고 기록</span>' : '') + (!(st.d > 0) && !st.isBest ? '<span class="sub">다음엔 더 잘할 수 있어!</span>' : '') + '</div>' : '<div class="sub">매달 첫째 주 금요일에 성장 측정을 해요</div>') + '</section></div>';
+    // 오늘의 미션
+    const td = today, hw = (D.hw || []).filter(x => (x.kids || []).includes(D.name));
+    h += '<section class="card"><h2>✅ 오늘의 미션</h2>' + (hw.length ? hw.map(x => { const daily = x.mode === 'daily', can = !daily || (td >= x.start && td <= x.end), done = (x.chk || []).some(c => c.kid === D.name && (daily ? c.day === td : true));
+      return '<div class="hw"><div class="t"><b>' + esc(x.title) + '</b><small>' + (daily ? '매일 · ' + (x.chk || []).filter(c => c.kid === D.name).length + '일 했어요' : x.end ? (+x.end.slice(5, 7)) + '/' + (+x.end.slice(8)) + '까지' : '') + '</small></div>' + (can ? '<button data-hw="' + esc(x.id) + '" class="' + (done ? 'on' : '') + '">' + (done ? '✓ 했어요!' : daily ? '오늘 했어요' : '했어요') + '</button>' : '') + '</div>'; }).join('') : '<div class="empty">지금은 미션이 없어요 😊</div>') + '</section>';
+    // 오늘의 운동
+    const th = ((plan || {}).weekday || {})[dow] || [], fc = ((plan || {}).focus || []).find(x => x.date <= today && today <= (x.end || x.date));
+    h += '<section class="card today"><h2>📅 오늘의 운동</h2>' + (th.length ? '<div class="tags">' + th.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '<div class="sub">' + (dow === '일' || dow === '토' ? '즐거운 주말! 월요일에 만나요 ☺' : '오늘의 운동을 준비 중이에요') + '</div>') +
+      (fc ? '<div class="focus"><small>이번 주 수련 주제</small><b>' + esc(fc.title) + '</b></div>' : '') + '</section>';
+    // 배지
+    const B = badges(), got = B.filter(x => x[2]).length;
+    h += '<section class="card"><h2>🏅 내 배지<small>' + got + ' / ' + B.length + '</small></h2><div class="badges">' + B.map(([ic, t, on]) => '<div class="bd' + (on ? '' : ' off') + '"><div class="ic">' + ic + '</div>' + esc(t) + '</div>').join('') + '</div></section>';
+    return h;
+  }
+  function fame() {
+    const me = D.name, q = (D.best || [])[(D.best || []).length - 1];
+    let h = '<div class="hi"><span class="av" style="background:var(--gold)">🏆</span><div><b>명예의 전당</b><small>해랑경희의 멋진 제자들</small></div></div>';
+    h += '<section class="card"><h2>🏆 최우수 수련생' + (q ? '<small>' + q.q.slice(0, 4) + '년 ' + q.q.slice(5) + '분기</small>' : '') + '</h2>' + (q ? '<div class="bestg">' + ['중고등부 남', '중고등부 여', '초등부 남', '초등부 여', '유치부 남', '유치부 여'].filter(k => (q.g || {})[k]).map(k => '<div class="' + (q.g[k] === me ? 'me' : '') + '"><small>' + k + '</small><b>' + esc(q.g[k]) + (q.g[k] === me ? ' 🎉' : '') + '</b></div>').join('') + '</div>' : '<div class="empty">곧 발표돼요! 누가 될까요? 👀</div>') + '</section>';
+    const C = [...(D.comps || [])].sort((a, b) => b.date.localeCompare(a.date)), md = { 금: '🥇', 은: '🥈', 동: '🥉', 참가: '🎽' };
+    let cm = ''; h += '<section class="card"><h2>🥇 대회 기록</h2>' + (C.length ? C.map(c => { const m = c.date.slice(0, 7), head = m !== cm ? '<div class="mon">' + (+m.slice(5)) + '월</div>' : ''; cm = m;
+      return head + '<div class="comp"><b>' + esc(c.title) + '</b><small>' + (+c.date.slice(5, 7)) + '/' + (+c.date.slice(8)) + '</small><div class="medals">' + (c.rows || []).slice().sort((a, b) => '금은동참가'.indexOf(a.medal) - '금은동참가'.indexOf(b.medal)).map(r => '<span class="' + (r.name === me ? 'me' : '') + '">' + (md[r.medal] || '🎽') + ' ' + esc(r.name) + (r.ev ? ' · ' + esc(r.ev) : '') + '</span>').join('') + '</div></div>'; }).join('') : '<div class="empty">아직 올라온 대회 기록이 없어요</div>') + '</section>';
+    h += '<section class="card"><h2>⭐ 선범단<small>' + (D.sbList || []).length + '명</small></h2><p class="sub" style="margin:0 0 10px">실력보다 다른 친구에게 모범이 되고, 가르쳐 주는 제자가 뽑혀요.</p>' + ((D.sbList || []).length ? '<div class="sbl">' + D.sbList.map(x => '<div class="' + (x.name === me ? 'me' : '') + '">' + beltDot(x.belt) + '<b>' + esc(x.name) + '</b><small>' + esc(x.belt || '') + '</small></div>').join('') + '</div>' : '<div class="empty">곧 발표돼요</div>') + '</section>';
+    return h;
+  }
+  function room() {
+    if (!D.sb) return '<section class="card lock"><div>🔒</div><b>선범단만 들어갈 수 있어요</b><p>다른 친구에게 모범이 되고 도와주면<br>선범단이 될 수 있어요! 화이팅 💪</p></section>';
+    return '<div class="hi"><span class="av" style="background:var(--gold)">⭐</span><div><b>선범단방</b><small>선범단끼리 이야기해요 · 사범님도 함께 봐요</small></div></div>' +
+      '<div class="write"><textarea id="pw" maxlength="300" placeholder="오늘 도장에서 있었던 일, 친구 칭찬을 적어요"></textarea><button id="pSend">올리기</button></div><div id="posts"><div class="empty">불러오는 중…</div></div>';
+  }
+  async function loadRoom() {
+    const j = await post('/k/posts'); if (view !== 'room') return;
+    $('posts').innerHTML = j.ok ? (j.posts.length ? j.posts.map(p => { const d = new Date(p.at + 9 * 3600e3); return '<div class="post"><div class="h"><b>' + esc(p.name) + '</b>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + ' ' + d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2, '0') + (p.name === j.me ? '<button class="x" data-del="' + p.id + '">지우기</button>' : '') + '</div><p>' + esc(p.body) + '</p></div>'; }).join('') : '<div class="empty">첫 글을 올려 보세요! ✍️</div>') : '<div class="empty">' + esc(j.error || '불러오지 못했어요') + '</div>';
+  }
+  $('body').onclick = async e => {
+    const hb = e.target.closest('[data-hw]'); if (hb) { const id = hb.dataset.hw, x = (D.hw || []).find(y => String(y.id) === id), daily = x && x.mode === 'daily', on = !hb.classList.contains('on');
+      if (x) { x.chk = (x.chk || []).filter(c => !(c.kid === D.name && (daily ? c.day === D.today : true))); if (on) x.chk.push({ kid: D.name, day: daily ? D.today : '' }); } draw(); if (on) fx(1200);
+      const j = await post('/k/hw-check', { hw: id, day: D.today, on }); if (!j.ok) { alert(j.error || '잠시 뒤에 다시 해 주세요'); start(); } return; }
+    if (e.target.id === 'pSend') { const t = $('pw').value.trim(); if (!t) return; e.target.disabled = true; const j = await post('/k/post', { body: t }); e.target.disabled = false; if (!j.ok) return alert(j.error || '올리지 못했어요'); $('pw').value = ''; loadRoom(); return; }
+    const d = e.target.closest('[data-del]'); if (d) { if (!confirm('이 글을 지울까요?')) return; await post('/k/post-del', { id: +d.dataset.del }); loadRoom(); }
+  };
+  // ── 🎂 생일 축하 (하루 한 번, 폭죽) ──
+  function bdayCheck() {
+    if (!D.birth || D.birth !== D.today.slice(5) || store.get('haerang-kid-bday') === D.today) return;
+    store.set('haerang-kid-bday', D.today);
+    const el = document.createElement('div'); el.className = 'bday';
+    el.innerHTML = '<div class="box"><div>🎂</div><b>' + esc(voc(D.name)) + ', 생일 축하해!</b><p>해랑경희 사범님들이 온 마음으로 축하해요 🎉<br>오늘 도장에서 크게 기합 넣자!</p><button class="big" style="margin-top:16px">고마워요!</button></div>';
+    el.onclick = e => { if (e.target.closest('button') || e.target === el) el.remove(); }; document.body.appendChild(el); fx(4200);
+  }
+  function fx(ms) { // 폭죽 (색종이)
+    const c = $('fx'), g = c.getContext('2d'), W = c.width = innerWidth * devicePixelRatio, H = c.height = innerHeight * devicePixelRatio; c.hidden = false;
+    const cols = ['#A40F16', '#F2B705', '#2F6FDE', '#2E9E4F', '#F07AA8', '#F08A24'], P = [];
+    for (let b = 0; b < 3; b++) { const x = W * (0.2 + 0.3 * b), y = H * 0.45; for (let i = 0; i < 70; i++) { const a = Math.random() * Math.PI * 2, s = (4 + Math.random() * 9) * devicePixelRatio; P.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 6 * devicePixelRatio, r: (3 + Math.random() * 4) * devicePixelRatio, c: cols[i % 6], t: Math.random() * 6, d: b * 250 }); } }
+    const t0 = performance.now();
+    (function step(now) { const el = now - t0; g.clearRect(0, 0, W, H);
+      P.forEach(p => { if (el < p.d) return; p.vy += .35 * devicePixelRatio; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.t += .2; g.fillStyle = p.c; g.save(); g.translate(p.x, p.y); g.rotate(p.t); g.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); g.restore(); });
+      if (el < ms) requestAnimationFrame(step); else { g.clearRect(0, 0, W, H); c.hidden = true; } })(t0);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && store.get(TK) && D) start(); });
+  start();
+</script>
+</body>
+</html>
