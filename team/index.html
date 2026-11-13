@@ -10,11 +10,11 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default"><!-- 2026-11-13: black-translucent면 아이폰 홈 화면 앱에서 아래 메뉴가 떠 보여서(아래 빈칸) 학부모 앱처럼 default -->
 <meta name="apple-mobile-web-app-title" content="해랑 업무">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-  :root{--sat:max(env(safe-area-inset-top),var(--satjs,0px))} /* 아이폰 홈 화면 앱에서 위쪽 높이가 0으로 오는 때가 있어 기종별 높이로 대신 (2026-11-13) */
+  :root{--sat:env(safe-area-inset-top,0px)} /* 2026-11-13 오후: 상태 표시줄 default로 바꿔서 기종별 높이 대신 쓰기는 없앰 */
   :root{--brand:#0D326F;--brand2:#09244F;--brand3:#1E4C97;--soft:#E8EEF8;--soft2:#D3DEF1;--red:#A40F16;--ink:#1D2330;--muted:#7B8294;--paper:#F3F5F9;--card:#fff;--line:#E2E6EE;--chip:#EEF1F6;--ok:#1E8A5A;--okbg:#DDF3E7;--no:#C62828;--nobg:#FCE4E4;--org:#E0861F;--yel:#FFF5D9}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
@@ -489,20 +489,6 @@
 </style>
 </head>
 <body>
-<script>
-(function () { // 아이폰 홈 화면 앱: 시계·배터리 줄 높이(safe-area)가 0으로 오면 기종에 맞게 비워 둠
-  var ios = /iPhone|iPod/.test(navigator.userAgent), st = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
-  if (!ios || !st) return;
-  function fix() {
-    var p = document.createElement('div'); p.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
-    document.body.appendChild(p); var h = p.getBoundingClientRect().height; p.remove();
-    var H = Math.max(screen.height, screen.width), fb = H >= 852 ? 59 : H >= 812 ? 47 : 20;
-    document.documentElement.style.setProperty('--satjs', (h > 0 ? 0 : fb) + 'px');
-  }
-  fix(); addEventListener('resize', fix); addEventListener('orientationchange', function () { setTimeout(fix, 300); });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(fix, 100); });
-})();
-</script>
 
 <section class="login" id="loginView" hidden>
   <img src="icon-192.png" alt="">
@@ -656,6 +642,7 @@ async function sync(first) {
   let changed = false, newIn = false;
   const jn = JSON.stringify(j.joins || []); if (jn !== JSON.stringify(S.joins || [])) { S.joins = j.joins || []; changed = true; }
   if (JSON.stringify(j.cats || null) !== JSON.stringify(S.cats || null)) { S.cats = j.cats || null; changed = true; }
+  if (j.egrps) S.egrps = j.egrps;
   if (JSON.stringify(j.outReq || []) !== JSON.stringify(S.outReq || [])) { S.outReq = j.outReq || []; changed = true; }
   if (JSON.stringify(j.delReq || []) !== JSON.stringify(S.delReq || [])) { S.delReq = j.delReq || []; changed = true; }
   const ex = JSON.stringify([j.clean, j.cleanchk, j.roles, j.pkchk]); if (ex !== S._ex) { S._ex = ex; S.clean = j.clean; S.cleanchk = j.cleanchk || []; S.roles = j.roles || []; S.pkchk = j.pkchk; changed = true; }
@@ -698,7 +685,7 @@ function setBadge() {
   S.logN = ln; const bd = $('bellDot'); if (bd) { bd.hidden = !ln; bd.textContent = ln > 99 ? '99+' : ln; }
 }
 // 화면을 보고 있을 때만 새 내용 받기 (채팅방 4초, 다른 화면 15초)
-let pollT; function poll() { clearTimeout(pollT); pollT = setTimeout(async () => { if (!document.hidden && S.tok) await sync(); poll(); }, S.tab === 'room' || S.tab === 'chat' ? 4000 : 15000); }
+let pollT; function poll() { clearTimeout(pollT); pollT = setTimeout(async () => { if (!document.hidden && S.tok) { await sync(); if (S.tab === 'home') loadCneed(); } poll(); }, S.tab === 'room' || S.tab === 'chat' ? 4000 : 15000); }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.tok) { sync(); poll(); } });
 if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'push') sync(); });
 
@@ -931,7 +918,7 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'] };
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '📒', '숙제'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
+const SHORT = [['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -945,7 +932,12 @@ function pickupCard() {
 }
 // 첫 화면 두 번째 줄: 원생 · 오늘 출석(출석부) · 학부모 앱 가입 승인 대기 · 학부모 앱 행사 신청
 // 출석부 '연락 필요' (2026-11-13): 긴급 카드 (모두에게, 출석부에서 출석·결석을 넣으면 사라짐)
+async function loadCneed() { // 대시보드를 보는 동안 20초마다 (출석부에서 출석·결석을 넣으면 바로 사라지게)
+  if (S.cnAt && Date.now() - S.cnAt < 20000) return; S.cnAt = Date.now();
+  const j = await api('/api/cneed'); if (!j.ok) return; const v = JSON.stringify(j.list); if (v !== JSON.stringify(S.cneed || [])) { S.cneed = j.list; if (S.tab === 'home') render(); }
+}
 function cneedCard() {
+  loadCneed();
   const L = S.cneed || []; if (!L.length) return '';
   return '<div class="sec blink cnd"><div class="sh"><h2>🚨 긴급 · 연락 필요 <em>' + L.length + '</em></h2></div>' + L.map(x => '<div class="cnr" data-kid="' + esc(x.sid) + '"><div><b>' + esc(x.name) + '</b> 학생이나 부모님께 연락이 필요해요' +
     '<small>' + esc([x.day !== today() ? md(x.day) : '', x.why, x.who ? x.who + ' (출석부)' : ''].filter(Boolean).join(' · ')) + '</small></div><span class="lbtn">연락처 ›</span></div>').join('') + '<p class="hint">연락한 뒤 출석부에서 출석·결석을 넣으면 사라져요</p></div>';
@@ -1546,6 +1538,10 @@ const catOf = x => x.type === 'buy' ? 'buy' : x.kind === 'goods' ? 'goods' : 'ev
 const tableItems = () => [...itemsOf('event'), ...itemsOf('buy')];
 // 0원 행사(참가비·품목 값이 모두 0원)는 결제 칸을 안 보여 줌
 const isFree = x => !(+x.base) && !(x.products || []).some(p => +p.p);
+// 행사 신청 대상 분류 (관리자가 설정에서 고침, 한국 나이) · 대상 글 (2026-11-13)
+const EGRP0 = [{ n: '유치부', a: 5, b: 7 }, { n: '초등부', a: 8, b: 13 }, { n: '중등부', a: 14, b: 16 }, { n: '고등부', a: 17, b: 19 }];
+const egrps = () => (S.egrps && S.egrps.length ? S.egrps : EGRP0);
+const eligTxt = e => !e || !e.mode || e.mode === 'all' ? '' : e.mode === 'age' ? (e.from || '') + '~' + (e.to || '') + '살' : (e.grps || []).join('·');
 // 지급 칸: 물품 신청은 늘, 행사는 '나눠 줄 것이 있어요'를 켰을 때만 (예전 행사는 지급 체크가 하나라도 있으면) — 2026-11-13
 const giveOn = x => x.give != null ? !!x.give : (x.kind === 'goods' || (x.rows || []).some(r => r.given));
 function tableStat(x) {
@@ -1568,7 +1564,7 @@ const onDash = x => catOf(x) === 'event' || !!x.dash; // 행사는 항상, 물�
 function tableCard(x) {
   const c = catOf(x), st = tableStat(x), t = today(), ns = signsOf(x.id).filter(y => y.state === '' && !y.cancel).length;
   return '<div class="tc" data-id="' + x.id + '"><div class="h"><span class="bdg ' + (x.closed ? 'done' : c) + '">' + (x.closed ? '완료 · ' : '') + CAT[c] + '</span>' + (x.date && !x.closed ? '<span class="dd' + (x.date < t ? ' over' : '') + '">' + dday(x.date) + '</span>' : '') + '</div>' +
-    '<b>' + esc(x.title) + '</b>' + (x.pub ? ' <span class="tag g">학부모 앱 신청</span>' : '') + (ns ? ' <span class="tag r">새 신청 ' + ns + '</span>' : '') + ((S.delReq || []).some(r => r.id === x.id) ? ' <span class="tag r">삭제 승인 대기</span>' : '') + (x.date ? '<div class="dt">' + fullDate(x.date) + '</div>' : '') + '<div class="ct">' + st.line + '</div>' +
+    '<b>' + esc(x.title) + '</b>' + (x.pub ? ' <span class="tag g">학부모 앱 신청</span>' : '') + (ns ? ' <span class="tag r">새 신청 ' + ns + '</span>' : '') + ((S.delReq || []).some(r => r.id === x.id) ? ' <span class="tag r">삭제 승인 대기</span>' : '') + (x.date ? '<div class="dt">' + fullDate(x.date) + (eligTxt(x.elig) ? ' · 대상 ' + esc(eligTxt(x.elig)) : '') + '</div>' : eligTxt(x.elig) ? '<div class="dt">대상 ' + esc(eligTxt(x.elig)) + '</div>' : '') + '<div class="ct">' + st.line + '</div>' +
     '<div class="pg"><i class="' + (st.pct >= 100 ? 'full' : '') + '" style="width:' + st.pct + '%"></i></div></div>';
 }
 function renderTable() {
@@ -1595,7 +1591,7 @@ function openTable(it0, isNew) { if (!it0) return; if (it0.type === 'buy') retur
 
 // 행사표 만들기·설정 (행사명, 날짜, 품목·금액, 선택 항목, 체크 칸, 하원차)
 function eventSetup(ev0, isNew) {
-  const ev = JSON.parse(JSON.stringify(ev0)), goods = ev.kind === 'goods';
+  const ev = JSON.parse(JSON.stringify(ev0)), goods = ev.kind === 'goods', elg = JSON.parse(JSON.stringify(ev.elig || { mode: 'all' }));
   sheet('<h2>' + (isNew ? (goods ? '새 물품 신청표' : '새 행사 신청표') : '신청표 설정') + '</h2>' +
     '<label class="f">' + (goods ? '이름' : '행사명') + '</label><input class="inp" id="eT" value="' + esc(ev.title) + '" placeholder="' + (goods ? '예: 품도복 구매' : '예: 해랑경희데이') + '">' +
     '<label class="f">종류</label><div class="chips" id="eK"><button data-k="" class="' + (!goods ? 'on' : '') + '">🎟 행사</button><button data-k="goods" class="' + (goods ? 'on' : '') + '">👕 물품 신청</button></div>' +
@@ -1610,11 +1606,16 @@ function eventSetup(ev0, isNew) {
     '<div id="ePubBox"' + (goods ? ' hidden' : '') + ' style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin-top:14px"><label class="ck" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:15px;font-weight:700"><input type="checkbox" id="ePub"' + (ev.pub ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 학부모 앱에서 신청 받기</label>' +
     '<div id="ePubF"' + (ev.pub ? '' : ' hidden') + '><p class="help">학부모 앱 첫 화면에 \'신청하기\'가 떠요. 위의 품목·선택 항목·하원차를 학부모님이 직접 골라요. 금액은 보이지만 결제 여부는 안 보여요.</p>' +
     '<label class="f">신청 시작일 ~ 마감일 (마감일까지는 학부모님이 앱에서 취소할 수 있어요)</label><div class="row"><input type="date" class="inp" id="eOpen" style="min-width:0" value="' + esc(ev.openAt || today()) + '"><input type="date" class="inp" id="eClose" style="min-width:0" value="' + esc(ev.closeAt || '') + '"></div><p class="help">마감일을 비워 두면 행사 전날까지 받아요.</p>' +
-    '<label class="f">학부모님께 보일 안내 (시간·준비물 등)</label><textarea class="inp" id="eDesc" rows="3" maxlength="1000">' + esc(ev.desc || '') + '</textarea></div></div>' +
+    '<label class="f">학부모님께 보일 안내 (시간 등)</label><textarea class="inp" id="eDesc" rows="3" maxlength="1000">' + esc(ev.desc || '') + '</textarea>' +
+    '<label class="f">신청 대상 (대상이 아닌 가정에는 학부모 앱에 안 보여요)</label><div class="chips" id="eEm">' + [['all', '모두'], ['age', '나이로'], ['grp', '분류로']].map(([k, t]) => '<button data-em="' + k + '" class="' + (elg.mode === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
+    '<div id="eEAge"' + (elg.mode === 'age' ? '' : ' hidden') + '><div class="row" style="align-items:center;gap:6px;margin-top:8px"><input class="inp" id="eEf" inputmode="numeric" maxlength="2" style="width:70px;min-width:0" value="' + esc(elg.from || '') + '"><span>살부터</span><input class="inp" id="eEt" inputmode="numeric" maxlength="2" style="width:70px;min-width:0" value="' + esc(elg.to || '') + '"><span>살까지 (한국 나이)</span></div></div>' +
+    '<div id="eEGrp"' + (elg.mode === 'grp' ? '' : ' hidden') + '><div class="chips" id="eEg" style="margin-top:8px">' + egrps().map(g => '<button data-eg="' + esc(g.n) + '" class="' + ((elg.grps || []).includes(g.n) ? 'on' : '') + '">' + esc(g.n) + ' <small>' + g.a + '~' + g.b + '살</small></button>').join('') + '</div><p class="help">여러 개 고를 수 있어요. 분류를 더 만들거나 나이를 바꾸려면 관리자가 설정 → 행사 신청 분류에서 해요.</p></div></div></div>' +
     '<div class="foot">' + (!isNew ? '<button class="del" id="eX">삭제</button>' : '') + '<span class="sp"></span><button data-close>취소</button><button class="save" id="eOk">' + (isNew ? '만들기' : '저장') + '</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
     g('eK').onclick = e => { const b = e.target.closest('button'); if (!b) return; ev.kind = b.dataset.k; g('eK').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); g('ePubBox').hidden = ev.kind === 'goods'; g('eDashL').style.display = ev.kind === 'goods' ? 'flex' : 'none'; if (ev.kind === 'goods') g('eG').checked = true; };
     g('ePub').onchange = () => { g('ePubF').hidden = !g('ePub').checked; };
+    g('eEm').onclick = e => { const b = e.target.closest('[data-em]'); if (!b) return; elg.mode = b.dataset.em; g('eEm').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); g('eEAge').hidden = elg.mode !== 'age'; g('eEGrp').hidden = elg.mode !== 'grp'; };
+    g('eEg').onclick = e => { const b = e.target.closest('[data-eg]'); if (!b) return; const n = b.dataset.eg; elg.grps = (elg.grps || []).includes(n) ? elg.grps.filter(x => x !== n) : [...(elg.grps || []), n]; b.classList.toggle('on'); };
     if (!isNew) g('eX').onclick = async () => { if (await delItem(ev)) closeSheet(); };
     if (isNew) setTimeout(() => g('eT').focus(), 60);
     g('eOk').onclick = async () => {
@@ -1624,6 +1625,9 @@ function eventSetup(ev0, isNew) {
       ev.options = g('eO').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const [n, c] = l.split(/[:：]/); let ch = (c || '').split(/[,，]/).map(x => x.trim()).filter(Boolean); if (!ch.length && /사이즈/.test(n)) for (let s = 90; s <= 190; s += 10) ch.push(String(s)); return { n: n.trim(), c: ch }; });
       ev.checks = g('eC').value.split(/[,，]/).map(x => x.trim()).filter(Boolean);
       ev.prep = g('ePrep').value.trim(); ev.give = g('eG').checked;
+      if (elg.mode === 'age') { elg.from = +g('eEf').value || 0; elg.to = +g('eEt').value || 0; if (!elg.from && !elg.to) return toast('몇 살부터 몇 살까지인지 적어 주세요'); if (elg.from && elg.to && elg.from > elg.to) return toast('나이 순서를 확인해 주세요'); }
+      if (elg.mode === 'grp' && !(elg.grps || []).length) return toast('신청 대상 분류를 골라 주세요');
+      ev.elig = elg.mode === 'all' ? null : elg.mode === 'age' ? { mode: 'age', from: elg.from, to: elg.to } : { mode: 'grp', grps: elg.grps };
       ev.van = g('eV').checked; ev.rows = ev.rows || []; ev.dash = ev.kind === 'goods' && g('eDash').checked;
       ev.pub = ev.kind !== 'goods' && g('ePub').checked; ev.openAt = g('eOpen').value; ev.closeAt = g('eClose').value; ev.desc = g('eDesc').value.trim();
       if (ev.pub && ev.closeAt && ev.openAt && ev.closeAt < ev.openAt) return toast('마감일이 시작일보다 빨라요');
@@ -1668,7 +1672,7 @@ function eventSheet(ev0) {
       '<h3>댓글 ' + cms.length + '</h3>' + cmList(cms) + '<div class="row" style="margin-top:8px"><input class="inp" id="evC" placeholder="댓글 달기"><button class="btn g" id="evCo">등록</button></div>';
     return body();
   };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(ev.title) + '</h2><span class="bdg ' + catOf(ev) + '" style="background:rgba(255,255,255,.18);color:#fff">' + CAT[catOf(ev)] + '</span></div><p class="help">' + [ev.date ? fullDate(ev.date) + ' · ' + dday(ev.date) : '', isFree(ev) ? '무료' : (ev.products || []).length ? ev.products.map(p => p.n + (+p.p ? ' ' + won(p.p) : '')).join(' / ') : '기본 ' + won(ev.base)].filter(Boolean).join(' · ') + '</p>' + (ev.prep ? '<p class="help">🎒 준비물: ' + esc(ev.prep) + '</p>' : '') + '<div id="evBody">' + draw() + '</div>', ov => {
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(ev.title) + '</h2><span class="bdg ' + catOf(ev) + '" style="background:rgba(255,255,255,.18);color:#fff">' + CAT[catOf(ev)] + '</span></div><p class="help">' + [ev.date ? fullDate(ev.date) + ' · ' + dday(ev.date) : '', isFree(ev) ? '무료' : (ev.products || []).length ? ev.products.map(p => p.n + (+p.p ? ' ' + won(p.p) : '')).join(' / ') : '기본 ' + won(ev.base)].filter(Boolean).join(' · ') + '</p>' + (ev.prep ? '<p class="help">🎒 준비물: ' + esc(ev.prep) + '</p>' : '') + (eligTxt(ev.elig) ? '<p class="help">👥 신청 대상: ' + esc(eligTxt(ev.elig)) + '</p>' : '') + '<div id="evBody">' + draw() + '</div>', ov => {
     ov.classList.add('full');
     const redraw = () => { draw(); S._evDraw(); };
     ov.addEventListener('click', async e => {
@@ -2260,6 +2264,20 @@ function catsSheet() {
       await sync(); toast('저장했어요' + (j.moved ? ' · 업무 ' + j.moved + '개 이름도 바꿨어요' : '')); settingsSheet(); };
   });
 }
+// 행사 신청 분류 (관리자, 2026-11-13): 이름 + 한국 나이 몇 살~몇 살 → kv 'egrps'
+function egrpSheet() {
+  const L = egrps().map(g => ({ ...g }));
+  sheet('<h2>행사 신청 분류</h2><p class="help">행사 설정의 \'신청 대상 → 분류로\'에 나오는 목록이에요. 나이는 한국 나이(올해 연도 - 태어난 해 + 1)로 맞춰요.</p><div id="egL"></div><button class="big" id="egAdd">+ 분류 추가</button><div class="foot"><span class="sp"></span><button id="egBack">취소</button><button class="save" id="egOk">저장</button></div>', ov => {
+    const g = id => ov.querySelector('#' + id);
+    const keep = () => ov.querySelectorAll('.egr').forEach(r => { const x = L[+r.dataset.i]; x.n = r.querySelector('[data-k=n]').value.trim(); x.a = +r.querySelector('[data-k=a]').value || 0; x.b = +r.querySelector('[data-k=b]').value || 0; });
+    const draw = () => { g('egL').innerHTML = L.map((x, i) => '<div class="ptc egr" data-i="' + i + '"><div class="row" style="align-items:center;gap:6px"><input class="inp" data-k="n" maxlength="12" value="' + esc(x.n) + '" placeholder="분류 이름" style="flex:1;min-width:0"><input class="inp" data-k="a" inputmode="numeric" maxlength="2" value="' + (x.a || '') + '" style="width:56px;min-width:0"><span>~</span><input class="inp" data-k="b" inputmode="numeric" maxlength="2" value="' + (x.b || '') + '" style="width:56px;min-width:0"><span>살</span><button class="lbtn" data-x="' + i + '">✕</button></div></div>').join(''); };
+    draw();
+    g('egL').onclick = e => { const b = e.target.closest('[data-x]'); if (!b) return; keep(); L.splice(+b.dataset.x, 1); draw(); };
+    g('egAdd').onclick = () => { keep(); L.push({ n: '', a: 20, b: 99 }); draw(); const ins = ov.querySelectorAll('.egr [data-k=n]'); ins[ins.length - 1].focus(); };
+    g('egBack').onclick = () => settingsSheet();
+    g('egOk').onclick = async () => { keep(); if (L.some(x => x.n && (!x.a || !x.b || x.a > x.b))) return toast('나이를 확인해 주세요'); const j = await api('/api/egrps-set', { grps: L.filter(x => x.n) }); if (!j.ok) return toast(j.error || '저장하지 못했어요'); S.egrps = j.grps; toast('저장했어요'); settingsSheet(); };
+  });
+}
 // 알림장 양식 (2026-11-13): 직원 누구나 고침 → 알림 관리 '알림장 쓰기'에서 고름
 async function jtplSheet() {
   const j = await api('/api/jtpl'); if (!j.ok) return toast(j.error || '불러오지 못했어요');
@@ -2296,7 +2314,7 @@ function ptplSheet() {
   });
 }
 
-// ═════════ 숙제 (필수 아님 · 학부모님이 '했어요' 체크) ═════════
+// ═════════ 미션 (필수 아님 · 학부모님이 '했어요' 체크) ═════════
 const hwAll = () => [...S.hw.values()].filter(h => !h.del).sort((a, b) => (b.start || '').localeCompare(a.start || ''));
 function hwStat(h) {
   const tgt = (h.kids || []).length ? h.kids : S.roster, n = tgt.length, kidsDone = new Set(h.chk.map(c => c.kid));
@@ -2306,15 +2324,15 @@ function hwStat(h) {
 function hwListSheet() {
   loadRoster().then(() => { if (document.querySelector('#hwL')) draw(); });
   const draw = () => { const el = document.querySelector('#hwL'); if (!el) return; const t = today(), L = hwAll();
-    el.innerHTML = L.map(h => { const st = hwStat(h), past = h.end && h.end < t; return '<div class="hwr' + (past ? ' past' : '') + '" data-hw="' + h.id + '"><b>' + esc(h.title) + '</b><small>' + (h.mode === 'daily' ? '매일 · ' + md(h.start) + '~' + md(h.end) : h.end ? md(h.end) + '까지' : md(h.start) + '부터') + ((h.kids || []).length ? ' · ' + h.kids.length + '명' : ' · 모두') + '</small><span>' + st.line + '</span></div>'; }).join('') || '<p class="empty">올린 숙제가 없어요</p>'; };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>숙제</h2><button class="btn g" id="hwNew">+ 숙제 올리기</button></div><p class="help">필수는 아니에요. 학부모님이 앱에서 \'했어요\'를 누르면 여기에 보여요.</p><div id="hwL"></div>', ov => {
+    el.innerHTML = L.map(h => { const st = hwStat(h), past = h.end && h.end < t; return '<div class="hwr' + (past ? ' past' : '') + '" data-hw="' + h.id + '"><b>' + esc(h.title) + '</b><small>' + (h.mode === 'daily' ? '매일 · ' + md(h.start) + '~' + md(h.end) : h.end ? md(h.end) + '까지' : md(h.start) + '부터') + ((h.kids || []).length ? ' · ' + h.kids.length + '명' : ' · 모두') + '</small><span>' + st.line + '</span></div>'; }).join('') || '<p class="empty">올린 미션이 없어요</p>'; };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>미션</h2><button class="btn g" id="hwNew">+ 미션 올리기</button></div><p class="help">필수는 아니에요. 학부모님이 앱에서 \'했어요\'를 누르면 여기에 보여요.</p><div id="hwL"></div>', ov => {
     ov.classList.add('full'); draw();
     ov.onclick = e => { if (e.target.id === 'hwNew') return hwEdit(null); const r = e.target.closest('[data-hw]'); if (r) hwDetail(r.dataset.hw); };
   });
 }
 function hwEdit(h0) {
   const h = h0 ? JSON.parse(JSON.stringify(h0)) : { title: '', body: '', mode: 'once', start: today(), end: '', kids: [] }; let pickAll = !(h.kids || []).length, notifyOn = !h0;
-  sheet('<h2>' + (h0 ? '숙제 고치기' : '숙제 올리기') + '</h2><label class="f">숙제 이름</label><input class="inp" id="hT" maxlength="60" value="' + esc(h.title) + '" placeholder="예: 추석 동안 어른께 인사하기">' +
+  sheet('<h2>' + (h0 ? '미션 고치기' : '미션 올리기') + '</h2><label class="f">미션 이름</label><input class="inp" id="hT" maxlength="60" value="' + esc(h.title) + '" placeholder="예: 추석 동안 어른께 인사하기">' +
     '<label class="f">설명 (학부모님께 보여요)</label><textarea class="inp" id="hB" rows="3" maxlength="1000">' + esc(h.body) + '</textarea>' +
     '<label class="f">체크 방식</label><div class="chips" id="hM"><button data-m="once" class="' + (h.mode === 'once' ? 'on' : '') + '">한 번만 체크</button><button data-m="daily" class="' + (h.mode === 'daily' ? 'on' : '') + '">기간 동안 매일 체크</button></div>' +
     '<label class="f">시작일 ~ 끝나는 날</label><div class="row"><input type="date" class="inp" id="hS" style="min-width:0" value="' + esc(h.start) + '"><input type="date" class="inp" id="hE" style="min-width:0" value="' + esc(h.end) + '"></div><p class="help" id="hEh"></p>' +
@@ -2328,7 +2346,7 @@ function hwEdit(h0) {
     g('hK').onclick = e => { const b = e.target.closest('[data-all]'); if (!b) return; pickAll = b.dataset.all === '1'; g('hK').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); drawK(); };
     g('hKL').onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; const n = b.dataset.n; h.kids = h.kids.includes(n) ? h.kids.filter(x => x !== n) : [...h.kids, n]; b.classList.toggle('on'); };
     g('hBack').onclick = () => hwListSheet();
-    if (g('hX')) g('hX').onclick = async () => { if (!confirm('이 숙제를 지울까요?')) return; await api('/api/hw-del', { id: h.id }); await sync(); hwListSheet(); };
+    if (g('hX')) g('hX').onclick = async () => { if (!confirm('이 미션을 지울까요?')) return; await api('/api/hw-del', { id: h.id }); await sync(); hwListSheet(); };
     g('hOk').onclick = async () => {
       h.title = g('hT').value.trim(); h.body = g('hB').value.trim(); h.start = g('hS').value; h.end = g('hE').value; if (pickAll) h.kids = [];
       if (!pickAll && !h.kids.length) return toast('대상 제자를 골라 주세요');
@@ -2415,7 +2433,7 @@ function settingsSheet() {
   sheet('<h2>설정</h2><p class="help">' + esc(S.me.name) + '님으로 들어와 있어요.</p>' +
     '<h3>알림</h3>' + (pushOk ? '<p class="help">이 기기에서 알림이 켜져 있어요. 채팅·댓글·체크·수정이 생기면 알림이 와요 (내가 한 건 빼고).</p><button class="big" id="sTest">알림 시험 보내기</button><button class="big" id="sOff">이 기기 알림 끄기</button>' : '<button class="big g" id="sOn">이 기기에서 알림 켜기</button><p class="help">아이폰은 Safari에서 공유 → 홈 화면에 추가로 설치한 뒤, 설치한 앱에서 켜야 알림이 와요.</p>') +
     '<h3>요일별 기본 등원 명단</h3><p class="help">매주 데리러 가는 제자를 요일마다 넣어 두면 홈 등원표에 자동으로 나와요.</p><div id="sDef"></div><button class="big" id="sDefSave">기본 명단 저장</button>' +
-    staffHtml() + dlHtml() + (isBoss() ? '<h3>업무 카테고리</h3><p class="help">업무 탭 묶음(하원·전화업무…)의 순서·이름·색을 정해요.</p><button class="big" id="sCat">업무 카테고리 관리</button>' : '') + (S.me && !S.me.shared ? '<h3>알림장 양식</h3><p class="help">알림 관리 \'알림장 쓰기\'에서 골라 쓰는 양식이에요. {날짜}는 쓰는 날 날짜로 바뀌어요.</p><button class="big" id="sJt">알림장 양식 관리</button>' : '') + cleanHtml() + (isBoss() ? '<h3>등록 서류 비용표</h3><p class="help">태블릿 등록 서류(제자희망서) 아래 비용표 금액이에요.</p><button class="big" id="sFee">비용표 금액 바꾸기</button>' : '') +
+    staffHtml() + dlHtml() + (isBoss() ? '<h3>행사 신청 분류</h3><p class="help">행사 신청 대상을 \'분류로\' 고를 때 쓰는 목록이에요 (한국 나이).</p><button class="big" id="sEg">행사 신청 분류 관리</button>' : '') + (isBoss() ? '<h3>업무 카테고리</h3><p class="help">업무 탭 묶음(하원·전화업무…)의 순서·이름·색을 정해요.</p><button class="big" id="sCat">업무 카테고리 관리</button>' : '') + (S.me && !S.me.shared ? '<h3>알림장 양식</h3><p class="help">알림 관리 \'알림장 쓰기\'에서 골라 쓰는 양식이에요. {날짜}는 쓰는 날 날짜로 바뀌어요.</p><button class="big" id="sJt">알림장 양식 관리</button>' : '') + cleanHtml() + (isBoss() ? '<h3>등록 서류 비용표</h3><p class="help">태블릿 등록 서류(제자희망서) 아래 비용표 금액이에요.</p><button class="big" id="sFee">비용표 금액 바꾸기</button>' : '') +
     '<h3>' + (S.me.shared ? '공용 계정' : '내 PIN') + '</h3>' + (S.me.shared ? '<p class="help">공용 계정 PIN은 관리자만 바꿔요.</p>' : '<button class="big" id="sPin">PIN 바꾸기</button>') + '<button class="big" id="sOut">로그아웃</button>' +
     '<h3>홈 화면 위젯</h3><p class="help">이 앱은 홈 화면 위젯을 만들 수 없어요. 대신 앱 아이콘에 남은 할 일·새 채팅 수가 숫자로 떠요(설치한 앱에서 알림을 켰을 때).</p>' +
     '<div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', async ov => {
@@ -2431,7 +2449,7 @@ function settingsSheet() {
     if (g('sOn')) g('sOn').onclick = async () => { closeSheet(); await enablePush(); };
     if (g('sOff')) g('sOff').onclick = async () => { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) { await api('/api/push', { endpoint: sub.endpoint }); await sub.unsubscribe(); } localStorage.removeItem('haerang-team-push'); closeSheet(); render(); toast('알림을 껐어요'); };
     if (g('sTest')) g('sTest').onclick = async () => { const j = await api('/api/push-test'); toast(j.sent ? '시험 알림을 보냈어요' : '보내지 못했어요. 알림을 다시 켜 주세요'); };
-    staffBind(ov); dlBind(ov); cleanBind(ov); { const jb = ov.querySelector('#sJt'); if (jb) jb.onclick = () => jtplSheet(); const cb = ov.querySelector('#sCat'); if (cb) cb.onclick = () => catsSheet(); }
+    staffBind(ov); dlBind(ov); cleanBind(ov); { const jb = ov.querySelector('#sJt'); if (jb) jb.onclick = () => jtplSheet(); const cb = ov.querySelector('#sCat'); if (cb) cb.onclick = () => catsSheet(); const eb = ov.querySelector('#sEg'); if (eb) eb.onclick = () => egrpSheet(); }
     if (g('sPin')) g('sPin').onclick = async () => { const old = prompt('지금 PIN'); if (!old) return; const pin = prompt('새 PIN (숫자 4~6자리)'); if (!pin) return; const j = await api('/api/member-pin', { old, pin }); toast(j.ok ? 'PIN을 바꿨어요' : j.error); };
     g('sOut').onclick = async () => { if (!confirm('로그아웃할까요?')) return; await api('/api/logout'); logoutLocal(); closeSheet(); };
   });
@@ -2509,7 +2527,7 @@ function backupSheet() {
 }
 // 백업 다시 넣기 (2026-11-13): 2_업무_전체.json · 3_알림_전체.json → 지금 상태를 먼저 받은 뒤에 넣음. PIN·로그인은 그대로.
 const RS_NAME = { team: '업무', notice: '알림' };
-const RS_TBL = { kv: '설정', members: '직원', msgs: '채팅', mhide: '숨긴 채팅', items: '업무·일정·행사', comments: '댓글', pickup: '등원·픽업', photos: '사진', joins: '가입 요청', reminders: '알림 예약', logs: '알림 기록', gdocs: '성장 측정', esign: '행사 신청', cleanchk: '청소 체크', pmsg: '학부모 연락', contracts: '등록 서류', hw: '숙제', hwchk: '숙제 체크', parents: '보호자', kids: '원생', att: '출결', posts: '소식', fees: '회비', reads: '읽음', acks: '확인했어요', famreq: '가족 요청', invites: '초대번호' };
+const RS_TBL = { kv: '설정', members: '직원', msgs: '채팅', mhide: '숨긴 채팅', items: '업무·일정·행사', comments: '댓글', pickup: '등원·픽업', photos: '사진', joins: '가입 요청', reminders: '알림 예약', logs: '알림 기록', gdocs: '성장 측정', esign: '행사 신청', cleanchk: '청소 체크', pmsg: '학부모 연락', contracts: '등록 서류', hw: '미션', hwchk: '미션 체크', parents: '보호자', kids: '원생', att: '출결', posts: '소식', fees: '회비', reads: '읽음', acks: '확인했어요', famreq: '가족 요청', invites: '초대번호' };
 function restoreSheet() {
   if (!isBoss()) return toast('관리자만 할 수 있어요');
   let file = null, st = null;
