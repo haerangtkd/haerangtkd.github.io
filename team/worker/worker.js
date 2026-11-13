@@ -272,6 +272,26 @@ async function route(path, req, env, ctx) {
       await addLog(env, '', 'event', path === '/sync/ev-sched-del' ? '📣 알림 관리에서 \'' + str(b.title, 60) + '\' 일정을 지웠어요 (신청표는 그대로)' : '📣 알림 관리에서 일정을 고쳐 신청표도 바뀜: ' + old + ' → ' + d.title + ' ' + (d.date || ''), str(b.ev, 40));
       return json({ ok: true });
     }
+    if (path === '/sync/grow') { // 학부모 앱 '성장 리포트' (2026-11-14): 내 제자 이름의 성장 측정 기록만 — 결과지가 완성된 달(4가지 평가 + 사범님 한마디)만 보냄
+      const names = (Array.isArray(b.names) ? b.names : []).map(x => str(x, 20)).filter(Boolean).slice(0, 10); if (!names.length) return json({ ok: true, events: [], kids: [] });
+      const gd = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
+      const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {};
+      if (!data || !Array.isArray(data.students)) return json({ ok: true, events: [], kids: [] });
+      const th = st.attTh || {}, hi = +(th.hi ?? 90), mid = +(th.mid ?? 75);
+      const pct = i => (i.an != null && i.an !== '' && +i.at > 0) ? +i.an / +i.at * 100 : (i.rate != null && i.rate !== '') ? +i.rate : null;
+      const bat = c => { const k = c.charCodeAt(c.length - 1) - 0xAC00; return k >= 0 && k <= 11171 && k % 28 > 0; };
+      const callName = n => { n = String(n).trim(); const g = n.length >= 4 ? n.slice(2) : n.length === 3 ? n.slice(1) : n; return g && bat(g) ? g + '이' : g; };
+      const fill = (t, n) => String(t || '').replace(/(\[아이 ?이름\]|\[이름\]|○○|ㅇㅇ)(이(?=[는가를의도랑와한]))?/g, callName(n));
+      const per = await all(env, "SELECT path, data FROM gdocs WHERE path LIKE 'inputs/P%'");
+      const kids = data.students.filter(k => k && names.includes(k.name)).map(k => {
+        const id = k.name + '|' + k.birth, ps = [];
+        per.forEach(r => { const x = ((J(r.data, {}) || {}).kids || {})[id]; if (!x) return; const a = [...(x.att || [null, null, null, null])], p = pct(x); if (p != null) a[1] = p >= hi ? '아주 잘해요' : p >= mid ? '잘해요' : '성장 중이에요';
+          if (a.every(Boolean) && String(x.cm || '').trim()) ps.push({ month: r.path.slice(8), att: a, cm: fill(x.cm, k.name).slice(0, 600), pct: p == null ? null : Math.round(p), an: x.an ?? null, at: x.at ?? null }); });
+        ps.sort((p, q) => p.month.localeCompare(q.month));
+        return { name: k.name, rec: k.rec || {}, periods: ps };
+      });
+      return json({ ok: true, events: (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })), kids });
+    }
     if (path === '/sync/done-events') { // 알림 관리 '알림장 쓰기': 완료한 행사표의 참가자 (2026-11-13 사용자 요청) — 완료한 지 30일 안, 최근 것부터
       const rows = await all(env, "SELECT id, data, upd FROM items WHERE type = 'event' AND del = 0 AND upd > ? ORDER BY upd DESC LIMIT 60", Date.now() - 30 * 864e5);
       return json({ ok: true, events: rows.map(r => ({ id: r.id, upd: r.upd, d: J(r.data, {}) })).filter(x => x.d.closed && x.d.kind !== 'goods').slice(0, 12)
