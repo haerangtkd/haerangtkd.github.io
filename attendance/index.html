@@ -330,6 +330,8 @@ const S = {
   tFilter: '', sel: new Set(), bulkP: '', mSeg: 'list', trF: '전체', month: today().slice(0, 7),
 };
 const stById = id => S.students.find(s => s.id === id);
+S.quiet = new Map(); // 날짜 → 오늘만 등원 알림 안 보낸 제자 id (2026-11-13)
+const isQuiet = (sid, d) => !!(S.quiet.get(d) && S.quiet.get(d).has(sid));
 const dayMap = d => S.att.get(d) || new Map();
 const abKey = (sid, d) => sid + '|' + d;
 
@@ -377,6 +379,7 @@ async function loadMonth(ym, force) {
   for (const r of j.rows) { if (!S.att.has(r.day)) S.att.set(r.day, new Map()); S.att.get(r.day).set(r.sid, r); if (r.tin && (!S.firstTin || r.day < S.firstTin)) S.firstTin = r.day; }
   for (const k of [...S.ab.keys()]) if (k.split('|')[1].startsWith(ym)) S.ab.delete(k);
   for (const a of j.absences) S.ab.set(abKey(a.sid, a.date), a.why || '');
+  for (const [d, ids] of Object.entries(j.quiet || {})) S.quiet.set(d, new Set(ids));
   S.months.add(ym);
 }
 function applyRows(day, rows) { const m = new Map(); for (const r of rows) m.set(r.sid, r); S.att.set(day, m); }
@@ -384,7 +387,7 @@ function applyRows(day, rows) { const m = new Map(); for (const r of rows) m.set
 function mismatch(s, d, c) {
   const r = c.r; if (!S.firstTin || d < S.firstTin || d > today()) return '';
   if (c.k === 'x' && r && r.tin) return 'xin';
-  if (c.k === 'o' && r && !r.tin && r.who !== '예전 출석부' && r.who !== '태블릿') return 'notab';
+  if (c.k === 'o' && r && !r.tin && r.who !== '예전 출석부' && r.who !== '태블릿') return isQuiet(s.id, d) ? '' : 'notab';
   return '';
 }
 
@@ -485,6 +488,7 @@ function rowHtml(s, c) {
   if (mm === 'xin') tags.push('<span class="tag red">결석인데 태블릿 등원 ' + esc(c.r.tin) + '</span>');
   else if (mm === 'notab') tags.push('<span class="tag yel">태블릿 안 누름 · 등원 알림 안 감</span>');
   else if (c.r && c.r.tin) tags.push('<span class="tag grn">태블릿 ' + esc(c.r.tin) + '</span>');
+  else if (c.k === 'o' && isQuiet(s.id, d)) tags.push('<span class="tag">오늘 알림 안 보냄</span>');
   if (c.r && c.r.who && c.r.at && c.r.who !== '태블릿') tags.push('<span class="tag">' + esc(c.r.who) + ' ' + stamp(c.r.at).split(' ')[1] + '</span>');
   let h = '<li data-id="' + s.id + '"><div class="st"><input type="checkbox" class="cb"' + (S.sel.has(s.id) ? ' checked' : '') + '><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc(g.label) + ' · ' + esc(daysLabel(daysOn(s, d))) + '</small>' + (tags.length ? '<div>' + tags.join('') + '</div>' : '') + '</div><div class="acts">' +
     '<button class="ab' + (c.k === 'o' ? ' o' : '') + '" data-a="o">출석</button><button class="ab' + (c.k === 'x' ? ' x' : '') + '" data-a="x">결석</button><button class="ab" data-a="t">임시변경</button></div></div>' + notesRow(s, d);
@@ -529,6 +533,7 @@ $('tList').onclick = async e => {
     }
     if (ask === 'send') { const j = await api('/api/checkin-notify', { sid: s.id }); toast(j.ok ? (j.already ? '이미 등원 알림이 갔어요' : s.name + ' 등원 알림을 보냈어요') : (j.error || '알림을 보내지 못했어요')); }
     if (ask === 'kid') toast(s.name + '에게 태블릿에서 등원을 누르라고 해 주세요');
+    if (ask === 'today') { const j = await api('/api/quiet', { day: d, sids: [s.id] }); if (j.ok) { S.quiet.set(d, new Set(j.sids)); renderToday(); toast(s.name + ' 오늘은 등원 알림을 안 보내요'); } else toast(j.error || '저장하지 못했어요'); }
     return;
   }
   if (a === 'x') {
@@ -542,8 +547,8 @@ $('tList').onclick = async e => {
 function askCheckin(s) {
   return new Promise(res => {
     sheet('<h2>' + esc(s.name) + ' 태블릿 등원을 안 눌렀어요</h2><p class="help">학부모님께 등원 알림을 보낼까요? 출석은 어느 쪽이든 체크돼요.</p>' +
-      '<button class="big" data-ck="send" style="margin-top:12px">등원 알림 보내기</button><button class="big" data-ck="kid">학생이 태블릿에서 직접 누르기</button><button class="big line" data-ck="none">알림은 안 보내도 돼요 (앞으로 안 묻기)</button>' +
-      '<p class="help">\'안 보내도 돼요\'를 누르면 이 제자는 앞으로 이 창이 안 떠요. 바꾸려면 업무 앱 원생 정보 수정에서 \'묻지 않기\'를 꺼 주세요.</p><div class="foot"><span class="sp"></span><button data-close>취소</button></div>', ov => {
+      '<button class="big" data-ck="send" style="margin-top:12px">등원 알림 보내기</button><button class="big" data-ck="kid">학생이 태블릿에서 직접 누르기</button><button class="big line" data-ck="today">오늘만 안 보내기</button><button class="big line" data-ck="none">앞으로 안 묻기 (늘 알림 안 보냄)</button>' +
+      '<p class="help">\'앞으로 안 묻기\'를 누르면 이 제자는 다음부터 이 창이 안 떠요. 바꾸려면 업무 앱 원생 정보 수정에서 \'묻지 않기\'를 꺼 주세요.</p><div class="foot"><span class="sp"></span><button data-close>취소</button></div>', ov => {
       askReason.res = res; // 취소·바깥 누르면 null
       ov.onclick = e => { const b = e.target.closest('[data-ck]'); if (b) { askReason.res = null; closeSheet(true); res(b.dataset.ck); } };
     });
