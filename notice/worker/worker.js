@@ -146,6 +146,7 @@ async function route(path, req, env) {
     const id = rid(8), tok = rid(16);
     await run(env, 'INSERT INTO parents (id, tok, kids, rel, ph, ok, created, ep, p256, auth, inv) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)',
       id, tok, JSON.stringify(kids), rel, ph, Date.now(), sub ? sub.endpoint : null, sub ? sub.keys.p256dh : null, sub ? sub.keys.auth : null, inv || null);
+    try { await teamSync(env, '/sync/join-alert', { kids, rel, matched: tails.size ? tails.has(ph) : null }); } catch (_) {} // 직원에게 바로 알림 (2026-11-13: 가입 요청을 늦게 알던 것)
     return json({ ok: true, token: tok, approved: false });
   }
 
