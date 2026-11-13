@@ -453,7 +453,7 @@ async function route(path, req, env, ctx) {
   if (path === '/api/hw-notify') { // 학부모님께 숙제 알림 (6명씩 나눠서, 화면이 next 로 이어서 부름)
     const h = await one(env, 'SELECT data FROM hw WHERE id = ? AND del = 0', str(b.id, 40)); if (!h) return json({ ok: false, error: '없는 숙제예요' });
     const v = J(h.data, {});
-    return json(await noticeSync(env, '/sync/broadcast', { title: '📒 숙제: ' + v.title, body: (v.mode === 'daily' ? (+v.start.slice(5, 7)) + '/' + (+v.start.slice(8)) + '~' + (+v.end.slice(5, 7)) + '/' + (+v.end.slice(8)) + ' 매일 · ' : '') + (v.body || '해 보면 좋아요. 학부모 앱에서 체크해 주세요').slice(0, 120), children: v.kids, offset: b.offset | 0 }));
+    return json(await noticeSync(env, '/sync/broadcast', { title: '🎯 미션: ' + v.title, body: (v.mode === 'daily' ? (+v.start.slice(5, 7)) + '/' + (+v.start.slice(8)) + '~' + (+v.end.slice(5, 7)) + '/' + (+v.end.slice(8)) + ' 매일 · ' : '') + (v.body || '해 보면 좋아요. 학부모 앱에서 체크해 주세요').slice(0, 120), children: v.kids, offset: b.offset | 0 }));
   }
   if (path === '/api/hw-del') { await run(env, 'UPDATE hw SET del = 1, upd = ? WHERE id = ?', Date.now(), str(b.id, 40)); return json({ ok: true }); }
   if (path === '/api/clean-check') { // 그 주 청소 담당자만 체크
@@ -943,7 +943,7 @@ async function pmsgSend(env, b, kids, ctx) {
   if (!tpl && !text) return { ok: false, error: '보낼 내용을 적어 주세요' };
   const day = isDay(b.day) && b.day >= kstDay() && b.day <= addDays(kstDay(), 60) ? b.day : kstDay(), now = Date.now();
   const who = tpl && tpl.ask === 'who' ? str(b.who, 10) : '', why = tpl && tpl.ask === 'why' ? str(b.why, 30) : '';
-  const label = tpl ? tpl.label : b.family ? '가족 추가 요청' : '직접 쓴 연락';
+  const label = tpl ? tpl.label : b.family ? '가족 추가 요청' : b.dayreq ? '수련 요일 변경 요청' : '직접 쓴 연락';
   if ((await one(env, 'SELECT COUNT(*) AS n FROM pmsg WHERE kid = ? AND at > ?', kid, now - 3600e3)).n >= 10) return { ok: false, error: '연락을 너무 많이 보냈어요. 잠시 뒤에 해 주세요' };
   await run(env, 'INSERT INTO pmsg (kid, kind, label, act, who, why, text, day, rel, at, upd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', kid, tpl ? tpl.id : 'text', label, tpl ? tpl.act : '', who, why, text, day, str(b.rel, 10), now, now);
   const line = kid + ' · ' + label.replace(/오늘 /, day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ') + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text ? ' · ' + text : '');
