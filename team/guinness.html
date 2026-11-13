@@ -456,6 +456,8 @@ async function loadAttStatus(){
 }
 /* 출석부 원생 번호(sid)로 잇기 (2026-11-13): 처음엔 이름+출생연도(같은 이름이 하나면 이름만)로 찾아 sid를 적고,
    그 뒤 출석부에서 이름이 바뀌면 이 결과지의 이름과 그 아이에 묶인 띠·회원 상태·입력 기록 열쇠(이름|출생)도 같이 바꿈 */
+function gradeFromBirth(b){ const y=+String(b||'').slice(0,4); if(!y) return ''; const n=new Date(), sy=n.getMonth()>=2? n.getFullYear() : n.getFullYear()-1, g=sy-y-6;
+  return g<=0? '유치부' : g<=6? '초'+g : g<=9? '중'+(g-6) : g<=12? '고'+(g-9) : '성인'; }
 function followRoster(){
   if(!ATTST || DATA===EMBED || !dbReady) return;
   let linked=0; const renamed=[];
@@ -474,9 +476,20 @@ function followRoster(){
     if(picked.has(oldId)){ picked.delete(oldId); picked.add(newId); }
     renamed.push(k.name+' → '+a.name); k.name=a.name;
   });
-  if(!linked && !renamed.length) return;
+  // 출석부에 새로 들어온 제자(퇴관 빼고)는 성장 측정 명단에도 자동으로 넣음 (2026-11-13)
+  const added=[];
+  ATTST.list.forEach(x=>{
+    if(!x.id || !x.name || x.status==='퇴관') return;
+    if(DATA.students.some(k=>k.sid===x.id)) return;
+    if(DATA.students.some(k=>!k.sid && k.name===x.name)) return; // 이름만 같은 아이가 아직 안 이어졌으면 기다림
+    DATA.students.push({belt0:'',name:x.name,birth:x.birth||'',grade:gradeFromBirth(x.birth),gender:'',status:x.status||'재원',rec:{},sid:x.id});
+    added.push(x.name);
+  });
+  if(added.length) DATA.students.sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  if(!linked && !renamed.length && !added.length) return;
   saveLocal(); dbPutAll().catch(()=>{});
   if(renamed.length) toast('출석부에서 바뀐 이름을 따라갔어요: '+renamed.join(', '));
+  if(added.length) toast('출석부의 새 제자를 넣었어요: '+added.join(', '));
 }
 const statusOf = k => { const s=attStatusOf(k) || (settings.status||{})[kidId(k)] || String(k.status||'재원').trim(); return STATUSES.includes(s)? s : (/휴/.test(s)?'휴원':/퇴/.test(s)?'퇴관':'재원'); };
 const rateOf = k => { const i=peek(k); return i && i.rate!=null && i.rate!=='' ? i.rate : null; };
