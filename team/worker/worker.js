@@ -987,6 +987,24 @@ async function runPickupAlerts(env, day) {
   }
 }
 
+// 출석부 중요사항(알림 켬): 그 제자가 출석한 수업 시작 45분 뒤 모두에게 한 번 (2026-11-13)
+async function runNoteAlerts(env, day) {
+  const now = Date.now(), r = await attSync(env, '/sync/notes-due', { day }); if (!r.ok || !(r.items || []).length) return;
+  const key = 'notealert:' + day, sent = new Set(J((await one(env, 'SELECT v FROM kv WHERE k = ?', key) || {}).v, []));
+  let changed = false;
+  for (const x of r.items) {
+    const k = x.sid + ':' + x.nid; if (sent.has(k)) continue;
+    if (now < Date.parse(day + 'T' + x.alertAt + ':00+09:00')) continue;
+    sent.add(k); changed = true;
+    await pushAll(env, '', '📌 ' + x.name + ' 중요사항', x.text, 'home');
+    await addLog(env, '', 'kid', '📌 ' + x.name + ' 중요사항 · ' + x.text, '');
+  }
+  if (changed) {
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', key, JSON.stringify([...sent]));
+    await run(env, "DELETE FROM kv WHERE k LIKE 'notealert:%' AND k < ?", 'notealert:' + day.slice(0, 8) + '00');
+  }
+}
+
 // ─────────── 청소 ───────────
 async function cleanConf(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'clean'"); return r ? J(r.v, null) : null; }
 const KDAY = ['일', '월', '화', '수', '목', '금', '토'];
@@ -1035,6 +1053,7 @@ async function runTimed(env, now = Date.now()) {
   const k = new Date(now + 9 * 3600e3), day = k.toISOString().slice(0, 10), m = k.getUTCHours() * 60 + k.getUTCMinutes(), wd = k.getUTCDay();
   if (m >= 8 * 60 && m < 21 * 60) { const q2 = await all(env, 'SELECT id, text FROM pushq2 ORDER BY id LIMIT 30'); if (q2.length) { await run(env, 'DELETE FROM pushq2 WHERE id <= ?', q2[q2.length - 1].id); await pushAll(env, '', '💬 밤사이 학부모 연락 ' + q2.length + '건', q2.slice(0, 3).map(x => x.text).join('\n') + (q2.length > 3 ? '\n외 ' + (q2.length - 3) + '건' : ''), 'home'); } }
   await runPickupAlerts(env, day);
+  try { await runNoteAlerts(env, day); } catch (_) {}
   // 매달 말일 12시: 관리자에게 '앱 전체 백업 받기' (주말이면 월요일 12시에 — 직원 알림 시간 규칙)
   if (m >= 12 * 60 && addDays(day, 1).slice(8) === '01' && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + day.slice(0, 7))) && await onceAt(env, 'sent:' + day + ':bk')) {
     const ids = (await all(env, 'SELECT id FROM members WHERE boss = 1')).map(x => x.id);
