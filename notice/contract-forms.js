@@ -32,8 +32,8 @@
   const INFO = {
     kid: [
       { sec: '제자의 기본사항', id: 'name', label: '성명', type: 'text', need: 1 },
-      { id: 'sex', label: '성별', type: 'pick', opts: ['남', '여'] },
-      { id: 'birth', label: '생일', type: 'date', need: 1 }, { id: 'lunar', label: '양력/음력', type: 'pick', opts: ['양력', '음력'] },
+      { id: 'sex', label: '성별', type: 'pick', opts: ['남', '여'], need: 1 },
+      { id: 'birth', label: '생일', type: 'date', need: 1 }, { id: 'lunar', label: '양력/음력', type: 'lunar' }, // 음력 체크칸 (양력이 기본, 2026-11-13)
       { id: 'school', label: '학교/유치원', type: 'text', need: 1 }, { id: 'grade', label: '학년', type: 'text', w: 's', ph: '생일을 넣으면 채워져요' }, { id: 'cls', label: '반', type: 'text', w: 's' },
       { id: 'addr', label: '주소', type: 'text', need: 1 },
       { id: 'phone', label: '제자전화 (선택)', type: 'tel', mob: 1 }, { id: 'home', label: '자택전화 (선택)', type: 'tel' },
@@ -57,8 +57,8 @@
     ],
     adult: [
       { sec: '제자의 기본사항', id: 'name', label: '성명', type: 'text', need: 1 },
-      { id: 'sex', label: '성별', type: 'pick', opts: ['남', '여'] },
-      { id: 'birth', label: '생일', type: 'date', need: 1 }, { id: 'lunar', label: '양력/음력', type: 'pick', opts: ['양력', '음력'] },
+      { id: 'sex', label: '성별', type: 'pick', opts: ['남', '여'], need: 1 },
+      { id: 'birth', label: '생일', type: 'date', need: 1 }, { id: 'lunar', label: '양력/음력', type: 'lunar' }, // 음력 체크칸 (양력이 기본, 2026-11-13)
       { id: 'school', label: '학교/직장', type: 'text' }, { id: 'grade', label: '학년', type: 'text', w: 's' }, { id: 'rank', label: '직급', type: 'text', w: 's' },
       { id: 'addr', label: '주소', type: 'text', need: 1 },
       { id: 'phone', label: '제자전화', type: 'tel', mob: 1 }, { id: 'home', label: '자택전화 (선택)', type: 'tel' },
