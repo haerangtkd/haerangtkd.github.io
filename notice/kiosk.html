@@ -35,7 +35,7 @@
   .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,1.6vh,16px);width:min(92vw,58vh,460px)}
   .pad button{aspect-ratio:1.35;border:0;border-radius:20px;background:#fff;box-shadow:0 2px 0 #E4DCD4,0 1px 8px rgba(0,0,0,.04);font:inherit;font-size:clamp(30px,5vh,46px);font-weight:700;color:var(--ink);cursor:pointer}
   .pad button:active{background:var(--brand-soft);transform:translateY(2px);box-shadow:none}
-  .pad button.fn{font-size:clamp(17px,2.6vh,22px);color:var(--muted);background:transparent;box-shadow:none}
+  .pad button.fn{line-height:1.25;font-size:clamp(17px,2.6vh,22px);color:var(--muted);background:transparent;box-shadow:none}
 
   /* 이름 선택 */
   #s-pick{flex-direction:column;align-items:center;justify-content:center;gap:2.4vh}
@@ -112,6 +112,9 @@
   #cf .top b{font-size:clamp(18px,2.6vh,24px);font-weight:900;flex:1}
   #cf .top small{font-size:14px;opacity:.9;font-weight:700}
   #cf .top button{border:0;border-radius:12px;background:rgba(255,255,255,.2);color:#fff;font:inherit;font-weight:800;font-size:15px;padding:10px 14px}
+  #cf .ch.days{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}#cf .ch.days button{padding:10px 0;min-width:0}
+  #cf .age{margin-left:8px;color:var(--cfc,#A40F16);font-weight:800}
+  #cf .ch small{font-weight:500;opacity:.8;margin-left:4px}
   #cf .steps{display:flex;gap:6px;padding:10px 20px 0}#cf .steps i{flex:1;height:5px;border-radius:9px;background:#E6DED6}#cf .steps i.on{background:var(--cfc,#A40F16)}
   #cfB{flex:1;overflow:auto;padding:16px 20px 30px;-webkit-overflow-scrolling:touch}
   #cfB .w{max-width:880px;margin:0 auto}
@@ -186,7 +189,7 @@
     <button>1</button><button>2</button><button>3</button>
     <button>4</button><button>5</button><button>6</button>
     <button>7</button><button>8</button><button>9</button>
-    <button class="fn" data-k="clear">전부 지우기</button><button>0</button><button class="fn" data-k="back">← 지우기</button>
+    <button class="fn" data-k="clear">전부<br>지우기</button><button>0</button><button class="fn" data-k="back">← 지우기</button>
   </div>
 </section>
 
@@ -435,10 +438,11 @@
         '<label class="q">구분</label><div class="ch" data-g="type">' + F.TYPES.map(t => '<button data-v="' + t + '" class="' + (st.type === t ? 'on' : '') + '">' + t + '</button>').join('') + '</div></div>' +
         '<div class="card"><label class="q" style="margin-top:0">비용 (해당하는 것만 체크)</label>' + st.fees.map((f, i) => '<label class="fee"><input type="checkbox" data-fee="' + i + '"' + (f.on ? ' checked' : '') + '><span>' + esc2(f.n) + '</span><b>' + F.won(f.p) + '</b></label>').join('') +
         '<div class="tot"><span>합계</span><span id="cfTot">' + F.won(total()) + '</span></div>' +
-        '<label class="q">교육비 납부일</label><input type="text" id="cfPay" value="' + esc2(st.payDay) + '" placeholder="예: 매월 20일"></div></div>';
+        '<label class="q">교육비 납부일 <em>*</em> <small style="font-weight:600;color:#8a827c">매월</small></label><div class="ch days" data-g="pay">' + Array.from({ length: 31 }, (_, i) => i + 1).map(d => '<button data-v="' + d + '" class="' + (st.payDay === '매월 ' + d + '일' ? 'on' : '') + '">' + d + '</button>').join('') + '</div></div></div>';
       $('cfNext').textContent = '보호자님께 드리기 ›'; $('cfNext').disabled = false;
     } else if (cfStep === 1) {
       $('cfT').textContent = '기본정보';
+      setTimeout(drawRc, 0);
       B.innerHTML = '<div class="w"><h2>해랑경희 태권도장 기본정보</h2><p class="lead">' + (st.kind === 'kid' ? '제자의 기본사항과 가족사항을 함께 작성해 주세요.' : '잘 알아야 잘 지도할 수 있어요. 솔직하게 적어 주세요.') + ' <em style="color:var(--brand);font-style:normal">*</em> 표시만 꼭 적어 주시면 돼요.</p><div class="card" id="cfInfo">' + F.INFO[st.kind].map(fieldHTML).join('') + '</div></div>';
       $('cfNext').textContent = '다음 ›'; $('cfNext').disabled = false;
     } else if (cfStep === 2) {
@@ -467,16 +471,29 @@
     }
     B.scrollTop = 0;
   }
+  const mobDigits = v => String(v || '').replace(/\D/g, '').replace(/^010/, '');
+  // 현금영수증 ○ → '보호자 전화번호로 할까요?' (전화번호를 적은 가족만) / 아니오 → 직접 입력 (2026-11-13)
+  function drawRc() {
+    const box = $('cfRc'); if (!box || !st) return; const v = st.v, esc2 = F.esc;
+    if (v.receipt !== '○') { box.innerHTML = ''; return; }
+    const fam = v.family.map((r, i) => [r, i]).filter(([r]) => mobDigits(r[3]).length === 8);
+    if (st.rcPick != null && st.rcPick !== 'no' && !fam.some(([, i]) => String(i) === String(st.rcPick))) st.rcPick = null;
+    box.innerHTML = '<label class="q">보호자 전화번호로 할까요? <em>*</em></label><div class="ch" data-g="rc">' + fam.map(([r, i]) => '<button data-v="' + i + '" class="' + (String(st.rcPick) === String(i) ? 'on' : '') + '">' + esc2(r[0] || '보호자') + ' <small>' + esc2(r[3]) + '</small></button>').join('') + '<button data-v="no" class="' + (st.rcPick === 'no' ? 'on' : '') + '">아니오</button></div>' +
+      (!fam.length ? '<p class="lead" style="margin:6px 0 0">위 가족 칸에 연락처를 적으면 여기에 나와요.</p>' : '') +
+      (st.rcPick === 'no' ? '<input type="tel" inputmode="numeric" data-k="rcOwn" placeholder="현금영수증 번호 (휴대폰·사업자번호)" value="' + esc2(st.rcOwn || '') + '" style="margin-top:8px">' : '');
+  }
   function fieldHTML(f) {
     const v = st.v, esc2 = F.esc, need = f.need ? ' <em>*</em>' : '';
     let h = f.sec ? '<div class="sec">' + esc2(f.sec) + '</div>' : '';
     const more = (f.more || []).map(m => '<input type="text" data-k="' + m.id + '" placeholder="' + esc2(m.label) + '" value="' + esc2(v[m.id] || '') + '">').join('');
-    if (f.type === 'text' || f.type === 'tel' || f.type === 'date') h += '<label class="q">' + esc2(f.label) + need + '</label><input type="' + f.type + '" data-k="' + f.id + '"' + (f.type === 'tel' ? ' inputmode="tel"' : '') + ' placeholder="' + esc2(f.ph || '') + '" value="' + esc2(v[f.id] || '') + '">';
+    if (f.type === 'hidden') return h;
+    if (f.type === 'receipt') return h + '<label class="q">' + esc2(f.label) + '</label><div class="ch" data-pk="receipt" data-m="0">' + f.opts.map(o => '<button data-v="' + o + '" class="' + (v.receipt === o ? 'on' : '') + '">' + o + '</button>').join('') + '</div><div id="cfRc"></div>';
+    if (f.type === 'text' || f.type === 'tel' || f.type === 'date') h += '<label class="q">' + esc2(f.label) + need + (f.id === 'birth' ? ' <span id="cfAge" class="age">' + (v.birth ? '한국 나이 ' + F.ageOf(v.birth) + '살' : '') + '</span>' : '') + '</label><input type="' + f.type + '" data-k="' + f.id + '"' + (f.type === 'tel' ? ' inputmode="tel"' : '') + (f.mob ? ' data-mob="1"' : '') + ' placeholder="' + esc2(f.ph || '') + '" value="' + esc2(v[f.id] || (f.mob ? '010-' : '')) + '">';
     else if (f.type === 'pick' || f.type === 'yn' || f.type === 'multi') {
       const opts = f.type === 'yn' ? ['네', '아니오'] : f.opts, cur = v[f.id];
       h += '<label class="q">' + esc2(f.label) + need + '</label><div class="ch" data-pk="' + f.id + '" data-m="' + (f.type === 'multi' ? 1 : 0) + '">' + opts.map(o => '<button data-v="' + esc2(o) + '" class="' + ((f.type === 'multi' ? (cur || []).includes(o) : cur === o) ? 'on' : '') + '">' + esc2(o) + '</button>').join('') + '</div>' + (more ? '<div class="more">' + more + '</div>' : '');
     } else if (f.type === 'family') {
-      h += '<label class="q">' + esc2(f.label) + need + '</label><table>' + v.family.map((r, i) => '<tr>' + f.cols.map((c, j) => '<td><input type="' + (c === '연락처' ? 'tel' : 'text') + '" data-fam="' + i + ':' + j + '" placeholder="' + c + '" value="' + esc2(r[j] || '') + '"></td>').join('') + '</tr>').join('') + '</table><button class="back" id="cfFamAdd" style="margin-top:8px;padding:10px 18px;font-size:15px">+ 가족 한 줄 더</button>';
+      h += '<label class="q">' + esc2(f.label) + need + '</label><table>' + v.family.map((r, i) => '<tr>' + f.cols.map((c, j) => '<td><input type="' + (c === '연락처' ? 'tel' : c === '생년월일' ? 'text' : 'text') + '"' + (c === '연락처' ? ' inputmode="tel" data-mob="1"' : '') + ' data-fam="' + i + ':' + j + '" placeholder="' + c + (c === '생년월일' || c === '특이사항' || c === '직업' ? ' (선택)' : '') + '" value="' + esc2(r[j] || (c === '연락처' ? '010-' : '')) + '"></td>').join('') + '</tr>').join('') + '</table><button class="back" id="cfFamAdd" style="margin-top:8px;padding:10px 18px;font-size:15px">+ 가족 한 줄 더</button>';
     } else if (f.type === 'week') {
       h += '<label class="q">' + esc2(f.label) + '</label><table class="wk"><tr><td></td>' + F.WK.map(d => '<td><b>' + d + '</b></td>').join('') + '</tr><tr><td>시간</td>' + F.WK.map(d => '<td><input type="text" data-wk="' + d + '" placeholder="예: 3시" value="' + esc2((v.week[d] || {}).t || '') + '"></td>').join('') + '</tr><tr><td>차량</td>' + F.WK.map(d => '<td><input type="checkbox" data-wc="' + d + '"' + ((v.week[d] || {}).car ? ' checked' : '') + '></td>').join('') + '</tr></table>';
     }
@@ -506,10 +523,14 @@
   }
   $('cfB').addEventListener('input', e => {
     const t = e.target, v = st && st.v; if (!v) return;
+    if (t.dataset.mob) { const d = mobDigits(t.value).slice(0, 8); t.value = '010-' + (d.length > 4 ? d.slice(0, 4) + '-' + d.slice(4) : d); } // 010은 채워져 있고 뒤 8자리만
+    if (t.dataset.k === 'birth') { const a = $('cfAge'); if (a) a.textContent = t.value ? '한국 나이 ' + F.ageOf(t.value) + '살' : ''; if (!st.gradeTouched && st.kind === 'kid') { const gi = $('cfB').querySelector('[data-k="grade"]'); if (gi) { gi.value = F.gradeOf(t.value); v.grade = gi.value; } } }
+    if (t.dataset.k === 'grade') st.gradeTouched = true;
+    if (t.dataset.k === 'rcOwn') { st.rcOwn = t.value.trim(); v.receiptNo = st.rcOwn; return; }
     if (t.id === 'cfPay') st.payDay = t.value.trim();
     else if (t.id === 'cfSigner') st.signer = t.value.trim();
-    else if (t.dataset.k) v[t.dataset.k] = t.value.trim();
-    else if (t.dataset.fam) { const [i, j] = t.dataset.fam.split(':').map(Number); v.family[i][j] = t.value.trim(); }
+    else if (t.dataset.k) v[t.dataset.k] = t.dataset.mob && t.value === '010-' ? '' : t.value.trim();
+    else if (t.dataset.fam) { const [i, j] = t.dataset.fam.split(':').map(Number); v.family[i][j] = t.value === '010-' ? '' : t.value.trim(); if (j === 0 || j === 3) drawRc(); }
     else if (t.dataset.wk) { v.week[t.dataset.wk] = { ...(v.week[t.dataset.wk] || {}), t: t.value.trim() }; }
   });
   $('cfB').addEventListener('change', e => {
@@ -526,8 +547,11 @@
     const g = b.closest('[data-g]');
     if (g && g.dataset.g === 'kind') { if (st.kind !== b.dataset.v) { st.kind = b.dataset.v; st.fees = null; st.ok = []; } return cfDraw(); }
     if (g && g.dataset.g === 'type') { st.type = b.dataset.v; return cfDraw(); }
+    if (g && g.dataset.g === 'pay') { st.payDay = '매월 ' + b.dataset.v + '일'; g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); return; }
+    if (g && g.dataset.g === 'rc') { const v = b.dataset.v; st.rcPick = v; st.v.receiptNo = v === 'no' ? (st.rcOwn || '') : (st.v.family[+v] || [])[3] || ''; return drawRc(); }
     if (g && g.dataset.g === 'rel') { st.signerRel = b.dataset.v; if (b.dataset.v === '본인' && !st.signer) { st.signer = st.v.name || ''; $('cfSigner').value = st.signer; } g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); return; }
     const pk = b.closest('[data-pk]');
+    if (pk && pk.dataset.pk === 'receipt') { st.v.receipt = st.v.receipt === b.dataset.v ? '' : b.dataset.v; pk.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === st.v.receipt)); if (st.v.receipt !== '○') st.v.receiptNo = ''; return drawRc(); }
     if (pk) { const k = pk.dataset.pk, val = b.dataset.v; if (pk.dataset.m === '1') { const l = st.v[k] || []; st.v[k] = l.includes(val) ? l.filter(x => x !== val) : [...l, val]; b.classList.toggle('on'); } else { st.v[k] = st.v[k] === val ? '' : val; pk.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === st.v[k])); } return; }
     if (b.id === 'cfFamAdd') { st.v.family.push(['', '', '', '', '']); const y = $('cfB').scrollTop; cfDraw(); $('cfB').scrollTop = y; return; }
     if (b.dataset.yes != null) { const i = +b.dataset.yes; st.ok[i] = !st.ok[i]; const a = b.closest('.art'); a.classList.toggle('ok', st.ok[i]); b.textContent = st.ok[i] ? '✓ 네, 알겠습니다' : '네, 알겠습니다'; $('cfNext').disabled = !F.ART[st.kind].every((_, j) => st.ok[j]);
@@ -535,9 +559,17 @@
   });
   $('cfPrev').onclick = () => { if (cfStep > 0) { cfStep--; cfDraw(); } };
   $('cfNext').onclick = async () => {
+    if (cfStep === 0) { // 수강료·납부일은 꼭 (2026-11-13)
+      if (st.fees.some(f => f.g === '수강료') && !st.fees.some(f => f.g === '수강료' && f.on)) return alertMsg('수강료를 하나 골라 주세요');
+      if (!st.payDay) return alertMsg('교육비 납부일을 골라 주세요');
+    }
     if (cfStep === 1) {
       const miss = F.INFO[st.kind].filter(f => f.need && (f.type === 'family' ? !st.v.family.some(r => r.some(x => x)) : !st.v[f.id])).map(f => f.label);
-      if (miss.length) return alertMsg('꼭 적어 주세요: ' + miss.join(', '));
+      if (miss.length) return alertMsg('꼭 적어 주세요: ' + miss.map(x => x.replace(/ \(.*\)$/, '')).join(', '));
+      const bad = [...$('cfB').querySelectorAll('input[data-mob]')].find(i => { const n = mobDigits(i.value); return n.length > 0 && n.length !== 8; });
+      if (bad) { bad.focus(); return alertMsg('휴대폰 번호 010 뒤 8자리를 다 적어 주세요'); }
+      if (st.kind === 'kid') { const rows = st.v.family.filter(r => r.some(x => x && x !== '010-')); if (!rows.length) return alertMsg('가족을 한 분 이상 적어 주세요'); const r = rows.find(r => !r[0] || !r[1] || mobDigits(r[3]).length !== 8); if (r) return alertMsg('가족은 관계·성명·연락처(010 뒤 8자리)를 꼭 적어 주세요'); }
+      if (st.v.receipt === '○' && !String(st.v.receiptNo || '').replace(/\D/g, '')) return alertMsg('현금영수증 번호를 골라 주세요');
     }
     if (cfStep === 3) return cfSubmit();
     cfStep++; cfDraw();

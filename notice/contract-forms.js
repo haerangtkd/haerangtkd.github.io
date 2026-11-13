@@ -34,12 +34,12 @@
       { sec: '제자의 기본사항', id: 'name', label: '성명', type: 'text', need: 1 },
       { id: 'sex', label: '성별', type: 'pick', opts: ['남', '여'] },
       { id: 'birth', label: '생일', type: 'date', need: 1 }, { id: 'lunar', label: '양력/음력', type: 'pick', opts: ['양력', '음력'] },
-      { id: 'school', label: '학교/유치원', type: 'text' }, { id: 'grade', label: '학년', type: 'text', w: 's' }, { id: 'cls', label: '반', type: 'text', w: 's' },
-      { id: 'addr', label: '주소', type: 'text' },
-      { id: 'receipt', label: '현금영수증', type: 'pick', opts: ['○', '×'] }, { id: 'receiptNo', label: '현금영수증 번호', type: 'tel' },
-      { id: 'home', label: '자택전화', type: 'tel' }, { id: 'phone', label: '제자전화', type: 'tel' },
+      { id: 'school', label: '학교/유치원', type: 'text', need: 1 }, { id: 'grade', label: '학년', type: 'text', w: 's', ph: '생일을 넣으면 채워져요' }, { id: 'cls', label: '반', type: 'text', w: 's' },
+      { id: 'addr', label: '주소', type: 'text', need: 1 },
+      { id: 'phone', label: '제자전화 (선택)', type: 'tel', mob: 1 }, { id: 'home', label: '자택전화 (선택)', type: 'tel' },
       { sec: '가족사항', id: 'sib', label: '형제 (몇 남 몇 녀 중 몇째)', type: 'text', ph: '예: 1남 1녀 중 첫째' },
-      { id: 'family', label: '가족', type: 'family', cols: ['관계', '성명', '생년월일', '연락처', '특이사항'], need: 1 },
+      { id: 'family', label: '가족 (관계·성명·연락처는 꼭, 생년월일·특이사항은 선택)', type: 'family', cols: ['관계', '성명', '생년월일', '연락처', '특이사항'], need: 1 },
+      { id: 'receipt', label: '현금영수증', type: 'receipt', opts: ['○', '×'] }, { id: 'receiptNo', label: '현금영수증 번호', type: 'hidden' },
       { sec: '제자를 알아가기 위한 필수 질문', id: 'tkd', label: '태권도를 수련한 경험이 있나요?', type: 'yn', more: [{ id: 'tkdUntil', label: '언제까지 (년 월 일, 띠·품)' }, { id: 'tkdWhere', label: '어디서' }, { id: 'tkdWhy', label: '그만둔 이유' }] },
       { id: 'want', label: '자녀가 태권도를 배우고 싶어 하나요?', type: 'yn', more: [{ id: 'wantWhy', label: '이유', always: 1 }] },
       { id: 'route', label: '도장을 알게 된 경로', type: 'pick', opts: ROUTE, more: [{ id: 'routeWho', label: '추천인', always: 1 }] },
@@ -60,9 +60,9 @@
       { id: 'sex', label: '성별', type: 'pick', opts: ['남', '여'] },
       { id: 'birth', label: '생일', type: 'date', need: 1 }, { id: 'lunar', label: '양력/음력', type: 'pick', opts: ['양력', '음력'] },
       { id: 'school', label: '학교/직장', type: 'text' }, { id: 'grade', label: '학년', type: 'text', w: 's' }, { id: 'rank', label: '직급', type: 'text', w: 's' },
-      { id: 'addr', label: '주소', type: 'text' },
-      { id: 'home', label: '자택전화', type: 'tel' }, { id: 'phone', label: '제자전화', type: 'tel' },
-      { sec: '가족사항', id: 'family', label: '가족', type: 'family', cols: ['관계', '성명', '생년월일', '연락처', '직업'] },
+      { id: 'addr', label: '주소', type: 'text', need: 1 },
+      { id: 'phone', label: '제자전화', type: 'tel', mob: 1 }, { id: 'home', label: '자택전화 (선택)', type: 'tel' },
+      { sec: '가족사항', id: 'family', label: '가족 (선택)', type: 'family', cols: ['관계', '성명', '생년월일', '연락처', '직업'] },
       { sec: '잘 알아야 잘 지도할 수 있다! 솔직하게 답변 부탁드립니다', id: 'tkd', label: '태권도를 수련한 경험이 있나요?', type: 'yn', more: [{ id: 'tkdUntil', label: '가장 최근 언제까지 배우셨나요?' }, { id: 'tkdDan', label: '유급자 / 1단~5단' }] },
       { id: 'sport', label: '다른 운동을 배운 적이 있나요?', type: 'yn', more: [{ id: 'sportWhat', label: '종목' }, { id: 'sportLong', label: '기간' }] },
       { id: 'want', label: '운동을 하고 싶은가요?', type: 'yn', more: [{ id: 'wantWhy', label: '이유', always: 1 }] },
@@ -112,5 +112,12 @@
   }
   const CSS = '.cf-doc{font-size:15px;line-height:1.55;color:#1F1B18}.cf-doc .cf-h{background:var(--cf);color:#fff;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.cf-doc .cf-h span{opacity:.9;font-size:13px;font-weight:700}.cf-doc h3{font-size:17px;margin:18px 0 6px;color:var(--cf)}.cf-doc h4{font-size:13.5px;margin:14px 0 4px;color:#6F6862}.cf-doc .cf-r{display:flex;gap:10px;border-bottom:1px solid #EEE7E0;padding:7px 0}.cf-doc .cf-r span{flex:0 0 38%;color:#6F6862;font-size:13.5px}.cf-doc .cf-r b{flex:1;font-weight:600;word-break:break-all}.cf-doc .cf-t b{color:var(--cf);font-weight:800}.cf-doc .cf-a{background:var(--cfs);border-radius:12px;padding:10px 12px;margin:8px 0}.cf-doc .cf-a p{font-size:13.5px;margin:4px 0}.cf-doc .cf-a em{font-style:normal;font-weight:800;color:var(--cf);font-size:13.5px}.cf-doc .cf-no{color:#A40F16!important;font-weight:800}.cf-doc .cf-m{color:#6F6862;font-size:13.5px}.cf-doc .cf-close{text-align:center;color:#6F6862;font-size:13.5px;margin:14px 0}.cf-doc .cf-sign{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #EEE7E0;border-radius:12px;padding:8px 12px}.cf-doc .cf-sign img{height:90px;max-width:60%;object-fit:contain}';
 
-  window.HAERANG_FORMS = { ART, CLOSE, FEES, KIND, INFO, TYPES, WK, flatten, view, CSS, esc, won };
+  // 생일 → 한국 나이, 학년(3월 기준, 7살 해 = 유치부 마지막) (2026-11-13)
+  function ageOf(birth) { const y = +String(birth || '').slice(0, 4); if (!y) return 0; return new Date(Date.now() + 9 * 3600e3).getUTCFullYear() - y + 1; }
+  function gradeOf(birth) {
+    const y = +String(birth || '').slice(0, 4); if (!y) return '';
+    const d = new Date(Date.now() + 9 * 3600e3), sy = d.getUTCMonth() < 2 ? d.getUTCFullYear() - 1 : d.getUTCFullYear(), g = sy - y - 6; // 학교 학년 (1~2월은 지난 학년)
+    if (g <= 0) return '유치부'; if (g <= 6) return '초' + g; if (g <= 9) return '중' + (g - 6); if (g <= 12) return '고' + (g - 9); return '성인';
+  }
+  window.HAERANG_FORMS = { ageOf, gradeOf, ART, CLOSE, FEES, KIND, INFO, TYPES, WK, flatten, view, CSS, esc, won };
 })();
