@@ -337,6 +337,10 @@
   .tiles button{position:relative;background:none;border:0;padding:8px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:13.5px;font-weight:600;color:var(--ink)}
   .tiles button .ti{width:52px;height:52px;border-radius:15px;display:grid;place-items:center}
   .tiles button .ti svg{width:27px;height:27px}
+  .att-kid .cnt{white-space:nowrap;flex:none}
+  .tiles button b.tn{position:absolute;top:2px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#E5484D;color:#fff;font-size:12px;font-weight:800;line-height:20px;box-sizing:border-box}
+  .kinfo{background:#fff;border:1px solid var(--line);border-radius:16px;padding:6px 16px;margin-top:10px}.kinfo h3{font-size:17px;margin:12px 0 4px}
+  .kinfo .r{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:15px}.kinfo .r:first-of-type{border-top:0}.kinfo .r span{flex:none;width:76px;color:var(--muted)}.kinfo .r b{flex:1;font-weight:600}.kinfo .r small{display:block;color:var(--muted);font-weight:400;font-size:13px;margin-top:2px}
   .tiles button i.n{position:absolute;top:8px;right:12px;width:8px;height:8px;border-radius:50%;background:var(--brand)}
   .ack-btn.big{background:var(--brand);color:#fff;padding:13px;font-size:16px}
   .ack-btn:disabled{opacity:.5}
@@ -710,10 +714,10 @@
     const hwN = (hws || []).filter(h => h.kids.includes(k)).length, evN = (evs || []).length;
     const T = [['journal', '알림장', '#F4A63A', '#fff', fresh('journal')], ['notice', '공지', '#3D8BF2', '#fff', fresh('notice')], ['album', '앨범', '#2BB3A3', '#fff', fresh('album')], ['schedule', '일정', '#F05A3C', '#fff', false],
       ['kid', '출석', '#F6C21C', '#fff', false], ['hw', '숙제', '#8B6CF0', '#fff', false, hwN], ['ev', '행사 신청', '#E2477B', '#fff', false, evN], ['ct', '연락하기', '#A40F16', '#fff', false]];
-    return '<section class="sec"><div class="tcard"><div class="th">해랑경희 태권도장<small>' + esc(k) + '</small></div><div class="tiles">' + T.map(([key, label, bg, fg, isNew, n]) => '<button data-tile="' + key + '">' + (isNew ? '<i class="n"></i>' : '') + '<span class="ti" style="background:' + bg + ';color:' + fg + '">' + (IC[key] || IC[{ hw: 'edit', ev: 'schedule', ct: 'bell' }[key]] || '') + '</span>' + label + (n ? ' ' + n : '') + '</button>').join('') + '</div></div></section>';
+    return '<section class="sec"><div class="tcard"><div class="th">해랑경희 태권도장<small>' + esc(k) + '</small></div><div class="tiles">' + T.map(([key, label, bg, fg, isNew, n]) => '<button data-tile="' + key + '">' + (isNew ? '<i class="n"></i>' : '') + '<span class="ti" style="background:' + bg + ';color:' + fg + '">' + (IC[key] || IC[{ hw: 'edit', ev: 'schedule', ct: 'bell' }[key]] || '') + '</span>' + label + (n ? '<b class="tn">' + n + '</b>' : '') + '</button>').join('') + '</div></div></section>';
   }
   function onTile(key) {
-    if (key === 'notice') return showTab('news', { filter: '공지' }); if (key === 'journal') return showTab('news', { filter: '알림장' }); if (key === 'album') return showTab('news', { filter: '앨범' });
+    if (key === 'notice' || key === 'journal' || key === 'album') return openPage(key); // 2026-11-13: 공지·알림장·앨범은 각자 화면으로
     if (key === 'schedule') return showTab('schedule'); if (key === 'kid') return showTab('kid');
     const id = { hw: 'secHw', ev: 'secEv', ct: 'secCt' }[key], el = $(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); else toast(key === 'hw' ? '지금 올라온 숙제가 없어요' : key === 'ev' ? '지금 신청 받는 행사가 없어요' : '잠시 후 다시 눌러 주세요');
@@ -964,7 +968,7 @@
   // 소식 한 줄: '새 공지가 올라왔어요' + 제목 · 날짜, 아직 안 본 글은 빨간 점
   function feedRow(x) {
     const mine = (me().children || []), who = x.t === 'journal' && x.target && x.target.length ? x.target.filter(k => mine.includes(k)).join('·') : '';
-    const what = x.t === 'album' ? '사진 ' + (x.photos || []).length + '장이 올라왔어요' : x.t === 'journal' ? (who ? who + ' ' : '') + '알림장이 올라왔어요' : (x.urgent ? '긴급 공지가 올라왔어요' : '새 공지가 올라왔어요');
+    const what = x.t === 'album' ? '사진 ' + (x.photos || []).length + '장이 올라왔어요' : x.t === 'journal' ? (who ? who + ' ' : '') + '알림장이 올라왔어요' : (x.urgent ? '긴급 공지가 올라왔어요' : x.kind === '회비' ? '회비 안내가 왔어요' : '새 공지가 올라왔어요');
     const d = dayOf(x.at), fresh = !sentReads.has(x.id | 0), need = x.ask && !x.acked && me().approved;
     return '<button class="feed' + (x.urgent && !x.acked ? ' urg' : '') + '" data-open="' + x.t + ':' + (x.id | 0) + '"><span class="fic t-' + x.t + '">' + (IC[x.t] || '') + '</span><span class="ft"><small>' + what + ' · ' + d.m + '월 ' + d.d + '일</small><b>' + esc(x.title) + '</b>' +
       (need ? '<em>\'확인했어요\'를 눌러 주세요</em>' : '') + '</span>' + (fresh ? '<i class="fdot" aria-label="새 글"></i>' : '') + '<span class="fgo">' + ICON.right + '</span></button>';
@@ -1012,11 +1016,10 @@
     const pushOk = canPush && s.push && Notification.permission === 'granted';
     const kidSel = s.children.length > 1 ? '<div class="chips">' + s.children.map((c, i) => '<button data-k="' + i + '" class="' + (c === k ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' : '';
     const settings = '<section class="sec"><h2>설정</h2><div class="list">' +
-      '<button class="li" data-x="fee"><span class="lic">' + IC.fee + '</span><span class="lt"><b>회비 안내</b></span>' + ICON.right + '</button>' +
-      '<button class="li" data-x="edit"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 수정 · 자녀 추가</b><small>' + esc(s.relation || '') + ' · 출결번호 ' + esc(s.phone4 || '') + '</small></span>' + ICON.right + '</button>' +
+      (s.approved ? '<button class="li" data-x="info"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 확인</b><small>출생연도 · 수련 요일 · 회비 · ' + esc(s.relation || '') + ' · 번호 뒷자리 ' + esc(s.phone4 || '') + '</small></span>' + ICON.right + '</button>' : '') +
       (canPush ? '<button class="li" data-x="push"><span class="lic">' + IC.bell + '</span><span class="lt"><b>알림</b><small>' + (pushOk ? '켜져 있어요 · 눌러서 확인' : '꺼져 있어요 · 눌러서 켜기') + '</small></span>' + ICON.right + '</button>' : '') +
       (s.approved ? '<button class="li" data-x="fam"><span class="lic">' + IC.share + '</span><span class="lt"><b>도장에 가족 추가 요청하기</b><small>할머니·아빠 등 다른 가족도 알림을 받을 수 있게 도장에서 도와드려요</small></span>' + ICON.right + '</button>' : '') +
-      '<button class="li danger" data-x="leave"><span class="lic">' + IC.out + '</span><span class="lt"><b>이 휴대폰 등록 해제</b></span>' + ICON.right + '</button></div></section>';
+      '</div><p class="note" style="margin:10px 4px 0">정보가 다르면 도장에 알려 주세요. 퇴관하면 이 휴대폰 등록도 함께 해제돼요.</p></section>';
     const head = kidSel + '<div class="att-kid"><span class="avatar">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장 · ' + (s.approved ? '확인 완료' : '도장 확인 중') + '</small></div><span class="cnt" id="attCnt"></span></div>';
     let att = '';
     if (!s.approved) att = '<div class="calm" style="margin-top:12px"><span>도장에서 확인이 끝나면 출석 기록을 볼 수 있어요</span></div>';
@@ -1036,7 +1039,7 @@
           '<div class="cal"><div class="wk">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
           (rows.length ? '<div class="list att-list' + (rows.length > 5 ? ' fold' : '') + '" style="margin-top:10px">' + rows.slice().reverse().map(r => { const d = md(r.day); return '<div class="li"><span class="lt"><b>' + d.m + '월 ' + d.d + '일 (' + d.w + ')</b></span><span class="tm">' + (r.in ? '등원 ' + esc(r.in) : '') + (r.out ? (r.in ? ' · ' : '') + '하원 ' + esc(r.out) : '') + '</span></div>'; }).join('') + '</div>' + (rows.length > 5 ? '<button class="more-btn" data-more>출석 기록 모두 보기 (' + rows.length + '일)</button>' : '') : '') + '</section>';
         tbody(head + att + settings);
-        $('attCnt').textContent = (+month.slice(5)) + '월 ' + rows.length + '일';
+        $('attCnt').textContent = (+month.slice(5)) + '월 출석 ' + rows.length + '일';
         bindKid(month);
         return;
       }
@@ -1052,6 +1055,7 @@
       const r = e.target.closest('[data-x]'); if (!r) return;
       const x = r.dataset.x, s = me();
       if (x === 'fee') openPage('fee');
+      if (x === 'info') openPage('info');
       if (x === 'edit') { fillJoin(me(), true); show('v-gate', 'g-join'); scrollTo(0, 0); }
       if (x === 'share') copy();
       if (x === 'fam') famSheet();
@@ -1070,7 +1074,7 @@
   }
 
   // ═════════ 하위 화면 (회비 안내) ═════════
-  const PAGES = { fee: '회비 안내' };
+  const PAGES = { fee: '회비 안내', info: '정보 확인', notice: '공지', journal: '알림장', album: '앨범' };
   function openPage(name, push = true) {
     if (!PAGES[name] || !me()) return;
     if (push) history.pushState({ p: name }, '', '#' + name);
@@ -1089,7 +1093,7 @@
   const body = html => { $('pBody').innerHTML = html; watchReads(); };
   // 알림·예전 주소로 들어왔을 때
   function route(h) {
-    if (PAGES[h]) { showTab('kid'); return openPage(h, false); }
+    if (PAGES[h]) { showTab(h === 'fee' || h === 'info' ? 'kid' : 'home'); return openPage(h, false); }
     const r = LEGACY[h]; if (r) return showTab(r[0], r[1] ? { filter: r[1] } : {});
     showTab('home');
   }
@@ -1133,7 +1137,31 @@
   }
   const expand = e => { const p = e.target.closest('.post p.clip'); if (p) { p.classList.remove('clip'); return true; } return false; };
 
+  async function listPage(t) { // 공지·알림장·앨범 각자 화면 (한 줄 목록 → 누르면 자세히)
+    const url = { notice: '/p/notices', journal: '/p/journal', album: '/p/albums' }[t], j = await post(url).catch(() => null);
+    if (failed(j)) return; if (!j || !j.ok) return body('<div class="empty">불러오지 못했어요</div>');
+    news = news || { notice: [], journal: [], album: [] }; news[t] = (j.items || []).map(x => ({ ...x, t }));
+    markSeen([t]);
+    const L = news[t].slice().sort((p, q) => (q.urgent && !q.acked) - (p.urgent && !p.acked) || q.at - p.at);
+    body(L.length ? grouped(L, feedRow) : '<div class="empty">아직 ' + TYPE_LABEL[t] + '이 없어요</div>');
+    $('pBody').onclick = e => { const f = e.target.closest('[data-open]'); if (f) { const [tt, id] = f.dataset.open.split(':'); const x = (news[tt] || []).find(y => y.id === +id); if (x) openPost(x); } };
+  }
   const RENDER = {
+    notice() { return listPage('notice'); }, journal() { return listPage('journal'); }, album() { return listPage('album'); },
+    async info() { // 정보 확인 (2026-11-13): 바꾸는 것은 도장에서
+      const j = await post('/p/kid-info').catch(() => null); if (failed(j)) return; if (!j || !j.ok) return body('<div class="empty">불러오지 못했어요</div>');
+      const won = n => Number(n || 0).toLocaleString('ko-KR') + '원', dd = d => d ? (+d.slice(5, 7)) + '/' + (+d.slice(8)) : '';
+      body(j.kids.map(k => {
+        const by = String(k.birth || '').slice(0, 4), f = k.fee;
+        const tmp = (k.temp || []).map(t => dd(t.start) + (t.end ? '~' + dd(t.end) : '~') + ' ' + (t.days || []).join('·')).join(', ');
+        return '<div class="kinfo"><h3>' + esc(k.name) + '</h3>' +
+          '<div class="r"><span>출생연도</span><b>' + (by ? by + '년생' : '도장에 등록 전') + '</b></div>' +
+          '<div class="r"><span>수련 요일</span><b>' + ((k.days || []).length ? esc(k.days.join('·')) : '도장에 등록 전') + (tmp ? '<small>임시 변경: ' + esc(tmp) + '</small>' : '') + '</b></div>' +
+          '<div class="r"><span>회비</span><b>' + (f ? won(f.base - (f.disc || 0)) + (f.disc ? '<small>가족 할인 ' + won(f.disc) + ' (기본 ' + won(f.base) + ')</small>' : '') : '도장에 확인해 주세요') + '</b></div></div>';
+      }).join('') +
+        '<div class="kinfo"><div class="r"><span>관계</span><b>' + esc(j.rel || '') + '</b></div><div class="r"><span>번호 뒷자리</span><b>' + esc(j.ph || '') + '<small>태블릿에서 아이가 누르는 번호예요</small></b></div></div>' +
+        '<p class="note" style="margin:12px 4px">바꿀 것이 있으면 도장에 알려 주세요.</p>');
+    },
     post() { // 소식 자세히 (2026-11-13)
       const x = curPost; if (!x) return closePage();
       body(x.t === 'album' ? albumCard(x) : postCard(x, { kids: x.t === 'journal', type: true }));
