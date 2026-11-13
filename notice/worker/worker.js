@@ -74,6 +74,8 @@ const rid = n => hex(crypto.getRandomValues(new Uint8Array(n)));
 const str = (v, n) => String(v == null ? "" : v).slice(0, n);
 
 async function route(path, req, env) {
+  // 서버끼리 부르는 길(/sync/)은 서비스 바인딩으로만 — 바깥(workers.dev 주소)에서 오면 주소 이름이 'notice'가 아니라서 막힘 (2026-11-13 보안 보강)
+  if (path.startsWith('/sync/') && new URL(req.url).hostname !== 'notice') return json({ ok: false, error: 'not found' }, 404);
   const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   // 장부 서버가 관리자 비밀번호를 확인할 때 (서비스 바인딩으로만 — 주소 이름이 'notice'인 요청은 바깥에서 올 수 없음)
   if (path === '/ledger/admin-check') {
@@ -235,7 +237,7 @@ async function route(path, req, env) {
   // ═════════ 출결 태블릿 ═════════
   if (path.startsWith('/kiosk/')) {
     const tok = String(b.token || '');
-    if (!tok || !(await one(env, 'SELECT tok FROM kiosks WHERE tok = ?', tok))) return json({ ok: false, error: '출결 태블릿 등록이 풀렸습니다. 관장님 비밀번호로 다시 등록해 주세요', relogin: true }, 401);
+    if (!tok || !(await one(env, 'SELECT tok FROM kiosks WHERE tok = ?', tok))) return json({ ok: false, error: '출결 태블릿 등록이 풀렸습니다. 공용 PIN으로 다시 등록해 주세요', relogin: true }, 401);
     if (path === '/kiosk/lookup') {
       const code = String(b.code || '').replace(/\D/g, '');
       const today = kstDay(new Date());
@@ -257,7 +259,7 @@ async function route(path, req, env) {
       const k = 'kad:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, k);
       if (lu) return json({ ok: false, error: lockText(lu) });
       const pinOk = b.pin ? !!(await teamSync(env, '/sync/pin-check', { shared: true, pin: str(b.pin, 12) })).ok : false; // 공용 PIN (업무 앱 '도장 공용' 계정)
-      if (!pinOk && !(env.ADMIN_PASSWORD && b.password && await sameText(String(b.password), env.ADMIN_PASSWORD))) return json({ ok: false, error: failText(b.pin ? '공용 PIN이 맞지 않아요' : '비밀번호가 맞지 않아요', await failAdd(env, k)) });
+      if (!pinOk) return json({ ok: false, error: failText('공용 PIN이 맞지 않아요', await failAdd(env, k)) }); // 예전 관리자 비밀번호는 2026-11-13부터 안 받음
       await failClear(env, k);
       return json({ ok: true });
     }
@@ -299,6 +301,14 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     return json(path === '/sync/bk-tables' ? { ok: true, tables: await bkTables(env) } : await bkDump(env, String(b.table || ''), b.after));
   }
+  // 업무 앱 '백업 다시 넣기' (관리자 + 관리자 비밀번호 + 지금 상태 먼저 받기는 업무 서버가 확인) 2026-11-13
+  if (path === '/sync/rs-count' || path === '/sync/rs-put' || path === '/sync/rs-sweep' || path === '/sync/rs-done') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    if (path === '/sync/rs-count') return json({ ok: true, tables: await bkTables(env), counts: await rsCounts(env), pks: await rsPks(env) });
+    if (path === '/sync/rs-put') return json(await rsPut(env, String(b.table || ''), b.rows));
+    if (path === '/sync/rs-sweep') return json(await rsSweep(env, String(b.table || ''), b.keep, b.n));
+    await run(env, "DELETE FROM kv WHERE k = 'kidStatus'"); return json({ ok: true }); // 회원 상태는 출석부에서 다시 받음
+  }
   // 업무 앱 원생 화면: 그 제자의 가족 초대번호(QR)·학부모 앱 가입 상태 (2026-11-13)
   if (path === '/sync/kid-family' || path === '/sync/invite-save') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
@@ -338,7 +348,7 @@ async function route(path, req, env) {
     return json({ ok: true, tok, name: r.name });
   }
   if (path === '/staff/logout') { await run(env, 'DELETE FROM asess WHERE tok = ?', str(b.tok, 64)); return json({ ok: true }); }
-  // ═════════ 관리 화면 (직원 PIN 로그인, 예전 관리자 비밀번호도 됨) ═════════
+  // ═════════ 관리 화면 (직원 PIN 로그인 / 태블릿 등록은 공용 PIN) ═════════
   if (path.startsWith('/admin/')) {
     const ip = req.headers.get('cf-connecting-ip') || 'x';
     const lu = await lockUntil(env, ip);
@@ -346,20 +356,19 @@ async function route(path, req, env) {
     const ses = b.tok ? await one(env, 'SELECT * FROM asess WHERE tok = ?', str(b.tok, 64)) : null;
     if (ses && ses.created < Date.now() - 180 * 86400e3) { await run(env, 'DELETE FROM asess WHERE tok = ?', ses.tok); return json({ ok: false, relogin: true, error: '다시 로그인해 주세요' }, 401); }
     if (ses) { if (ses.created < Date.now() - 86400e3) await run(env, 'UPDATE asess SET created = ? WHERE tok = ?', Date.now(), ses.tok); } // 쓰는 동안은 로그인 유지
-    else if (b.tok && !b.password) return json({ ok: false, relogin: true, error: '다시 로그인해 주세요' }, 401);
+    else if (b.tok) return json({ ok: false, relogin: true, error: '다시 로그인해 주세요' }, 401);
     else if (b.spin && path === '/admin/kiosk-token') { // 태블릿 등록은 공용 PIN으로 (공용 기기)
       if (!(await teamSync(env, '/sync/pin-check', { shared: true, pin: str(b.spin, 12) })).ok) return json({ ok: false, error: failText('공용 PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
       await failClear(env, ip);
     }
-    else if (!env.ADMIN_PASSWORD || !(await sameText(b.password || '', env.ADMIN_PASSWORD))) return json({ ok: false, error: failText('비밀번호가 맞지 않습니다', await failAdd(env, ip)) }, 401);
-    else await failClear(env, ip);
+    else return json({ ok: false, relogin: true, error: '다시 로그인해 주세요' }, 401); // 예전 관리자 비밀번호(password)는 2026-11-13부터 안 받음 (장부·내려받기·백업의 /ledger/admin-check는 그대로)
 
     if (path === '/admin/status') {
       const today = kstDay(new Date());
       const parents = await all(env, 'SELECT id, kids, rel, ph, ok, created, ep, inv FROM parents ORDER BY created DESC');
       const kids = await all(env, 'SELECT name, codes FROM kids'), kst8 = await kidStatus(env);
       const att = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', today);
-      const boss = !ses || !!ses.boss; // 관리자 비밀번호로 들어온 경우는 관리자
+      const boss = !!(ses && ses.boss);
       const list = kids.map(k => k.name).filter(n => boss || kst8[n] !== '퇴관').sort((a, c) => a.localeCompare(c, 'ko')).map(n => {
         const k = kids.find(x => x.name === n), a = att.find(x => x.name === n);
         return {
@@ -840,6 +849,47 @@ async function bkDump(env, table, after) {
   const rows = await all(env, 'SELECT rowid AS _r, * FROM ' + table + ' WHERE rowid > ? ORDER BY rowid LIMIT ?', Math.max(0, Number(after) || 0), lim);
   const out = rows.filter(r => !(table === 'kv' && /vapid|dlpin|^sent:|^bktok:/i.test(r.k || ''))).map(r => { const o = {}; for (const [k, v] of Object.entries(r)) if (k !== '_r' && !BK_HIDE.includes(k)) o[k] = v; return o; });
   return { ok: true, rows: out, next: rows.length === lim ? rows[rows.length - 1]._r : 0 };
+}
+// ─────────── 백업 다시 넣기 (2026-11-13) — 보관용 백업 {tables:{표:[행]}}을 지금 표에 맞춤 ───────────
+// 백업에 없는 칸(로그인 열쇠·PIN·푸시 구독)은 지금 값을 그대로 둠. 같은 줄은 다시 쓰지 않음(D1 쓰기 한도 절약).
+const RS_KEEPKV = /vapid|dlpin|^sent:|^bktok:|^rstok:|^restoredAt$|^bk:|^mig/i; // 열쇠·보낸 기록·한 번만 하는 정리 표시는 건드리지 않음
+async function rsCols(env, table) {
+  if (!(await bkTables(env)).includes(String(table))) return null;
+  const info = await all(env, 'PRAGMA table_info(' + table + ')');
+  const pk = info.filter(c => c.pk > 0).sort((a, c) => a.pk - c.pk).map(c => c.name);
+  return pk.length ? { cols: info.map(c => c.name), pk, where: pk.map(k => k + ' = ?').join(' AND ') } : null;
+}
+async function rsPks(env) { const o = {}; for (const t of await bkTables(env)) { const c = await rsCols(env, t); if (c) o[t] = c.pk; } return o; }
+async function rsCounts(env) { const o = {}; for (const t of await bkTables(env)) o[t] = ((await one(env, 'SELECT COUNT(*) AS n FROM ' + t)) || {}).n || 0; return o; }
+const rsSame = (a, b) => (a ?? null) === (b ?? null) || (a != null && b != null && String(a) === String(b));
+async function rsPut(env, table, rows) {
+  const t = await rsCols(env, table); if (!t) return { ok: false, error: table + ': 넣을 수 없는 표' };
+  rows = (Array.isArray(rows) ? rows : []).filter(r => r && typeof r === 'object' && t.pk.every(k => r[k] != null)).slice(0, 300);
+  if (table === 'kv') rows = rows.filter(r => !RS_KEEPKV.test(String(r.k)));
+  if (!rows.length) return { ok: true, put: 0 };
+  const cur = await env.DB.batch(rows.map(r => env.DB.prepare('SELECT * FROM ' + table + ' WHERE ' + t.where).bind(...t.pk.map(k => r[k]))));
+  const val = v => v != null && typeof v === 'object' ? JSON.stringify(v) : v;
+  const st = [];
+  rows.forEach((r, i) => {
+    const old = ((cur[i] && cur[i].results) || [])[0] || null;
+    let cols = t.cols.filter(c => c in r && !BK_HIDE.includes(c));
+    if (table === 'members') { if (!old) return; cols = ['name', 'role'].filter(c => c in r); } // 직원은 이름·직책만 맞춤 (PIN 그대로, 없는 사람은 만들지 않음)
+    if (old) {
+      const ch = cols.filter(c => !t.pk.includes(c) && !rsSame(old[c], val(r[c])));
+      if (ch.length) st.push(env.DB.prepare('UPDATE ' + table + ' SET ' + ch.map(c => c + ' = ?').join(', ') + ' WHERE ' + t.where).bind(...ch.map(c => val(r[c])), ...t.pk.map(k => r[k])));
+    } else st.push(env.DB.prepare('INSERT INTO ' + table + ' (' + cols.join(', ') + ') VALUES (' + cols.map(() => '?').join(', ') + ')').bind(...cols.map(c => val(r[c]))));
+  });
+  if (st.length) await env.DB.batch(st);
+  return { ok: true, put: st.length };
+}
+async function rsSweep(env, table, keep, n) { // 백업에 없는 줄 지우기 (keep = 백업에 있는 줄의 열쇠 값 목록)
+  const t = await rsCols(env, table); if (!t) return { ok: false, error: table + ': 넣을 수 없는 표' };
+  if (!Array.isArray(keep) || keep.length !== (n | 0)) return { ok: false, error: table + ': 줄 수가 맞지 않아요' };
+  if (table === 'members') return { ok: true, del: 0 }; // 직원은 지우지 않음
+  const ks = new Set(keep.map(k => JSON.stringify((Array.isArray(k) ? k : [k]).map(String))));
+  const gone = (await all(env, 'SELECT ' + t.pk.join(', ') + ' FROM ' + table)).filter(r => !ks.has(JSON.stringify(t.pk.map(k => String(r[k])))) && !(table === 'kv' && RS_KEEPKV.test(String(r.k))));
+  for (let i = 0; i < gone.length; i += 100) await env.DB.batch(gone.slice(i, i + 100).map(r => env.DB.prepare('DELETE FROM ' + table + ' WHERE ' + t.where).bind(...t.pk.map(k => r[k]))));
+  return { ok: true, del: gone.length };
 }
 function json(o, status = 200) {
   return new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
