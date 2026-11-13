@@ -125,10 +125,15 @@ async function route(path, req, env) {
   if (path === '/k/login') {
     const ip = 'kid:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, ip);
     if (lu) return json({ ok: false, error: '잠시 뒤에 다시 해 주세요 (' + Math.ceil((lu - Date.now()) / 60000) + '분)' });
+    // 2026-11-14 사용자 결정: 직원이 자기 PIN으로 확인해야 들어감(도장 공용 PIN은 안 됨) → 업무 앱에 'ㅇㅇ님이 ○○ 제자 모드를 승인했어요'
+    const st = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
+    if (!st.ok) return json({ ok: false, error: failText('직원 PIN이 맞지 않아요', await failAdd(env, ip)) });
+    if (st.shared) return json({ ok: false, error: '도장 공용 PIN은 안 돼요. 사범님 본인 PIN으로 확인해 주세요' });
     const code = String(b.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12), r = code.length >= 6 ? await one(env, 'SELECT name FROM kcodes WHERE code = ?', code) : null;
-    if (!r) return json({ ok: false, error: failText('코드가 맞지 않아요', await failAdd(env, ip)) });
+    if (!r) return json({ ok: false, error: failText('제자 코드가 맞지 않아요', await failAdd(env, ip)) });
     await failClear(env, ip); const tok = rid(24);
     await run(env, 'INSERT INTO ksess (tok, name, created, seen) VALUES (?, ?, ?, ?)', tok, r.name, Date.now(), Date.now());
+    try { await teamSync(env, '/sync/kid-ok', { staff: st.name, kid: r.name }); } catch (e) {}
     return json({ ok: true, tok, name: r.name });
   }
   if (path.startsWith('/k/')) {
