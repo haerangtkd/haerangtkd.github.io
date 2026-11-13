@@ -1135,7 +1135,7 @@
     if (f === '전체' || (f === '수련 계획' || f === '일정')) {
       if (!j || !j.ok) h += '<div class="empty">수련 계획을 불러오지 못했어요</div>';
       else {
-        const mine = j.items.map(x => ({ date: x.date, end: '', title: x.title, kind: x.kind || '', body: x.body || '' }));
+        const mine = j.items.map(x => ({ date: x.date, end: x.end || '', title: x.title, kind: x.kind || '', body: x.body || '' }));
         const have = new Set(mine.map(x => x.date + '|' + x.title.replace(/\s/g, '')));
         const items = [...mine, ...siteItems(month).filter(x => !have.has(x.date + '|' + x.title.replace(/\s/g, '')))].sort((p, q) => p.date.localeCompare(q.date) || (p.kind === '수련') - (q.kind === '수련'));
         const by = {};
