@@ -467,7 +467,7 @@
     if (!r.ok) { $('loginMsg').textContent = r.error || 'PIN이 맞지 않아요'; return; }
     $('pw').value = ''; const e = await login(r.tok); if (e) $('loginMsg').textContent = e;
   };
-  $('logout').onclick = async () => { await post('/staff/logout', {}).catch(() => {}); try { localStorage.removeItem(TOKK); } catch (_) {} location.reload(); };
+  $('logout').onclick = async () => { await post('/staff/logout', {}).catch(() => {}); try { localStorage.removeItem(TOKK); sessionStorage.removeItem('haerang-from-team'); } catch (_) {} location.reload(); };
   $('pw').onkeydown = e => { if (e.key === 'Enter') $('loginBtn').click(); };
   async function refresh() { const j = await post('/admin/status', {}); if (j.ok) setStatus(j); return j; }
   $('refresh').onclick = async () => { if ((await refresh()).ok) { loadNews(); loadFees(); toast('새로 불러왔습니다'); } };
@@ -1150,11 +1150,20 @@
   };
 
   // ── 시작 ──
+  function fromTeam() { // 업무 앱 버튼·알림으로 열었는지 (?from=team 도 같은 뜻)
+    try { if (new URLSearchParams(location.search).get('from') === 'team') { sessionStorage.setItem('haerang-from-team', '1'); history.replaceState(null, '', location.pathname + location.search.replace(/[?&]from=team/, '').replace(/^&/, '?')); }
+      return sessionStorage.getItem('haerang-from-team') === '1'; } catch (_) { return false; }
+  }
+  fromTeam();
   setType('notice');
   (async () => {
     if (!API) { $('login').hidden = false; $('loginMsg').textContent = '서버 주소(config.js)가 아직 비어 있습니다.'; $('loginBtn').disabled = true; return; }
     let saved = ''; try { saved = localStorage.getItem(TOKK) || ''; localStorage.removeItem(PWK); } catch (_) {} // 예전 관리자 비밀번호 저장값은 지움
     if (saved && !(await login(saved))) return;
+    // 업무 앱에서 열었으면 업무 앱 로그인으로 자동 로그인 (2026-11-14). 따로 설치한 앱으로 열면 따로 로그인
+    if (fromTeam()) { const tt = (() => { try { return localStorage.getItem('haerang-team-tok') || ''; } catch (_) { return ''; } })();
+      if (tt) { const r = await fetch(API + '/staff/sso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ttok: tt }) }).then(x => x.json()).catch(() => ({ ok: false }));
+        if (r.ok && !(await login(r.tok))) return; } }
     $('login').hidden = false; showWho();
   })();
 })();
