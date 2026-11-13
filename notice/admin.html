@@ -211,6 +211,7 @@
           <div class="seg" id="nTarget"><button class="on" data-v="all">전체</button><button data-v="pick">아이 선택</button></div>
           <div id="nPick" hidden><input type="search" id="nq" placeholder="이름 검색" style="margin-top:10px"><div class="checks" id="nChecks"></div><p class="hint" id="nCount" style="margin-top:6px"></p></div>
         </div>
+        <div id="fJtpl" hidden><label class="f">알림장 양식 <small style="font-weight:400;color:#8a827c">(업무 앱 설정에서 고쳐요)</small></label><div class="tpl" id="jTpl"></div></div>
         <label class="f">제목</label>
         <input type="text" id="nTitle" maxlength="100">
         <label class="f">내용</label>
@@ -451,6 +452,7 @@
     $('nHead').textContent = c.head; $('nHint').textContent = c.hint; $('nListHead').textContent = c.list;
     $('fKind').hidden = !c.kinds; $('fDate').hidden = !c.date; $('fTarget').hidden = !c.target; $('fPhotos').hidden = !c.photos; $('fPin').hidden = !c.pin; $('fUrgent').hidden = nType !== 'notice'; $('fAsk').hidden = nType !== 'notice' && nType !== 'journal';
     $('nMonth').hidden = t !== 'schedule';
+    $('fJtpl').hidden = t !== 'journal'; if (t === 'journal') loadJtpl();
     $('nNotify').checked = c.notify;
     if (c.kinds) { nKind = c.kinds[0]; $('nKind').innerHTML = c.kinds.map(k => '<button class="' + (k === nKind ? 'on' : '') + '">' + k + '</button>').join(''); renderTpl(); }
     if (c.date && !$('nDate').value) $('nDate').value = today();
@@ -458,6 +460,15 @@
     loadNews();
   }
   $('nType').onclick = e => { const b = e.target.closest('button'); if (b) setType(b.dataset.v); };
+  let jtpl = null; // 알림장 양식 (업무 앱에서 관리, 2026-11-13)
+  async function loadJtpl() {
+    if (!jtpl) { try { const j = await post('/admin/jtpl', {}); jtpl = j.ok ? j.tpl || [] : []; } catch (_) { jtpl = []; } }
+    $('jTpl').innerHTML = jtpl.length ? jtpl.map((x, i) => '<button data-i="' + i + '">' + esc(x.t) + '</button>').join('') : '<span class="hint">양식이 없어요. 업무 앱 설정 → 알림장 양식에서 만들어요.</span>';
+  }
+  $('jTpl').onclick = e => { const b = e.target.closest('button'); if (!b || !jtpl) return; const x = jtpl[b.dataset.i]; if (!x) return;
+    if (($('nTitle').value.trim() || $('nBody').value.trim()) && !confirm('지금 적은 내용을 양식으로 바꿀까요?')) return;
+    const d = new Date(Date.now() + 9 * 3600e3), dt = (d.getUTCMonth() + 1) + '월 ' + d.getUTCDate() + '일(' + '일월화수목금토'[d.getUTCDay()] + ')', f = v => String(v || '').replace(/\{날짜\}/g, dt);
+    $('nTitle').value = f(x.title); $('nBody').value = f(x.body); $('nBody').focus(); };
   function renderTpl() { const t = TPL[nKind] || []; $('nTpl').innerHTML = nType === 'notice' ? t.map((x, i) => '<button data-i="' + i + '">' + esc(x[0]) + ' 양식</button>').join('') : ''; }
   $('nKind').onclick = e => { const b = e.target.closest('button'); if (!b) return; nKind = b.textContent; [...$('nKind').children].forEach(x => x.classList.toggle('on', x === b)); renderTpl(); };
   $('nTpl').onclick = e => { const b = e.target.closest('button'); if (!b) return; const t = TPL[nKind][b.dataset.i]; $('nTitle').value = t[1]; $('nBody').value = t[2]; };
