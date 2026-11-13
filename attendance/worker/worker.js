@@ -77,8 +77,8 @@ async function route(path, req, env) {
     }
     if (path === '/sync/kid-info') { // 학부모 앱 '정보 확인': 이름으로 출생연도·수련 요일·임시변경(오늘 이후) (2026-11-13)
       const names = (Array.isArray(b.names) ? b.names : []).map(x => str(x, 20)).slice(0, 10), day = kstDay();
-      const L = (await all(env, 'SELECT data FROM students')).map(r => J(r.data, {})).filter(s => names.includes(s.name) && s.status !== '퇴관');
-      return json({ ok: true, kids: L.map(s => ({ name: s.name, birth: s.birth || '', days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
+      const L = (await all(env, 'SELECT id, data FROM students')).map(r => ({ ...J(r.data, {}), id: r.id })).filter(s => names.includes(s.name) && s.status !== '퇴관');
+      return json({ ok: true, kids: L.map(s => ({ sid: s.id, name: s.name, birth: s.birth || '', days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
     }
     if (path === '/sync/day-absent') { // 업무 앱 등원표: 그날 결석(출석부 '결석' + 미리 연락 온 결석 예정)
       const day = isDay(b.day) ? b.day : kstDay();
@@ -91,7 +91,7 @@ async function route(path, req, env) {
       const rows = await all(env, 'SELECT id, data, upd FROM students');
       const day = kstDay(), att = await all(env, "SELECT sid, r FROM att WHERE day = ? AND r IN ('o', 'x')", day), ab = await all(env, 'SELECT sid FROM absences WHERE date = ?', day);
       const here = att.filter(r => r.r === 'o').map(r => r.sid), absent = [...new Set([...att.filter(r => r.r === 'x'), ...ab].map(r => r.sid))].filter(id => !here.includes(id)); // 결석 = 출석부 '결석' + 미리 연락 온 결석 (2026-11-13)
-      return json({ ok: true, day, students: rows.map(r => ({ id: r.id, upd: r.upd, ...J(r.data, {}) })), here, absent });
+      return json({ ok: true, day, students: rows.map(r => ({ id: r.id, upd: r.upd, ...J(r.data, {}) })), here, absent, cneed: await cneedList(env, rows) });
     }
     if (path === '/sync/student-save') {
       const cur = b.student && b.student.id ? await one(env, 'SELECT upd, data FROM students WHERE id = ?', str(b.student.id, 60)) : null;
@@ -99,6 +99,7 @@ async function route(path, req, env) {
       if (cur && b.noRevive && J(cur.data, {}).status === '퇴관' && (b.student || {}).status !== '퇴관') return json({ ok: false, error: '퇴관한 제자를 다시 바꾸는 건 관리자만 할 수 있어요' });
       return json(await saveStudentRow(env, b, str(b.who, 20) || '업무 앱'));
     }
+    if (path === '/sync/cneed') return json({ ok: true, list: await cneedList(env, await all(env, 'SELECT id, data FROM students')) }); // 업무 앱 크론: 연락 필요 알림
     if (path === '/sync/kid-today') { // 업무 앱 보호자 하원 알림: 오늘 그 제자가 들은 마지막 수업 시작 + 45분 (50분 수업, 끝나기 5분 전)
       const day = isDay(b.day) ? b.day : kstDay(), name = str(b.name, 20).replace(/\s+/g, '');
       const st = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) })).find(x => x.name === name && x.status !== '퇴관');
@@ -150,6 +151,7 @@ async function route(path, req, env) {
       }
       const p = cleanP([cur && cur.p, per].filter(Boolean).join('/'));
       await run(env, "INSERT INTO att (day, sid, r, p, w, mk, who, at, tin) VALUES (?, ?, 'o', ?, '', 0, '태블릿', ?, ?) ON CONFLICT(day, sid) DO UPDATE SET r = 'o', p = excluded.p, w = '', who = '태블릿', at = excluded.at, tin = excluded.tin", day, s.id, p, Date.now(), tin);
+      await cneedDrop(env, day, [s.id]); // 태블릿 등원도 출석이라 '연락 필요' 끝
       return json({ ok: true, day, period: per });
     }
     if (path === '/sync/absence') { // 업무 앱 채팅 '#등원 ○○ 결석' → 결석 예정
@@ -294,7 +296,8 @@ async function route(path, req, env) {
     const ym = b.ym || (b.day ? b.day.slice(0, 7) : null);
     const ab = ym ? await all(env, 'SELECT sid, date, why FROM absences WHERE date LIKE ?', ym + '-%') : await all(env, 'SELECT sid, date, why FROM absences WHERE date LIKE ?', b.year + '-%');
     const quiet = {}; for (const r of await all(env, 'SELECT k, v FROM kv WHERE k LIKE ?', 'quiet:' + (ym || b.year) + '%')) quiet[r.k.slice(6)] = J(r.v, []); // 오늘만 등원 알림 안 보냄
-    return json({ ok: true, rows, absences: ab, quiet });
+    const cneed = {}; for (const r of await all(env, 'SELECT k, v FROM kv WHERE k LIKE ?', 'cneed:' + (ym || b.year) + '%')) cneed[r.k.slice(6)] = J(r.v, {}); // 연락 필요 (2026-11-13)
+    return json({ ok: true, rows, absences: ab, quiet, cneed });
   }
 
   if (path === '/api/att-set') { // 여러 명 한 번에: r 'o' 출석 / 'x' 결석 / '' 미확인, del 이면 줄 지움(보강 취소 등)
@@ -312,7 +315,8 @@ async function route(path, req, env) {
         b.day, sid, r, r === 'o' ? cleanP(it.p) : '', r === 'x' ? str(it.w, 40) : '', it.mk ? 1 : 0, who, now));
     }
     if (st.length) await env.DB.batch(st);
-    return json({ ok: true, rows: await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day = ?', b.day) });
+    await cneedDrop(env, b.day, items.filter(it => !it.del && (it.r === 'o' || it.r === 'x')).map(it => str(it.sid, 60))); // 출·결을 넣으면 '연락 필요'는 끝 (2026-11-13)
+    return json({ ok: true, rows: await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day = ?', b.day), cneed: await cneedGet(env, b.day) });
   }
 
   if (path === '/api/student-save') return json(await saveStudentRow(env, b, who));
@@ -328,8 +332,17 @@ async function route(path, req, env) {
   }
   // 태블릿 출결을 잠깐 안 쓸 때: 출석부에서 '등원 알림 보낼까요?' 창과 '태블릿 안 누름' 표시를 끔 (kv 'kioskOff', 2026-11-13)
   if (path === '/api/kiosk-off') {
+    if (!me.boss) return json({ ok: false, error: '태블릿 출결 켜기·끄기는 관리자만 할 수 있어요' }, 403); // 2026-11-13 사용자 결정
     await run(env, "INSERT INTO kv (k, v) VALUES ('kioskOff', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0');
     return json({ ok: true, kioskOff: !!b.on });
+  }
+  // '연락 필요' (2026-11-13): 오늘 출석에서 누르면 업무 앱 대시보드에 긴급 카드 + 직원 알림. 그 제자를 출석·결석으로 넣으면 사라짐 (kv 'cneed:날짜' = {sid: {at, who, why}})
+  if (path === '/api/cneed') {
+    if (!isDay(b.day)) return json({ ok: false, error: '날짜를 확인해 주세요' });
+    const sid = str(b.sid, 60), k = 'cneed:' + b.day, cur = await cneedGet(env, b.day); if (!sid) return json({ ok: false, error: '제자를 확인해 주세요' });
+    if (b.on === false) delete cur[sid]; else cur[sid] = { at: Date.now(), who, why: str(b.why, 60) };
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify(cur));
+    return json({ ok: true, day: b.day, cneed: cur });
   }
   // '오늘만 안 보내기': 그날 그 제자는 '태블릿 안 누름' 표시를 하지 않음 (kv 'quiet:날짜' = [sid], 2026-11-13)
   if (path === '/api/quiet') {
@@ -563,6 +576,21 @@ async function checkAdmin(env, ip, password) {
 // ── 틀린 횟수 잠금 (비밀번호·PIN·초대번호 공통) ──
 // 5번 틀릴 때마다 잠금: 1분 → 2분 → 3분 … (틀릴수록 길어짐). 맞히면 처음부터, 하루 동안 안 틀리면 처음부터.
 const FAIL_STEP = 5;
+// 연락 필요 (2026-11-13)
+async function cneedGet(env, day) { return J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'cneed:' + day) || {}).v, {}); }
+async function cneedDrop(env, day, sids) {
+  if (!sids.length || !isDay(day)) return; const cur = await cneedGet(env, day); let ch = false;
+  for (const id of sids) if (cur[id]) { delete cur[id]; ch = true; }
+  if (ch) await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'cneed:' + day, JSON.stringify(cur));
+}
+async function cneedList(env, rows) { // 오늘까지 7일 안의 아직 끝나지 않은 '연락 필요' → [{sid, name, day, why, who, at}]
+  const day = kstDay(), from = new Date(Date.parse(day) - 6 * 864e5).toISOString().slice(0, 10), names = new Map(rows.map(r => [r.id, J(r.data, {}).name || '']));
+  const out = [];
+  for (const r of await all(env, "SELECT k, v FROM kv WHERE k >= ? AND k <= ?", 'cneed:' + from, 'cneed:' + day)) {
+    const d = r.k.slice(6); for (const [sid, x] of Object.entries(J(r.v, {}))) if (names.get(sid)) out.push({ sid, name: names.get(sid), day: d, why: x.why || '', who: x.who || '', at: x.at || 0 });
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
 async function lockUntil(env, key) { const f = await one(env, 'SELECT until FROM fails WHERE ip = ?', key); return f && f.until > Date.now() ? f.until : 0; }
 async function failAdd(env, key) {
   const f = await one(env, 'SELECT n, until, at FROM fails WHERE ip = ?', key), now = Date.now();
