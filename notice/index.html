@@ -19,7 +19,8 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
   html{background:var(--bg)}
-  body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+  html{overscroll-behavior-y:none}
+  body{font-family:'Noto Sans KR',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100svh;overscroll-behavior-y:none}
   button{font:inherit;color:inherit;cursor:pointer}
   .wrap{max-width:560px;margin:0 auto;padding:0 16px calc(40px + env(safe-area-inset-bottom))}
   .card{background:var(--card);border-radius:20px;padding:20px;margin-top:14px}
@@ -230,7 +231,7 @@
   .thead{position:sticky;top:0;z-index:6;background:rgba(246,243,239,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);margin:0 -16px;padding:calc(16px + env(safe-area-inset-top)) 20px 8px}
   .thead h1{font-size:26px;font-weight:800;letter-spacing:-.03em}
   /* 아래 탭 */
-  .nav{position:fixed;left:0;right:0;bottom:0;z-index:15;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:4px 0 calc(4px + env(safe-area-inset-bottom))}
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:15;transform:translateZ(0);will-change:transform;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:4px 0 calc(4px + env(safe-area-inset-bottom))}
   #v-home[hidden]+.nav{display:none}
   .nav .in{display:flex;max-width:560px;margin:0 auto}
   .nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:600;color:#A39B95;padding:7px 0 5px;position:relative}
@@ -314,7 +315,7 @@
   .ev-sh .opts{display:flex;flex-wrap:wrap;gap:6px}
   .ev-sh .opts button{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:9px 14px;font-size:15px;color:var(--ink)}
   .ev-sh .opts button.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:700}
-  .ev-sh input.m{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font-size:15px}
+  .ev-sh input.m,.ev-sh textarea.m{box-sizing:border-box;font-family:inherit;background:#fff;width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font-size:15px}
   .ev-sh .tot{display:flex;justify-content:space-between;font-weight:800;font-size:16px;margin-top:16px;padding:12px 4px 0;border-top:1px solid var(--line)}
   .ev-sh .cx{display:block;width:100%;border:0;background:none;color:var(--muted);font-size:14.5px;padding:12px;margin-top:2px}
   /* 사범님께 연락 · 숙제 */
@@ -361,6 +362,7 @@
   .perk-co b{display:block;font-size:15px}
   .perk-co small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
   .perk-co small.go{color:#A40F16;font-weight:600}
+  .dreq{display:block;width:100%;margin:10px 0;padding:11px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--brand);font-size:14.5px;font-weight:700}
   .ack-btn.big{background:var(--brand);color:#fff;padding:13px;font-size:16px}
   .ack-btn:disabled{opacity:.5}
   .acked{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:13.5px;color:var(--green);font-weight:600}
@@ -733,7 +735,7 @@
   function homeTiles(k) {
     const hwN = (hws || []).filter(h => h.kids.includes(k)).length, evN = (evs || []).length;
     const T = [['journal', '알림장', '#F4A63A', '#fff', fresh('journal')], ['notice', '공지', '#3D8BF2', '#fff', fresh('notice')], ['album', '앨범', '#2BB3A3', '#fff', fresh('album')], ['schedule', '일정', '#F05A3C', '#fff', false],
-      ['kid', '출석', '#F6C21C', '#fff', false], ['hw', '숙제', '#8B6CF0', '#fff', false, hwN], ['ev', '행사 신청', '#E2477B', '#fff', false, evN], ['perk', '제휴·혜택', '#A40F16', '#fff', false]];
+      ['kid', '출석', '#F6C21C', '#fff', false], ['hw', '미션', '#8B6CF0', '#fff', false, hwN], ['ev', '행사 신청', '#E2477B', '#fff', false, evN], ['perk', '제휴·혜택', '#A40F16', '#fff', false]];
     return '<section class="sec"><div class="tcard"><div class="th">해랑경희 태권도장<small>' + esc(k) + '</small></div><div class="tiles">' + T.map(([key, label, bg, fg, isNew, n]) => '<button data-tile="' + key + '">' + (isNew ? '<i class="n"></i>' : '') + '<span class="ti" style="background:' + bg + ';color:' + fg + '">' + (IC[key] || IC[{ hw: 'edit', ev: 'schedule', ct: 'bell' }[key]] || '') + '</span>' + label + (n ? '<b class="tn">' + n + '</b>' : '') + '</button>').join('') + '</div></div></section>';
   }
   function onTile(key) {
@@ -741,7 +743,7 @@
     if (key === 'schedule') return showTab('schedule'); if (key === 'kid') return showTab('kid');
     if (key === 'perk') return openPage('perk');
     const id = { hw: 'secHw', ev: 'secEv', ct: 'secCt' }[key], el = $(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); else toast(key === 'hw' ? '지금 올라온 숙제가 없어요' : key === 'ev' ? '지금 신청 받는 행사가 없어요' : '잠시 후 다시 눌러 주세요');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); else toast(key === 'hw' ? '지금 올라온 미션이 없어요' : key === 'ev' ? '지금 신청 받는 행사가 없어요' : '잠시 후 다시 눌러 주세요');
   }
   function contactSection(k) {
     if (!contact) return '';
@@ -804,10 +806,40 @@
     };
     draw(); document.body.appendChild(sh);
   }
+  // 수련 요일 변경 요청 (2026-11-13): 바라는 요일·시작일·사유 → 업무 앱 '학부모 연락'으로 (바로 바뀌지 않고 도장이 확인)
+  function dayReqSheet(kid, cur) {
+    const W5 = ['월', '화', '수', '목', '금'], st = { days: [...cur], from: '', why: '' };
+    const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
+    const draw = () => {
+      sh.innerHTML = '<div class="in"><h3>수련 요일 변경 요청</h3><p class="help-l">' + esc(kid) + ' · 지금 ' + (cur.length ? esc(cur.join('·')) : '등록 전') + '</p>' +
+        '<label class="f">바꾸고 싶은 요일</label><div class="opts" data-g="d">' + W5.map(d => '<button data-v="' + d + '" class="' + (st.days.includes(d) ? 'on' : '') + '">' + d + '</button>').join('') + '</div>' +
+        '<label class="f">언제부터 (안 적어도 돼요)</label><input type="date" class="m" id="dF" min="' + todayK() + '" value="' + esc(st.from) + '">' +
+        '<label class="f">사유</label><textarea class="m" id="dW" rows="3" maxlength="150" placeholder="예: 학원 시간이 바뀌어서 화·목은 어려워요">' + esc(st.why) + '</textarea>' +
+        '<p class="help-l" style="margin-top:10px">요청을 보내면 도장에서 확인한 뒤 바꿔 드려요. 사유 확인이 필요하면 도장에서 연락드릴 수 있어요.</p>' +
+        '<button class="btn" id="dGo">요청 보내기</button><button class="cx" id="dX">닫기</button></div>';
+    };
+    const keep = () => { st.from = sh.querySelector('#dF').value; st.why = sh.querySelector('#dW').value; };
+    sh.onclick = async e => {
+      if (e.target === sh || e.target.closest('#dX')) return sh.remove();
+      const b = e.target.closest('.opts button'); if (b) { keep(); const v = b.dataset.v; st.days = st.days.includes(v) ? st.days.filter(x => x !== v) : W5.filter(x => x === v || st.days.includes(x)); return draw(); }
+      if (e.target.closest('#dGo')) {
+        keep();
+        if (!st.days.length) return toast('요일을 골라 주세요');
+        if (st.days.join() === cur.join()) return toast('지금과 같은 요일이에요');
+        if (!st.why.trim()) return toast('사유를 적어 주세요');
+        const md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8));
+        const text = '희망 요일 ' + st.days.join('·') + ' (지금 ' + (cur.join('·') || '없음') + ')' + (st.from ? ' · ' + md(st.from) + '부터' : '') + ' · 사유: ' + st.why.trim();
+        const btn = sh.querySelector('#dGo'); btn.disabled = true;
+        try { const j = await post('/p/contact-send', { kid, text, day: todayK(), dayreq: true }); if (!j.ok) throw new Error(j.error); sh.remove(); toast('도장에 요청했어요. 확인 후 바꿔 드릴게요'); }
+        catch (er) { btn.disabled = false; toast(er.message || '잠시 후 다시 해 주세요'); }
+      }
+    };
+    draw(); document.body.appendChild(sh);
+  }
   function hwSection(k) {
     const L = (hws || []).filter(h => h.kids.includes(k)); if (!L.length) return '';
     const td = todayK();
-    return '<section class="sec" id="secHw"><h2>숙제<small>해 보면 좋아요</small></h2>' + L.map(h => {
+    return '<section class="sec" id="secHw"><h2>미션<small>해 보면 좋아요</small></h2>' + L.map(h => {
       const mine = h.chk.filter(c => c.kid === k), done = h.mode === 'daily' ? mine.some(c => c.day === td) : mine.length > 0;
       const days = h.mode === 'daily' ? Math.round((Date.parse(h.end) - Date.parse(h.start)) / 864e5) + 1 : 0;
       const canToday = h.mode !== 'daily' || (td >= h.start && td <= h.end);
@@ -1178,10 +1210,12 @@
         return '<div class="kinfo"><h3>' + esc(k.name) + '</h3>' +
           '<div class="r"><span>출생연도</span><b>' + (by ? by + '년생' : '도장에 등록 전') + '</b></div>' +
           '<div class="r"><span>수련 요일</span><b>' + ((k.days || []).length ? esc(k.days.join('·')) : '도장에 등록 전') + (tmp ? '<small>임시 변경: ' + esc(tmp) + '</small>' : '') + '</b></div>' +
-          '<div class="r"><span>회비</span><b>' + (f ? won(f.base - (f.disc || 0)) + (f.disc ? '<small>가족 할인 ' + won(f.disc) + ' (기본 ' + won(f.base) + ')</small>' : '') : '도장에 확인해 주세요') + '</b></div></div>';
+          '<div class="r"><span>회비</span><b>' + (f ? won(f.base - (f.disc || 0)) + (f.disc ? '<small>가족 할인 ' + won(f.disc) + ' (기본 ' + won(f.base) + ')</small>' : '') : '도장에 확인해 주세요') + '</b></div>' +
+          '<button class="dreq" data-dreq="' + esc(k.name) + '" data-days="' + esc((k.days || []).join(',')) + '">수련 요일 변경 요청하기 ›</button></div>';
       }).join('') +
         '<div class="kinfo"><div class="r"><span>관계</span><b>' + esc(j.rel || '') + '</b></div><div class="r"><span>번호 뒷자리</span><b>' + esc(j.ph || '') + '<small>태블릿에서 아이가 누르는 번호예요</small></b></div></div>' +
         '<p class="note" style="margin:12px 4px">바꿀 것이 있으면 도장에 알려 주세요.</p>');
+      $('pBody').onclick = e => { const b = e.target.closest('[data-dreq]'); if (b) dayReqSheet(b.dataset.dreq, (b.dataset.days || '').split(',').filter(Boolean)); };
     },
     async perk() { // 제휴·혜택 (2026-11-13): 지인 소개 + 홈페이지·네이버 예약 공유 + 홈페이지의 '제휴업체'만
       const SITE = 'https://haerangtkd.github.io/';
