@@ -26,9 +26,6 @@
   .login .logo{font-size:64px}.login h1{font-size:26px;margin:8px 0 4px}.login p{color:var(--muted);margin:0 0 20px;line-height:1.6}
   .login input{width:100%;max-width:320px;font-size:28px;font-weight:900;letter-spacing:6px;text-align:center;text-transform:uppercase;border:3px solid var(--line);border-radius:18px;padding:16px;background:#fff}
   .login input:focus{outline:none;border-color:var(--brand)}
-  .stf{width:100%;max-width:320px;text-align:left;margin-bottom:14px}.stf label{display:block;font-weight:800;font-size:14px;margin:0 0 6px 4px}
-  .stf select,.stf #pin{width:100%;font-size:17px;border:2px solid var(--line);border-radius:14px;padding:13px;background:#fff;margin-bottom:8px;font-family:inherit}
-  .stf #pin{letter-spacing:4px;font-weight:800;text-align:center}.stf #code{max-width:none}
   .toP{display:block;margin:26px auto 0;border:0;background:none;color:var(--muted);font-size:14px;text-decoration:underline}
   .big{border:0;background:var(--brand);color:#fff;font-size:20px;font-weight:900;border-radius:18px;padding:16px 28px;margin-top:14px;width:100%;max-width:320px}
   .err{color:#D92D20;font-weight:700;min-height:22px;margin-top:10px}
@@ -103,10 +100,8 @@
 <section class="login" id="vLogin" hidden>
   <div class="logo">🥋</div>
   <h1>해랑경희 제자</h1>
-  <p>도장에서 <b>사범님이 확인</b>해 주셔야 들어갈 수 있어요</p>
-  <div class="stf"><label>① 사범님 확인</label><select id="mid"><option value="">사범님 이름 고르기</option></select>
-  <input id="pin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="사범님 본인 PIN"></div>
-  <div class="stf"><label>② 제자 코드</label><input id="code" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="코드"></div>
+  <p>도장에서 <b>사범님이 만들어 준 코드</b>를 넣어요</p>
+  <input id="code" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="코드">
   <button class="big" id="go">들어가기</button>
   <div class="err" id="err"></div>
   <button class="toP" id="toP">👨‍👩‍👧 학부모 화면으로</button>
@@ -136,28 +131,19 @@
   const beltHtml = b => { const s = beltStyle(b); return '<div class="belt" style="background:' + s.bg + (s.bg === '#FFFFFF' ? ';outline:2px solid #EEE6DC' : '') + '">' + (s.st ? '<i style="background:' + s.st + '"></i>' : '') + '<span class="knot" style="background:' + s.bg + '"></span></div>'; };
   const beltDot = b => { const s = beltStyle(b); return '<i style="background:' + (s.st ? 'linear-gradient(180deg,' + s.bg + ' 35%,' + s.st + ' 35% 65%,' + s.bg + ' 65%)' : s.bg) + (s.bg === '#FFFFFF' ? ';outline:1px solid #DDD' : '') + '"></i>'; };
   // ── 로그인 ──
-  // 2026-11-14: 학부모 앱과 한 앱 — 제자 모드는 사범님이 본인 PIN으로 확인(공용 PIN 안 됨) → 업무 앱에 'ㅇㅇ님이 ○○ 제자 모드를 승인했어요'
+  // 2026-11-14: 학부모 앱과 한 앱 — 코드는 사범님이 업무 앱(더보기 → 🔑 제자 코드)에서 만들어 줌 → 업무 알림 'ㅇㅇ님이 ○○ 제자를 승인했어요'
   store.set('haerang-mode', 'kid');
   const toParent = () => { store.set('haerang-mode', 'parent'); location.href = 'index.html'; };
   $('toP').onclick = toParent; $('toP2').onclick = toParent;
-  let staffLoaded = false;
-  async function loadStaff() {
-    if (staffLoaded) return; const j = await post('/staff/members');
-    if (!j.ok) { $('err').textContent = j.error || '사범님 목록을 불러오지 못했어요'; return; }
-    staffLoaded = true; $('mid').innerHTML = '<option value="">사범님 이름 고르기</option>' + (j.members || []).filter(m => !m.shared).map(m => '<option value="' + esc(m.id) + '">' + esc(m.name) + '</option>').join('');
-  }
   async function login() {
-    const mid = $('mid').value, pin = $('pin').value.trim(), code = $('code').value.trim();
-    if (!mid) { $('err').textContent = '사범님 이름을 골라 주세요'; return; }
-    if (!pin) { $('err').textContent = '사범님 PIN을 넣어 주세요'; return; }
-    if (code.length < 6) { $('err').textContent = '제자 코드를 끝까지 넣어 주세요'; return; }
-    $('go').disabled = true; const j = await post('/k/login', { mid, pin, code }); $('go').disabled = false;
-    if (!j.ok) { $('err').textContent = j.error || '다시 해 주세요'; $('pin').value = ''; return; }
-    store.set(TK, j.tok); $('code').value = ''; $('pin').value = ''; $('err').textContent = ''; start();
+    const code = $('code').value.trim(); if (code.length < 6) { $('err').textContent = '코드를 끝까지 넣어 주세요'; return; }
+    $('go').disabled = true; const j = await post('/k/login', { code }); $('go').disabled = false;
+    if (!j.ok) { $('err').textContent = j.error || '다시 해 주세요'; return; }
+    store.set(TK, j.tok); $('code').value = ''; $('err').textContent = ''; start();
   }
   $('go').onclick = login; $('code').onkeydown = e => { if (e.key === 'Enter') login(); };
-  $('out').onclick = async () => { if (!confirm('이 기기에서 나갈까요? 다시 들어오려면 도장에서 사범님 확인을 받아야 해요.')) return; await post('/k/logout'); store.set(TK, ''); location.reload(); };
-  function showLogin() { $('vLogin').hidden = false; $('vApp').hidden = true; $('nav').hidden = true; loadStaff(); }
+  $('out').onclick = async () => { if (!confirm('이 기기에서 나갈까요? 다시 들어오려면 도장에서 사범님께 코드를 받아야 해요.')) return; await post('/k/logout'); store.set(TK, ''); location.reload(); };
+  function showLogin() { $('vLogin').hidden = false; $('vApp').hidden = true; $('nav').hidden = true; }
   async function start() {
     if (!store.get(TK)) return showLogin();
     $('vLogin').hidden = true; $('vApp').hidden = false; $('nav').hidden = false;
