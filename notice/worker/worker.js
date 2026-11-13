@@ -231,7 +231,7 @@ async function route(path, req, env) {
     if (['/p/contact', '/p/contact-send', '/p/hw', '/p/hw-check'].includes(path)) {
       const kst = await kidStatus(env), kids = myKids.filter(k => kst[k] !== '퇴관');
       if (path === '/p/contact') { const r = await teamSync(env, '/sync/ptpl', { kids }); return json(r.ok ? { ...r, kids } : r); }
-      if (path === '/p/contact-send') return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel }));
+      if (path === '/p/contact-send') return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel, dayreq: !!b.dayreq }));
       if (path === '/p/hw') { const r = await teamSync(env, '/sync/hw', { kids }); return json(r.ok ? { ...r, kids } : r); }
       return json(await teamSync(env, '/sync/hw-check', { kids, kid: b.kid, hw: b.hw, day: b.day, on: !!b.on, rel: p.rel }));
     }
@@ -306,7 +306,7 @@ async function route(path, req, env) {
   // 업무 앱: 숙제 올릴 때 학부모님께 알림 (대상 제자 또는 모두)
   if (path === '/sync/broadcast') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
-    return json(await send(env, { kind: '숙제', title: b.title, body: b.body, children: b.children, view: '', offset: b.offset | 0 })); // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
+    return json(await send(env, { kind: '미션', title: b.title, body: b.body, children: b.children, view: '', offset: b.offset | 0 })); // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
   }
   // 업무 앱 '한 파일 백업': 표 목록·표 내용 (관리자 비밀번호는 업무 서버가 먼저 확인)
   if (path === '/sync/bk-tables' || path === '/sync/bk-dump') {
