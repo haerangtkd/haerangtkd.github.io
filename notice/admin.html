@@ -44,6 +44,25 @@
   .seg{display:flex;gap:6px;flex-wrap:wrap}
   .seg button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;font-size:14px;font-weight:700;color:var(--muted)}
   .seg button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  /* 2026-11-13 동선 정리: 소식은 목록 먼저 + 쓰기 창, 일정은 따로 탭(달력) */
+  .wbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+  .wbtns button{border:0;border-radius:14px;padding:14px 10px;font-size:15px;font-weight:800;background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .wbtns button.p{background:var(--brand);border-color:var(--brand);color:#fff}
+  #wCard{display:none}
+  body.writing{overflow:hidden}
+  body.writing #wCard{display:block;position:fixed;inset:0;z-index:40;margin:0;border-radius:0;overflow:auto;padding:16px 18px calc(30px + env(safe-area-inset-bottom));max-width:none}
+  #wCard .wtop{display:none}
+  body.writing #wCard .wtop{display:flex;align-items:center;gap:10px;position:sticky;top:-16px;background:#fff;margin:-16px -18px 8px;padding:12px 18px;border-bottom:1px solid var(--line);z-index:2}
+  .wtop b{flex:1;font-size:17px}.wtop button{border:0;background:#F1ECE7;border-radius:10px;padding:8px 14px;font-size:14px;font-weight:700}
+  .scal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:6px}
+  .scal .w{font-size:12px;text-align:center;color:var(--muted);padding:4px 0}
+  .scal .d{min-height:62px;border-radius:8px;background:#FBF9F7;padding:3px;font-size:12px;text-align:left;border:0;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+  .scal .d.out{opacity:.35}.scal .d.td{outline:2px solid var(--brand)}
+  .scal .d em{font-style:normal;font-weight:700}
+  .scal .d i{font-style:normal;font-size:10.5px;line-height:1.25;border-radius:4px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;background:var(--brand)}
+  .scal .d i.hp{background:#8a827c}.scal .d i.fc{background:#2F6FDE}
+  .sli{display:flex;gap:10px;align-items:center}.sli .dd{flex:none;width:52px;text-align:center;font-weight:800;font-size:14px}.sli .dd small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  .tg{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;margin-right:4px;background:#F1ECE7;color:#6B6460}
   .seg.big{display:grid;grid-template-columns:repeat(4,1fr);background:#E9E4DF;border-radius:12px;padding:4px;gap:4px;margin-top:14px}
   .seg.big button{border:0;border-radius:9px;background:none;padding:9px 2px;font-size:14.5px}
   .seg.big button.on{background:#fff;color:var(--brand);box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -176,6 +195,7 @@
     <nav class="tabs">
       <button data-t="att" class="on">출결<span class="cnt" id="pendBadge" hidden></span></button>
       <button data-t="news">소식</button>
+      <button data-t="sched">일정</button>
       <button data-t="fee">회비</button>
       <button data-t="roster">명단</button>
     </nav>
@@ -187,10 +207,10 @@
     <section id="t-att">
       <div class="card pend" id="pendCard" hidden>
         <h2>가입 승인 대기 <span id="pendN"></span></h2>
-        <p class="hint">도장 보호자가 맞는지 확인한 뒤 승인해 주세요. 승인하면 아이가 명단에 들어가고, 휴대폰 뒷자리가 출결번호가 됩니다.</p>
+        <p class="hint">도장 보호자가 맞는지 확인한 뒤 승인해 주세요. 승인하면 제자가 명단에 들어가고, 휴대폰 뒷자리가 출결번호가 됩니다.</p>
         <ul class="list" id="pendList"></ul>
       </div>
-      <div class="search"><input type="search" id="q" placeholder="아이 이름 검색"><div class="sum" id="attSum"></div></div>
+      <div class="search"><input type="search" id="q" placeholder="제자 이름 검색"><div class="sum" id="attSum"></div></div>
       <ul class="list" id="kids"></ul>
       <div class="card" id="noKids" hidden>
         <h2>아직 명단이 없습니다</h2>
@@ -201,13 +221,15 @@
 
     <!-- ═════ 소식 ═════ -->
     <section id="t-news" hidden>
-      <div class="seg big" id="nType"><button data-v="notice" class="on">공지사항</button><button data-v="journal">알림장</button><button data-v="schedule">일정표</button><button data-v="album">앨범</button></div>
-      <div class="card">
+      <div class="wbtns" id="wBtns"><button class="p" data-w="notice">✏ 공지 쓰기</button><button class="p" data-w="journal">✏ 알림장 쓰기</button><button data-w="env">📩 봉투 보내기</button><button data-w="album">📷 앨범 올리기</button></div>
+      <div class="seg big" id="nType" hidden><button data-v="notice" class="on">공지사항</button><button data-v="journal">알림장</button><button data-v="schedule">일정표</button><button data-v="album">앨범</button></div>
+      <div class="card" id="wCard">
+        <div class="wtop"><b id="wTitle">쓰기</b><button id="wClose">닫기</button></div>
         <h2 id="nHead">공지사항 쓰기</h2>
         <p class="hint" id="nHint"></p>
 
         <div id="fKind"><label class="f">종류</label><div class="seg" id="nKind"></div><div class="tpl" id="nTpl"></div></div>
-        <div id="fDate" hidden><label class="f">날짜</label><input type="date" id="nDate"></div>
+        <div id="fDate" hidden><label class="f">날짜 · 끝나는 날 <small style="font-weight:400;color:#8a827c">(하루면 끝나는 날은 비워 두세요)</small></label><div style="display:flex;gap:8px"><input type="date" id="nDate" style="min-width:0"><input type="date" id="nEnd" style="min-width:0"></div></div>
         <div id="fEv" hidden style="border:1px solid #e8e1da;border-radius:14px;padding:4px 12px 12px;margin-top:12px">
           <label class="chk" style="margin-top:8px"><input type="checkbox" id="nMkEv"> <b>🎟 신청표도 만들기</b> <small style="color:#8a827c">(업무 앱 행사 신청표가 같이 생기고, 학부모 앱에서 신청을 받아요)</small></label>
           <div id="fEvO" hidden><label class="f">신청 대상</label><div class="seg" id="nEm"><button data-em="all" class="on">모두</button><button data-em="age">나이로</button><button data-em="grp">분류로</button><button data-em="kids">이름으로</button></div>
@@ -216,7 +238,7 @@
             <div id="nEKids" hidden style="margin-top:8px"><input type="search" id="nEq" placeholder="이름 검색"><div class="checks" id="nEk" style="max-height:240px;overflow:auto"></div><p class="hint" id="nEkN"></p></div></div>
         </div>
         <div id="fTarget"><label class="f">받는 사람</label>
-          <div class="seg" id="nTarget"><button class="on" data-v="all">전체</button><button data-v="pick">아이 선택</button></div>
+          <div class="seg" id="nTarget"><button class="on" data-v="all">전체</button><button data-v="pick">제자 선택</button></div>
           <div id="nEvs" hidden style="margin-top:10px"></div>
           <div id="nPick" hidden><input type="search" id="nq" placeholder="이름 검색" style="margin-top:10px"><div class="checks" id="nChecks"></div><p class="hint" id="nCount" style="margin-top:6px"></p></div>
         </div>
@@ -238,10 +260,22 @@
         <button class="lo" id="nEditX" hidden style="margin-top:8px;padding:8px 14px">수정 그만두기</button>
       </div>
       <div class="card">
-        <h2 id="nListHead">올린 공지</h2>
+        <h2 id="nListHead">올린 소식</h2>
+        <div class="seg" id="lType"><button data-l="all" class="on">전체</button><button data-l="notice">공지</button><button data-l="journal">알림장</button><button data-l="env">📩 봉투</button><button data-l="album">앨범</button></div>
         <div class="mhead" id="nMonth" hidden><button data-m="-1">‹</button><b id="nMonthLabel"></b><button data-m="1">›</button></div>
-        <ul class="list" id="nList"></ul>
+        <ul class="list" id="nList" style="margin-top:10px"></ul>
       </div>
+    </section>
+
+    <!-- ═════ 일정 (2026-11-13: 학부모 앱·홈페이지·업무 앱에 뜨는 도장 일정은 여기 한 곳에서) ═════ -->
+    <section id="t-sched" hidden>
+      <div class="mhead" id="sMonth"><button data-m="-1">‹</button><b id="sMonthLabel"></b><button data-m="1">›</button></div>
+      <div class="card" style="padding:12px">
+        <div class="scal" id="sCal"></div>
+        <p class="hint" style="margin-top:8px">날짜를 누르면 일정을 넣어요. <span class="tg" style="background:var(--brand);color:#fff">도장 일정</span><span class="tg" style="background:#8a827c;color:#fff">홈페이지(옮기기 전)</span><span class="tg" style="background:#2F6FDE;color:#fff">수련 주제</span></p>
+      </div>
+      <div class="card" id="sImp" hidden><h2>홈페이지에만 있는 일정 <span id="sImpN"></span>개</h2><p class="hint">예전에 홈페이지 관리에서 넣은 일정이에요. 알림 관리로 옮기면 앞으로는 여기서만 고치면 됩니다. 학부모님께 알림은 가지 않아요.</p><ul class="list" id="sImpList" style="font-size:14px"></ul><button class="btn" id="sImpGo" style="margin-top:8px">알림 관리로 옮기기</button></div>
+      <div class="card"><h2>이 달 일정</h2><button class="btn" id="sAdd" style="margin:6px 0 4px">+ 일정 넣기</button><ul class="list" id="sList"></ul></div>
     </section>
 
     <!-- ═════ 회비 ═════ -->
@@ -259,7 +293,7 @@
         <input type="text" id="feeTitle" maxlength="100">
         <label class="f">내용</label>
         <textarea id="feeBody" maxlength="3000"></textarea>
-        <p class="hint" style="margin-top:8px">학부모님 앱의 회비 화면에 남고, 알림도 갑니다. 아이를 지정한 안내는 그 보호자만 봅니다.</p>
+        <p class="hint" style="margin-top:8px">학부모님 앱의 회비 화면에 남고, 알림도 갑니다. 제자를 지정한 안내는 그 보호자만 봅니다.</p>
         <button class="btn" id="feeSend">보내기</button>
       </div>
       <div class="card">
@@ -271,14 +305,14 @@
     <!-- ═════ 명단 ═════ -->
     <section id="t-roster" hidden>
       <div class="card">
-        <h2>아이 명단</h2>
-        <p class="hint">출결번호는 아이가 태블릿에서 누르는 번호입니다. 가입을 승인하면 그 보호자의 휴대폰 뒷자리가 자동으로 들어갑니다.</p>
+        <h2>제자 명단</h2>
+        <p class="hint">출결번호는 제자가 태블릿에서 누르는 번호입니다. 가입을 승인하면 그 보호자의 휴대폰 뒷자리가 자동으로 들어갑니다.</p>
         <ul class="list" id="roster" style="margin-top:8px"></ul>
-        <button class="btn ghost" id="addKid">+ 아이 직접 추가</button>
+        <button class="btn ghost" id="addKid">+ 제자 직접 추가</button>
       </div>
       <div class="card">
         <h2>출석부와 비교</h2>
-        <p class="hint">해랑 출석부에 있는데 이 앱 명단에 없는 아이를 찾아 한 번에 등록합니다. 출석부의 출석번호가 출결번호로 들어가고, 아이가 태블릿에서 번호를 누르면 출석부에도 자동으로 출석이 찍힙니다.</p>
+        <p class="hint">해랑 출석부에 있는데 이 앱 명단에 없는 제자를 찾아 한 번에 등록합니다. 출석부의 출석번호가 출결번호로 들어가고, 제자가 태블릿에서 번호를 누르면 출석부에도 자동으로 출석이 찍힙니다.</p>
         <div id="attDiff" style="margin-top:10px"></div>
         <button class="btn ghost" id="attDiffBtn">출석부 명단 확인하기</button>
       </div>
@@ -345,9 +379,9 @@
     $('login').hidden = true; $('app').hidden = false;
     loadNews();
     const wantSc = +new URLSearchParams(location.search).get('sched'); // 업무 앱 달력 📣 도장 일정 → '알림 관리에서 고치기'
-    if (wantSc) { history.replaceState(null, '', location.pathname); document.querySelector('.tabs [data-t="news"]').click(); setType('schedule'); const g = await post('/admin/sched-get', { id: wantSc }); if (g.ok) { nMonth = g.item.date.slice(0, 7); loadNews(); startEdit(g.item); } else toast(g.error || '일정을 찾지 못했어요'); }
+    if (wantSc) { history.replaceState(null, '', location.pathname); document.querySelector('.tabs [data-t="sched"]').click(); const g = await post('/admin/sched-get', { id: wantSc }); if (g.ok) { sMonth = g.item.date.slice(0, 7); loadSched(); setType('schedule'); startEdit(g.item); } else toast(g.error || '일정을 찾지 못했어요'); }
     const wantEv = new URLSearchParams(location.search).get('ev'); // 업무 앱 행사표 '완료로' → 참가자에게 알림장 쓰기
-    if (wantEv) { history.replaceState(null, '', location.pathname); document.querySelector('.tabs [data-t="news"]').click(); setType('journal'); doneEvs = null; await loadDoneEvs(); if (useEv(wantEv)) { $('nTitle').focus(); toast('행사 참가자를 받는 사람으로 골랐어요'); } }
+    if (wantEv) { history.replaceState(null, '', location.pathname); document.querySelector('.tabs [data-t="news"]').click(); openWrite('journal'); doneEvs = null; await loadDoneEvs(); if (useEv(wantEv)) { $('nTitle').focus(); toast('행사 참가자를 받는 사람으로 골랐어요'); } }
     return null;
   }
   async function showWho() { // 업무 앱 사람 목록 (직원 각자 PIN, 도장 컴퓨터는 '도장 공용')
@@ -371,7 +405,7 @@
 
   function setStatus(j) {
     kids = j.kids || []; pending = j.pending || [];
-    $('meta').textContent = '아이 ' + kids.length + '명 · 알림 ' + j.devices + '대';
+    $('meta').textContent = '제자 ' + kids.length + '명 · 알림 ' + j.devices + '대';
     $('pendBadge').hidden = !pending.length; $('pendBadge').textContent = pending.length;
     renderKids(); renderPending(); renderRoster(); renderChecks();
     $('invOpen').checked = !!j.inviteOpen;
@@ -381,8 +415,9 @@
   // ── 탭 ──
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
-    ['att', 'news', 'fee', 'roster'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
+    ['att', 'news', 'sched', 'fee', 'roster'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
     if (b.dataset.t === 'news') loadNews();
+    if (b.dataset.t === 'sched') loadSched();
     if (b.dataset.t === 'fee') loadFees();
     if (b.dataset.t === 'roster') loadInvites();
     scrollTo(0, 0);
@@ -404,7 +439,7 @@
   function renderPending() {
     $('pendCard').hidden = !pending.length;
     $('pendN').textContent = pending.length ? pending.length + '건' : '';
-    $('pendList').innerHTML = pending.map(p => '<li class="pd"><div><b>' + p.children.map(esc).join(', ') + (p.famreq ? ' <span class="kst">가족 요청 있음</span>' : '') + '</b><small><b>' + esc(p.rel) + ' · ' + '뒷자리 ' + esc(p.ph) + '</b>' + (p.phMatch === 'same' ? ' <span class="kst" style="background:#E3F5EA;color:#1E7B46">✅ 등록된 번호와 같아요</span>' : p.phMatch === 'diff' ? ' <span class="kst">⚠ 등록된 번호와 달라요</span>' : '') + ' · ' + (p.inv ? '초대 ' + esc(p.inv) + (p.invName ? ' (' + esc(p.invName) + ')' : '') + ' · ' : '초대번호 없음 · ') + when(p.at) + (p.children.some(c => kids.some(k => k.name === c)) ? ' · 이미 명단에 있는 이름' : ' · 새 아이') + '</small></div><button class="ok" data-id="' + p.id + '">승인</button><button class="no" data-id="' + p.id + '">거절</button></li>').join('');
+    $('pendList').innerHTML = pending.map(p => '<li class="pd"><div><b>' + p.children.map(esc).join(', ') + (p.famreq ? ' <span class="kst">가족 요청 있음</span>' : '') + '</b><small><b>' + esc(p.rel) + ' · ' + '뒷자리 ' + esc(p.ph) + '</b>' + (p.phMatch === 'same' ? ' <span class="kst" style="background:#E3F5EA;color:#1E7B46">✅ 등록된 번호와 같아요</span>' : p.phMatch === 'diff' ? ' <span class="kst">⚠ 등록된 번호와 달라요</span>' : '') + ' · ' + (p.inv ? '초대 ' + esc(p.inv) + (p.invName ? ' (' + esc(p.invName) + ')' : '') + ' · ' : '초대번호 없음 · ') + when(p.at) + (p.children.some(c => kids.some(k => k.name === c)) ? ' · 이미 명단에 있는 이름' : ' · 새 제자') + '</small></div><button class="ok" data-id="' + p.id + '">승인</button><button class="no" data-id="' + p.id + '">거절</button></li>').join('');
   }
   $('pendList').onclick = async e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -448,8 +483,8 @@
   // ═════ 소식 ═════
   const TYPES = {
     notice: { head: '공지사항 쓰기', hint: '모든 학부모님이 보는 공지입니다.', kinds: ['공지', '휴관', '행사', '심사'], target: false, date: false, photos: false, pin: true, notify: true, list: '올린 공지' },
-    journal: { head: '알림장 쓰기', hint: '전체 또는 고른 아이의 보호자에게만 보입니다. 수련 내용, 칭찬, 전달 사항을 적어 주세요.', kinds: null, target: true, date: false, photos: false, pin: false, notify: true, list: '올린 알림장' },
-    schedule: { head: '일정 추가', hint: '학부모님 일정표와 홈 화면의 다가오는 일정에 보입니다.', kinds: ['심사', '대회', '행사', '휴관', '기타'], target: false, date: true, photos: false, pin: false, notify: false, list: '이 달 일정' },
+    journal: { head: '알림장 쓰기', hint: '전체 또는 고른 제자의 보호자에게만 보입니다. 수련 내용, 칭찬, 전달 사항을 적어 주세요.', kinds: null, target: true, date: false, photos: false, pin: false, notify: true, list: '올린 알림장' },
+    schedule: { head: '일정 추가', hint: '학부모님 앱 일정표·업무 앱 달력·홈페이지 일정에 모두 보입니다.', kinds: ['심사', '대회', '행사', '휴관', '기타'], target: false, date: true, photos: false, pin: false, notify: false, list: '이 달 일정' },
     album: { head: '앨범 올리기', hint: '사진은 자동으로 작게 줄여서 올립니다. 한 번에 30장까지.', kinds: null, target: true, date: false, photos: true, pin: false, notify: true, list: '올린 앨범' },
   };
   const TPL = {
@@ -463,18 +498,34 @@
   let photos = []; // {thumb, full, url}
 
   function setType(t) {
+    if (t !== 'journal' && $('nEnv') && $('nEnv').checked) { $('nEnv').checked = false; $('fEnvEv').hidden = true; }
     nType = t; const c = TYPES[t];
     [...$('nType').children].forEach(x => x.classList.toggle('on', x.dataset.v === t));
     $('nHead').textContent = c.head; $('nHint').textContent = c.hint; $('nListHead').textContent = c.list;
     $('fKind').hidden = !c.kinds; $('fDate').hidden = !c.date; $('fTarget').hidden = !c.target; $('fPhotos').hidden = !c.photos; $('fPin').hidden = !c.pin; $('fUrgent').hidden = nType !== 'notice'; $('fAsk').hidden = nType !== 'notice' && nType !== 'journal'; $('fEnv').hidden = nType !== 'notice' && nType !== 'journal'; if ($('fEnv').hidden) $('nEnv').checked = false;
-    $('nMonth').hidden = t !== 'schedule'; if (t !== 'schedule' && editId) endEdit(); evBox();
+    $('nMonth').hidden = true; if (t !== 'schedule' && editId) endEdit(); evBox();
     $('fJtpl').hidden = t !== 'journal'; if (t === 'journal') { loadJtpl(); loadDoneEvs(); } else $('nEvs').hidden = true;
     $('nNotify').checked = c.notify;
     if (c.kinds) { nKind = c.kinds[0]; $('nKind').innerHTML = c.kinds.map(k => '<button class="' + (k === nKind ? 'on' : '') + '">' + k + '</button>').join(''); renderTpl(); }
     if (c.date && !$('nDate').value) $('nDate').value = today();
     $('nTitle').placeholder = t === 'journal' ? '예: 오늘의 수련 — 앞차기 연습' : t === 'album' ? '예: 11월 승급 심사' : t === 'schedule' ? '예: 승급 심사' : '예: 12월 25일(목) 휴관 안내';
-    loadNews();
+    $('nListHead').textContent = '올린 소식'; $('wTitle').textContent = c.head;
   }
+  // ── 쓰기 창 (2026-11-13 동선 정리: 버튼을 누르면 쓰는 화면이 따로 열림) ──
+  function openWrite(t, o = {}) {
+    if (editId) endEdit();
+    setType(t === 'env' ? 'journal' : t);
+    if ($('nEnv').checked !== (t === 'env')) { $('nEnv').checked = t === 'env'; $('nEnv').onchange(); }
+    if (t === 'schedule') { $('nDate').value = o.date || today(); $('nEnd').value = ''; }
+    $('wTitle').textContent = t === 'env' ? '📩 봉투 보내기' : TYPES[nType].head;
+    document.body.classList.add('writing'); $('wCard').scrollTop = 0;
+  }
+  document.body.appendChild($('wCard')); // 어느 탭에서 열어도 보이게
+  function closeWrite() { document.body.classList.remove('writing'); if (editId) endEdit(); }
+  $('wClose').onclick = () => { if (($('nTitle').value.trim() || $('nBody').value.trim()) && !editId && !confirm('쓰던 내용이 있어요. 닫을까요?')) return; closeWrite(); };
+  $('wBtns').onclick = e => { const b = e.target.closest('[data-w]'); if (b) openWrite(b.dataset.w); };
+  let lType = 'all';
+  $('lType').onclick = e => { const b = e.target.closest('[data-l]'); if (!b) return; lType = b.dataset.l; [...$('lType').children].forEach(x => x.classList.toggle('on', x === b)); loadNews(); };
   $('nType').onclick = e => { const b = e.target.closest('button'); if (b) setType(b.dataset.v); };
   let jtpl = null; // 알림장 양식 (업무 앱에서 관리, 2026-11-13)
   async function loadJtpl() {
@@ -501,7 +552,7 @@
   function useEv(id) {
     const x = (doneEvs || []).find(e => e.id === id); if (!x) return false;
     const have = new Set(kids.map(k => k.name)), names = x.names.filter(n => have.has(n));
-    if (!names.length) { toast('참가자 중 알림 앱 명단에 있는 아이가 없어요'); return false; }
+    if (!names.length) { toast('참가자 중 알림 앱 명단에 있는 제자가 없어요'); return false; }
     evCur = id; evOnly = new Set(names); picked.clear(); names.forEach(n => picked.add(n));
     nMode = 'pick'; [...$('nTarget').children].forEach(b => b.classList.toggle('on', b.dataset.v === 'pick')); $('nPick').hidden = false; $('nq').value = '';
     renderChecks(); drawDoneEvs();
@@ -521,7 +572,7 @@
   }
   function drawEg() { $('nEGrp').innerHTML = (egrps || []).map(g => '<button data-eg="' + esc(g.n) + '"' + (eGrps.includes(g.n) ? ' style="background:var(--brand);color:#fff"' : '') + '>' + esc(g.n) + ' ' + g.a + '~' + g.b + '살</button>').join('') || '<span class="hint">분류를 불러오는 중…</span>'; }
   $('nMkEv').onchange = evBox;
-  // 📩 봉투: 켜면 '아이 선택'으로 (전체에게는 안 감), '확인했어요' 대신 참가·불참 답장 (2026-11-13 사용자 생각: 공인단 심사처럼 고른 사람만)
+  // 📩 봉투: 켜면 '제자 선택'으로 (전체에게는 안 감), '확인했어요' 대신 참가·불참 답장 (2026-11-13 사용자 생각: 공인단 심사처럼 고른 사람만)
   $('nEnv').onchange = () => { const on = $('nEnv').checked; $('fEnvEv').hidden = !on; if (on) post('/admin/ev-tables', {}).then(j => { const v = $('nEnvEv').value; $('nEnvEv').innerHTML = '<option value="">넣지 않음</option><option value="new">새 신청표 만들기 (봉투 제목으로)</option>' + ((j.ok && j.items) || []).map(x => '<option value="' + esc(x.id) + '">' + esc(x.title) + (x.date ? ' · ' + x.date.slice(5).replace('-', '/') : '') + '</option>').join(''); $('nEnvEv').value = v; }).catch(() => {}); if (on) { nMode = 'pick'; [...$('nTarget').children].forEach(b => b.classList.toggle('on', b.dataset.v === 'pick')); $('nPick').hidden = false; $('nAsk').checked = false; } $('nTarget').querySelector('[data-v="all"]').disabled = on; $('fAsk').style.opacity = on ? .4 : 1; $('nAsk').disabled = on; };
   const eKids = new Set(); // 이름으로 고른 제자 (심사처럼 도장에서 고른 사람만, 2026-11-13)
   function drawEk() { const q = $('nEq').value.replace(/\s+/g, ''); $('nEk').innerHTML = kids.filter(c => !q || c.name.includes(q) || eKids.has(c.name)).map(c => '<label><input type="checkbox" value="' + esc(c.name) + '"' + (eKids.has(c.name) ? ' checked' : '') + '>' + esc(c.name) + '</label>').join('') || '<p class="hint">명단이 비어 있습니다</p>'; $('nEkN').textContent = eKids.size ? eKids.size + '명: ' + [...eKids].join(', ') : '아직 안 골랐어요'; }
@@ -537,13 +588,13 @@
   function startEdit(x) { // 일정 수정 (2026-11-13): 날짜·제목을 고치면 업무 앱 달력·연결된 신청표도 같이 바뀜
     editId = x.id; editEv = x.ev || '';
     if (x.kind && TYPES.schedule.kinds.includes(x.kind)) { nKind = x.kind; [...$('nKind').children].forEach(b => b.classList.toggle('on', b.textContent === nKind)); }
-    $('nDate').value = x.date; $('nTitle').value = x.title; $('nBody').value = x.body || ''; $('nMkEv').checked = false;
+    $('nDate').value = x.date; $('nEnd').value = x.end || ''; $('nTitle').value = x.title; $('nBody').value = x.body || ''; $('nMkEv').checked = false;
     $('nHead').textContent = '일정 수정' + (x.ev ? ' · 🎟 신청표 연결됨' : ''); $('nSend').textContent = '수정 저장'; $('nEditX').hidden = false;
     $('nNotify').checked = false; $('nNotify').parentElement.lastChild.textContent = ' 학부모님께 바뀐 일정 알림 보내기';
-    evBox(); $('nHead').scrollIntoView({ behavior: 'smooth' });
+    evBox(); $('wTitle').textContent = '일정 고치기'; document.body.classList.add('writing'); $('wCard').scrollTop = 0;
   }
   function endEdit() { editId = 0; editEv = ''; $('nHead').textContent = TYPES[nType].head; $('nSend').textContent = '올리기'; $('nEditX').hidden = true; $('nTitle').value = ''; $('nBody').value = ''; $('nNotify').parentElement.lastChild.textContent = ' 학부모님 휴대폰에 알림도 보내기'; evBox(); }
-  $('nEditX').onclick = endEdit;
+  $('nEditX').onclick = closeWrite;
   $('nTpl').onclick = e => { const b = e.target.closest('button'); if (!b) return; const t = TPL[nKind][b.dataset.i]; $('nTitle').value = t[1]; $('nBody').value = t[2]; };
   $('nTarget').onclick = e => { const b = e.target.closest('button'); if (!b) return; nMode = b.dataset.v; if (nMode === 'all' && evOnly) { evOnly = null; evCur = ''; picked.clear(); renderChecks(); drawDoneEvs(); } [...$('nTarget').children].forEach(x => x.classList.toggle('on', x === b)); $('nPick').hidden = nMode !== 'pick'; };
   function renderChecks() {
@@ -594,19 +645,20 @@
       if (!confirm('일정을 고칠까요?' + (editEv ? '\n연결된 업무 앱 신청표의 제목·날짜도 같이 바뀌어요.' : '') + (mkEv ? '\n업무 앱 신청표도 만들어요.' : '') + (notify ? '\n전체 학부모님께 바뀐 일정 알림을 보내요.' : ''))) return;
       btn.disabled = true;
       try {
-        const j = await post('/admin/sched-edit', { id: editId, kind: nKind, title, body: bodyT, date: $('nDate').value, mkEv, elig, notify });
+        if ($('nEnd').value && $('nEnd').value < $('nDate').value) throw new Error('끝나는 날이 시작하는 날보다 빨라요');
+        const j = await post('/admin/sched-edit', { id: editId, kind: nKind, title, body: bodyT, date: $('nDate').value, end: $('nEnd').value, mkEv, elig, notify });
         if (!j.ok) throw new Error(j.error);
         let msg = '고쳤어요' + (editEv ? ' · 신청표도 바뀜' : '') + (j.ev ? ' · 신청표 만듦' : '');
         if (j.notify) { const r = await pushAll({ title: j.notify.title, body: j.notify.body, kind: '일정', children: [], view: 'schedule' }, btn); msg += ' · 휴대폰 ' + r.sent + '대에 알림'; }
         toast(msg); if (j.evError) setTimeout(() => alert('⚠ ' + j.evError + '\n(일정은 고쳐졌어요. 업무 앱 신청표는 직접 확인해 주세요)'), 300);
-        nMonth = $('nDate').value.slice(0, 7); endEdit(); loadNews();
+        sMonth = $('nDate').value.slice(0, 7); closeWrite(); loadSched();
       } catch (e) { toast('실패했습니다: ' + (e.message || '')); }
       finally { btn.disabled = false; btn.textContent = editId ? '수정 저장' : '올리기'; }
       return;
     }
     if (c.photos && !photos.length) return toast('사진을 골라 주세요');
     const target = c.target && nMode === 'pick' ? [...picked] : [];
-    if (c.target && nMode === 'pick' && !target.length) return toast('아이를 골라 주세요');
+    if (c.target && nMode === 'pick' && !target.length) return toast('제자를 골라 주세요');
     if (/○/.test(title + bodyT) && !confirm('○ 표시가 남아 있습니다. 그대로 올릴까요?')) return;
     const envl = !$('fEnv').hidden && $('nEnv').checked;
     if (envl && !target.length) return toast('봉투를 받을 제자를 골라 주세요');
@@ -621,7 +673,8 @@
         if (!j.ok) throw new Error(j.error || '사진 실패'); ids.push(j.id);
       }
       btn.textContent = '올리는 중…';
-      const j = await post('/admin/post-save', { env: envl, envEv: envl ? $('nEnvEv').value : '', mkEv, elig, type: nType, kind: c.kinds ? nKind : '', title, body: bodyT, date: c.date ? $('nDate').value : null, target, photos: ids, pin: c.pin && $('nPinChk').checked, urgent, ask });
+      if (nType === 'schedule' && $('nEnd').value && $('nEnd').value < $('nDate').value) throw new Error('끝나는 날이 시작하는 날보다 빨라요');
+      const j = await post('/admin/post-save', { end: nType === 'schedule' ? $('nEnd').value : '', env: envl, envEv: envl ? $('nEnvEv').value : '', mkEv, elig, type: nType, kind: c.kinds ? nKind : '', title, body: bodyT, date: c.date ? $('nDate').value : null, target, photos: ids, pin: c.pin && $('nPinChk').checked, urgent, ask });
       if (!j.ok) throw new Error(j.error);
       let msg = '올렸습니다' + (j.ev ? ' · 업무 앱 신청표도 만들었어요' : '');
       if (j.evError) setTimeout(() => alert('⚠ ' + j.evError + '\n(일정은 올라갔어요. 신청표는 업무 앱에서 직접 만들어 주세요)'), 300);
@@ -633,26 +686,97 @@
       }
       toast(msg);
       $('nTitle').value = ''; $('nBody').value = ''; $('nPinChk').checked = false; $('nUrgent').checked = false; $('nAsk').checked = false; if ($('nEnv').checked) { $('nEnv').checked = false; $('nEnv').onchange(); } photos = []; drawPhotos(); picked.clear(); renderChecks();
-      if (nType === 'schedule') nMonth = $('nDate').value.slice(0, 7);
-      loadNews();
+      if (nType === 'schedule') { sMonth = $('nDate').value.slice(0, 7); closeWrite(); loadSched(); } else { closeWrite(); loadNews(); }
     } catch (e) { toast('실패했습니다: ' + (e.message || '')); }
     finally { btn.disabled = false; btn.textContent = '올리기'; }
   };
 
   let lastItems = [];
+  const TNAME = { notice: '공지', journal: '알림장', album: '앨범' };
   async function loadNews() {
     if (!pw) return;
-    const t = nType;
-    $('nMonthLabel').textContent = mLabel(nMonth);
-    const j = await post('/admin/posts', { type: t, month: nMonth });
-    if (t !== nType || !j.ok) return;
-    lastItems = j.items;
-    $('nList').innerHTML = j.items.length ? j.items.map(x => '<li class="nt"><div><b>' + (x.urgent ? '<span style="color:#B42318">[긴급]</span> ' : '') + (x.pin ? '📌 ' : '') + (x.kind ? '[' + esc(x.kind) + '] ' : '') + esc(x.title) + '</b><small>' +
-      (x.date ? x.date.slice(5).replace('-', '/') + ' (' + WD[new Date(x.date + 'T00:00:00Z').getUTCDay()] + ')' : when(x.at)) + (x.target && x.target.length ? ' · ' + x.target.map(esc).join(', ') : '') + (x.photos && x.photos.length ? ' · 사진 ' + x.photos.length + '장' : '') + '</small>' +
+    const want = lType, ts = want === 'all' ? ['notice', 'journal', 'album'] : want === 'env' ? ['journal'] : [want];
+    const rs = await Promise.all(ts.map(t => post('/admin/posts', { type: t })));
+    if (want !== lType) return;
+    let items = []; rs.forEach((j, i) => { if (j.ok) items.push(...j.items.map(x => (x._t = ts[i], x))); });
+    if (want === 'env') items = items.filter(x => x.env);
+    items.sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || String(b.at).localeCompare(String(a.at))); items = items.slice(0, 120);
+    lastItems = items;
+    $('nList').innerHTML = items.length ? items.map(x => '<li class="nt"><div><b>' + (want === 'all' ? '<span class="tg">' + (x.env ? '📩 봉투' : TNAME[x._t]) + '</span>' : '') + (x.urgent ? '<span style="color:#B42318">[긴급]</span> ' : '') + (x.pin ? '📌 ' : '') + (x.kind ? '[' + esc(x.kind) + '] ' : '') + esc(x.title) + '</b><small>' +
+      when(x.at) + (x.target && x.target.length ? ' · ' + x.target.map(esc).join(', ') : '') + (x.photos && x.photos.length ? ' · 사진 ' + x.photos.length + '장' : '') + '</small>' +
       (x.photos && x.photos.length ? '<div class="thumbs">' + x.photos.slice(0, 6).map(p => '<img data-ph="' + esc(p) + '">').join('') + '</div>' : '') +
-      '</div><div class="act">' + (t !== 'schedule' ? (x.env ? '<button class="rp" data-rp="' + x.id + '">📩 답장 ' + ((x.rYes || 0) + (x.rNo || 0)) + '/' + x.target.length + ' · 참가 ' + (x.rYes || 0) + '</button>' : '') + '<button class="rd' + (x.audience && x.reads >= x.audience ? ' all' : '') + '" data-r="' + x.id + '">읽음 ' + x.reads + '/' + x.audience + (x.ask ? ' · 확인 ' + (x.acks || 0) : '') + '</button>' : (x.ev ? '<span class="hint">🎟 신청표</span>' : '') + '<button data-ed="' + x.id + '">수정</button>') + '<button data-id="' + x.id + '"' + (x.ev ? ' data-ev="1"' : '') + '>지우기</button></div></li>').join('') : '<li class="empty">아직 없습니다</li>';
+      '</div><div class="act">' + (x.env ? '<button class="rp" data-rp="' + x.id + '">📩 답장 ' + ((x.rYes || 0) + (x.rNo || 0)) + '/' + x.target.length + ' · 참가 ' + (x.rYes || 0) + '</button>' : '') + '<button class="rd' + (x.audience && x.reads >= x.audience ? ' all' : '') + '" data-r="' + x.id + '">읽음 ' + x.reads + '/' + x.audience + (x.ask ? ' · 확인 ' + (x.acks || 0) : '') + '</button>' + '<button data-id="' + x.id + '">지우기</button></div></li>').join('') : '<li class="empty">아직 없습니다</li>';
     $('nList').querySelectorAll('img[data-ph]').forEach(async img => { const r = await post('/admin/photo', { id: img.dataset.ph, size: 'thumb' }); if (r.ok) img.src = 'data:image/jpeg;base64,' + r.data; });
   }
+  $('nList').onclick = async e => {
+    const b = e.target.closest('button[data-id]'); if (!b) return;
+    if (!confirm('지울까요? 학부모님 앱에서도 사라집니다. (이미 간 알림은 지워지지 않습니다)')) return;
+    await post('/admin/post-delete', { id: +b.dataset.id }); loadNews();
+  };
+
+  // ═════ 일정 (2026-11-13): 도장 일정은 여기 한 곳에서 넣으면 학부모 앱·업무 앱·홈페이지에 다 보임 ═════
+  let sMonth = thisMonth(), sItems = [], hpAll = null, hpMonthly = null, sPick = '';
+  const dkey = x => x.date + '|' + x.title.replace(/\s+/g, '');
+  async function loadHp() { // 홈페이지(data.json)에 아직 남은 일정·이번 주 수련 주제
+    if (hpAll) return;
+    try { const d = await (await fetch('../data.json?t=' + Date.now(), { cache: 'no-store' })).json(); hpAll = (d.schedule || []).filter(x => x && x.date && x.title); hpMonthly = (d.monthly && d.monthly.focus) || []; } catch (_) { hpAll = []; hpMonthly = []; }
+  }
+  async function loadSched() {
+    if (!pw) return;
+    const m = sMonth; $('sMonthLabel').textContent = mLabel(m);
+    const [j] = await Promise.all([post('/admin/posts', { type: 'schedule', month: m }), loadHp()]);
+    if (m !== sMonth || !j.ok) return;
+    sItems = j.items;
+    const mine = new Set(sItems.map(dkey)), hp = hpAll.filter(x => !mine.has(dkey(x)));
+    const inM = x => x.date <= m + '-31' && (x.end || x.date) >= m + '-01';
+    const on = (x, d) => d >= x.date && d <= (x.end || x.date);
+    const hpM = hp.filter(inM), fc = hpMonthly.filter(inM);
+    // 달력
+    const first = new Date(m + '-01T00:00:00Z'), n = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate(), td = today();
+    let h = '<div class="h">일</div><div class="h">월</div><div class="h">화</div><div class="h">수</div><div class="h">목</div><div class="h">금</div><div class="h">토</div>';
+    for (let i = 0; i < first.getUTCDay(); i++) h += '<div></div>';
+    for (let k = 1; k <= n; k++) {
+      const d = m + '-' + String(k).padStart(2, '0'), w = new Date(d + 'T00:00:00Z').getUTCDay();
+      const a = sItems.filter(x => on(x, d)), b = hpM.filter(x => on(x, d)), c = fc.filter(x => on(x, d));
+      h += '<button class="d' + (d === td ? ' td' : '') + (d === sPick ? ' pk' : '') + (w === 0 ? ' su' : w === 6 ? ' sa' : '') + '" data-d="' + d + '"><span>' + k + '</span>' +
+        a.slice(0, 2).map(x => '<i>' + esc(x.title) + '</i>').join('') + b.slice(0, 2 - Math.min(2, a.length)).map(x => '<i class="hp">' + esc(x.title) + '</i>').join('') +
+        (a.length + b.length > 2 ? '<em>+' + (a.length + b.length - 2) + '</em>' : '') + (c.length ? '<i class="fc">' + esc(c[0].title) + '</i>' : '') + '</button>';
+    }
+    $('sCal').innerHTML = h;
+    // 목록 (고른 날이 있으면 그날만)
+    const L = sPick ? sItems.filter(x => on(x, sPick)) : sItems, H = sPick ? hpM.filter(x => on(x, sPick)) : hpM;
+    const dl = x => x.date.slice(5).replace('-', '/') + '(' + WD[new Date(x.date + 'T00:00:00Z').getUTCDay()] + ')' + (x.end && x.end !== x.date ? ' ~ ' + x.end.slice(5).replace('-', '/') + '(' + WD[new Date(x.end + 'T00:00:00Z').getUTCDay()] + ')' : '');
+    $('sList').innerHTML = (sPick ? '<li class="nt" style="align-items:center"><div><b>' + dl({ date: sPick }) + ' 일정</b></div><div class="act"><button data-all="1">이 달 전체 보기</button></div></li>' : '') +
+      (L.map(x => '<li class="nt" data-sid="' + x.id + '"><div><b>' + (x.kind ? '<span class="tg">' + esc(x.kind) + '</span>' : '') + esc(x.title) + '</b><small>' + dl(x) + (x.ev ? ' · 🎟 신청표' : '') + (x.body ? ' · ' + esc(x.body.split('\n')[0]).slice(0, 40) : '') + '</small></div><div class="act"><button data-sed="' + x.id + '">고치기</button><button data-sdel="' + x.id + '"' + (x.ev ? ' data-ev="1"' : '') + '>지우기</button></div></li>').join('') +
+      H.map(x => '<li class="nt" style="opacity:.75"><div><b><span class="tg">홈페이지에만</span>' + esc(x.title) + '</b><small>' + dl(x) + (x.note ? ' · ' + esc(x.note).slice(0, 40) : '') + '</small></div></li>').join('')) || '<li class="empty">' + (sPick ? '이 날은 일정이 없어요' : '이 달은 일정이 없어요') + '</li>';
+    drawImp(m);
+  }
+  async function drawImp(m) { // 옮기기 전 확인: 홈페이지 일정이 걸친 모든 달의 알림 관리 일정과 비교
+    const ms = [...new Set(hpAll.map(x => x.date.slice(0, 7)))], rs = await Promise.all(ms.map(k => post('/admin/posts', { type: 'schedule', month: k })));
+    if (m !== sMonth) return;
+    const have = new Set(); rs.forEach(j => j.ok && j.items.forEach(x => have.add(dkey(x))));
+    const hp = hpAll.filter(x => !have.has(dkey(x)));
+    $('sImp').hidden = !hp.length; if (!hp.length) return;
+    $('sImpList').innerHTML = hp.map(x => '<li>' + esc(x.date.slice(5).replace('-', '/')) + (x.end ? '~' + esc(x.end.slice(5).replace('-', '/')) : '') + ' <b>' + esc(x.title) + '</b>' + (x.type ? ' [' + esc(x.type) + ']' : '') + '</li>').join('');
+    $('sImpN').textContent = hp.length;
+  }
+  $('sImpGo').onclick = async () => {
+    const items = hpAll.map(x => ({ date: x.date, end: x.end || '', title: x.title, type: x.type || '', note: x.note || '', image: x.image || '' }));
+    if (!confirm('홈페이지에만 있던 일정 ' + $('sImpN').textContent + '개를 알림 관리 일정표로 옮길까요?\n학부모님께 알림은 가지 않아요. 홈페이지 data.json은 그대로 둡니다.')) return;
+    const b = $('sImpGo'); b.disabled = true;
+    try { const j = await post('/admin/sched-import', { items }); if (!j.ok) throw new Error(j.error || '옮기지 못했어요'); toast('옮겼어요: 새로 ' + j.added + '개' + (j.skipped ? ', 이미 있던 ' + j.skipped + '개는 건너뜀' : '')); loadSched(); }
+    catch (e) { toast(e.message); } finally { b.disabled = false; }
+  };
+  $('sMonth').onclick = e => { const b = e.target.closest('button'); if (b) { sMonth = addMonth(sMonth, +b.dataset.m); sPick = ''; loadSched(); } };
+  $('sCal').onclick = e => { const b = e.target.closest('button[data-d]'); if (!b) return; sPick = sPick === b.dataset.d ? '' : b.dataset.d; loadSched(); };
+  $('sAdd').onclick = () => openWrite('schedule', { date: sPick || (sMonth === thisMonth() ? today() : sMonth + '-01') });
+  $('sList').onclick = async e => {
+    if (e.target.closest('[data-all]')) { sPick = ''; return loadSched(); }
+    const ed = e.target.closest('[data-sed]'); if (ed) { const x = sItems.find(y => y.id === +ed.dataset.sed); if (x) { setType('schedule'); startEdit(x); } return; }
+    const b = e.target.closest('[data-sdel]'); if (!b) return;
+    if (!confirm('이 일정을 지울까요? 학부모님 앱·업무 앱 달력·홈페이지에서도 사라집니다.' + (b.dataset.ev ? '\n연결된 업무 앱 신청표는 그대로 남아요.' : ''))) return;
+    await post('/admin/post-delete', { id: +b.dataset.sdel }); loadSched();
+  };
   // 읽은 사람 보기
   // 📩 봉투 답장 보기
   async function showReplies(id) {
@@ -681,13 +805,6 @@
     document.body.appendChild(sh);
   }
   document.addEventListener('click', e => { const b = e.target.closest('button.rd'); if (b) { const li = b.closest('li'); showReads(+b.dataset.r, li ? li.querySelector('b').textContent : ''); } });
-  $('nList').onclick = async e => {
-    const ed = e.target.closest('button[data-ed]'); if (ed) { const x = lastItems.find(y => y.id === +ed.dataset.ed); if (x) startEdit(x); return; }
-    const b = e.target.closest('button[data-id]'); if (!b) return;
-    if (!confirm('지울까요? 학부모님 앱과 업무 앱 달력에서도 사라집니다. (이미 간 알림은 지워지지 않습니다)' + (b.dataset.ev ? '\n연결된 업무 앱 신청표는 그대로 남아요.' : ''))) return;
-    await post('/admin/post-delete', { id: +b.dataset.id }); loadNews();
-  };
-  $('nMonth').onclick = e => { const b = e.target.closest('button'); if (b) { nMonth = addMonth(nMonth, +b.dataset.m); loadNews(); } };
 
   // ═════ 회비 ═════
   let fMonth = thisMonth(), fees = {}, feeMode = 'all';
@@ -707,7 +824,7 @@
     const title = $('feeTitle').value.trim(), bodyT = $('feeBody').value.trim(), btn = $('feeSend');
     if (!title) return toast('제목을 적어 주세요');
     const target = feeMode === 'unpaid' ? kids.filter(k => !fees[k.name]).map(k => k.name) : [];
-    if (feeMode === 'unpaid' && !target.length) return toast('납부 전인 아이가 없습니다');
+    if (feeMode === 'unpaid' && !target.length) return toast('납부 전인 제자가 없습니다');
     if (/○/.test(title + bodyT) && !confirm('○ 표시가 남아 있습니다. 그대로 보낼까요?')) return;
     if (!confirm((target.length ? '납부 전 ' + target.length + '명(' + target.join(', ') + ') 보호자에게' : '전체 학부모님께') + ' 보냅니다.\n\n' + title)) return;
     btn.disabled = true;
@@ -743,14 +860,14 @@
       await post('/admin/remove-device', { id: b.dataset.g }); return refresh();
     }
     const k = kids[b.dataset.i];
-    const name = prompt('아이 이름 (비우면 명단에서 지웁니다)', k.name); if (name === null) return;
+    const name = prompt('제자 이름 (비우면 명단에서 지웁니다)', k.name); if (name === null) return;
     if (!name.trim()) { if (confirm(k.name + ' 학생을 명단에서 지울까요?')) { await post('/admin/kid-delete', { name: k.name }); refresh(); } return; }
     const codes = prompt('출결번호 4자리 (여러 개면 쉼표로 구분)', k.codes.join(', ')); if (codes === null) return;
     const j = await post('/admin/kid-save', { oldName: k.name, name: name.trim(), codes: codes.split(/[,\s]+/) });
     toast(j.ok ? '저장했습니다' : j.error); refresh();
   };
   $('addKid').onclick = async () => {
-    const name = prompt('추가할 아이 이름'); if (!name || !name.trim()) return;
+    const name = prompt('추가할 제자 이름'); if (!name || !name.trim()) return;
     const codes = prompt('출결번호 4자리 (보통 보호자 휴대폰 뒷자리)', ''); if (codes === null) return;
     const j = await post('/admin/kid-save', { name: name.trim(), codes: codes.split(/[,\s]+/) });
     toast(j.ok ? '추가했습니다' : j.error); refresh();
@@ -764,7 +881,7 @@
     const rows = [...j.missing.map(s => ({ ...s, why: '명단에 없음' })), ...j.noCode.map(s => ({ ...s, why: '출결번호 ' + s.no + ' 빠짐' }))];
     attPick = new Set(rows.map(s => s.name));
     if (!rows.length) { box.innerHTML = '<p class="hint" style="color:var(--ok);font-weight:700">출석부 ' + j.total + '명이 모두 등록되어 있습니다.</p>'; return; }
-    box.innerHTML = '<p class="hint"><b>' + rows.length + '명</b>을 등록해야 합니다 (출석부 ' + j.total + '명 중). 빼고 싶은 아이는 체크를 풀어 주세요.</p>' +
+    box.innerHTML = '<p class="hint"><b>' + rows.length + '명</b>을 등록해야 합니다 (출석부 ' + j.total + '명 중). 빼고 싶은 제자는 체크를 풀어 주세요.</p>' +
       '<ul class="list" id="attDiffL" style="margin-top:6px">' + rows.map(s => '<li><label class="chk" style="margin-top:6px"><input type="checkbox" checked data-n="' + esc(s.name) + '"> <b>' + esc(s.name) + '</b>&nbsp;<span class="hint">' + esc(s.why) + (s.no ? ' · 번호 ' + esc(s.no) : ' · 출석번호 없음') + (s.status === '휴원' ? ' · 휴원' : '') + '</span></label></li>').join('') + '</ul>' +
       '<button class="btn" id="attAddBtn">선택한 ' + rows.length + '명 등록</button>';
     $('attDiffL').onchange = e => { const n = e.target.dataset.n; e.target.checked ? attPick.add(n) : attPick.delete(n); $('attAddBtn').textContent = '선택한 ' + attPick.size + '명 등록'; };
