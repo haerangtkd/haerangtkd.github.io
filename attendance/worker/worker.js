@@ -61,6 +61,8 @@ const str = (v, n) => String(v == null ? '' : v).slice(0, n);
 const cleanP = p => [...new Set(String(p || '').split('/').map(x => x.replace(/[^0-9]/g, '')).filter(Boolean))].sort((a, b) => a - b).join('/');
 
 async function route(path, req, env) {
+  // 서버끼리 부르는 길(/sync/)은 서비스 바인딩으로만 — 바깥(workers.dev 주소)에서 오면 주소 이름이 'attendance'가 아니라서 막힘 (2026-11-13 보안 보강)
+  if (path.startsWith('/sync/') && new URL(req.url).hostname !== 'attendance') return json({ ok: false, error: 'not found' }, 404);
   const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   const ip = req.headers.get('cf-connecting-ip') || 'x';
 
