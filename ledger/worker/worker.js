@@ -148,6 +148,8 @@ async function route(path, req, env) {
       const txt = JSON.stringify(d); if (txt.length > 900000) return json({ ok: false, error: '기록이 너무 커요', code: 'quota_exceeded' }, 413);
       await run(env, 'INSERT INTO docs (path, coll, data, upd, del) VALUES (?, ?, ?, ?, 0) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, del = 0', p, c, txt, now);
     }
+    // 회원·가족·설정이 바뀌면 학부모 앱 '정보 확인' 회비 금액을 바로 다시 보냄 (전에는 10분 맞춤 때만, 2026-11-13)
+    if (owner && ops.some(o => /^(members|families|config)\//.test(str(o.path, 100)))) { try { await feeInfoPush(env); } catch (_) {} }
     return json({ ok: true, at: last });
   }
   if (path === '/api/team-roster') { // 업무 앱(출석부) 원생 명단 — 장부에 없는 원생 찾기 (관리자)
