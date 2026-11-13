@@ -90,6 +90,7 @@
   .ab{border:1px solid var(--line);background:var(--chip);border-radius:14px;padding:9px 13px;font-size:15px;white-space:nowrap}
   .ab.o{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:700}
   .ab.x{background:var(--no);border-color:var(--no);color:#fff;font-weight:700}
+  .ab.cn.on{background:#FFF1DE;border-color:#E0861F;color:#94550B;font-weight:700} /* 연락 필요 (2026-11-13) */
   .pers{display:flex;gap:4px;flex-wrap:wrap;padding:0 14px 12px 48px;margin-top:-4px}
   .pers button{border:1px solid var(--line);border-radius:10px;min-width:34px;padding:4px 6px;font-size:14px;background:#fff;color:var(--muted)}
   .pers button.on{background:var(--okbg);border-color:var(--ok);color:var(--ok);font-weight:700}
@@ -332,6 +333,8 @@ const S = {
 };
 const stById = id => S.students.find(s => s.id === id);
 S.quiet = new Map(); // 날짜 → 오늘만 등원 알림 안 보낸 제자 id (2026-11-13)
+S.cneed = new Map(); // 날짜 → {sid: {at, who, why}} 연락 필요 (2026-11-13)
+const cneedOf = (sid, d) => (S.cneed.get(d) || {})[sid] || null;
 const isQuiet = (sid, d) => !!(S.quiet.get(d) && S.quiet.get(d).has(sid));
 const dayMap = d => S.att.get(d) || new Map();
 const abKey = (sid, d) => sid + '|' + d;
@@ -381,6 +384,7 @@ async function loadMonth(ym, force) {
   for (const k of [...S.ab.keys()]) if (k.split('|')[1].startsWith(ym)) S.ab.delete(k);
   for (const a of j.absences) S.ab.set(abKey(a.sid, a.date), a.why || '');
   for (const [d, ids] of Object.entries(j.quiet || {})) S.quiet.set(d, new Set(ids));
+  for (const d of monthDays(ym)) S.cneed.delete(d); for (const [d, m] of Object.entries(j.cneed || {})) S.cneed.set(d, m);
   S.months.add(ym);
 }
 function applyRows(day, rows) { const m = new Map(); for (const r of rows) m.set(r.sid, r); S.att.set(day, m); }
@@ -485,6 +489,7 @@ function rowHtml(s, c) {
   else if (c.k === 'x' && c.w) tags.push('<span class="tag red">' + esc(c.w) + '</span>');
   if (!scheduled(s, d) && dayMap(d).has(s.id)) tags.push('<span class="tag blue">보강</span>');
   if (tempOn(s, d)) tags.push('<span class="tag yel">임시변경</span>');
+  { const cn = cneedOf(s.id, d); if (cn) tags.push('<span class="tag red">🚨 연락 필요' + (cn.why ? ' · ' + esc(cn.why) : '') + '</span>'); }
   const mm = mismatch(s, d, c);
   if (mm === 'xin') tags.push('<span class="tag red">결석인데 태블릿 등원 ' + esc(c.r.tin) + '</span>');
   else if (mm === 'notab') tags.push('<button class="tag yel" data-nt="1" style="border:0">태블릿 안 누름 · 등원 알림 안 감 ›</button>'); // 눌러서 지금 알림 보내기 / 오늘만 / 앞으로 안 묻기 (2026-11-13)
@@ -492,7 +497,7 @@ function rowHtml(s, c) {
   else if (c.k === 'o' && isQuiet(s.id, d)) tags.push('<span class="tag">오늘 알림 안 보냄</span>');
   if (c.r && c.r.who && c.r.at && c.r.who !== '태블릿') tags.push('<span class="tag">' + esc(c.r.who) + ' ' + stamp(c.r.at).split(' ')[1] + '</span>');
   let h = '<li data-id="' + s.id + '"><div class="st"><input type="checkbox" class="cb"' + (S.sel.has(s.id) ? ' checked' : '') + '><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc(g.label) + ' · ' + esc(daysLabel(daysOn(s, d))) + '</small>' + (tags.length ? '<div>' + tags.join('') + '</div>' : '') + '</div><div class="acts">' +
-    '<button class="ab' + (c.k === 'o' ? ' o' : '') + '" data-a="o">출석</button><button class="ab' + (c.k === 'x' ? ' x' : '') + '" data-a="x">결석</button><button class="ab" data-a="t">임시변경</button></div></div>' + notesRow(s, d);
+    '<button class="ab' + (c.k === 'o' ? ' o' : '') + '" data-a="o">출석</button><button class="ab' + (c.k === 'x' ? ' x' : '') + '" data-a="x">결석</button><button class="ab cn' + (cneedOf(s.id, d) ? ' on' : '') + '" data-a="cn">연락 필요</button></div></div>' + notesRow(s, d);
   if (c.k === 'o') { const ps = (c.p || '').split('/'); h += '<div class="pers" data-p><span>시간부</span>' + PER.map(p => '<button class="' + (ps.includes(p) ? 'on' : '') + '" data-p="' + p + '">' + p + '</button>').join('') + '</div>'; }
   return h + '</li>';
 }
@@ -505,7 +510,7 @@ async function setAtt(items, day = S.day) {
   }
   S.att.set(day, m); render();
   const j = await api('/api/att-set', { day, items });
-  if (j.ok) { applyRows(day, j.rows); render(); } else toast(j.error || '저장하지 못했어요. 다시 눌러 주세요');
+  if (j.ok) { applyRows(day, j.rows); if (j.cneed) S.cneed.set(day, j.cneed); render(); } else toast(j.error || '저장하지 못했어요. 다시 눌러 주세요');
 }
 $('tList').onclick = async e => {
   const mkb = e.target.closest('[data-mk]'); if (mkb) { const s = stById(mkb.dataset.mk); setAtt([{ sid: s.id, r: 'o', p: guessP(s, S.day), mk: 1 }]); toast(s.name + ' 보강 출석으로 넣었어요'); return; }
@@ -553,7 +558,26 @@ $('tList').onclick = async e => {
     return setAtt([{ sid: s.id, r: 'x', w, mk: extra ? 1 : 0 }]);
   }
   if (a === 't') return tempSheet(s, d);
+  if (a === 'cn') { // 연락 필요 (2026-11-13): 업무 앱 대시보드에 긴급 카드 + 직원 알림, 나중에 출석·결석을 넣으면 사라짐
+    const on = !cneedOf(s.id, d);
+    const why = on ? await askContact(s.name) : '';
+    if (why === null) return;
+    if (!on && !confirm(s.name + ' 연락 필요를 끌까요?')) return;
+    const j = await api('/api/cneed', { day: d, sid: s.id, on, why });
+    if (!j.ok) return toast(j.error || '저장하지 못했어요');
+    S.cneed.set(d, j.cneed); renderToday();
+    toast(on ? '업무 앱에 \'' + s.name + ' 연락 필요\'를 알렸어요. 출석·결석을 넣으면 사라져요' : '연락 필요를 껐어요');
+  }
 };
+function askContact(name) {
+  return new Promise(res => {
+    sheet('<h2>' + esc(name) + ' 연락 필요</h2><p class="help">업무 앱 첫 화면에 긴급으로 \'' + esc(name) + ' 학생이나 부모님께 연락이 필요해요\'가 뜨고 직원 휴대폰에 알림이 가요. 나중에 출석·결석을 넣으면 사라져요.</p><label class="f">이유 (안 적어도 돼요)</label><div class="chips" id="cW">' + ['안 왔어요', '연락이 안 돼요', '다쳤어요', '아파요', '전달할 것'].map(x => '<button data-v="' + x + '">' + x + '</button>').join('') + '</div><input class="inp" id="cT" placeholder="직접 적기 (비워도 돼요)" style="margin-top:12px"><div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="cOk">알리기</button></div>', ov => {
+      askReason.res = res;
+      ov.querySelector('#cW').onclick = e => { const b = e.target.closest('button'); if (!b) return; ov.querySelector('#cT').value = b.dataset.v; ov.querySelectorAll('#cW button').forEach(x => x.classList.toggle('on', x === b)); };
+      ov.querySelector('#cOk').onclick = () => { const v = ov.querySelector('#cT').value.trim(); askReason.res = null; closeSheet(); res(v); };
+    });
+  });
+}
 function askCheckin(s, late) {
   return new Promise(res => {
     sheet('<h2>' + esc(s.name) + ' 태블릿 등원을 안 눌렀어요</h2><p class="help">학부모님께 등원 알림을 보낼까요? ' + (late ? '출석은 이미 체크돼 있어요.' : '출석은 어느 쪽이든 체크돼요.') + '</p>' +
@@ -1082,7 +1106,7 @@ $('spaceBtn').onclick = () => {
     (false ? '<div style="border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px;background:#FCFAF9"><b>관리자 비밀번호</b><p class="help">이 기기에서 처음 한 번만 넣으면 돼요. 관리자 메뉴(사범님 추가, 백업 불러오기, 초기화)를 쓸 때 필요해요.</p><div class="row2" style="margin-top:8px"><input class="inp" id="adPw" type="password" autocomplete="new-password" name="haerang-admin-pw" placeholder="관리자 비밀번호"><button class="sbtn red" id="adOk">확인</button></div><p class="help" id="adMsg" style="color:var(--no)"></p></div>' : '') +
     '<h3>출결 기록 받기</h3><button class="big" data-x="csvM">' + ymLabel(ym) + ' 출결 기록 내려받기 (CSV)</button><button class="big" data-x="pdf">' + ymLabel(ym) + ' 출석부 가로 PDF</button>' + (S.me.boss ? '<button class="big" data-x="csvY">' + yr + '년 전체 출결 받기 (CSV)</button>' : '') +
     (S.me.boss ? '<h3>관리자만 · 개인정보 파일</h3><p class="help">원생 명단·백업 파일에는 연락처 등 개인정보가 있어서 관리자 비밀번호를 한 번 더 확인해요.</p><button class="big" data-x="csvS">원생 명단 내려받기 (CSV)</button><button class="big red" data-x="bak">백업 파일 받기 (전체 데이터)</button>' : '') +
-    '<h3>출결 태블릿</h3><p class="help">' + (S.kioskOff ? '지금은 <b>태블릿 출결을 안 써요.</b> 출석을 눌러도 등원 알림 창이 안 뜨고 \'태블릿 안 누름\' 표시도 안 나와요.' : '지금 태블릿 출결을 쓰고 있어요. 태블릿을 안 누른 제자를 출석으로 누르면 등원 알림을 보낼지 물어요.') + '</p><button class="big' + (S.kioskOff ? '' : ' line') + '" data-x="kiosk">' + (S.kioskOff ? '태블릿 출결 다시 쓰기 (알림 창 켜기)' : '태블릿 출결 잠깐 안 쓰기 (알림 창 끄기)') + '</button>' +
+    (S.me.boss ?     '<h3>출결 태블릿</h3><p class="help">' + (S.kioskOff ? '지금은 <b>태블릿 출결을 안 써요.</b> 출석을 눌러도 등원 알림 창이 안 뜨고 \'태블릿 안 누름\' 표시도 안 나와요.' : '지금 태블릿 출결을 쓰고 있어요. 태블릿을 안 누른 제자를 출석으로 누르면 등원 알림을 보낼지 물어요.') + '</p><button class="big' + (S.kioskOff ? '' : ' line') + '" data-x="kiosk">' + (S.kioskOff ? '태블릿 출결 다시 쓰기 (알림 창 켜기)' : '태블릿 출결 잠깐 안 쓰기 (알림 창 끄기)') + '</button>' : '') + // 태블릿 출결 끄기·켜기는 관리자만 (2026-11-13)
     '<h3>내 PIN</h3><p class="help">PIN은 업무 앱과 같아요. 바꾸기·사범님 추가는 업무 앱 → 설정에서 해요.</p><button class="big" data-x="out">로그아웃</button>' +
     (S.me.boss ? '<h3>관리 (관리자만)</h3><button class="big" data-x="imp">백업 파일 불러오기 (예전 출석부 포함)</button><button class="big line" data-x="wipe">출석부 초기화</button>' +
     '<p class="help" style="margin-top:12px">초기화나 복원을 하기 전에 위의 백업 파일을 먼저 받아 두세요. 백업 파일에는 원생 명단, 모든 출결 기록, 결석 예약, 체험 수업, 휴관일, 변경 이력이 들어 있어요.</p>' : '') +
