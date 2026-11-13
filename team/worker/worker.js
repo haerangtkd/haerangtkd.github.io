@@ -56,6 +56,13 @@ const SCHEMA = [
 ];
 // 학부모 앱 연락 버튼 기본값 (이아빈 계정에서 추가·수정·삭제) — ask: who 누가 / why 사유 / '' 없음, act: 확인할 때 할 일
 const RELS = ['엄마', '아빠', '할머니', '할아버지', '이모', '고모', '삼촌', '기타'];
+// 알림장 양식 (2026-11-13): 업무 앱 설정에서 직원이 관리 → 알림 관리 '알림장 쓰기'에서 골라 씀. {날짜} = 오늘 날짜
+const JTPL0 = [
+  { t: '오늘의 수련', title: '{날짜} 오늘의 수련', body: '오늘은 ○○을(를) 배웠어요.\n\n집에서도 한 번 해 보게 해 주세요.' },
+  { t: '칭찬', title: '{날짜} 칭찬 한마디', body: '오늘 ○○이가 수련 시간에 ○○을(를) 아주 잘했어요. 많이 칭찬해 주세요!' },
+  { t: '준비물', title: '{날짜} 준비물 안내', body: '○○일까지 ○○을(를) 챙겨 보내 주세요.' },
+];
+async function jtplGet(env) { const v = J((await one(env, "SELECT v FROM kv WHERE k = 'jtpl'") || {}).v, null); return Array.isArray(v) ? v : JTPL0; }
 const PTPL0 = [
   { id: 'in', label: '보호자가 등원시킬게요', ask: 'who', act: 'in', reasons: [] },
   { id: 'out', label: '보호자가 하원시킬게요', ask: 'who', act: 'out', reasons: [] },
@@ -211,6 +218,7 @@ async function route(path, req, env, ctx) {
       return json({ ok: true, id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared });
     }
     if (path === '/sync/events') return json({ ok: true, events: await openEvents(env, kids) });
+    if (path === '/sync/jtpl') return json({ ok: true, tpl: await jtplGet(env) }); // 알림 관리 '알림장 쓰기' 양식
     if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 10', ...kids)).map(r => ({ id: r.id, kid: r.kid, label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r) })) : [] });
     if (path === '/sync/pmsg-send') return json(await pmsgSend(env, b, kids, ctx));
     if (path === '/sync/hw') return json({ ok: true, hw: await hwFor(env, kids) });
@@ -356,6 +364,14 @@ async function route(path, req, env, ctx) {
     const nb = needBoss(); if (nb) return nb;
     const r = await noticeSync(env, '/sync/kiosk-multi', { on: !!b.on }); if (!r.ok) return json(r);
     await run(env, "INSERT INTO kv (k, v) VALUES ('kioskMulti', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", b.on ? '1' : '0');
+    return json({ ok: true });
+  }
+  if (path === '/api/jtpl') return json({ ok: true, tpl: await jtplGet(env) });
+  if (path === '/api/jtpl-set') { // 알림장 양식: 직원 누구나 (공용 계정은 안 됨)
+    if (me.shared) return json({ ok: false, error: '공용 계정은 바꿀 수 없어요' });
+    const list = (Array.isArray(b.tpl) ? b.tpl : []).slice(0, 20).map(x => ({ t: str(x.t, 20).trim(), title: str(x.title, 100).trim(), body: str(x.body, 2000) })).filter(x => x.t && (x.title || x.body));
+    await run(env, "INSERT INTO kv (k, v) VALUES ('jtpl', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(list));
+    await addLog(env, me.id, 'set', me.name + '님이 알림장 양식을 고쳤어요', '');
     return json({ ok: true });
   }
   if (path === '/api/ptpl-set') { // 이아빈: 학부모 연락 버튼 목록
