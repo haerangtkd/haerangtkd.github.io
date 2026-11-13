@@ -406,28 +406,33 @@
   .att-day .ad-r{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #F1ECE7;font-size:15px}
   .att-day .ad-r span{color:var(--muted)}
   .msec .mlink{float:right;border:0;background:none;color:var(--brand);font-weight:700;font-size:13.5px}
-  /* 월간 수련 계획표 모양 (2026-11-13 사용자 요청: 종이 계획표처럼 — 요일별 운동 테마 · 주간 수련 주제 한 줄 · 토요일 행사 · 일요일 주말) */
-  .pg{border:1px solid #A9D3C3;border-radius:14px;overflow:hidden;background:#fff;font-size:11px;margin-top:8px}
-  .pgw{display:grid;grid-template-columns:.8fr repeat(5,1fr) 1.15fr;border-top:1px solid #CFE6DC}
+  /* 월간 수련 계획표 모양 (2026-11-13 종이 계획표처럼, 11-14 보기 쉽게: 일요일 좁게 · 토요일 넓게 · 요일별 운동테마는 아래 따로 · 휴관은 빨강) */
+  .pg{border:1px solid #A9D3C3;border-radius:14px;overflow:hidden;background:#fff;font-size:12px;margin-top:8px}
+  .pgw{display:grid;grid-template-columns:.5fr repeat(5,1fr) 1.4fr;border-top:1px solid #CFE6DC}
   .pgw:first-child{border-top:0}
-  .pgw>div{border-left:1px solid #CFE6DC;padding:5px 2px;text-align:center;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.3;word-break:keep-all;overflow-wrap:anywhere;min-width:0}
+  .pgw>div{border-left:1px solid #CFE6DC;padding:6px 3px;text-align:center;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.25;word-break:keep-all;overflow-wrap:anywhere;min-width:0}
   .pgw>div:first-child{border-left:0}
-  .pgw.hd>div{min-height:0;background:#D6EEE5;font-weight:800;font-size:12.5px;padding:6px 0;color:#2B4A3F}
-  .pgw.th>div{min-height:0;font-size:10px;color:#555;padding:6px 1px}
-  .pgw.th>div:first-child{font-style:italic;color:#7A736E}
+  .pgw.hd>div{min-height:0;background:#D6EEE5;font-weight:800;font-size:13px;padding:7px 0;color:#2B4A3F}
+  .pgw.hd>div:first-child{color:#C9504F}.pgw.hd>div:last-child{color:#3E6BB3}
   .pg .f{background:#E4F4ED}
   .pg [data-day]{cursor:pointer}
-  .pg .r{font-size:10.5px;color:#2F6B55;font-weight:700}
-  .pg .tt{font-size:12px;font-weight:800;color:#1C1A19}
-  .pg .s3 .tt{font-size:14.5px}
-  .pg .ev{font-size:11.5px;font-weight:800;color:#A40F16}
+  .pg .r{font-size:11px;color:#2F6B55;font-weight:700}
+  .pg .tt{font-size:12.5px;font-weight:800;color:#1C1A19}
+  .pg .s3 .tt{font-size:15px}
+  .pg .ev{font-size:12px;font-weight:800;color:#1F3B63}
+  .pg .hol{font-size:12.5px;font-weight:800;color:#D92D20}
+  .pg .ho .r{color:#D92D20}
   .pg .hp{color:#8A827C}
-  .pg .sm{font-size:9.5px;color:#7A736E;font-weight:400}
-  .pg .sun{font-size:9.5px;color:#9C6A3C;font-style:italic;white-space:pre-line}
-  .pg .n{font-size:11px;color:#9A928C}
+  .pg .sun{font-size:12px;color:#C9A27A}
+  .pg .dot{width:7px;height:7px;border-radius:50%;background:#1F3B63;display:block}.pg .dot.h{background:#D92D20}
+  .pg .n{font-size:12px;color:#9A928C}
   .pg .x{background:#FAF8F6}
-  .pg .t{box-shadow:inset 0 0 0 2px #A40F16}
+  .pg .t{box-shadow:inset 0 0 0 2.5px #A40F16}
   .pg .pk{background:#FBEDEE}
+  .pgt,.pgn{background:#fff;border:1px solid #E4DCD4;border-radius:14px;margin-top:10px;padding:12px 14px;font-size:13.5px;line-height:1.5}
+  .pgt b,.pgn b{display:block;font-size:14.5px;margin-bottom:6px}
+  .pgt div{display:flex;gap:10px;padding:3px 0}.pgt span{flex:none;width:22px;font-weight:800;color:#2F6B55}
+  .pgn{background:#FFF4EA;border-color:#F6D9BF}.pgn ul{margin:0;padding-left:18px}.pgn li{margin:4px 0}
   /* 수련 계획 표 (홈페이지처럼 '11월 첫째 주', 2026-11-14) */
   .ftb{background:#fff;border-radius:18px;margin-top:12px;overflow:hidden;border:1px solid var(--line)}
   .ftb h4{margin:0;padding:14px 16px;background:#F6EFD9;color:#5A4A1A;font-size:16px;font-weight:800}
@@ -1161,7 +1166,7 @@
       return '<div class="r' + cls + '" data-d="' + x.date + '" data-e="' + e + '"><span>' + (e === x.date ? '<b>' + one(x.date) + '</b>' : '<b>' + weekLabel(x.date) + '</b><small>' + one(x.date) + ' ~ ' + one(e) + '</small>') + '</span><span>' + esc(x.title) + '</span></div>';
     }).join('') + '</div>';
   }
-  // 월간 수련 계획표 (2026-11-13): items = {date, end, title, kind, body, hp}, kind '수련' = 주간 수련 주제 / themes = {월:[…],…} / wkText = 일요일 글
+  // 월간 수련 계획표 (2026-11-13, 11-14 보기 쉽게): items = {date, end, title, kind, body, hp}, kind '수련' = 주간 수련 주제 / themes = {월:[…],…}
   function planGrid(month, items, themes, wkText, o = {}) {
     const [y, mo] = month.split('-').map(Number), last = new Date(Date.UTC(y, mo, 0)).getUTCDate(), first = new Date(Date.UTC(y, mo - 1, 1)).getUTCDay();
     const E = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1171,13 +1176,13 @@
     const WD = ['일', '월', '화', '수', '목', '금', '토'], th = themes || {};
     const block = (d0, n, L, sun) => {
       const ks = []; for (let i = 0; i < n; i++) ks.push(K(d0 + i));
-      const cls = (L.some(x => x.kind === '수련') ? ' f' : '') + (n >= 3 ? ' s3' : '') + (ks.includes(td) ? ' t' : '') + (ks.includes(pk) ? ' pk' : '');
-      if (!L.length) return '<div class="' + cls + '"' + (o.empty ? ' data-day="' + ks[0] + '"' : '') + ' style="grid-column:span ' + n + '"><span class="n">' + d0 + '일</span>' + (sun ? '<span class="sun">즐거운 주말 ☺</span>' : '') + '</div>';
-      return '<div class="' + cls + '" data-day="' + ks[0] + '" style="grid-column:span ' + n + '"><span class="r">' + d0 + '일' + (n > 1 ? ' ~ ' + (d0 + n - 1) + '일' : '') + '</span>' +
-        L.map(x => '<span class="' + (x.kind === '수련' ? 'tt' : 'ev') + (x.hp ? ' hp' : '') + '">' + E(x.title) + '</span>' + (x.kind !== '수련' && x.body ? '<span class="sm">' + E(String(x.body).split('\n')[0]).slice(0, 30) + '</span>' : '')).join('') + '</div>';
+      const cls = (L.some(x => x.kind === '수련') ? ' f' : '') + (L.some(x => x.kind === '휴관') ? ' ho' : '') + (n >= 3 ? ' s3' : '') + (ks.includes(td) ? ' t' : '') + (ks.includes(pk) ? ' pk' : '');
+      if (!L.length) return '<div class="' + cls + '"' + (o.empty ? ' data-day="' + ks[0] + '"' : '') + ' style="grid-column:span ' + n + '"><span class="n">' + d0 + '</span>' + (sun ? '<span class="sun">☺</span>' : '') + '</div>';
+      if (sun) return '<div class="' + cls + '" data-day="' + ks[0] + '"><span class="r">' + d0 + '</span>' + L.map(x => '<i class="dot' + (x.kind === '휴관' ? ' h' : '') + '" title="' + E(x.title) + '"></i>').join('') + '</div>'; // 일요일 칸은 좁아서 점만 (자세한 건 아래 목록)
+      return '<div class="' + cls + '" data-day="' + ks[0] + '" style="grid-column:span ' + n + '"><span class="r">' + d0 + (n > 1 ? ' ~ ' + (d0 + n - 1) : '') + '일</span>' +
+        L.map(x => '<span class="' + (x.kind === '수련' ? 'tt' : x.kind === '휴관' ? 'hol' : 'ev') + (x.hp ? ' hp' : '') + '">' + E(x.title) + '</span>').join('') + '</div>';
     };
     let h = '<div class="pg"><div class="pgw hd">' + WD.map(w => '<div>' + w + '</div>').join('') + '</div>';
-    if (Object.keys(th).length) h += '<div class="pgw th"><div>요일별<br>운동테마</div>' + WD.slice(1, 6).map(w => '<div>' + (th[w] || []).map(E).join('<br>') + '</div>').join('') + '<div></div></div>';
     for (let w = 0; w * 7 - first < last; w++) {
       h += '<div class="pgw">';
       const dOf = c => w * 7 + c - first + 1, ok = d => d >= 1 && d <= last;
@@ -1191,7 +1196,11 @@
       h += ok(dOf(6)) ? block(dOf(6), 1, day(dOf(6))) : '<div class="x"></div>';
       h += '</div>';
     }
-    return h + '</div>';
+    h += '</div>';
+    const tw = WD.slice(1, 6).filter(w => (th[w] || []).length);
+    if (tw.length) h += '<div class="pgt"><b>요일별 운동테마</b>' + tw.map(w => '<div><span>' + w + '</span>' + th[w].map(E).join(' · ') + '</div>').join('') + '</div>';
+    if (o.notices && o.notices.length) h += '<div class="pgn"><b>' + mo + '월의 공지사항</b><ul>' + o.notices.map(t => '<li>' + E(t) + '</li>').join('') + '</ul></div>';
+    return h;
   }
 
   async function drawPlan(month, inPage) {
@@ -1237,7 +1246,7 @@
         }
         const rng = x => { const d = md(x.date); if (!x.end || x.end === x.date) return { top: d.w, big: d.d }; const e = md(x.end); return { top: d.m === e.m ? d.d + '~' + e.d : '', big: d.d, sub: '~' + (d.m === e.m ? '' : e.m + '/') + e.d }; };
         h += (f === '전체' ? '<div class="msec">' + mLabel(month) + ' 일정</div>' : '') + '<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
-          planGrid(month, items, (site.monthly || {}).weekday, (site.monthly || {}).weekendText, { today: today() }) +
+          planGrid(month, items, (site.monthly || {}).weekday, '', { today: today(), notices: ((((site.monthly || {}).months) || []).find(x => x.month === month) || {}).notices }) +
           focusTbl(month, items.filter(x => x.kind === '수련')) +
           (items.some(x => x.kind !== '수련') ? '<div class="msec">도장 일정</div><div class="list sch">' + items.filter(x => x.kind !== '수련').map(x => {
             const r = rng(x), past = (x.end || x.date) < today();
