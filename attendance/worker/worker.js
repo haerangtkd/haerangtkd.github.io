@@ -99,7 +99,7 @@ async function route(path, req, env) {
       if (cur && b.noRevive && J(cur.data, {}).status === '퇴관' && (b.student || {}).status !== '퇴관') return json({ ok: false, error: '퇴관한 제자를 다시 바꾸는 건 관리자만 할 수 있어요' });
       return json(await saveStudentRow(env, b, str(b.who, 20) || '업무 앱'));
     }
-    if (path === '/sync/cneed') return json({ ok: true, list: await cneedList(env, await all(env, 'SELECT id, data FROM students')) }); // 업무 앱 크론: 연락 필요 알림
+    if (path === '/sync/cneed') return json({ ok: true, list: await cneedList(env, null) }); // 업무 앱 크론·대시보드: 연락 필요
     if (path === '/sync/kid-today') { // 업무 앱 보호자 하원 알림: 오늘 그 제자가 들은 마지막 수업 시작 + 45분 (50분 수업, 끝나기 5분 전)
       const day = isDay(b.day) ? b.day : kstDay(), name = str(b.name, 20).replace(/\s+/g, '');
       const st = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) })).find(x => x.name === name && x.status !== '퇴관');
@@ -584,9 +584,12 @@ async function cneedDrop(env, day, sids) {
   if (ch) await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'cneed:' + day, JSON.stringify(cur));
 }
 async function cneedList(env, rows) { // 오늘까지 7일 안의 아직 끝나지 않은 '연락 필요' → [{sid, name, day, why, who, at}]
-  const day = kstDay(), from = new Date(Date.parse(day) - 6 * 864e5).toISOString().slice(0, 10), names = new Map(rows.map(r => [r.id, J(r.data, {}).name || '']));
+  const day = kstDay(), from = new Date(Date.parse(day) - 6 * 864e5).toISOString().slice(0, 10);
+  const ks = (await all(env, "SELECT k, v FROM kv WHERE k >= ? AND k <= ?", 'cneed:' + from, 'cneed:' + day)).filter(r => Object.keys(J(r.v, {})).length);
+  if (!ks.length) return []; // 없으면 원생 표를 읽지 않음 (자주 불러서)
+  const names = new Map((rows || await all(env, 'SELECT id, data FROM students')).map(r => [r.id, J(r.data, {}).name || '']));
   const out = [];
-  for (const r of await all(env, "SELECT k, v FROM kv WHERE k >= ? AND k <= ?", 'cneed:' + from, 'cneed:' + day)) {
+  for (const r of ks) {
     const d = r.k.slice(6); for (const [sid, x] of Object.entries(J(r.v, {}))) if (names.get(sid)) out.push({ sid, name: names.get(sid), day: d, why: x.why || '', who: x.who || '', at: x.at || 0 });
   }
   return out.sort((a, b) => a.at - b.at);
