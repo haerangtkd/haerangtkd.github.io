@@ -83,6 +83,13 @@ async function route(path, req, env) {
     return json({ ok: !!(env.ADMIN_PASSWORD && b.password && await sameText(String(b.password), env.ADMIN_PASSWORD)) });
   }
 
+  // 장부 서버: 회원별 이번 달 회비(가족 할인 포함)를 알려 줌 → 학부모 앱 '정보 확인' (2026-11-13)
+  if (path === '/ledger/fee-info') {
+    if (new URL(req.url).hostname !== 'notice') return json({ ok: false, error: 'not found' }, 404);
+    const map = {}; for (const x of (Array.isArray(b.list) ? b.list : []).slice(0, 300)) { const n = str(x.name, 20).trim(); if (n) map[n] = { base: Number(x.base) || 0, disc: Number(x.disc) || 0, ym: str(x.ym, 7) }; }
+    await run(env, "INSERT INTO kv (k, v) VALUES ('feeinfo', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ at: Date.now(), map }));
+    return json({ ok: true, n: Object.keys(map).length });
+  }
   // 장부 서버: 매달 5일 미납 가정 회비 안내 (서비스 바인딩으로만 — 주소 이름이 'notice'인 요청은 바깥에서 올 수 없음) 2026-11-13
   if (path === '/ledger/fee-notice') {
     if (new URL(req.url).hostname !== 'notice') return json({ ok: false, error: 'not found' }, 404);
@@ -93,9 +100,9 @@ async function route(path, req, env) {
       return json({ ok: true, kids: kids.map(k => ({ name: k, onApp: names.has(k), phones: ps.filter(p => J(p.kids, []).includes(k)).length })) });
     }
     if (!kids.length) return json({ ok: true, total: 0, sent: 0, next: null });
-    if (!(b.offset | 0)) await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 0, 0)', // 학부모 앱 '회비 안내'에도 남김 (그 가정만 보임)
-      'fee', '회비', str(b.title, 100), str(b.body, 3000), kstDay(new Date()), JSON.stringify(kids), '[]', Date.now());
-    return json(await send(env, { kind: '회비', title: str(b.title, 100), body: str(b.body, 300), children: kids, view: 'fee', offset: b.offset | 0 }));
+    if (!(b.offset | 0)) await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 0, 0)', // 학부모 앱 '소식'에 공지(회비)로 남김 — 그 가정만 보임 (2026-11-13)
+      'notice', '회비', str(b.title, 100), str(b.body, 3000), kstDay(new Date()), JSON.stringify(kids), '[]', Date.now());
+    return json(await send(env, { kind: '회비', title: str(b.title, 100), body: str(b.body, 300), children: kids, view: 'notice', offset: b.offset | 0 }));
   }
 
   // ═════════ 누구나 ═════════
@@ -168,13 +175,18 @@ async function route(path, req, env) {
       return json({ ok: true, at: now });
     }
     if (path === '/p/leave') { await run(env, 'DELETE FROM parents WHERE id = ?', p.id); return json({ ok: true }); }
+    if (path === '/p/kid-info') { // 우리 아이 '정보 확인' (2026-11-13): 출생연도·수련 요일(임시변경)·회비(장부)·관계·번호 뒷자리
+      if (!p.ok) return json({ ok: false, error: '도장 확인 후에 볼 수 있어요' });
+      const r = await attSync(env, '/sync/kid-info', { names: myKids }), fee = J((await one(env, "SELECT v FROM kv WHERE k = 'feeinfo'") || {}).v, {});
+      return json({ ok: true, rel: p.rel, ph: p.ph, kids: myKids.map(k => ({ name: k, ...((r.kids || []).find(x => x.name === k) || {}), fee: (fee.map || {})[k] || null })), feeAt: fee.at || 0 });
+    }
     if (path === '/p/schedule') return json({ ok: true, me, items: await listSchedule(env, b.month) });
-    if (path === '/p/notices') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'notice', null, 100), p.id) });
+    if (path === '/p/notices') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'notice', myKids, 100), p.id) }); // 아이를 정한 공지(회비 안내 등)는 그 가정만
     if (path === '/p/home') {
       const today = kstDay(new Date());
       const out = { ok: true, me, today: {}, counts: {} };
-      const n = await one(env, "SELECT MAX(created) AS c FROM posts WHERE type = 'notice'");
-      out.counts.notice = n && n.c || 0;
+      const n = (await listPosts(env, 'notice', myKids, 1))[0];
+      out.counts.notice = n ? n.at : 0;
       out.counts.schedule = await listSchedule(env, today.slice(0, 7)).then(l => l.filter(x => x.date >= today).slice(0, 3));
       if (p.ok) {
         for (const k of myKids) {
@@ -678,6 +690,8 @@ async function kidStatus(env) {
   if (!r.ok || !Array.isArray(r.students)) return old.map || {};
   try { await rosterFollow(env, r.students); } catch (_) {} // 원생 한 명단: 새 원생·이름·출결번호를 출석부에 맞춤
   const map = {}; for (const s of r.students) if (s.name && s.status && s.status !== '재원') map[s.name] = s.status;
+  // 아이가 모두 퇴관인 보호자는 등록 해제 (2026-11-13 사용자 결정: 학부모 앱의 '등록 해제' 버튼 대신 업무 앱에서 퇴관하면 해제)
+  for (const p of await all(env, 'SELECT id, kids FROM parents')) { const ks = J(p.kids, []); if (ks.length && ks.every(k => map[k] === '퇴관')) await run(env, 'DELETE FROM parents WHERE id = ?', p.id); }
   await run(env, "INSERT INTO kv (k, v) VALUES ('kidStatus', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ at: Date.now(), map }));
   return map;
 }
