@@ -78,6 +78,14 @@
   .tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--chip);color:#6E625D;margin:2px 4px 0 0;font-weight:500}
   .tag.red{background:#FBE3E1;color:var(--no)} .tag.grn{background:var(--okbg);color:var(--ok)} .tag.blue{background:#E5ECF5;color:#1E3A5F} .tag.yel{background:#F8F0DA;color:#7A5A10}
   .acts{display:flex;gap:6px;flex:none}
+  .note{display:block;font-size:13.5px;line-height:1.4;color:#8A2A00;background:#FFF0E3;border-radius:8px;padding:4px 9px;margin-top:5px;font-weight:600;white-space:normal}
+  .nrow{padding:0 14px 12px 48px}.offrow .nrow{background:#F6F2F0}
+  .note.tmp{background:#FBF3D5;color:#6B5000}
+  .note em{font-style:normal;font-size:11.5px;font-weight:700;opacity:.75;margin-right:5px}
+  .nlist{list-style:none;padding:0;margin:8px 0 0}
+  .nlist li{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:9px 10px;margin-top:6px}
+  .nlist li div{flex:1;min-width:0}.nlist li small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .nlist li.past{opacity:.5}
   .ab{border:1px solid var(--line);background:var(--chip);border-radius:14px;padding:9px 13px;font-size:15px;white-space:nowrap}
   .ab.o{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:700}
   .ab.x{background:var(--no);border-color:var(--no);color:#fff;font-weight:700}
@@ -458,8 +466,15 @@ function renderToday() {
   renderBulk();
 }
 function offRowHtml(s, d) {
-  return '<li data-off="' + s.id + '" class="offrow"><div class="st"><span style="width:24px;flex:none"></span><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc(grade(s, d).label) + ' · ' + esc(daysLabel(daysOn(s, d))) + (tempOn(s, d) ? ' · 임시' : '') + '</small></div><div class="acts"><span class="offx">X</span><button class="ab offmk" data-mk="' + s.id + '">보강</button></div></div></li>';
+  return '<li data-off="' + s.id + '" class="offrow"><div class="st"><span style="width:24px;flex:none"></span><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc(grade(s, d).label) + ' · ' + esc(daysLabel(daysOn(s, d))) + (tempOn(s, d) ? ' · 임시' : '') + '</small></div><div class="acts"><span class="offx">X</span><button class="ab offmk" data-mk="' + s.id + '">보강</button></div></div>' + notesRow(s, d) + '</li>';
 }
+// 중요사항 (2026-11-13): 지속 = 늘, 임시 = 그날만 / 매주 그 요일(끝나는 날까지). 알림 켜면 출석한 수업 시작 45분 뒤 업무 앱 알림
+const DOWK = '일월화수목금토', dowK = day => DOWK[new Date(day + 'T00:00:00Z').getUTCDay()];
+function noteOn(n, day) { if (n.type !== 'temp') return true; if (n.rep === 'weekly') return day >= n.start && (!n.end || day <= n.end) && dowK(day) === dowK(n.start); return day === n.start; }
+function notePast(n, day) { return n.type === 'temp' && (n.rep === 'weekly' ? !!n.end && n.end < day : n.start < day); }
+function noteWhen(n) { if (n.type !== 'temp') return '지속'; const md = x => (+x.slice(5, 7)) + '/' + (+x.slice(8)); return n.rep === 'weekly' ? '임시 · 매주 ' + dowK(n.start) + ' (' + md(n.start) + (n.end ? '~' + md(n.end) : '~') + ')' : '임시 · ' + md(n.start) + ' 그날만'; }
+const notesHtml = (s, d) => (s.notes || []).filter(n => noteOn(n, d)).map(n => '<span class="note' + (n.type === 'temp' ? ' tmp' : '') + '"><em>' + (n.type === 'temp' ? (n.rep === 'weekly' ? '임시·매주' : '임시·오늘만') : '📌') + '</em>' + esc(n.text) + (n.alarm ? ' 🔔' : '') + '</span>').join('');
+const notesRow = (s, d) => { const h = notesHtml(s, d); return h ? '<div class="nrow">' + h + '</div>' : ''; };
 function rowHtml(s, c) {
   const d = S.day, g = grade(s, d), tags = [];
   if (c.reserved) tags.push('<span class="tag red">결석 예정' + (c.w ? ' · ' + esc(c.w) : '') + '</span>');
@@ -472,7 +487,7 @@ function rowHtml(s, c) {
   else if (c.r && c.r.tin) tags.push('<span class="tag grn">태블릿 ' + esc(c.r.tin) + '</span>');
   if (c.r && c.r.who && c.r.at && c.r.who !== '태블릿') tags.push('<span class="tag">' + esc(c.r.who) + ' ' + stamp(c.r.at).split(' ')[1] + '</span>');
   let h = '<li data-id="' + s.id + '"><div class="st"><input type="checkbox" class="cb"' + (S.sel.has(s.id) ? ' checked' : '') + '><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc(g.label) + ' · ' + esc(daysLabel(daysOn(s, d))) + '</small>' + (tags.length ? '<div>' + tags.join('') + '</div>' : '') + '</div><div class="acts">' +
-    '<button class="ab' + (c.k === 'o' ? ' o' : '') + '" data-a="o">출석</button><button class="ab' + (c.k === 'x' ? ' x' : '') + '" data-a="x">결석</button><button class="ab" data-a="t">임시변경</button></div></div>';
+    '<button class="ab' + (c.k === 'o' ? ' o' : '') + '" data-a="o">출석</button><button class="ab' + (c.k === 'x' ? ' x' : '') + '" data-a="x">결석</button><button class="ab" data-a="t">임시변경</button></div></div>' + notesRow(s, d);
   if (c.k === 'o') { const ps = (c.p || '').split('/'); h += '<div class="pers" data-p><span>시간부</span>' + PER.map(p => '<button class="' + (ps.includes(p) ? 'on' : '') + '" data-p="' + p + '">' + p + '</button>').join('') + '</div>'; }
   return h + '</li>';
 }
@@ -596,13 +611,55 @@ function renderStudents() {
     const gr = grade(s), tg = [];
     if (s.status !== '재원') tg.push('<span class="tag ' + (s.status === '휴원' ? 'yel' : 'red') + '">' + s.status + '</span>');
     if (tempOn(s, today())) tg.push('<span class="tag yel">임시변경 중</span>');
-    return '<li class="st" data-id="' + s.id + '"><div class="av">' + esc(s.name.length > 2 ? s.name.slice(-2) : s.name) + '</div><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc([gr.label, daysLabel(s.days), s.no].filter(Boolean).join(' · ')) + '</small>' + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><div class="acts"><button class="ab" data-a="st">회원상태</button><button class="ab" data-a="t">임시변경</button></div></li>';
+    const nN = (s.notes || []).filter(n => !notePast(n, today())).length; if (nN) tg.push('<span class="tag" style="background:#FFF0E3;color:#8A2A00">📌 중요사항 ' + nN + '</span>');
+    return '<li class="st" data-id="' + s.id + '"><div class="av">' + esc(s.name.length > 2 ? s.name.slice(-2) : s.name) + '</div><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc([gr.label, daysLabel(s.days), s.no].filter(Boolean).join(' · ')) + '</small>' + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><div class="acts"><button class="ab" data-a="n">중요사항</button><button class="ab" data-a="st">회원상태</button><button class="ab" data-a="t">임시변경</button></div></li>';
   }).join('') : '<li class="empty"><b>원생이 없어요</b>원생 등록은 업무 앱 → 더보기 → 🥋 원생에서 해요.</li>';
 }
 $('sQ').oninput = renderStudents; $('sLeave').onchange = renderStudents;
 // 2026-11-13 사용자 결정: 원생 등록·정보 수정(출생연도·어린이집·출석번호·수련 요일·연락처)은 업무 앱 🥋 원생에서만. 출석부는 회원 상태·임시변경만.
 $('sAdd').onclick = () => { location.href = '/team/#kids'; };
-$('sList').onclick = e => { const b = e.target.closest('button'); const li = e.target.closest('li[data-id]'); if (!b || !li) return; const s = stById(li.dataset.id); if (b.dataset.a === 'e') editStudent(s); else if (b.dataset.a === 't') tempSheet(s, today()); else statusSheet(s); };
+$('sList').onclick = e => { const b = e.target.closest('button'); const li = e.target.closest('li[data-id]'); if (!b || !li) return; const s = stById(li.dataset.id); if (b.dataset.a === 'e') editStudent(s); else if (b.dataset.a === 'n') notesSheet(s); else if (b.dataset.a === 't') tempSheet(s, today()); else statusSheet(s); };
+function notesSheet(s) {
+  const d0 = today(); let type = 'always', rep = 'once';
+  const draw = ov => {
+    const ns = s.notes || [];
+    ov.querySelector('#nL').innerHTML = ns.length ? ns.map(n => '<li class="' + (notePast(n, d0) ? 'past' : '') + '"><div><b>' + esc(n.text) + (n.alarm ? ' 🔔' : '') + '</b><small>' + esc(noteWhen(n)) + (notePast(n, d0) ? ' · 지남' : '') + (n.who ? ' · ' + esc(n.who) : '') + '</small></div><button class="ab" data-del="' + esc(n.id) + '">지우기</button></li>').join('') : '<li><div><small>아직 없어요</small></div></li>';
+    ov.querySelector('#nTmp').hidden = type !== 'temp'; ov.querySelector('#nEndW').hidden = !(type === 'temp' && rep === 'weekly');
+    ov.querySelectorAll('#nType button').forEach(b => b.classList.toggle('on', b.dataset.v === type));
+    ov.querySelectorAll('#nRep button').forEach(b => b.classList.toggle('on', b.dataset.v === rep));
+    const dv = ov.querySelector('#nDay').value || d0; ov.querySelector('#nRepW').textContent = '매주 ' + dowK(dv) + '요일 계속';
+  };
+  const save = async (notes, log) => {
+    const j = await api('/api/student-notes', { id: s.id, notes, log });
+    if (!j.ok) { toast(j.error || '저장하지 못했어요'); return false; }
+    s.notes = j.notes; render(); return true;
+  };
+  sheet('<h2>' + esc(s.name) + ' 중요사항</h2><p class="help">오늘 출석 화면에서 이름 밑에 보여요. 🔔 알림을 켜면 그날 출석한 수업 시작 45분 뒤 업무 앱으로 알려 줘요.</p>' +
+    '<ul class="nlist" id="nL"></ul>' +
+    '<h3>새로 넣기</h3><textarea class="inp" id="nText" rows="2" maxlength="120" placeholder="예: 엄마가 4시 50분에 데리러 옴 / 무릎 다쳐서 점프 빼기"></textarea>' +
+    '<label class="f">종류</label><div class="chips" id="nType"><button data-v="always">지속 (늘)</button><button data-v="temp">임시</button></div>' +
+    '<div id="nTmp" hidden><label class="f">날짜</label><input type="date" class="inp" id="nDay" value="' + d0 + '">' +
+    '<label class="f">반복</label><div class="chips" id="nRep"><button data-v="once">이날만</button><button data-v="weekly" id="nRepW">매주 계속</button></div>' +
+    '<div id="nEndW" hidden><label class="f">끝나는 날 (비우면 지울 때까지)</label><input type="date" class="inp" id="nEnd"></div></div>' +
+    '<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="nAlarm" style="width:20px;height:20px"> 🔔 수업 시작 45분 뒤 알림</label>' +
+    '<div class="foot"><span class="sp"></span><button data-close>닫기</button><button class="save" id="nSave">넣기</button></div>', ov => {
+    draw(ov);
+    ov.querySelector('#nType').onclick = e => { const b = e.target.closest('button'); if (b) { type = b.dataset.v; draw(ov); } };
+    ov.querySelector('#nRep').onclick = e => { const b = e.target.closest('button'); if (b) { rep = b.dataset.v; draw(ov); } };
+    ov.querySelector('#nDay').onchange = () => draw(ov);
+    ov.querySelector('#nL').onclick = async e => {
+      const b = e.target.closest('[data-del]'); if (!b) return; const n = (s.notes || []).find(x => x.id === b.dataset.del); if (!n) return;
+      if (!confirm('"' + n.text + '" 중요사항을 지울까요?')) return;
+      if (await save((s.notes || []).filter(x => x !== n), '지움: ' + n.text)) { draw(ov); toast('지웠어요'); }
+    };
+    ov.querySelector('#nSave').onclick = async () => {
+      const text = ov.querySelector('#nText').value.trim(); if (!text) return toast('내용을 적어 주세요');
+      const n = { id: Math.random().toString(36).slice(2, 10), text, type, alarm: ov.querySelector('#nAlarm').checked, who: S.me.name, at: Date.now() };
+      if (type === 'temp') { n.start = ov.querySelector('#nDay').value || d0; n.rep = rep; n.end = rep === 'weekly' ? ov.querySelector('#nEnd').value : ''; if (n.end && n.end < n.start) return toast('끝나는 날이 날짜보다 앞이에요'); }
+      if (await save([...(s.notes || []), n], '추가: ' + text + ' (' + noteWhen(n) + ')')) { ov.querySelector('#nText').value = ''; ov.querySelector('#nAlarm').checked = false; draw(ov); toast('넣었어요'); }
+    };
+  });
+}
 
 async function saveStudent(st, history, extra = {}) {
   const j = await api('/api/student-save', { student: st, history, ...extra });
@@ -1162,6 +1219,7 @@ function setTab(t) {
   S.tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   for (const k of Object.keys(TITLES)) $('v-' + k).hidden = k !== t;
+  wmarkTab();
   $('crumbT').textContent = TITLES[t];
   render(); scrollTo(0, 0);
 }
@@ -1181,14 +1239,18 @@ document.addEventListener('visibilitychange', async () => { if (!document.hidden
 
 // ═════════════ 로그인 ═════════════
 function logoutLocal() { S.tok = ''; try { localStorage.removeItem(TOKK); } catch (_) {} closeSheet(true); $('app').hidden = true; watermark(''); showLogin(); }
-// 화면 전체에 로그인한 사람 이름을 흐리게 (캡처하면 누가 찍었는지 보이게, 2026-11-13). 캡처 자체는 웹앱이 막을 수 없음
+// 로그인한 사람 이름을 흐리게 (캡처하면 누가 찍었는지 보이게, 2026-11-13). 캡처 자체는 웹앱이 막을 수 없음
 function watermark(name) {
   let w = document.getElementById('wmark'); if (!name) { if (w) w.remove(); return; }
   if (!w) { w = document.createElement('div'); w.id = 'wmark'; w.setAttribute('aria-hidden', 'true'); document.body.appendChild(w); }
   const d = new Date(Date.now() + 9 * 3600e3), t = name + ' · ' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate();
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="140"><text x="10" y="80" transform="rotate(-24 110 70)" font-family="sans-serif" font-size="17" font-weight="700" fill="#000" fill-opacity="0.07">' + t.replace(/[<>&"]/g, '') + '</text></svg>';
   w.style.backgroundImage = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) + '")';
+  wmarkTab();
 }
+// 워터마크는 개인정보가 많은 화면(월별 기록·원생 관리)에서만 (2026-11-13 사용자 요청)
+const WM_TABS = ['month', 'students'];
+function wmarkTab() { const w = document.getElementById('wmark'); if (w) w.style.display = WM_TABS.includes(S.tab) ? '' : 'none'; }
 async function showLogin() {
   $('loginView').hidden = false;
   const body = $('loginBody');
