@@ -215,6 +215,33 @@
 
   /* ═════════ 2026-11 새 디자인 (위 기본 모양을 덮어씀) ═════════ */
   :root{--brand:#A40F16;--brand-soft:#FBEEEE;--ink:#1D1B1A;--muted:#7A736E;--bg:#F6F3EF;--card:#fff;--line:#ECE6DF;--navy:#1F3B63;--green:#1E7A46;--green-soft:#E7F4EC}
+  /* 📩 봉투 (2026-11-13) */
+  .envc{display:flex;align-items:center;gap:14px;width:100%;margin:12px 0 0;padding:16px;border:0;border-radius:18px;background:linear-gradient(135deg,#B3141C,#7E0A10);color:#fff;text-align:left;box-shadow:0 8px 20px rgba(164,15,22,.25);animation:envIn .5s ease-out}
+  .envc .ei{position:relative;flex:none;width:58px;height:42px;border-radius:7px;background:#FFF6E8}
+  .envc .ei:before{content:'';position:absolute;left:0;right:0;top:0;height:26px;background:#F3DDB9;clip-path:polygon(0 0,100% 0,50% 100%);border-radius:7px 7px 0 0}
+  .envc .ei:after{content:'';position:absolute;left:23px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 2px #FFF6E8}
+  .envc b{display:block;font-size:16px}.envc small{display:block;opacity:.85;margin-top:3px;font-size:13px}.envc .go{margin-left:auto;background:#fff;color:var(--brand);border-radius:99px;padding:7px 12px;font-weight:800;font-size:13px;white-space:nowrap}
+  @keyframes envIn{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+  .env-open{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;border:0;background:var(--brand);color:#fff;border-radius:12px;padding:11px;font-size:15px;font-weight:700}
+  .env-ans{margin-top:10px;font-size:14px;font-weight:700;color:var(--green)}.env-ans.no{color:var(--muted)}
+  .envov{position:fixed;inset:0;z-index:90;background:rgba(25,10,10,.6);display:flex;align-items:center;justify-content:center;perspective:900px}
+  .envbx{position:relative;width:min(86vw,330px);height:220px;margin-top:90px;transition:transform .6s,opacity .4s}
+  .envbx .bk{position:absolute;inset:0;border-radius:16px;background:#7E0A10}
+  .envbx .lt{position:absolute;left:14px;right:14px;bottom:12px;height:190px;border-radius:12px;background:#FFFDF8;z-index:2;transition:transform .8s .55s cubic-bezier(.2,.8,.2,1);padding:18px 16px;overflow:hidden}
+  .envbx .lt b{display:block;color:var(--brand);font-size:15px}.envbx .lt i{display:block;height:8px;margin:10px 0;border-radius:4px;background:#F0E6DA}
+  .envbx .fr{position:absolute;inset:0;border-radius:16px;z-index:3;background:linear-gradient(160deg,#C0161E,#9A0E14);clip-path:polygon(0 38%,50% 70%,100% 38%,100% 100%,0 100%)}
+  .envbx .fl{position:absolute;left:0;right:0;top:0;height:62%;z-index:4;border-radius:16px 16px 0 0;background:linear-gradient(#D11D25,#A9121A);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top;transition:transform .55s ease-in}
+  .envbx .sl{position:absolute;left:50%;top:52%;z-index:5;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#FFF6E8;color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;line-height:1.1;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:opacity .25s}
+  .envbx .to{position:absolute;left:0;right:0;bottom:16px;z-index:5;text-align:center;color:#FFE9D6;font-size:13px}
+  .envov.open .fl{transform:rotateX(180deg);z-index:1}.envov.open .sl{opacity:0}.envov.open .lt{transform:translateY(-150px)}
+  .envov.read .envbx{transform:translateY(40px) scale(.9);opacity:0}
+  .envrd{position:fixed;left:50%;top:50%;z-index:91;width:min(92vw,420px);max-height:84vh;overflow:auto;transform:translate(-50%,-46%);opacity:0;transition:.45s;background:#FFFDF8;border-radius:20px;padding:22px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  .envov.read .envrd{opacity:1;transform:translate(-50%,-50%)}
+  .envrd .from{font-size:13px;color:var(--brand);font-weight:800}.envrd h3{margin:6px 0 10px;font-size:20px}.envrd .bd{white-space:pre-wrap;line-height:1.6;font-size:15px}
+  .envrd .ekid{display:block;margin-top:16px;padding-top:14px;border-top:1px dashed #E3D6C6;font-size:15px}.envrd .ekid b{font-size:16px;margin-right:4px}.envrd .ekid .help-l{display:block;margin-top:6px;font-size:13px;color:var(--muted)}
+  .envrd .yn{display:flex;gap:8px;margin-top:10px}.envrd .yn button{flex:1;padding:13px;border-radius:12px;font-size:16px;font-weight:800;border:1.5px solid var(--line);background:#fff;color:var(--ink)}
+  .envrd .yn button.on.yes{background:var(--green);border-color:var(--green);color:#fff}.envrd .yn button.on.no{background:#6B6460;border-color:#6B6460;color:#fff}
+  .envrd .cls{display:block;width:100%;margin-top:16px;padding:12px;border:0;border-radius:12px;background:var(--bg);font-size:15px;font-weight:700}
   body{font-family:'Pretendard Variable',Pretendard,system-ui,-apple-system,sans-serif;letter-spacing:-.01em;font-size:16px}
   html,body{background:var(--bg)}
   .card{border:1px solid var(--line);border-radius:20px}
@@ -678,6 +705,35 @@
     try { const j = await post('/p/events'); if (j.ok) { evs = j.events || []; if (tab === 'home' && !$('v-home').hidden) drawHome(); if (tab === 'schedule' && !$('v-home').hidden) drawSchedule(); if (!$('v-page').hidden && curPg === 'plan') drawPlan(null, true); } } catch (_) {}
   }
   const evFor = k => (evs || []).filter(ev => !ev.elig || ev.elig.includes(k)); // 신청 대상인 행사만 (2026-11-13)
+  // ═════ 📩 봉투 (2026-11-13 사용자 생각: 공인단 심사처럼 도장에서 고른 가정에만 봉투로, 참가·불참 답장) ═════
+  const envAll = () => { const L = [...((home && home.envs) || [])]; if (news) ['notice', 'journal'].forEach(t => (news[t] || []).forEach(x => { if (x.env && !L.some(y => y.id === x.id)) L.push(x); })); return L; };
+  function envSection(k) {
+    const L = ((home && home.envs) || []).filter(x => (x.envKids || []).some(e => e.kid === k && !e.ans));
+    return L.map(x => '<button class="envc" data-env="' + (x.id | 0) + '"><span class="ei"></span><span><b>도장에서 봉투가 왔어요</b><small>' + esc(x.title) + '</small></span><span class="go">열어 보기</span></button>').join('');
+  }
+  function envAnsLine(x) { const a = (x.envKids || []).filter(e => e.ans); return a.length ? a.map(e => '<div class="env-ans' + (e.ans === 'no' ? ' no' : '') + '">📩 ' + esc(e.kid) + ' · ' + (e.ans === 'yes' ? '참가' : '불참') + '로 답장했어요</div>').join('') : ''; }
+  function openEnv(id) {
+    const x = envAll().find(y => y.id === id); if (!x) return toast('봉투를 찾지 못했어요. 새로고침해 주세요');
+    sentReads.add(id); post('/p/read', { ids: [id] }).catch(() => {});
+    const ov = document.createElement('div'); ov.className = 'envov';
+    const draw = () => '<div class="from">📩 해랑경희에서 온 봉투</div><h3>' + esc(x.title) + '</h3>' + (x.body ? '<div class="bd">' + esc(x.body) + '</div>' : '') +
+      (x.envKids || []).map(e => '<div class="ekid"><b>' + esc(e.kid) + '</b>참가하나요?<div class="yn"><button class="yes' + (e.ans === 'yes' ? ' on' : '') + '" data-yn="yes" data-k="' + esc(e.kid) + '">참가</button><button class="no' + (e.ans === 'no' ? ' on' : '') + '" data-yn="no" data-k="' + esc(e.kid) + '">불참</button></div>' + (e.at ? '<span class="help-l">' + dateText(e.at) + '에 답장했어요 · 바꿀 수 있어요</span>' : '') + '</div>').join('') +
+      '<button class="cls">닫기</button>';
+    ov.innerHTML = '<div class="envbx"><div class="bk"></div><div class="lt"><b>' + esc(x.title) + '</b><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="fr"></div><div class="fl"></div><div class="sl">해랑<br>경희</div><div class="to">' + esc((x.envKids || []).map(e => e.kid).join(' · ')) + ' 가정에</div></div><div class="envrd">' + draw() + '</div>';
+    document.body.appendChild(ov);
+    setTimeout(() => ov.classList.add('open'), 350); setTimeout(() => ov.classList.add('read'), 1600);
+    const close = () => { ov.remove(); if (tab === 'home') drawHome(); else if (tab === 'news' && news) paintNews(); };
+    ov.onclick = async e => {
+      if (e.target === ov || e.target.closest('.cls')) return close();
+      const b = e.target.closest('[data-yn]'); if (!b) return; b.disabled = true;
+      try { const j = await post('/p/reply', { id, kid: b.dataset.k, ans: b.dataset.yn }); if (!j.ok) throw new Error(j.error);
+        envAll().forEach(y => { if (y.id === id) (y.envKids || []).forEach(k2 => { if (k2.kid === b.dataset.k) { k2.ans = b.dataset.yn; k2.at = j.at; } }); });
+        ov.querySelector('.envrd').innerHTML = draw(); toast(b.dataset.yn === 'yes' ? '참가로 답장했어요' : '불참으로 답장했어요');
+        if ((x.envKids || []).every(k2 => k2.ans)) setTimeout(close, 900);
+      } catch (er) { b.disabled = false; toast(er.message || '잠시 후 다시 눌러 주세요'); }
+    };
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-env]'); if (!b) return; e.stopPropagation(); e.preventDefault(); openEnv(+b.dataset.env); }, true);
   function evSection(k) {
     if (!evFor(k).length) return '';
     return '<section class="sec" id="secEv"><h2>행사 신청</h2>' + evFor(k).map(ev => {
@@ -930,7 +986,7 @@
       h += '<button class="status' + (t.out ? ' out' : t.in ? ' in' : '') + '" data-go-tab="kid"><span class="si">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span class="st"><b>' +
         (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</b><small>' +
         (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>';
-      h += homeTiles(k) + contactSection(k) + evSection(k) + hwSection(k);
+      h += envSection(k) + homeTiles(k) + contactSection(k) + evSection(k) + hwSection(k);
     }
     const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장'], ['album', '새 사진이 올라왔어요', '앨범']].filter(([x]) => fresh(x));
     const askRows = asks.filter(x => !x.urgent).map(x => '<button class="li" data-news="' + (x.type === 'journal' ? '알림장' : '공지') + '"><span class="lic i-ask">' + ICON.check + '</span><span class="lt"><b>' + esc(x.title) + '</b><small>읽고 \'확인했어요\'를 눌러 주세요</small></span><i class="new"></i>' + ICON.right + '</button>').join('');
@@ -1244,7 +1300,8 @@
       (opts.kids && x.target && x.target.length ? x.target.filter(t => mine.includes(t)).map(t => '<span class="tag kid">' + esc(t) + '</span>').join('') : '');
     return '<article class="post" data-pid="' + (x.id | 0) + '"><div class="day"><b>' + d.d + '</b><small>' + d.w + '요일</small></div><div class="ct">' + (tags ? '<div class="tags">' + tags + '</div>' : '') +
       '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p class="clip">' + esc(x.body) + '</p>' : '') + '<div class="meta">' + dateText(x.at) + '</div>' +
-      (x.ask ? (x.acked ? '<div class="acked">' + ICON.check + '확인했어요 · ' + dateText(x.acked) + '</div>' : (me().approved ? '<button class="ack-btn" data-ack="' + (x.id | 0) + '">' + ICON.check + '확인했어요</button>' : '')) : '') + '</div></article>';
+      (x.ask ? (x.acked ? '<div class="acked">' + ICON.check + '확인했어요 · ' + dateText(x.acked) + '</div>' : (me().approved ? '<button class="ack-btn" data-ack="' + (x.id | 0) + '">' + ICON.check + '확인했어요</button>' : '')) : '') +
+      (x.env ? envAnsLine(x) + '<button class="env-open" data-env="' + (x.id | 0) + '">📩 봉투 ' + ((x.envKids || []).every(e => e.ans) ? '다시 보기' : '열고 답장하기') + '</button>' : '') + '</div></article>';
   }
   function grouped(items, card) {
     let last = '', html = '';
