@@ -304,6 +304,15 @@ async function route(path, req, env) {
   }
 
   if (path === '/api/student-save') return json(await saveStudentRow(env, b, who));
+  // '알림은 안 보내도 돼요' → 그 제자만 noAsk 켜기 (다른 칸은 건드리지 않음, 2026-11-13)
+  if (path === '/api/student-noask') {
+    const r = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.id, 60));
+    if (!r) return json({ ok: false, error: '원생을 찾지 못했어요' });
+    const d = J(r.data, {}); d.noAsk = !!b.v; const upd = Date.now();
+    await env.DB.batch([q(env, 'UPDATE students SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), upd, str(b.id, 60)),
+      q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), str(b.id, 60), '', upd, b.v ? '등원 알림 묻지 않기 켬' : '등원 알림 묻지 않기 끔', who)]);
+    return json({ ok: true, upd });
+  }
   if (path === '/api/dl-check') return json(await dlCheck(env, b.pin, 'att:' + me.id));
   if (path === '/api/checkin-notify') { // 태블릿을 안 누른 제자 출석 + '등원 알림 보내기' → 학부모 앱에 등원으로 기록하고 알림
     const st = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.sid, 60)); if (!st) return json({ ok: false, error: '원생을 찾지 못했어요' });
