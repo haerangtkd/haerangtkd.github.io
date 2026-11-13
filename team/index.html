@@ -233,7 +233,9 @@
   .foot .inp{flex:1;min-width:0}
   /* 달력 (캘린더 앱처럼 칸에 색 막대) */
   body.calmode .wrap{padding:0 0 calc(64px + env(safe-area-inset-bottom));max-width:none}
-  .tcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:28px repeat(var(--wk),minmax(84px,calc((100dvh - 58px - 28px - 66px - var(--sat) - env(safe-area-inset-bottom)) / var(--wk))));background:#fff;border-top:1px solid var(--line)}
+  body.calmode{overscroll-behavior:none} /* 일정 탭: 화면 높이가 바뀌며 아래 메뉴가 천천히 올라가던 것 (dvh → svh, 2026-11-13) */
+  nav.tabs{transform:translateZ(0);will-change:transform}
+  .tcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:28px repeat(var(--wk),minmax(84px,calc((100svh - 58px - 28px - 66px - var(--sat) - env(safe-area-inset-bottom)) / var(--wk))));background:#fff;border-top:1px solid var(--line)}
   .tcal .w{text-align:center;font-size:13px;color:var(--muted);line-height:28px;border-bottom:1px solid var(--line)}
   .tcal .w.su,.dc.su em{color:var(--no)}.tcal .w.sa,.dc.sa em{color:#2F6FDE}
   .dc{border-right:1px solid #EEF0F5;border-bottom:1px solid #EEF0F5;padding:3px 2px;overflow:hidden;cursor:pointer;min-width:0}
@@ -910,7 +912,7 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'] };
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['backup', '📦', '백업'], ['appAtt', '📋', '출석부'], ['appNtc', '📣', '알림 관리'], ['appGns', '📈', '성장'], ['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '📒', '숙제'], ['pickup', '🚌', '등원·픽업'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록']];
+const SHORT = [['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '📒', '숙제'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -954,7 +956,7 @@ function renderHome() {
     '<div class="kpis"><button data-go="task" data-tk="due"><small>오늘 할 일</small><b>' + todayT.length + '</b>' + (late ? '<em class="r">지난 ' + late + '</em>' : '<em>완료 ' + doneToday.length + '</em>') + '</button>' +
     '<button data-go="table"><small>진행 중 행사</small><b>' + evs.length + '</b><em>' + (evs.find(x => x.date && x.date >= t) ? dday(evs.find(x => x.date && x.date >= t).date) + ' ' + esc(evs.find(x => x.date && x.date >= t).title).slice(0, 6) : '&nbsp;') + '</em></button>' +
     '<button data-scroll="pkSec"' + (pkLate() ? ' class="blink"' : '') + '><small>오늘 픽업</small><b>' + kidsD + '<span>/' + kidsN + '</span></b><em' + (kAb ? ' class="r"' : '') + '>' + (kAb ? '결석 ' + kAb : '&nbsp;') + '</em></button>' +
-    '<button data-go="chat"><small>새 채팅</small><b>' + cu + '</b><em>&nbsp;</em></button></div>' + dashRow2() + outReqCard() + pmCard() +
+    '<button data-go="chat"><small>새 채팅</small><b>' + cu + '</b><em>&nbsp;</em></button></div>' + dashRow2() + outReqCard() + pmCard() + docCard() +
     '<div class="sec"><div class="sh"><h2>오늘 할 일</h2><button class="more" data-go="task">업무 ›</button></div>' + (todayT.length || doneToday.length ? todayT.map(tdRow).join('') + doneToday.map(tdRow).join('') : '<p class="empty">오늘까지 할 일이 없어요 👍</p>') +
     '<button class="big" id="todoAdd" style="margin-top:10px">+ 할 일 추가</button></div>' +
     '<div class="sec"><div class="sh"><h2>현재 행사</h2><button class="more" data-go="table">행사표 ›</button></div>' + (evs.length ? evs.slice(0, 4).map(tableCard).join('') : '<p class="empty">진행 중인 행사가 없어요</p>') + (gbHid.length ? '<button class="evmore" data-gb="1">🛒 완료되지 않은 물품·구매 <b>' + gbHid.length + '건</b><span>›</span></button>' : '') + '</div>' +
@@ -1004,6 +1006,8 @@ $('v-home').onclick = async e => {
   const td = e.target.closest('.todo'); if (td) return taskSheet(S.items.get(td.dataset.id));
   const tc = e.target.closest('.tc'); if (tc) return openTable(S.items.get(tc.dataset.id));
   if (e.target.closest('[data-gb]')) { S.tf = 'gb'; return setTab('table'); }
+  if (e.target.closest('[data-sc2="docs"]')) return docsSheet();
+  { const dr = e.target.closest('#v-home [data-doc]'); if (dr) return docView(dr.dataset.doc); }
   const ok = e.target.closest('[data-orok],[data-orno]'); if (ok) { const yes = !!ok.dataset.orok, sid = ok.dataset.orok || ok.dataset.orno, r = (S.outReq || []).find(x => x.sid === sid);
     if (!r || !confirm(yes ? r.name + '을(를) 퇴관으로 바꿀까요?\n학부모 알림이 멈추고 태블릿 번호가 막혀요.' : r.name + ' 퇴관 요청을 돌려보낼까요?')) return;
     const j = await api(yes ? '/api/outreq-ok' : '/api/outreq-no', { sid }); if (!j.ok) return toast(j.error || '하지 못했어요'); toast(yes ? r.name + ' 퇴관으로 바꿨어요' : '돌려보냈어요'); S.kidsAt = 0; loadKids(true); await sync(); return; }
@@ -1018,11 +1022,7 @@ function renderMore() {
   const t = today(), evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
   const soon = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 30)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   $('v-more').innerHTML =
-    '<div class="sgrid">' + SHORT.filter(([k]) => k !== 'backup' || isBoss()).map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' +
-    '<div class="sec"><div class="sh"><h2>업무</h2><button class="more" data-go="task">더보기 ›</button></div>' +
-    '<button class="sbox" data-tk="due">오늘까지 해야 할 업무<b>' + itemsOf('todo').filter(x => !isDone(x) && x.due && x.due <= t).length + ' ›</b></button><button class="sbox" data-tk="mine">내가 담당한 업무<b>' + itemsOf('todo').filter(x => !isDone(x) && whosOf(x).includes(S.me.name)).length + ' ›</b></button></div>' +
-    '<div class="sec"><div class="sh"><h2>다가오는 일정</h2><button class="more" data-go="cal">달력 ›</button></div>' + (soon.length ? soon.slice(0, 8).map(schLi).join('') : '<p class="empty">한 달 안에 일정이 없어요</p>') + '</div>' +
-    '<div class="sec"><div class="sh"><h2>진행 중인 신청표</h2><button class="more" data-go="table">더보기 ›</button></div>' + (evs.length ? evs.map(x => { const st = tableStat(x); return '<div class="pin" data-ev="' + x.id + '"><span class="k">' + CAT[catOf(x)] + '</span><span class="t">' + esc(x.title) + '</span>' + (x.date && x.date >= t ? '<span class="pill">' + dday(x.date) + '</span>' : '<span class="pill' + (st.pct >= 100 ? ' ok' : ' b') + '">' + (st.pct >= 100 ? '완료' : st.pct + '%') + '</span>') + '</div>'; }).join('') : '<p class="empty">진행 중인 신청표가 없어요</p>') + '</div>';
+    '<div class="sgrid">' + SHORT.filter(([k]) => k !== 'backup' || isBoss()).map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' + '<p class="hint" style="text-align:center;margin-top:14px">출석부 · 알림 관리 · 성장 · 등원·픽업은 대시보드에서 열어요</p>';
 }
 $('v-more').onclick = async e => {
   const sc = e.target.closest('[data-sc]'); if (sc) { const k = sc.dataset.sc;
@@ -1949,8 +1949,9 @@ function renderLog() {
 $('v-log').onclick = e => {
   const r = e.target.closest('.lg'); if (!r) return; const g = S.logs.find(x => x.id == r.dataset.id); if (!g) return;
   if (g.kind === 'notice') { openRoom(''); return jumpTo(+g.ref); }
+  if (g.kind === 'doc') return g.ref ? docView(g.ref) : docsSheet(); // 등록 서류 알림은 서류로 (업무 항목이 아님)
   if (g.kind === 'pickup' && g.ref) { S.homeDay = g.ref; return setTab('home'); }
-  if (g.ref) openItem(S.items.get(g.ref));
+  if (g.ref && S.items.get(g.ref)) openItem(S.items.get(g.ref));
 };
 function markLogRead() { const mx = S.logs.length ? S.logs[S.logs.length - 1].id : 0; if (mx > S.logRead) { S.logRead = mx; try { localStorage.setItem('haerang-team-logread', mx); } catch (_) {} } setBadge(); }
 
@@ -2026,13 +2027,31 @@ function cleanCard() {
   if (!S.clean || (!tasks.length && !miss.length && !wkT.length)) return '';
   const left = tasks.filter(x => !cleanDone(t, x)).length, late = kNow().getUTCHours() >= 18 && (left || (wd(t) === '금' && wkLeft.length));
   const row = (d, x) => { const dn = cleanDone(d, x); return '<button class="cln' + (dn ? ' on' : '') + '" data-cl="' + esc(x) + '" data-cd="' + d + '"' + (who === S.me.id || (d !== t && cleanWho(d.replace(/^w:/, '')) === S.me.id) ? '' : ' disabled') + '><span class="ck">' + (dn ? '✓' : '') + '</span>' + esc(x) + (dn && dn.at ? '<small>' + hm(dn.at) + '</small>' : '') + '</button>'; };
-  return '<div class="sec' + (late || miss.length ? ' blink' : '') + '" id="clSec"><div class="sh"><h2>🧹 오늘 청소</h2><small>' + (who ? (me ? '이번 주 내 담당' : esc(nameOf(who)) + ' 담당') : '담당자 없음') + '</small></div>' +
+  return '<div class="sec' + (late || miss.length ? ' blink' : '') + '" id="clSec"><div class="sh"><h2>🧹 오늘 청소</h2><small>' + (who ? (me ? '이번 주 내 담당' : esc(nameOf(who)) + ' 담당') : '담당자 없음') + '</small><button class="more" id="clDays" style="margin-left:auto">다른 날 ›</button></div>' +
     (tasks.length ? '<p class="pksum">' + (left ? left + '개 남음 · 21시까지' : '다 했어요 👍') + '</p><div class="clist">' + tasks.map(x => row(t, x)).join('') + '</div>' : '<p class="empty">오늘은 요일 청소가 없어요</p>') +
     (wkT.length && CW.includes(wd(t)) ? '<p class="pksum" style="margin-top:12px">이번 주 안에 · ' + (wkLeft.length ? wkLeft.length + '개 남음 (금요일까지)' : '다 했어요 👍') + '</p><div class="clist">' + wkT.map(x => row(wk, x)).join('') + '</div>' : '') +
     miss.map(m => '<p class="pksum" style="color:var(--no);margin-top:10px"><b>' + md(m.day) + ' 청소 ' + m.left.length + '개 안 끝남</b></p><div class="clist">' + m.left.map(x => row(m.day, x)).join('') + '</div>').join('') +
     (!me && tasks.length ? '<p class="help">담당자만 체크할 수 있어요. 보기만 돼요.</p>' : '') + '</div>';
 }
+// 다른 날 청소 보기 (2026-11-13): 지난 2주는 한 것·안 한 것, 앞날은 담당·할 일만 (체크는 오늘 카드에서)
+function cleanDaySheet(d0) {
+  let d = d0 || addDays(today(), -1);
+  sheet('<h2>🧹 청소 보기</h2><div class="shead" style="background:none;padding:0;margin:6px 0"><button class="btn" id="cdP">‹</button><b id="cdT" style="flex:1;text-align:center"></b><button class="btn" id="cdN">›</button></div><div id="cdB"></div><div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', ov => {
+    const g = id => ov.querySelector('#' + id);
+    const draw = () => {
+      const tasks = cleanTasks(d), who = cleanWho(d), wk = weekKey(d), wkT = (S.clean && S.clean.daily) || [], past = d <= today(), old = d < addDays(today(), -14);
+      const row = (k, x) => { const dn = cleanDone(k, x); return '<div class="cln' + (dn ? ' on' : '') + '" style="cursor:default"><span class="ck">' + (dn ? '✓' : '') + '</span>' + esc(x) + (dn ? '<small>' + esc(nameOf(dn.mid)) + (dn.at ? ' ' + hm(dn.at) : '') + '</small>' : past && !old ? '<small style="color:var(--no)">안 함</small>' : '') + '</div>'; };
+      g('cdT').textContent = md(d) + (d === today() ? ' (오늘)' : '');
+      g('cdB').innerHTML = '<p class="pksum">' + (who ? esc(nameOf(who)) + ' 담당' : '담당자 없음') + (old ? ' · 2주보다 지난 날은 기록을 안 불러와요' : '') + '</p>' +
+        (tasks.length ? '<div class="clist">' + tasks.map(x => row(d, x)).join('') + '</div>' : '<p class="empty">요일 청소가 없는 날이에요</p>') +
+        (wkT.length && CW.includes(wd(d)) ? '<p class="pksum" style="margin-top:12px">그 주 안에 한 번</p><div class="clist">' + wkT.map(x => row(wk, x)).join('') + '</div>' : '');
+    };
+    draw();
+    g('cdP').onclick = () => { d = addDays(d, -1); draw(); }; g('cdN').onclick = () => { d = addDays(d, 1); draw(); };
+  });
+}
 async function onCleanClick(e) {
+  if (e.target.id === 'clDays') { cleanDaySheet(); return true; }
   const b = e.target.closest('[data-cl]'); if (!b) return false; if (b.disabled) { toast('이번 주 청소 담당자만 체크할 수 있어요'); return true; }
   const day = b.dataset.cd, task = b.dataset.cl, on = !cleanDone(day, task);
   S.cleanchk = (S.cleanchk || []).filter(x => !(x.day === day && x.task === task)); if (on) S.cleanchk.push({ day, task, mid: S.me.id, at: Date.now() }); render();
@@ -2091,6 +2110,13 @@ function pmRow(x, withBtns) {
   const actL = x.act === 'absent' ? '출석부 결석에 넣을게요' : x.act === 'in' ? '픽업표에 넣을게요' : x.act === 'out' ? '할 일에 넣을게요' : '';
   return '<div class="pmr' + (x.ack ? ' ok' : '') + '" data-pm="' + x.id + '"><div class="pt"><b>' + esc(x.kid) + '</b> <span class="tag' + (x.act === 'absent' ? ' r' : x.act ? ' y' : '') + '">' + dl + '</span><p>' + esc(pmLine(x)) + '</p><small>' + esc(x.rel || '학부모') + ' · ' + hm(x.at) + (x.at < Date.now() - 864e5 ? ' · ' + md(dayOf(x.at)) : '') + (x.ack ? ' · ' + esc(x.ack) + ' 확인' + (x.applied ? (x.act === 'absent' ? ' · 출석부 결석 넣음' : ' · 픽업표에 적음') : '') : '') + '</small></div>' +
     (withBtns && !x.ack ? '<div class="pb">' + (actL ? '<button class="btn g" data-pa="1">' + actL + '</button><button class="btn" data-pa="adj">조율할게요</button>' : '') + '<button class="btn' + (actL ? '' : ' g') + '" data-pa="0">' + (actL ? '확인만 할게요' : '확인했어요') + '</button></div>' : '') + '</div>';
+}
+// 새 등록 서류 (원생 연결 전) — 학부모 연락처럼 대시보드에 (2026-11-13)
+function docCard() {
+  if (!S.docNew) return '';
+  if (!S.docs || Date.now() - (S.docsAt || 0) > 60000) loadDocs().then(() => { if (S.tab === 'home') render(); });
+  const L = (S.docs || []).filter(d => !d.sid);
+  return '<div class="sec blink"><div class="sh"><h2>📝 새 등록 서류 <em style="color:var(--no);font-style:normal">' + S.docNew + '</em></h2><button class="more" data-sc2="docs">모두 ›</button></div>' + (L.length ? L.slice(0, 5).map(docRow).join('') : '<p class="empty">불러오는 중…</p>') + '<p class="hint" style="margin:6px 0 0">눌러서 서류를 보고 \'출석부 원생으로 등록\'하면 여기서 빠져요</p></div>';
 }
 function pmCard() {
   const L = pmList(), open = L.filter(x => !x.ack); // 처리한 연락은 여기서 빠지고 출석부·픽업표·할 일로 감 (원생 상세에 기록은 남음)
