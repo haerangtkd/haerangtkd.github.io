@@ -45,7 +45,9 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN urgent INTEGER DEFAULT 0').run(); } catch (_) {} // 긴급 공지
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ask INTEGER DEFAULT 0').run(); } catch (_) {}    // '확인했어요' 받기
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN env INTEGER DEFAULT 0').run(); } catch (_) {}   // 📩 봉투로 보낸 글 (고른 제자만 · 참가/불참 답장)
-  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ev TEXT').run(); } catch (_) {}                  // 일정 ↔ 업무 앱 행사 신청표 id (2026-11-13)
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ev TEXT').run(); } catch (_) {}
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN dend TEXT').run(); } catch (_) {}                // 일정 끝나는 날 (여러 날 일정, 2026-11-13)
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN img TEXT').run(); } catch (_) {}                 // 일정 사진 (홈페이지에서 옮겨 온 photos/… 경로)                  // 일정 ↔ 업무 앱 행사 신청표 id (2026-11-13)
   try { await env.DB.prepare('ALTER TABLE parents ADD COLUMN inv TEXT').run(); } catch (_) {}               // 가입할 때 쓴 초대번호
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   try { await env.DB.prepare('ALTER TABLE asess ADD COLUMN boss INTEGER DEFAULT 0').run(); } catch (_) {} // 업무 앱 관리자 (퇴관 원생은 관리자만)
@@ -109,6 +111,12 @@ async function route(path, req, env) {
   }
 
   // ═════════ 누구나 ═════════
+  // 홈페이지(누구나): 도장 일정 = 알림 관리 일정표 (2026-11-13 사용자 결정: 일정은 알림 관리 한 곳에서, 홈페이지·학부모 앱·업무 앱에 똑같이)
+  if (path === '/pub/schedule') {
+    const from = new Date(Date.now() + 9 * 3600e3 - 120 * 864e5).toISOString().slice(0, 10), to = new Date(Date.now() + 9 * 3600e3 + 400 * 864e5).toISOString().slice(0, 10);
+    const rows = await all(env, "SELECT title, kind, body, date, dend, img FROM posts WHERE type = 'schedule' AND COALESCE(dend, date) >= ? AND date <= ? ORDER BY date LIMIT 300", from, to);
+    return json({ ok: true, items: rows.map(r => ({ date: r.date, end: r.dend || '', title: r.title, type: r.kind || '', note: String(r.body || '').split('\n')[0].slice(0, 120), image: r.img || '' })) });
+  }
   if (path === '/vapid') return json({ ok: true, publicKey: (await getVapid(env)).publicKey });
   if (path === '/notices') return json({ ok: true, notices: await listPosts(env, 'notice', null, 50) });
 
@@ -309,8 +317,8 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     if (path === '/sync/schedule') {
       const from = /^\d{4}-\d{2}-\d{2}$/.test(b.from || '') ? b.from : '0000', to = /^\d{4}-\d{2}-\d{2}$/.test(b.to || '') ? b.to : '9999';
-      const rows = await all(env, "SELECT id, kind, title, body, date, ev FROM posts WHERE type = 'schedule' AND date >= ? AND date <= ? ORDER BY date LIMIT 400", from, to);
-      return json({ ok: true, items: rows.map(r => ({ id: r.id, kind: r.kind || '', title: r.title, body: r.body || '', date: r.date, ev: r.ev || '' })) });
+      const rows = await all(env, "SELECT id, kind, title, body, date, dend, ev FROM posts WHERE type = 'schedule' AND COALESCE(dend, date) >= ? AND date <= ? ORDER BY date LIMIT 400", from, to);
+      return json({ ok: true, items: rows.map(r => ({ id: r.id, kind: r.kind || '', title: r.title, body: r.body || '', date: r.date, end: r.dend || '', ev: r.ev || '' })) });
     }
     const title = String(b.title || '').slice(0, 100).trim(), date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : null;
     if (path === '/sync/sched-add') {
@@ -507,6 +515,7 @@ async function route(path, req, env) {
       const photos = (Array.isArray(b.photos) ? b.photos : []).map(String).filter(x => /^[0-9a-f]{16,32}$/.test(x)).slice(0, 30);
       const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : null;
       if (type === 'schedule' && !date) return json({ ok: false, error: '날짜를 골라 주세요' });
+      const dend = type === 'schedule' && /^\d{4}-\d{2}-\d{2}$/.test(b.end || '') && b.end > date ? b.end : null;
       const urgent = type === 'notice' && b.urgent ? 1 : 0, ask = urgent || ((type === 'notice' || type === 'journal') && b.ask) ? 1 : 0; // 긴급이면 확인도 받음
       const envl = (type === 'notice' || type === 'journal') && b.env ? 1 : 0; // 📩 봉투: 고른 제자만, 참가·불참 답장
       if (envl && !target.length) return json({ ok: false, error: '봉투는 받을 제자를 골라야 해요' });
@@ -517,6 +526,7 @@ async function route(path, req, env) {
         type, String(b.kind || '').slice(0, 10), title, String(b.body || '').slice(0, 3000), date, JSON.stringify(target), JSON.stringify(photos), b.pin ? 1 : 0, Date.now(), urgent, envl ? 0 : ask, envl);
       const pid = r.meta && r.meta.last_row_id;
       if (envEv && pid) await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', envEv, pid);
+      if (dend && pid) await run(env, 'UPDATE posts SET dend = ? WHERE id = ?', dend, pid);
       if (envl) return json({ ok: true, id: pid, envEv, evError: envErr || undefined });
       if (type === 'schedule' && b.mkEv && pid) { // 🎟 신청표도 만들기 (2026-11-13 사용자 결정: 도장 일정은 알림 관리에서, 신청표는 여기서 같이)
         const e = await teamSync(env, '/sync/ev-from-sched', { sp: pid, title, date, body: String(b.body || '').slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '' });
@@ -530,7 +540,8 @@ async function route(path, req, env) {
       const title = String(b.title || '').slice(0, 100).trim(), date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : null;
       if (!title || !date) return json({ ok: false, error: '제목과 날짜를 확인해 주세요' });
       const body = String(b.body || '').slice(0, 3000), kind = String(b.kind || p.kind || '').slice(0, 10);
-      await run(env, 'UPDATE posts SET title = ?, body = ?, date = ?, kind = ? WHERE id = ?', title, body, date, kind, p.id);
+      const dend = /^\d{4}-\d{2}-\d{2}$/.test(b.end || '') && b.end > date ? b.end : null;
+      await run(env, 'UPDATE posts SET title = ?, body = ?, date = ?, kind = ?, dend = ? WHERE id = ?', title, body, date, kind, dend, p.id);
       const out = { ok: true };
       if (p.ev && (p.title !== title || p.date !== date)) { const e = await teamSync(env, '/sync/ev-sched-upd', { ev: p.ev, title, date, who: (ses && ses.name) || '' }); if (!e.ok) out.evError = e.error || '연결된 신청표를 바꾸지 못했어요'; }
       if (!p.ev && b.mkEv) { const e = await teamSync(env, '/sync/ev-from-sched', { sp: p.id, title, date, body: body.slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '' }); if (e.ok && e.id) { await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', String(e.id).slice(0, 40), p.id); out.ev = e.id; } else out.evError = e.error || '업무 앱에 신청표를 만들지 못했어요'; }
@@ -549,7 +560,18 @@ async function route(path, req, env) {
     }
     if (path === '/admin/ev-tables') return json(await teamSync(env, '/sync/ev-tables', {}));
     if (path === '/admin/egrps') return json(await teamSync(env, '/sync/egrps', {}));
-    if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, ev: r.ev || '' } } : { ok: false, error: '지워진 일정이에요' }); }
+    if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', ev: r.ev || '' } } : { ok: false, error: '지워진 일정이에요' }); }
+    if (path === '/admin/sched-import') { // 홈페이지(data.json) 일정을 알림 관리 일정표로 옮기기 — 같은 날짜·같은 제목은 건너뜀
+      const L = (Array.isArray(b.items) ? b.items : []).slice(0, 100), have = new Set((await all(env, "SELECT date, title FROM posts WHERE type = 'schedule'")).map(r => r.date + '|' + String(r.title).replace(/\s/g, '')));
+      let added = 0;
+      for (const x of L) {
+        const date = /^\d{4}-\d{2}-\d{2}$/.test(x.date || '') ? x.date : '', title = String(x.title || '').slice(0, 100).trim(); if (!date || !title || have.has(date + '|' + title.replace(/\s/g, ''))) continue;
+        const end = /^\d{4}-\d{2}-\d{2}$/.test(x.end || '') && x.end > date ? x.end : null, img = /^photos\/[\w./-]+$/.test(x.image || '') ? x.image : null;
+        await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask, dend, img) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 0, 0, ?, ?)', 'schedule', String(x.type || '기타').slice(0, 10), title, String(x.note || '').slice(0, 3000), date, '[]', '[]', Date.now(), end, img);
+        have.add(date + '|' + title.replace(/\s/g, '')); added++;
+      }
+      return json({ ok: true, added, skipped: L.length - added });
+    }
     if (path === '/admin/done-events') return json(await teamSync(env, '/sync/done-events', {})); // 완료한 행사표 참가자 → 알림장 받는 사람 (2026-11-13)
     if (path === '/admin/jtpl') return json(await teamSync(env, '/sync/jtpl', {})); // 알림장 양식 (업무 앱에서 관리)
     if (path === '/admin/posts') {
@@ -645,8 +667,8 @@ async function withAcks(env, items, parentId, myKids) { // 학부모 화면: 내
 }
 async function listSchedule(env, month) {
   const m = /^\d{4}-\d{2}$/.test(month || '') ? month : kstDay(new Date()).slice(0, 7);
-  const rows = await all(env, "SELECT * FROM posts WHERE type = 'schedule' AND date LIKE ? ORDER BY date, created", m + '-%');
-  return rows.map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, at: r.created, ev: r.ev || '' }));
+  const rows = await all(env, "SELECT * FROM posts WHERE type = 'schedule' AND date <= ? AND COALESCE(dend, date) >= ? ORDER BY date, created", m + '-31', m + '-01'); // 여러 날 일정은 걸친 달에 모두
+  return rows.map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', img: r.img || '', at: r.created, ev: r.ev || '' }));
 }
 // 📩 봉투: 내 제자(받는 사람 중)마다 답장 (학부모에게 다른 가정 이름은 안 보냄)
 async function withReplies(env, items, myKids) {
