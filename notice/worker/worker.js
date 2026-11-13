@@ -86,8 +86,8 @@ async function route(path, req, env) {
   // 장부 서버: 회원별 이번 달 회비(가족 할인 포함)를 알려 줌 → 학부모 앱 '정보 확인' (2026-11-13)
   if (path === '/ledger/fee-info') {
     if (new URL(req.url).hostname !== 'notice') return json({ ok: false, error: 'not found' }, 404);
-    const map = {}; for (const x of (Array.isArray(b.list) ? b.list : []).slice(0, 300)) { const n = str(x.name, 20).trim(); if (n) map[n] = { base: Number(x.base) || 0, disc: Number(x.disc) || 0, ym: str(x.ym, 7) }; }
-    await run(env, "INSERT INTO kv (k, v) VALUES ('feeinfo', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ at: Date.now(), map }));
+    const map = {}, sids = {}; for (const x of (Array.isArray(b.list) ? b.list : []).slice(0, 300)) { const n = str(x.name, 20).trim(), v = { base: Number(x.base) || 0, disc: Number(x.disc) || 0, ym: str(x.ym, 7) }; if (n) map[n] = v; const sid = str(x.sid, 60); if (sid) sids[sid] = v; }
+    await run(env, "INSERT INTO kv (k, v) VALUES ('feeinfo', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ at: Date.now(), map, sids }));
     return json({ ok: true, n: Object.keys(map).length });
   }
   // 장부 서버: 매달 5일 미납 가정 회비 안내 (서비스 바인딩으로만 — 주소 이름이 'notice'인 요청은 바깥에서 올 수 없음) 2026-11-13
@@ -178,7 +178,7 @@ async function route(path, req, env) {
     if (path === '/p/kid-info') { // 우리 아이 '정보 확인' (2026-11-13): 출생연도·수련 요일(임시변경)·회비(장부)·관계·번호 뒷자리
       if (!p.ok) return json({ ok: false, error: '도장 확인 후에 볼 수 있어요' });
       const r = await attSync(env, '/sync/kid-info', { names: myKids }), fee = J((await one(env, "SELECT v FROM kv WHERE k = 'feeinfo'") || {}).v, {});
-      return json({ ok: true, rel: p.rel, ph: p.ph, kids: myKids.map(k => ({ name: k, ...((r.kids || []).find(x => x.name === k) || {}), fee: (fee.map || {})[k] || null })), feeAt: fee.at || 0 });
+      return json({ ok: true, rel: p.rel, ph: p.ph, kids: myKids.map(k => { const a = (r.kids || []).find(x => x.name === k) || {}; return { name: k, ...a, fee: (a.sid && (fee.sids || {})[a.sid]) || (fee.map || {})[k] || null }; }), feeAt: fee.at || 0 }); // 회비는 출석부 원생 번호로 먼저, 없으면 이름 (2026-11-13)
     }
     if (path === '/p/schedule') return json({ ok: true, me, items: await listSchedule(env, b.month) });
     if (path === '/p/notices') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'notice', myKids, 100), p.id) }); // 아이를 정한 공지(회비 안내 등)는 그 가정만
