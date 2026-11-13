@@ -342,10 +342,14 @@ async function route(path, req, env, ctx) {
       }
       return json({ ok: true });
     }
+    if (path === '/sync/tok-check') { // 업무 앱에서 출석부·알림 관리 열 때 자동 로그인 (2026-11-14): 업무 앱 로그인 확인
+      const m = await auth(env, str(b.tok, 64)); if (!m || m.mustpin) return json({ ok: false });
+      return json({ ok: true, id: m.id, name: m.name, boss: m.boss, shared: m.shared });
+    }
     if (path === '/sync/join-alert') { // 학부모 앱 새 가입 요청 → 직원 모두에게 바로 (2026-11-13)
       const who = (Array.isArray(b.kids) ? b.kids : []).map(x => str(x, 20)).join('·') + ' ' + str(b.rel, 10);
       await addLog(env, '', 'home', '👪 학부모 가입 요청: ' + who + (b.matched === false ? ' (번호 다름)' : '') + ' · 알림 관리에서 승인해 주세요', '');
-      ctx.waitUntil(pushAll(env, '', '👪 학부모 가입 요청', who + ' · 알림 관리 → 명단에서 승인해 주세요', 'home').catch(() => {}));
+      ctx.waitUntil(pushAll(env, '', '👪 학부모 가입 요청', who + ' · 눌러서 알림 관리 → 출결에서 승인해 주세요', 'parents').catch(() => {}));
       return json({ ok: true });
     }
     if (path === '/sync/esign-set') { const r = await esignSet(env, b, kids); ctx.waitUntil(runPushQueue(env).catch(() => {})); return json(r); } // 바로 알림 (2026-11-13)
@@ -1047,7 +1051,7 @@ async function pushTo(env, subs, title, body, view, now) {
   if (env.TEST_PUSH) { env.TEST_PUSH.push({ title, body, to: subs.map(x => x.mid) }); return { sent: subs.length, total: subs.length }; }
   const vapid = await getVapid(env), auths = new Map();
   const tab = { chat: 'chat', notice: 'chat', sched: 'cal', event: 'table', buy: 'table', home: 'home', pickup: 'home', todo: 'home' }[view] || 'log';
-  const payload = JSON.stringify({ title, body, url: SITE + '/team/#' + tab, tag: 'team-' + Date.now() });
+  const payload = JSON.stringify({ title, body, url: view === 'parents' ? SITE + '/notice/admin.html?from=team' : SITE + '/team/#' + tab, tag: 'team-' + Date.now() }); // 학부모 가입 요청 → 바로 알림 관리(출결) (2026-11-14)
   let sent = 0;
   // 사람마다 가장 최근 기기 2대까지만 (예전 기기가 쌓여 12대 제한에 다른 직원이 밀리던 것, 무료 CPU 한도도 아낌 — 2026-11-13)
   const per = new Map(); [...subs].sort((a, b) => (b.created || 0) - (a.created || 0)).forEach(s => { const l = per.get(s.mid) || []; if (l.length < 2) l.push(s); per.set(s.mid, l); });
