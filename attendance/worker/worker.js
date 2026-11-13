@@ -75,6 +75,11 @@ async function route(path, req, env) {
         .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', ...(b.phones ? { phones: [s.phone, s.phone2].map(v => String(v || '').replace(/\D/g, '')).filter(Boolean) } : {}), ...(b.fam ? { famId: s.famId || '' } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
       return json({ ok: true, students: list });
     }
+    if (path === '/sync/kid-info') { // 학부모 앱 '정보 확인': 이름으로 출생연도·수련 요일·임시변경(오늘 이후) (2026-11-13)
+      const names = (Array.isArray(b.names) ? b.names : []).map(x => str(x, 20)).slice(0, 10), day = kstDay();
+      const L = (await all(env, 'SELECT data FROM students')).map(r => J(r.data, {})).filter(s => names.includes(s.name) && s.status !== '퇴관');
+      return json({ ok: true, kids: L.map(s => ({ name: s.name, birth: s.birth || '', days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
+    }
     if (path === '/sync/day-absent') { // 업무 앱 등원표: 그날 결석(출석부 '결석' + 미리 연락 온 결석 예정)
       const day = isDay(b.day) ? b.day : kstDay();
       const names = new Map((await all(env, 'SELECT id, data FROM students')).map(r => [r.id, J(r.data, {}).name]));
@@ -270,6 +275,7 @@ async function route(path, req, env) {
 
   if (path === '/api/att') {
     let rows;
+    if (b.year && !me.boss) return json({ ok: false, error: '1년 전체 출결은 관리자만 받을 수 있어요' }, 403); // 2026-11-13 사용자 결정
     if (/^\d{4}$/.test(String(b.year || ''))) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day LIKE ?', b.year + '-%');
     else if (/^\d{4}-\d{2}$/.test(String(b.ym || ''))) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day LIKE ?', b.ym + '-%');
     else if (isDay(b.day)) rows = await all(env, 'SELECT day, sid, r, p, w, mk, who, at, tin FROM att WHERE day = ?', b.day);
