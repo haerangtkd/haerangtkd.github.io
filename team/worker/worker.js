@@ -348,12 +348,6 @@ async function route(path, req, env, ctx) {
       ctx.waitUntil(pushAll(env, '', '👪 학부모 가입 요청', who + ' · 알림 관리 → 명단에서 승인해 주세요', 'home').catch(() => {}));
       return json({ ok: true });
     }
-    if (path === '/sync/kid-ok') { // 🥋 제자 모드 들어감 — 직원이 자기 PIN으로 확인 (2026-11-14)
-      const t = str(b.staff, 20) + '님이 ' + str(b.kid, 20) + ' 제자 모드를 승인했어요';
-      await addLog(env, '', 'home', '🥋 ' + t, '');
-      ctx.waitUntil(pushAll(env, '', '🥋 제자 모드 승인', t, 'home').catch(() => {}));
-      return json({ ok: true });
-    }
     if (path === '/sync/esign-set') { const r = await esignSet(env, b, kids); ctx.waitUntil(runPushQueue(env).catch(() => {})); return json(r); } // 바로 알림 (2026-11-13)
     return json({ ok: false, error: 'not found' }, 404);
   }
@@ -407,6 +401,16 @@ async function route(path, req, env, ctx) {
   if (!me) return json({ ok: false, error: '다시 로그인해 주세요', relogin: true }, 401);
   if (me.mustpin && !['/api/member-pin', '/api/logout'].includes(path)) return json({ ok: false, mustPin: true, error: '처음 받은 PIN을 내 PIN으로 바꿔 주세요' });
   const needBoss = () => me.boss ? null : json({ ok: false, error: '관리자만 할 수 있어요' });
+  // 🔑 제자 코드 만들기 (2026-11-14 사용자 결정): 더보기에서 이름 찾기 → 만들기 → 코드. 만든 사람 = 승인한 사범님. 도장 공용 계정은 안 됨
+  if (path === '/api/kcode-list') return json(await noticeSync(env, '/sync/kcode-list', {}));
+  if (path === '/api/kcode-new') {
+    if (me.shared) return json({ ok: false, error: '도장 공용 계정으로는 못 만들어요. 내 PIN으로 로그인해 주세요' });
+    const r = await noticeSync(env, '/sync/kcode-new', { name: str(b.name, 20) }); if (!r.ok) return json(r);
+    const t = me.name + '님이 ' + r.name + ' 제자를 승인했어요';
+    await addLog(env, me.id, 'home', '🥋 ' + t, '');
+    ctx.waitUntil(pushAll(env, me.id, '🥋 제자 모드 승인', t, 'home').catch(() => {}));
+    return json({ ok: true, code: r.code, name: r.name });
+  }
   // ═════════ 기네스 결과지 (team/guinness.html) — 문서 몇 개를 통째로 저장 (app/settings, app/data, app/comments, inputs/P2026-10 …) ═════════
   if (path === '/api/gdoc-get') { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', str(b.path, 80)); return json({ ok: true, exists: !!r, data: r ? J(r.data, null) : null }); }
   if (path === '/api/gdoc-list') { const pre = str(b.coll, 30) + '/'; if (!/^[a-z]+\/$/.test(pre)) return json({ ok: false, error: '잘못된 요청' }); const rs = await all(env, 'SELECT path, data FROM gdocs WHERE substr(path, 1, ?) = ?', pre.length, pre); return json({ ok: true, docs: rs.map(r => ({ id: r.path.slice(pre.length), data: J(r.data, null) })) }); }
