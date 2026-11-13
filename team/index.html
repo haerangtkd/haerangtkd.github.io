@@ -693,9 +693,11 @@ if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',
 async function saveItem(it, what) {
   const prev = it.id ? S.items.get(it.id) : null, wasDone = !!(prev && (prev.done || prev.status === '완료'));
   const rm = it._rm; delete it._rm; // 행사표에서 ✕로 뺀 이름 (학부모 앱 취소 알림용, 2026-11-13)
+  const toParents = it._toP; delete it._toP; // 학부모님께 전달 → 날짜가 있으면 알림 관리 일정표에도 (2026-11-13)
   it.upd = Date.now(); if (it.id) S.items.set(it.id, it); render();
-  const j = await api('/api/item', { item: it, what, rm });
+  const j = await api('/api/item', { item: it, what, rm, toParents });
   if (!j.ok) { toast(j.error || '저장하지 못했어요'); return null; }
+  if (j.sp) { it.sp = j.sp; if (toParents) { S.dsAt = 0; loadDs(); } } if (j.spErr) setTimeout(() => toast('⚠ ' + j.spErr), 1500);
   it.id = j.id; it.upd = j.upd; it.mid = it.mid || S.me.id; S.items.set(j.id, it); render();
   // 반복 업무: 완료하면 다음 회차를 만듦 (한 번만)
   if (it.type === 'todo' && it.repeat && it.done && !wasDone && !it.repNext) {
@@ -738,7 +740,7 @@ const dueTxt = (d, st) => d ? (st && st !== d ? mdS(st) + ' ~ ' + mdS(d) : mdS(d
 const dday = d => { const n = Math.round((dObj(d) - dObj(today())) / 864e5); return n === 0 ? 'D-DAY' : n > 0 ? 'D-' + n : '지남'; };
 const dbox = (d, cls) => '<div class="dbox' + (cls ? ' ' + cls : '') + '"><small>' + d.slice(0, 4) + '-' + d.slice(5, 7) + '</small><b>' + (+d.slice(8)) + '</b></div>';
 const schLi = x => '<div class="sch" data-id="' + x.id + '">' + dbox(x.date, x.date === today() ? 'td' : '') + '<div class="t"><b>' + esc(x.title) + '</b><small>' + [wd(x.date) + '요일', timeKo(x.time) || '종일', x.memo ? esc(x.memo) : '', (S.comments.get(x.id) || []).length ? '댓글 ' + (S.comments.get(x.id) || []).length : ''].filter(Boolean).join(' · ') + '</small></div></div>';
-const openItem = it => { if (!it || it.del) return toast('지워진 항목이에요'); if (it.type === 'todo') return taskSheet(it); if (it.type === 'sched') return itemSheet(it); return openTable(it); };
+const openItem = it => { if (it && it.ds) return dsSheet(it); if (!it || it.del) return toast('지워진 항목이에요'); if (it.type === 'todo') return taskSheet(it); if (it.type === 'sched') return itemSheet(it); return openTable(it); };
 
 // ═════════ 업무 탭 (플로우 '전체 업무'처럼) ═════════
 const TKF = [['open', '진행 중'], ['mine', '내 업무'], ['due', '오늘까지'], ['done', '완료']];
@@ -987,7 +989,7 @@ function outReqCard() {
   return '<div class="sec"><div class="sh"><h2>퇴관 승인 요청 ' + L.length + '</h2></div>' + L.map(r => '<div class="orq"><div><b>' + esc(r.name) + '</b> <small>' + esc(r.from) + ' → 퇴관 · ' + esc(r.who) + ' 요청' + (r.date ? ' · ' + esc(r.date.slice(5).replace('-', '/')) : '') + '</small>' + (r.why ? '<p>' + esc(r.why) + '</p>' : '') + '</div><div class="orb"><button class="btn" data-orno="' + esc(r.sid) + '">돌려보내기</button><button class="btn red" data-orok="' + esc(r.sid) + '">퇴관 승인</button></div></div>').join('') + '</div>';
 }
 function dashRow2() {
-  loadKids(); loadDash();
+  loadKids(); loadDash(); loadDs();
   const ks = S.kids ? kidStats() : null, ns = newSigns().length, pd = S.dashPending;
   const chg = ks ? [ks.leave ? '휴원 ' + ks.leave : '', ks.newM ? '이번 달 신규 ' + ks.newM : ''].filter(Boolean).join(' · ') : '';
   return '<div class="kpis k2"><button data-go="kids"><small>재원 (휴원 빼고)</small><b>' + (ks ? ks.on : '–') + '</b><em>' + (chg || '&nbsp;') + '</em></button>' +
@@ -1070,7 +1072,7 @@ $('v-home').onclick = async e => {
   const ok = e.target.closest('[data-orok],[data-orno]'); if (ok) { const yes = !!ok.dataset.orok, sid = ok.dataset.orok || ok.dataset.orno, r = (S.outReq || []).find(x => x.sid === sid);
     if (!r || !confirm(yes ? r.name + '을(를) 퇴관으로 바꿀까요?\n학부모 알림이 멈추고 태블릿 번호가 막혀요.' : r.name + ' 퇴관 요청을 돌려보낼까요?')) return;
     const j = await api(yes ? '/api/outreq-ok' : '/api/outreq-no', { sid }); if (!j.ok) return toast(j.error || '하지 못했어요'); toast(yes ? r.name + ' 퇴관으로 바꿨어요' : '돌려보냈어요'); S.kidsAt = 0; loadKids(true); await sync(); return; }
-  const sch = e.target.closest('.sch'); if (sch) return openItem(S.items.get(sch.dataset.id));
+  const sch = e.target.closest('.sch'); if (sch) return openItem(getIt(sch.dataset.id));
   await onPickupClick(e);
 };
 // 출석부 결석 (그날 출석부에서 결석·결석 예정인 아이)
@@ -1079,7 +1081,7 @@ const attAbsOf = day => ((S.attAbs || new Map()).get(day) || {}).names || [];
 // ═════════ 더보기 (바로가기 + 다가오는 일정 + 신청표) ═════════
 function renderMore() {
   const t = today(), evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
-  const soon = itemsOf('sched').filter(x => x.date >= t && x.date <= addDays(t, 30)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+  const soon = [...itemsOf('sched'), ...dsItems()].filter(x => x.date >= t && x.date <= addDays(t, 30)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   $('v-more').innerHTML =
     '<div class="sgrid">' + SHORT.filter(([k]) => (k !== 'backup' && k !== 'docs') || isBoss()).map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' + '<p class="hint" style="text-align:center;margin-top:14px">출석부 · 알림 관리 · 성장 · 등원·픽업은 대시보드에서 열어요</p>';
 }
@@ -1098,7 +1100,7 @@ $('v-more').onclick = async e => {
   const go = e.target.closest('[data-go]'); if (go) return setTab(go.dataset.go);
   const tk = e.target.closest('[data-tk]'); if (tk) { S.tkf = tk.dataset.tk; return setTab('task'); }
   const pe = e.target.closest('[data-ev]'); if (pe) return openTable(S.items.get(pe.dataset.ev));
-  const sch = e.target.closest('.sch'); if (sch) return openItem(S.items.get(sch.dataset.id));
+  const sch = e.target.closest('.sch'); if (sch) return openItem(getIt(sch.dataset.id));
 };
 function pickupSheet(d) {
   const p = JSON.parse(JSON.stringify(pickupFor(d)));
@@ -1447,7 +1449,20 @@ function schedOn(x, d) {
   if (!x.repeat || d < x.date || (x.repEnd && d > x.repEnd)) return false;
   let n = x.date; for (let i = 0; i < 800 && n && n < d; i++) n = nextDue(n, x.repeat); return n === d;
 }
-const schedFor = d => itemsOf('sched').filter(x => schedOn(x, d));
+// 📣 도장 일정 = 알림 관리 일정표 (학부모 앱에 뜨는 일정, 업무 앱에선 보기만 · 2026-11-13 사용자 결정)
+const dsItems = () => (S.dsched || []).map(x => ({ type: 'sched', ds: true, id: 'ds' + x.id, dsid: x.id, title: '📣 ' + x.title, date: x.date, memo: x.body, kind: x.kind, ev: x.ev, color: '#B42318' }));
+const getIt = id => S.items.get(id) || dsItems().find(x => x.id === id);
+async function loadDs() { if (S.dsAt && Date.now() - S.dsAt < 180000) return; S.dsAt = Date.now(); const t = today(); const j = await api('/api/dsched', { from: addDays(t, -120), to: addDays(t, 400) }).catch(() => ({ ok: false })); if (j.ok) { S.dsched = j.items; S.dsErr = ''; } else S.dsErr = j.error || '불러오지 못했어요'; if (S.tab === 'home' || S.tab === 'cal') render(); }
+function dsSheet(x) {
+  const ev = x.ev && S.items.get(x.ev);
+  sheet('<div class="grab"></div><h2>' + esc(x.title) + '</h2><p class="help">' + esc(fullDate(x.date)) + (x.kind ? ' · ' + esc(x.kind) : '') + '</p>' + (x.memo ? '<p style="white-space:pre-wrap;margin:10px 0">' + esc(x.memo) + '</p>' : '') +
+    '<p class="help">학부모 앱에 보이는 도장 일정이에요. 고치거나 지우는 건 알림 관리 → 소식 → 일정표에서 해요.</p>' +
+    '<div class="foot">' + (ev && !ev.del ? '<button id="dsEv">🎟 신청표 열기</button>' : '') + '<span class="sp"></span><button data-close>닫기</button><button class="save" id="dsGo">✏ 고치기</button></div>', ov => {
+    ov.querySelector('#dsGo').onclick = () => { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = '/notice/admin.html?sched=' + x.dsid; };
+    const b = ov.querySelector('#dsEv'); if (b) b.onclick = () => { closeSheet(); openTable(ev); };
+  });
+}
+const schedFor = d => [...itemsOf('sched'), ...dsItems()].filter(x => schedOn(x, d));
 function calItems(d) {
   const s = schedFor(d).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
   const t = itemsOf('todo').filter(x => onDay(x, d)).sort((a, b) => (isDone(a) ? 1 : 0) - (isDone(b) ? 1 : 0));
@@ -1457,6 +1472,7 @@ const calBar = x => { if (x.type === 'todo') { const w = whosOf(x); return '<i c
   const tag = x.time ? String(+x.time.slice(0, 2) % 12 || 12) + '시' : '';
   return '<i class="bar" style="background:' + itemColor(x) + '">' + (tag ? '<u>' + esc(tag) + '</u>' : '') + esc(x.title) + '</i>'; };
 function renderCal() {
+  loadDs();
   const ym = S.calM, first = dObj(ym + '-01'), start = addDays(ym + '-01', -first.getUTCDay()), t = today();
   let weeks = 0; for (let i = 0; i < 42; i += 7) { if (i >= 28 && addDays(start, i).slice(0, 7) !== ym) break; weeks++; }
   let g = '<div class="tcal" style="--wk:' + weeks + '">' + '일월화수목금토'.split('').map((x, i) => '<div class="w' + (i === 0 ? ' su' : i === 6 ? ' sa' : '') + '">' + x + '</div>').join('');
@@ -1475,7 +1491,7 @@ function daySheet(d) {
     '<h3 class="dsh">📅 일정 ' + sch.length + '</h3>' + (sch.length ? sch.map(schRow).join('') : '<p class="empty" style="padding:10px">일정이 없어요</p>') +
     '<h3 class="dsh">☑ 할 일 ' + tds.length + '</h3>' + (tds.length ? tds.map(x => taskRow(x)).join('') : '<p class="empty" style="padding:10px">할 일이 없어요</p>') +
     '<h3 class="dsh">🚌 등원·픽업 ' + (kids.length ? (kids.length - kids.filter(isAb).length) + '명' : '') + '</h3>' + (kids.length ? '<div class="chips">' + kids.map(k => '<button class="' + (isAb(k) ? 'off' : '') + '" disabled>' + (tm[k] ? tmKo(tm[k]) + ' ' : '') + esc(k) + (isAb(k) ? ' (결석)' : '') + '</button>').join('') + '</div>' : '<p class="empty" style="padding:10px">픽업 명단이 없어요</p>'), sh => {
-    sh.onclick = e => { const sp = e.target.closest('[data-stp]'); if (sp) return stMenu(sp); if (e.target.id === 'dsS') return newOf('sched', d); if (e.target.id === 'dsT') return newOf('todo', d); const r = e.target.closest('.tk'); if (r) openItem(S.items.get(r.dataset.id)); };
+    sh.onclick = e => { const sp = e.target.closest('[data-stp]'); if (sp) return stMenu(sp); if (e.target.id === 'dsS') return newOf('sched', d); if (e.target.id === 'dsT') return newOf('todo', d); const r = e.target.closest('.tk'); if (r) openItem(getIt(r.dataset.id)); };
   });
 }
 // 달력 손가락으로 넘기기 (왼쪽·오른쪽)
@@ -1493,7 +1509,7 @@ function itemSheet(it0, isNew) {
   sheet('<h2>' + (isNew ? '일정 추가' : '일정') + '</h2>' +
     '<label class="f">제목</label><input class="inp" id="iT" value="' + esc(it.title) + '">' +
     '<div class="row" style="margin-top:12px"><input type="date" class="inp" id="iD" style="min-width:0" value="' + esc(it.date) + '"><input type="time" class="inp" id="iH" style="min-width:0" value="' + esc(it.time || '') + '"></div>' +
-    '<div id="iX2"></div><div id="iEv"></div>' +
+    '<div id="iX2"></div>' +
     '<label class="f">색</label><div class="cols" id="iC2">' + COLORS.map(([c, n]) => '<button data-c="' + c + '" title="' + n + '" class="' + (it.color === c ? 'on' : '') + '" style="background:' + c + '"></button>').join('') + '</div>' +
     '<label class="f">메모</label><textarea class="inp" id="iM" rows="3">' + esc(it.memo || '') + '</textarea>' +
     (it.mid ? '<p class="help" style="margin-top:10px">' + esc(nameOf(it.mid)) + '님이 만듦</p>' : '') +
@@ -1511,24 +1527,6 @@ function itemSheet(it0, isNew) {
     };
     drawX();
     g('iX2').addEventListener('change', e => { if (e.target.id === 'iRE') it.repEnd = e.target.value; });
-    // 행사 신청 받기 (2026-11-13 사용자 요청): 켜면 같은 제목·날짜·대상으로 업무 앱 행사 신청표를 만들고(학부모 앱 신청 받기 켬) 이어 둠. 일정은 모두에게 공유.
-    const lev = () => { const e = it.ev && S.items.get(it.ev); return e && !e.del ? e : null; };
-    let evOn = !!lev(); const elg = JSON.parse(JSON.stringify(it.elig || (lev() && lev().elig) || { mode: 'all' }));
-    const drawEv = () => { const L = lev(); g('iEv').innerHTML =
-      '<div style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin-top:14px"><label class="ck" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:15px;font-weight:700"><input type="checkbox" id="iEvOn"' + (evOn ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 🎟 행사 신청 받기</label>' +
-      (evOn ? '<p class="help">저장하면 행사 신청표' + (L ? '(' + esc(L.title) + ')의 제목·날짜·대상이 같이 바뀌어요' : '가 만들어지고 학부모 앱에서 신청을 받아요') + '. 일정은 모두에게 보여요.</p>' +
-        '<label class="f">신청 대상 (대상이 아닌 가정에는 학부모 앱에 안 보여요)</label><div class="chips" id="sEm">' + [['all', '모두'], ['age', '나이로'], ['grp', '분류로']].map(([k, t]) => '<button data-em="' + k + '" class="' + (elg.mode === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
-        (elg.mode === 'age' ? '<div class="row" style="align-items:center;gap:6px;margin-top:8px"><input class="inp" id="sEf" inputmode="numeric" maxlength="2" style="width:70px;min-width:0" value="' + esc(elg.from || '') + '"><span>살부터</span><input class="inp" id="sEt" inputmode="numeric" maxlength="2" style="width:70px;min-width:0" value="' + esc(elg.to || '') + '"><span>살까지 (한국 나이)</span></div>' : '') +
-        (elg.mode === 'grp' ? '<div class="chips" id="sEg" style="margin-top:8px">' + egrps().map(x => '<button data-eg="' + esc(x.n) + '" class="' + ((elg.grps || []).includes(x.n) ? 'on' : '') + '">' + esc(x.n) + ' <small>' + x.a + '~' + x.b + '살</small></button>').join('') + '</div>' : '') +
-        (L ? '<button class="btn" id="iEvGo" style="margin-top:10px">신청표 열기 ›</button>' : '')
-      : L ? '<p class="help">끄면 일정과 신청표 연결만 끊겨요. 신청표는 그대로 남아요.</p>' : '') + '</div>'; };
-    drawEv();
-    const ageKeep = () => { if (elg.mode === 'age' && g('sEf')) { elg.from = +g('sEf').value || 0; elg.to = +g('sEt').value || 0; } };
-    g('iEv').onchange = e => { if (e.target.id === 'iEvOn') { ageKeep(); evOn = e.target.checked; drawEv(); } };
-    g('iEv').onclick = e => { const b = e.target.closest('button'); if (!b) return; ageKeep();
-      if (b.id === 'iEvGo') { const L = lev(); closeSheet(); return openTable(L); }
-      if (b.dataset.em) { elg.mode = b.dataset.em; return drawEv(); }
-      if (b.dataset.eg) { const n = b.dataset.eg; elg.grps = (elg.grps || []).includes(n) ? elg.grps.filter(x => x !== n) : [...(elg.grps || []), n]; return drawEv(); } };
     g('iX2').onclick = e => { const b = e.target.closest('button'); if (!b) return; keep();
       if (b.dataset.w) { const n = b.dataset.w; it.whos = it.whos.includes(n) ? it.whos.filter(x => x !== n) : [...it.whos, n]; return drawX(); }
       if (b.id === 'iRem') { if (!it.date) return toast('날짜를 먼저 골라 주세요'); return remPick(it, r => { it.reminders = [...it.reminders, r].sort((a, c) => a.at - c.at); drawX(); }); }
@@ -1540,18 +1538,7 @@ function itemSheet(it0, isNew) {
       keep(); if (!it.title) return toast('제목을 적어 주세요'); if (!it.date) return toast('날짜를 골라 주세요');
       if (it.repEnd && it.repEnd < it.date) return toast('반복 끝나는 날이 일정보다 빨라요');
       if (it.share === 'members' && !it.whos.length) it.share = '';
-      let made = false;
-      if (evOn) { ageKeep();
-        if (elg.mode === 'age') { if (!elg.from && !elg.to) return toast('몇 살부터 몇 살까지인지 적어 주세요'); if (elg.from && elg.to && elg.from > elg.to) return toast('나이 순서를 확인해 주세요'); }
-        if (elg.mode === 'grp' && !(elg.grps || []).length) return toast('신청 대상 분류를 골라 주세요');
-        const el = elg.mode === 'all' ? null : elg.mode === 'age' ? { mode: 'age', from: elg.from, to: elg.to } : { mode: 'grp', grps: elg.grps };
-        const L = lev(), e2 = L ? Object.assign(JSON.parse(JSON.stringify(L)), { title: it.title, date: it.date, elig: el })
-          : { type: 'event', kind: '', title: it.title, date: it.date, base: 0, products: [], options: [], checks: [], van: false, rows: [], pub: true, openAt: today(), closeAt: '', desc: it.memo || '', elig: el, sched: it.id || '' };
-        if (e2.closeAt && e2.closeAt > e2.date) e2.closeAt = '';
-        const eid = await saveItem(e2, L ? '🎟 ' + it.title + ' 설정 수정 (일정에서)' : '🎟 행사 신청표 만듦 (일정에서): ' + it.title); if (!eid) return;
-        made = !L; it.ev = eid; it.elig = el; it.share = '';
-      } else if (it.ev) { it.ev = ''; it.elig = null; }
-      if (await saveItem(it, (isNew ? '📅 일정 추가: ' + md(it.date) + ' ' : '📅 일정 수정: ') + it.title)) { closeSheet(); toast(evOn ? '저장했어요 · 행사 신청표도 ' + (made ? '만들었어요' : '맞췄어요') : '저장했어요'); }
+      if (await saveItem(it, (isNew ? '📅 일정 추가: ' + md(it.date) + ' ' : '📅 일정 수정: ') + it.title)) { closeSheet(); toast('저장했어요'); }
     };
     if (isNew) setTimeout(() => g('iT').focus(), 60);
     if (!isNew) {
@@ -1571,7 +1558,7 @@ const isFree = x => !(+x.base) && !(x.products || []).some(p => +p.p);
 // 행사 신청 대상 분류 (관리자가 설정에서 고침, 한국 나이) · 대상 글 (2026-11-13)
 const EGRP0 = [{ n: '유치부', a: 5, b: 7 }, { n: '초등부', a: 8, b: 13 }, { n: '중등부', a: 14, b: 16 }, { n: '고등부', a: 17, b: 19 }];
 const egrps = () => (S.egrps && S.egrps.length ? S.egrps : EGRP0);
-const eligTxt = e => !e || !e.mode || e.mode === 'all' ? '' : e.mode === 'age' ? (e.from || '') + '~' + (e.to || '') + '살' : (e.grps || []).join('·');
+const eligTxt = e => !e || !e.mode || e.mode === 'all' ? '' : e.mode === 'age' ? (e.from || '') + '~' + (e.to || '') + '살' : e.mode === 'kids' ? (e.kids || []).slice(0, 3).join('·') + ((e.kids || []).length > 3 ? ' 외 ' + (e.kids.length - 3) + '명' : '') : (e.grps || []).join('·');
 // 지급 칸: 물품 신청은 늘, 행사는 '나눠 줄 것이 있어요'를 켰을 때만 (예전 행사는 지급 체크가 하나라도 있으면) — 2026-11-13
 const giveOn = x => x.give != null ? !!x.give : (x.kind === 'goods' || (x.rows || []).some(r => r.given));
 function tableStat(x) {
@@ -1594,7 +1581,7 @@ const onDash = x => catOf(x) === 'event' || !!x.dash; // 행사는 항상, 물�
 function tableCard(x) {
   const c = catOf(x), st = tableStat(x), t = today(), ns = signsOf(x.id).filter(y => y.state === '' && !y.cancel).length;
   return '<div class="tc" data-id="' + x.id + '"><div class="h"><span class="bdg ' + (x.closed ? 'done' : c) + '">' + (x.closed ? '완료 · ' : '') + CAT[c] + '</span>' + (x.date && !x.closed ? '<span class="dd' + (x.date < t ? ' over' : '') + '">' + dday(x.date) + '</span>' : '') + '</div>' +
-    '<b>' + esc(x.title) + '</b>' + (x.pub ? ' <span class="tag g">학부모 앱 신청</span>' : '') + (ns ? ' <span class="tag r">새 신청 ' + ns + '</span>' : '') + ((S.delReq || []).some(r => r.id === x.id) ? ' <span class="tag r">삭제 승인 대기</span>' : '') + (x.date ? '<div class="dt">' + fullDate(x.date) + (eligTxt(x.elig) ? ' · 대상 ' + esc(eligTxt(x.elig)) : '') + '</div>' : eligTxt(x.elig) ? '<div class="dt">대상 ' + esc(eligTxt(x.elig)) + '</div>' : '') + '<div class="ct">' + st.line + '</div>' +
+    '<b>' + esc(x.title) + '</b>' + (x.pub ? ' <span class="tag g">학부모 앱 신청</span>' : '') + (x.sp ? ' <span class="tag">📣 일정표</span>' : '') + (ns ? ' <span class="tag r">새 신청 ' + ns + '</span>' : '') + ((S.delReq || []).some(r => r.id === x.id) ? ' <span class="tag r">삭제 승인 대기</span>' : '') + (x.date ? '<div class="dt">' + fullDate(x.date) + (eligTxt(x.elig) ? ' · 대상 ' + esc(eligTxt(x.elig)) : '') + '</div>' : eligTxt(x.elig) ? '<div class="dt">대상 ' + esc(eligTxt(x.elig)) + '</div>' : '') + '<div class="ct">' + st.line + '</div>' +
     '<div class="pg"><i class="' + (st.pct >= 100 ? 'full' : '') + '" style="width:' + st.pct + '%"></i></div></div>';
 }
 function renderTable() {
@@ -1637,14 +1624,22 @@ function eventSetup(ev0, isNew) {
     '<div id="ePubF"' + (ev.pub ? '' : ' hidden') + '><p class="help">학부모 앱 첫 화면에 \'신청하기\'가 떠요. 위의 품목·선택 항목·하원차를 학부모님이 직접 골라요. 금액은 보이지만 결제 여부는 안 보여요.</p>' +
     '<label class="f">신청 시작일 ~ 마감일 (마감일까지는 학부모님이 앱에서 취소할 수 있어요)</label><div class="row"><input type="date" class="inp" id="eOpen" style="min-width:0" value="' + esc(ev.openAt || today()) + '"><input type="date" class="inp" id="eClose" style="min-width:0" value="' + esc(ev.closeAt || '') + '"></div><p class="help">마감일을 비워 두면 행사 전날까지 받아요.</p>' +
     '<label class="f">학부모님께 보일 안내 (시간 등)</label><textarea class="inp" id="eDesc" rows="3" maxlength="1000">' + esc(ev.desc || '') + '</textarea>' +
-    '<label class="f">신청 대상 (대상이 아닌 가정에는 학부모 앱에 안 보여요)</label><div class="chips" id="eEm">' + [['all', '모두'], ['age', '나이로'], ['grp', '분류로']].map(([k, t]) => '<button data-em="' + k + '" class="' + (elg.mode === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
+    '<label class="f">신청 대상 (대상이 아닌 가정에는 학부모 앱에 안 보여요)</label><div class="chips" id="eEm">' + [['all', '모두'], ['age', '나이로'], ['grp', '분류로'], ['kids', '이름으로']].map(([k, t]) => '<button data-em="' + k + '" class="' + (elg.mode === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
+    '<div id="eEKids"' + (elg.mode === 'kids' ? '' : ' hidden') + '><input class="inp" id="eEq" placeholder="이름 검색 (누르면 넣고 빼요)" style="margin-top:8px"><div class="chips" id="eEk" style="margin-top:8px;max-height:220px;overflow:auto"></div><p class="help" id="eEkN"></p></div>' +
     '<div id="eEAge"' + (elg.mode === 'age' ? '' : ' hidden') + '><div class="row" style="align-items:center;gap:6px;margin-top:8px"><input class="inp" id="eEf" inputmode="numeric" maxlength="2" style="width:70px;min-width:0" value="' + esc(elg.from || '') + '"><span>살부터</span><input class="inp" id="eEt" inputmode="numeric" maxlength="2" style="width:70px;min-width:0" value="' + esc(elg.to || '') + '"><span>살까지 (한국 나이)</span></div></div>' +
     '<div id="eEGrp"' + (elg.mode === 'grp' ? '' : ' hidden') + '><div class="chips" id="eEg" style="margin-top:8px">' + egrps().map(g => '<button data-eg="' + esc(g.n) + '" class="' + ((elg.grps || []).includes(g.n) ? 'on' : '') + '">' + esc(g.n) + ' <small>' + g.a + '~' + g.b + '살</small></button>').join('') + '</div><p class="help">여러 개 고를 수 있어요. 분류를 더 만들거나 나이를 바꾸려면 관리자가 설정 → 행사 신청 분류에서 해요.</p></div></div></div>' +
     '<div class="foot">' + (!isNew ? '<button class="del" id="eX">삭제</button>' : '') + '<span class="sp"></span><button data-close>취소</button><button class="save" id="eOk">' + (isNew ? '만들기' : '저장') + '</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
     g('eK').onclick = e => { const b = e.target.closest('button'); if (!b) return; ev.kind = b.dataset.k; g('eK').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); g('ePubBox').hidden = ev.kind === 'goods'; g('eDashL').style.display = ev.kind === 'goods' ? 'flex' : 'none'; if (ev.kind === 'goods') g('eG').checked = true; };
     g('ePub').onchange = () => { g('ePubF').hidden = !g('ePub').checked; };
-    g('eEm').onclick = e => { const b = e.target.closest('[data-em]'); if (!b) return; elg.mode = b.dataset.em; g('eEm').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); g('eEAge').hidden = elg.mode !== 'age'; g('eEGrp').hidden = elg.mode !== 'grp'; };
+    // 이름으로 (2026-11-13: 심사처럼 도장에서 고른 제자만) — 학부모 앱에는 다른 제자 이름이 안 보임
+    elg.kids = elg.kids || [];
+    const drawK = () => { const q = g('eEq').value.trim(), L = [...new Set([...elg.kids, ...S.roster])].filter(n => !q || n.includes(q) || elg.kids.includes(n)).sort((a, b) => (elg.kids.includes(b) - elg.kids.includes(a)) || a.localeCompare(b, 'ko'));
+      g('eEk').innerHTML = L.slice(0, 120).map(n => '<button data-ek="' + esc(n) + '" class="' + (elg.kids.includes(n) ? 'on' : '') + '">' + esc(n) + '</button>').join('') || '<span class="help">원생 명단을 불러오는 중…</span>';
+      g('eEkN').textContent = elg.kids.length ? elg.kids.length + '명 골랐어요' : '아직 안 골랐어요'; };
+    g('eEq').oninput = drawK; g('eEk').onclick = e => { const b = e.target.closest('[data-ek]'); if (!b) return; const n = b.dataset.ek; elg.kids = elg.kids.includes(n) ? elg.kids.filter(x => x !== n) : [...elg.kids, n]; drawK(); };
+    g('eEm').onclick = async e => { const b = e.target.closest('[data-em]'); if (!b) return; elg.mode = b.dataset.em; g('eEm').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); g('eEAge').hidden = elg.mode !== 'age'; g('eEGrp').hidden = elg.mode !== 'grp'; g('eEKids').hidden = elg.mode !== 'kids'; if (elg.mode === 'kids') { drawK(); await loadRoster(); drawK(); } };
+    if (elg.mode === 'kids') { drawK(); loadRoster().then(drawK); }
     g('eEg').onclick = e => { const b = e.target.closest('[data-eg]'); if (!b) return; const n = b.dataset.eg; elg.grps = (elg.grps || []).includes(n) ? elg.grps.filter(x => x !== n) : [...(elg.grps || []), n]; b.classList.toggle('on'); };
     if (!isNew) g('eX').onclick = async () => { if (await delItem(ev)) closeSheet(); };
     if (isNew) setTimeout(() => g('eT').focus(), 60);
@@ -1657,11 +1652,14 @@ function eventSetup(ev0, isNew) {
       ev.prep = g('ePrep').value.trim(); ev.give = g('eG').checked;
       if (elg.mode === 'age') { elg.from = +g('eEf').value || 0; elg.to = +g('eEt').value || 0; if (!elg.from && !elg.to) return toast('몇 살부터 몇 살까지인지 적어 주세요'); if (elg.from && elg.to && elg.from > elg.to) return toast('나이 순서를 확인해 주세요'); }
       if (elg.mode === 'grp' && !(elg.grps || []).length) return toast('신청 대상 분류를 골라 주세요');
-      ev.elig = elg.mode === 'all' ? null : elg.mode === 'age' ? { mode: 'age', from: elg.from, to: elg.to } : { mode: 'grp', grps: elg.grps };
+      if (elg.mode === 'kids' && !elg.kids.length) return toast('신청 대상 제자를 골라 주세요');
+      ev.elig = elg.mode === 'all' ? null : elg.mode === 'age' ? { mode: 'age', from: elg.from, to: elg.to } : elg.mode === 'kids' ? { mode: 'kids', kids: elg.kids } : { mode: 'grp', grps: elg.grps };
       ev.van = g('eV').checked; ev.rows = ev.rows || []; ev.dash = ev.kind === 'goods' && g('eDash').checked;
       ev.pub = ev.kind !== 'goods' && g('ePub').checked; ev.openAt = g('eOpen').value; ev.closeAt = g('eClose').value; ev.desc = g('eDesc').value.trim();
       if (ev.pub && ev.closeAt && ev.openAt && ev.closeAt < ev.openAt) return toast('마감일이 시작일보다 빨라요');
       if (ev.pub && ev.date && ev.closeAt && ev.closeAt > ev.date) return toast('마감일이 행사 날짜보다 늦어요');
+      if (isNew && ev.kind !== 'goods' && !ev.pub && confirm('학부모님께 전달할까요?\n\n확인 = 학부모 앱에서 신청 받기' + (ev.date ? ' + 학부모 앱 일정표에도 올리기' : '') + '\n취소 = 업무 앱에서만 (나중에 설정에서 켤 수 있어요)')) { ev.pub = true; ev.openAt = ev.openAt || today(); }
+      if (ev.pub && ev.date && !ev.sp && (isNew || !ev0.pub)) ev._toP = true; // 처음 전달할 때만 일정표에 넣음 (예전 행사는 중복될 수 있어서 자동으로 안 넣음)
       const id = await saveItem(ev, isNew ? '🎟 ' + CAT[catOf(ev)] + ' 신청표 만듦: ' + ev.title : '🎟 ' + ev.title + ' 설정 수정');
       if (id) eventSheet(S.items.get(id));
     };
