@@ -283,7 +283,7 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const name = cleanNames([b.name])[0];
     if (!name) return json({ ok: false, error: '이름' });
-    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: b.view === 'home' ? '' : 'attendance' }); // view 'home' = 학부모 연락 확인 알림
+    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: b.view === 'home' ? '' : b.view === 'plan' ? 'plan' : 'attendance' }); // view 'home' = 학부모 연락 확인 알림, 'plan' = 행사 신청 취소 알림
     if (r.ok && !r.total) return json({ ok: false, error: name + ' 학생은 알림 앱에 가입한 보호자가 없습니다' });
     return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
   }
@@ -412,7 +412,10 @@ async function route(path, req, env) {
         await run(env, 'INSERT INTO kids (name, codes, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET codes = excluded.codes', n, JSON.stringify(codes), Date.now());
       }
       await run(env, 'UPDATE parents SET ok = 1 WHERE id = ?', p.id);
-      return json({ ok: true });
+      // 승인됐다고 그 보호자 휴대폰에 알림 (2026-11-13 사용자 요청 · 문구 그대로)
+      let pushed = false;
+      if (p.ep) { try { pushed = await pushOne(env, p, '✅ 어플 인증이 완료되었습니다', '아직 승인 요청 중으로 뜬다면 어플을 완전히 종료 후 다시 이용해주세요!', ''); } catch (_) {} }
+      return json({ ok: true, pushed });
     }
     // ── 초대번호 (가정마다 따로, 가입할 수 있는 휴대폰 수 제한) ──
     if (path === '/admin/invites') return json({ ok: true, items: await inviteList(env) });
@@ -478,6 +481,7 @@ async function route(path, req, env) {
       await run(env, 'DELETE FROM acks WHERE post = ?', b.id | 0);
       return json({ ok: true });
     }
+    if (path === '/admin/done-events') return json(await teamSync(env, '/sync/done-events', {})); // 완료한 행사표 참가자 → 알림장 받는 사람 (2026-11-13)
     if (path === '/admin/jtpl') return json(await teamSync(env, '/sync/jtpl', {})); // 알림장 양식 (업무 앱에서 관리)
     if (path === '/admin/posts') {
       const type = POST_TYPES.includes(b.type) ? b.type : 'notice';
@@ -732,6 +736,14 @@ async function send(env, b) {
   return { ok: true, total, sent, failed, removed, next: nextAt < total - removed ? nextAt : null };
 }
 
+// 보호자 한 사람(휴대폰 한 대)에게만 보내기 — 가입 승인 알림 (승인 전이라도 보냄)
+async function pushOne(env, s, title, body, view) {
+  const vapid = await getVapid(env);
+  const payload = JSON.stringify({ title, body, kind: '가입', url: SITE + '/notice/' + (view ? '#' + view : ''), tag: 'ok-' + Date.now() });
+  const res = await webPush({ endpoint: s.ep, p256dh: s.p256, auth: s.auth }, payload, await vapidHeader(s.ep, vapid));
+  if (res.status === 404 || res.status === 410) { await run(env, 'UPDATE parents SET ep = NULL WHERE id = ?', s.id); return false; }
+  return !!res.ok;
+}
 
 // ── 틀린 횟수 잠금 (비밀번호·PIN·초대번호 공통) ──
 // 5번 틀릴 때마다 잠금: 1분 → 2분 → 3분 … (틀릴수록 길어짐). 맞히면 처음부터, 하루 동안 안 틀리면 처음부터.
