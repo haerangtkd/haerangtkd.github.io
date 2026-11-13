@@ -1073,6 +1073,7 @@ function withSched(d){
       if(!j || !j.ok || !Array.isArray(j.items)) return d;
       const k = x => x.date + '|' + String(x.title || '').replace(/\s/g, ''), have = new Set(j.items.map(k));
       d.schedule = j.items.concat(list(d.schedule).filter(x => !have.has(k(x))));
+      if(j.plan) d.monthly = Object.assign({}, d.monthly, { weekday: j.plan.weekday, focus: j.plan.focus, months: j.plan.months }); // 수련 계획도 알림 관리에서 (2026-11-14)
       return d;
     }).catch(() => d).finally(() => t && clearTimeout(t));
 }
