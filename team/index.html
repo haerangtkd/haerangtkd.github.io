@@ -284,6 +284,10 @@
   .shead.srch .inp{flex:1;padding:8px 12px}.shead.srch .sbtn{background:var(--brand);color:#fff;font-weight:700;border-radius:12px;padding:8px 14px}
   .pksum{display:flex;gap:6px;margin:2px 0 8px}.pksum span{flex:1;text-align:center;background:var(--soft);color:var(--brand);border-radius:12px;padding:8px 4px;font-size:13px;font-weight:700}.pksum span b{display:block;font-size:22px;font-weight:900;line-height:1.1}.pksum span.ab{background:var(--nobg);color:var(--no)}
   .pkbar{display:flex;align-items:center;gap:6px;margin:2px 0 8px}.pkbar .pkn{flex:1;font-size:15px;font-weight:700}.pkbar .pkn b{font-size:20px;color:var(--brand)}.pkbar .pkn em{font-style:normal;color:var(--no);font-size:13px}
+  .kcl{max-height:236px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;margin-top:8px}
+  .kcr{display:flex;align-items:center;gap:8px;width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;padding:12px 14px;font:inherit;text-align:left}.kcr:last-child{border-bottom:0}
+  .kcr b{font-size:16px}.kcr small{flex:1;color:var(--muted);font-size:12px}.kcr span{background:var(--brand,#A40F16);color:#fff;border-radius:10px;padding:6px 12px;font-weight:800;font-size:13px}
+  .kcbig{margin-top:14px;text-align:center;border:2px solid var(--brand,#A40F16);border-radius:18px;padding:16px}.kcbig small{display:block;color:var(--muted);font-weight:700}.kcbig b{display:block;font-size:34px;letter-spacing:6px;margin:6px 0}
   #pkL{display:block;max-height:228px;overflow-y:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--line);border-bottom:1px solid var(--line)} /* 이름 몇 개만 보이고 스크롤 (2026-11-13) */
   #pkL .kid{display:flex;width:100%;align-items:center;gap:10px;margin:0;padding:9px 4px;border:0;border-bottom:1px solid #F0F2F6;border-radius:0;background:none;font-size:16px;font-weight:700;text-align:left;-webkit-touch-callout:none;touch-action:manipulation;transition:transform .12s}
   #pkL .kid .ktm{flex:none;min-width:44px;font-size:14px;font-weight:800;color:var(--brand);background:none;padding:0;text-align:left;margin:0}
@@ -922,7 +926,7 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'] };
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['kids', '🥋', '원생'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
+const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -1095,6 +1099,7 @@ $('v-more').onclick = async e => {
     if (k === 'table' || k === 'buy') { S.tf = k === 'buy' ? 'buy' : 'all'; return setTab('table'); }
     if (k === 'kids') return setTab('kids');
     if (k === 'hw') return hwListSheet();
+    if (k === 'kcode') return kcodeSheet();
     if (k === 'docs') return docsSheet();
     if (k === 'backup') return backupSheet();
     if (k === 'cal') return setTab('cal'); if (k === 'mine') { S.tkf = 'mine'; return setTab('task'); }
@@ -2367,6 +2372,25 @@ function hwStat(h) {
   const tgt = (h.kids || []).length ? h.kids : S.roster, n = tgt.length, kidsDone = new Set(h.chk.map(c => c.kid));
   if (h.mode === 'daily') { const td = today(), d = h.chk.filter(c => c.day === td).length; return { n, done: kidsDone.size, line: '오늘 ' + d + '명 · 한 번이라도 ' + kidsDone.size + '/' + n + '명' }; }
   return { n, done: kidsDone.size, line: kidsDone.size + '/' + n + '명 했어요' };
+}
+// 🔑 제자 코드 만들기 (2026-11-14 사용자 결정): 이름 찾기(몇 명만 보이고 스크롤) → 만들기 → 코드. 만든 사범님 = 승인한 사람 → 업무 알림
+function kcodeSheet() {
+  let items = null, err = '';
+  const draw = () => { const el = document.querySelector('#kcL'); if (!el) return; const qv = (document.querySelector('#kcQ') || {}).value || '';
+    if (!items) { el.innerHTML = '<div class="help" style="padding:14px">' + (err ? esc(err) : '불러오는 중…') + '</div>'; return; }
+    const L = items.filter(x => !qv.trim() || x.name.includes(qv.trim()));
+    el.innerHTML = L.length ? L.map(x => '<button class="kcr" data-kc="' + esc(x.name) + '"><b>' + esc(x.name) + '</b><small>' + (x.devices ? '들어가 있는 기기 ' + x.devices + '대' : '') + '</small><span>만들기</span></button>').join('') : '<div class="help" style="padding:14px">찾는 이름이 없어요</div>'; };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🔑 제자 코드</h2></div><p class="help">제자 휴대폰에서 해랑경희 앱 → <b>🥋 제자</b>를 누르고 이 코드를 넣어요. 만들면 업무 알림에 \'' + esc((S.me && S.me.name) || '') + '님이 ○○ 제자를 승인했어요\'가 남아요.</p>' +
+    '<input class="inp" id="kcQ" placeholder="이름 검색" autocomplete="off"><div id="kcL" class="kcl"></div><div id="kcOut"></div>', ov => {
+    draw();
+    api('/api/kcode-list').then(j => { if (j.ok) items = j.items || []; else err = j.error === 'not found' ? '알림 서버를 새로 배포해야 쓸 수 있어요' : (j.error || '불러오지 못했어요'); draw(); });
+    ov.querySelector('#kcQ').oninput = draw;
+    ov.querySelector('#kcL').onclick = async e => { const b = e.target.closest('[data-kc]'); if (!b) return; const n = b.dataset.kc;
+      if (!confirm(n + ' 제자 코드를 만들까요?\n예전 코드는 못 쓰게 되고, 이미 들어가 있는 기기는 그대로예요.')) return;
+      const j = await api('/api/kcode-new', { name: n }); if (!j.ok) return toast(j.error === 'not found' ? '업무·알림 서버를 새로 배포해야 쓸 수 있어요' : j.error);
+      ov.querySelector('#kcOut').innerHTML = '<div class="kcbig"><small>' + esc(j.name) + ' 제자 코드</small><b>' + esc(j.code) + '</b><p class="help">제자 휴대폰에 바로 넣어 주세요. 다른 사람에게 보내지 마세요.</p></div>';
+      ov.querySelector('#kcOut').scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  });
 }
 function hwListSheet() {
   loadRoster().then(() => { if (document.querySelector('#hwL')) draw(); });
