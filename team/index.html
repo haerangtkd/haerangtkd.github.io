@@ -692,8 +692,9 @@ if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',
 // ───── 항목 저장 ─────
 async function saveItem(it, what) {
   const prev = it.id ? S.items.get(it.id) : null, wasDone = !!(prev && (prev.done || prev.status === '완료'));
+  const rm = it._rm; delete it._rm; // 행사표에서 ✕로 뺀 이름 (학부모 앱 취소 알림용, 2026-11-13)
   it.upd = Date.now(); if (it.id) S.items.set(it.id, it); render();
-  const j = await api('/api/item', { item: it, what });
+  const j = await api('/api/item', { item: it, what, rm });
   if (!j.ok) { toast(j.error || '저장하지 못했어요'); return null; }
   it.id = j.id; it.upd = j.upd; it.mid = it.mid || S.me.id; S.items.set(j.id, it); render();
   // 반복 업무: 완료하면 다음 회차를 만듦 (한 번만)
@@ -1492,7 +1493,7 @@ function itemSheet(it0, isNew) {
   sheet('<h2>' + (isNew ? '일정 추가' : '일정') + '</h2>' +
     '<label class="f">제목</label><input class="inp" id="iT" value="' + esc(it.title) + '">' +
     '<div class="row" style="margin-top:12px"><input type="date" class="inp" id="iD" style="min-width:0" value="' + esc(it.date) + '"><input type="time" class="inp" id="iH" style="min-width:0" value="' + esc(it.time || '') + '"></div>' +
-    '<div id="iX2"></div>' +
+    '<div id="iX2"></div><div id="iEv"></div>' +
     '<label class="f">색</label><div class="cols" id="iC2">' + COLORS.map(([c, n]) => '<button data-c="' + c + '" title="' + n + '" class="' + (it.color === c ? 'on' : '') + '" style="background:' + c + '"></button>').join('') + '</div>' +
     '<label class="f">메모</label><textarea class="inp" id="iM" rows="3">' + esc(it.memo || '') + '</textarea>' +
     (it.mid ? '<p class="help" style="margin-top:10px">' + esc(nameOf(it.mid)) + '님이 만듦</p>' : '') +
@@ -1510,6 +1511,24 @@ function itemSheet(it0, isNew) {
     };
     drawX();
     g('iX2').addEventListener('change', e => { if (e.target.id === 'iRE') it.repEnd = e.target.value; });
+    // 행사 신청 받기 (2026-11-13 사용자 요청): 켜면 같은 제목·날짜·대상으로 업무 앱 행사 신청표를 만들고(학부모 앱 신청 받기 켬) 이어 둠. 일정은 모두에게 공유.
+    const lev = () => { const e = it.ev && S.items.get(it.ev); return e && !e.del ? e : null; };
+    let evOn = !!lev(); const elg = JSON.parse(JSON.stringify(it.elig || (lev() && lev().elig) || { mode: 'all' }));
+    const drawEv = () => { const L = lev(); g('iEv').innerHTML =
+      '<div style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin-top:14px"><label class="ck" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:15px;font-weight:700"><input type="checkbox" id="iEvOn"' + (evOn ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 🎟 행사 신청 받기</label>' +
+      (evOn ? '<p class="help">저장하면 행사 신청표' + (L ? '(' + esc(L.title) + ')의 제목·날짜·대상이 같이 바뀌어요' : '가 만들어지고 학부모 앱에서 신청을 받아요') + '. 일정은 모두에게 보여요.</p>' +
+        '<label class="f">신청 대상 (대상이 아닌 가정에는 학부모 앱에 안 보여요)</label><div class="chips" id="sEm">' + [['all', '모두'], ['age', '나이로'], ['grp', '분류로']].map(([k, t]) => '<button data-em="' + k + '" class="' + (elg.mode === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
+        (elg.mode === 'age' ? '<div class="row" style="align-items:center;gap:6px;margin-top:8px"><input class="inp" id="sEf" inputmode="numeric" maxlength="2" style="width:70px;min-width:0" value="' + esc(elg.from || '') + '"><span>살부터</span><input class="inp" id="sEt" inputmode="numeric" maxlength="2" style="width:70px;min-width:0" value="' + esc(elg.to || '') + '"><span>살까지 (한국 나이)</span></div>' : '') +
+        (elg.mode === 'grp' ? '<div class="chips" id="sEg" style="margin-top:8px">' + egrps().map(x => '<button data-eg="' + esc(x.n) + '" class="' + ((elg.grps || []).includes(x.n) ? 'on' : '') + '">' + esc(x.n) + ' <small>' + x.a + '~' + x.b + '살</small></button>').join('') + '</div>' : '') +
+        (L ? '<button class="btn" id="iEvGo" style="margin-top:10px">신청표 열기 ›</button>' : '')
+      : L ? '<p class="help">끄면 일정과 신청표 연결만 끊겨요. 신청표는 그대로 남아요.</p>' : '') + '</div>'; };
+    drawEv();
+    const ageKeep = () => { if (elg.mode === 'age' && g('sEf')) { elg.from = +g('sEf').value || 0; elg.to = +g('sEt').value || 0; } };
+    g('iEv').onchange = e => { if (e.target.id === 'iEvOn') { ageKeep(); evOn = e.target.checked; drawEv(); } };
+    g('iEv').onclick = e => { const b = e.target.closest('button'); if (!b) return; ageKeep();
+      if (b.id === 'iEvGo') { const L = lev(); closeSheet(); return openTable(L); }
+      if (b.dataset.em) { elg.mode = b.dataset.em; return drawEv(); }
+      if (b.dataset.eg) { const n = b.dataset.eg; elg.grps = (elg.grps || []).includes(n) ? elg.grps.filter(x => x !== n) : [...(elg.grps || []), n]; return drawEv(); } };
     g('iX2').onclick = e => { const b = e.target.closest('button'); if (!b) return; keep();
       if (b.dataset.w) { const n = b.dataset.w; it.whos = it.whos.includes(n) ? it.whos.filter(x => x !== n) : [...it.whos, n]; return drawX(); }
       if (b.id === 'iRem') { if (!it.date) return toast('날짜를 먼저 골라 주세요'); return remPick(it, r => { it.reminders = [...it.reminders, r].sort((a, c) => a.at - c.at); drawX(); }); }
@@ -1521,7 +1540,18 @@ function itemSheet(it0, isNew) {
       keep(); if (!it.title) return toast('제목을 적어 주세요'); if (!it.date) return toast('날짜를 골라 주세요');
       if (it.repEnd && it.repEnd < it.date) return toast('반복 끝나는 날이 일정보다 빨라요');
       if (it.share === 'members' && !it.whos.length) it.share = '';
-      if (await saveItem(it, (isNew ? '📅 일정 추가: ' + md(it.date) + ' ' : '📅 일정 수정: ') + it.title)) { closeSheet(); toast('저장했어요'); }
+      let made = false;
+      if (evOn) { ageKeep();
+        if (elg.mode === 'age') { if (!elg.from && !elg.to) return toast('몇 살부터 몇 살까지인지 적어 주세요'); if (elg.from && elg.to && elg.from > elg.to) return toast('나이 순서를 확인해 주세요'); }
+        if (elg.mode === 'grp' && !(elg.grps || []).length) return toast('신청 대상 분류를 골라 주세요');
+        const el = elg.mode === 'all' ? null : elg.mode === 'age' ? { mode: 'age', from: elg.from, to: elg.to } : { mode: 'grp', grps: elg.grps };
+        const L = lev(), e2 = L ? Object.assign(JSON.parse(JSON.stringify(L)), { title: it.title, date: it.date, elig: el })
+          : { type: 'event', kind: '', title: it.title, date: it.date, base: 0, products: [], options: [], checks: [], van: false, rows: [], pub: true, openAt: today(), closeAt: '', desc: it.memo || '', elig: el, sched: it.id || '' };
+        if (e2.closeAt && e2.closeAt > e2.date) e2.closeAt = '';
+        const eid = await saveItem(e2, L ? '🎟 ' + it.title + ' 설정 수정 (일정에서)' : '🎟 행사 신청표 만듦 (일정에서): ' + it.title); if (!eid) return;
+        made = !L; it.ev = eid; it.elig = el; it.share = '';
+      } else if (it.ev) { it.ev = ''; it.elig = null; }
+      if (await saveItem(it, (isNew ? '📅 일정 추가: ' + md(it.date) + ' ' : '📅 일정 수정: ') + it.title)) { closeSheet(); toast(evOn ? '저장했어요 · 행사 신청표도 ' + (made ? '만들었어요' : '맞췄어요') : '저장했어요'); }
     };
     if (isNew) setTimeout(() => g('iT').focus(), 60);
     if (!isNew) {
@@ -1678,11 +1708,14 @@ function eventSheet(ev0) {
     ov.addEventListener('click', async e => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.id === 'evSet') { await flush(); return eventSetup(ev); }
-      if (b.id === 'evDone') { ev.closed = !ev.closed; redraw(); return queue(ev.closed ? '완료로 옮김' : '다시 진행'); }
+      if (b.id === 'evDone') { ev.closed = !ev.closed; redraw(); queue(ev.closed ? '완료로 옮김' : '다시 진행');
+        const pn = (ev.rows || []).filter(r => !r.wait && !r.appCancel && !r.guest).length; // 완료 → 참가자에게 알림장 (알림 관리에서 받는 사람이 골라진 채로, 2026-11-13)
+        if (ev.closed && !goods && pn) { await flush(); if (confirm('완료했어요. 참가자 ' + pn + '명에게 알림장을 쓸까요?\n(알림 관리가 열리고 받는 사람이 참가자로 골라져요)')) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = '/notice/admin.html?ev=' + encodeURIComponent(ev.id); } }
+        return; }
       if (b.id === 'evAdd') return addPeople(ev, list => { const have = new Set(ev.rows.map(r => r.name)); list.forEach(x => { if (!have.has(x.name)) ev.rows.push({ name: x.name, guest: x.guest, wait: x.wait, prods: (ev.products || []).map((_, k) => k), opts: {}, chk: {}, paid: false, given: false, van: false, memo: '' }); }); redraw(); queue(list.map(x => x.name).slice(0, 3).join(', ') + (list.length > 3 ? ' 외 ' + (list.length - 3) + '명' : '') + ' 추가'); });
       if (b.id === 'evCo') { const v = ov.querySelector('#evC').value.trim(); if (!v || !ev.id) return; await flush(); const j = await api('/api/comment', { item: ev.id, text: v }); if (!j.ok) return toast(j.error); const l = S.comments.get(ev.id) || []; l.push({ id: j.id, item: ev.id, mid: S.me.id, text: v, at: j.at }); S.comments.set(ev.id, l); return redraw(); }
       const box = b.closest('.er'); if (!box) return; const r = ev.rows[box.dataset.i], a = b.dataset.a;
-      if (a === 'rm') { if (!isBoss() && (r.app || r.paid)) return toast('학부모 앱 신청·결제한 사람은 관리자만 뺄 수 있어요. 관리자에게 말해 주세요'); if (!confirm(r.name + '을(를) 명단에서 뺄까요?')) return; ev.rows.splice(box.dataset.i, 1); redraw(); return queue(r.name + ' 빠짐'); }
+      if (a === 'rm') { if (!isBoss() && (r.app || r.paid)) return toast('학부모 앱 신청·결제한 사람은 관리자만 뺄 수 있어요. 관리자에게 말해 주세요'); if (!confirm(r.name + '을(를) 명단에서 뺄까요?' + (!goods && !r.guest && !r.wait && !r.appCancel && (r.app || ev.pub) ? '\n학부모 앱에도 \'도장에서 취소했어요\'로 바뀌고 보호자 휴대폰에 취소 알림이 가요.' : ''))) return; ev.rows.splice(box.dataset.i, 1); (ev._rm = ev._rm || []).push(r.name); redraw(); return queue(r.name + ' 빠짐'); }
       if (a === 'prod') { const k = +b.dataset.k; r.prods = (r.prods || []).includes(k) ? r.prods.filter(x => x !== k) : [...(r.prods || []), k]; redraw(); return queue(r.name + ' 품목'); }
       if (a === 'chk') { r.chk = r.chk || {}; r.chk[b.dataset.c] = !r.chk[b.dataset.c]; redraw(); return queue(r.name + ' ' + b.dataset.c + (r.chk[b.dataset.c] ? ' ✓' : ' 해제')); }
       if (a === 'paid' || a === 'given' || a === 'van') { r[a] = !r[a]; redraw(); return queue(r.name + ' ' + { paid: '결제', given: '지급', van: '하원차' }[a] + (r[a] ? ' ✓' : ' 취소')); }
