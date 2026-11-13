@@ -115,8 +115,9 @@ async function route(path, req, env) {
   if (path === '/pub/schedule') {
     const from = new Date(Date.now() + 9 * 3600e3 - 120 * 864e5).toISOString().slice(0, 10), to = new Date(Date.now() + 9 * 3600e3 + 400 * 864e5).toISOString().slice(0, 10);
     const rows = await all(env, "SELECT title, kind, body, date, dend, img FROM posts WHERE type = 'schedule' AND COALESCE(dend, date) >= ? AND date <= ? ORDER BY date LIMIT 300", from, to);
-    return json({ ok: true, items: rows.map(r => ({ date: r.date, end: r.dend || '', title: r.title, type: r.kind || '', note: String(r.body || '').split('\n')[0].slice(0, 120), image: r.img || '' })) });
+    return json({ ok: true, items: rows.map(r => ({ date: r.date, end: r.dend || '', title: r.title, type: r.kind || '', note: String(r.body || '').split('\n')[0].slice(0, 120), image: r.img || '' })), plan: await getPlan(env) });
   }
+  if (path === '/pub/plan') return json({ ok: true, plan: await getPlan(env) }); // 수련 계획(주간 수련 주제 · 요일별 운동테마 · 이달의 공지) — 학부모 앱·홈페이지가 읽음
   if (path === '/vapid') return json({ ok: true, publicKey: (await getVapid(env)).publicKey });
   if (path === '/notices') return json({ ok: true, notices: await listPosts(env, 'notice', null, 50) });
 
@@ -561,6 +562,12 @@ async function route(path, req, env) {
     if (path === '/admin/ev-tables') return json(await teamSync(env, '/sync/ev-tables', {}));
     if (path === '/admin/egrps') return json(await teamSync(env, '/sync/egrps', {}));
     if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', ev: r.ev || '' } } : { ok: false, error: '지워진 일정이에요' }); }
+    if (path === '/admin/plan-get') return json({ ok: true, plan: await getPlan(env) });
+    if (path === '/admin/plan-save') { // 수련 계획 저장 (2026-11-14: 홈페이지 data.json → 알림 관리에서 관리)
+      const p = cleanPlan(b.plan); if (!p) return json({ ok: false, error: '저장할 내용이 이상해요' });
+      await run(env, "INSERT INTO kv (k, v) VALUES ('plan', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(p));
+      return json({ ok: true, plan: p });
+    }
     if (path === '/admin/sched-import') { // 홈페이지(data.json) 일정을 알림 관리 일정표로 옮기기 — 같은 날짜·같은 제목은 건너뜀
       const L = (Array.isArray(b.items) ? b.items : []).slice(0, 100), have = new Set((await all(env, "SELECT date, title FROM posts WHERE type = 'schedule'")).map(r => r.date + '|' + String(r.title).replace(/\s/g, '')));
       let added = 0;
@@ -664,6 +671,16 @@ async function withAcks(env, items, parentId, myKids) { // 학부모 화면: 내
   const mine = await all(env, 'SELECT post, at FROM acks WHERE parent = ?', parentId), m = {};
   mine.forEach(r => m[r.post] = r.at);
   return items.map(x => x.ask ? { ...x, acked: m[x.id] || null } : x);
+}
+// 수련 계획 (kv 'plan'): { weekday: {월:[…]…}, focus: [{date, end, title}], months: [{month, notices:[…]}] } — 없으면 null (홈페이지 data.json을 씀)
+async function getPlan(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'plan'"); return r ? J(r.v, null) : null; }
+function cleanPlan(p) {
+  if (!p || typeof p !== 'object') return null;
+  const D = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : '', T = (v, n) => String(v == null ? '' : v).trim().slice(0, n), wd = {};
+  for (const w of ['월', '화', '수', '목', '금', '토']) { const L = (Array.isArray((p.weekday || {})[w]) ? p.weekday[w] : []).map(x => T(x, 40)).filter(Boolean).slice(0, 10); if (L.length) wd[w] = L; }
+  const focus = (Array.isArray(p.focus) ? p.focus : []).map(x => ({ date: D(x && x.date), end: D(x && x.end), title: T(x && x.title, 60) })).filter(x => x.date && x.title).map(x => ({ ...x, end: x.end > x.date ? x.end : '' })).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 600);
+  const months = (Array.isArray(p.months) ? p.months : []).filter(m => m && /^\d{4}-\d{2}$/.test(m.month || '')).map(m => ({ month: m.month, notices: (Array.isArray(m.notices) ? m.notices : []).map(x => T(x, 500)).filter(Boolean).slice(0, 12) })).sort((a, b) => a.month.localeCompare(b.month)).slice(-60);
+  return { weekday: wd, focus, months };
 }
 async function listSchedule(env, month) {
   const m = /^\d{4}-\d{2}$/.test(month || '') ? month : kstDay(new Date()).slice(0, 7);
