@@ -32,6 +32,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS asess (tok TEXT PRIMARY KEY, mid TEXT, name TEXT, shared INTEGER, created INTEGER)',
   'CREATE TABLE IF NOT EXISTS reads (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))',
   'CREATE TABLE IF NOT EXISTS acks (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 학부모가 '확인했어요'를 누른 기록
+  'CREATE TABLE IF NOT EXISTS replies (post INTEGER, kid TEXT, parent TEXT, rel TEXT, ans TEXT, at INTEGER, PRIMARY KEY (post, kid))', // 📩 봉투 답장 (제자마다 참가·불참, 2026-11-13)
   'CREATE TABLE IF NOT EXISTS famreq (id TEXT PRIMARY KEY, kids TEXT, rel TEXT, ph TEXT, by TEXT, at INTEGER)', // 학부모 앱 '도장에 가족 추가 요청'
   'CREATE TABLE IF NOT EXISTS invites (code TEXT PRIMARY KEY, name TEXT, kids TEXT, max INTEGER DEFAULT 2, off INTEGER DEFAULT 0, created INTEGER)', // 가정별 초대번호 (가입할 수 있는 휴대폰 수 제한)
 ];
@@ -43,6 +44,7 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE att ADD COLUMN tin_at INTEGER').run(); } catch (_) {}
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN urgent INTEGER DEFAULT 0').run(); } catch (_) {} // 긴급 공지
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ask INTEGER DEFAULT 0').run(); } catch (_) {}    // '확인했어요' 받기
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN env INTEGER DEFAULT 0').run(); } catch (_) {}   // 📩 봉투로 보낸 글 (고른 제자만 · 참가/불참 답장)
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ev TEXT').run(); } catch (_) {}                  // 일정 ↔ 업무 앱 행사 신청표 id (2026-11-13)
   try { await env.DB.prepare('ALTER TABLE parents ADD COLUMN inv TEXT').run(); } catch (_) {}               // 가입할 때 쓴 초대번호
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
@@ -183,7 +185,7 @@ async function route(path, req, env) {
       return json({ ok: true, rel: p.rel, ph: p.ph, kids: myKids.map(k => { const a = (r.kids || []).find(x => x.name === k) || {}; return { name: k, ...a, fee: (a.sid && (fee.sids || {})[a.sid]) || (fee.map || {})[k] || null }; }), feeAt: fee.at || 0 }); // 회비는 출석부 원생 번호로 먼저, 없으면 이름 (2026-11-13)
     }
     if (path === '/p/schedule') return json({ ok: true, me, items: await listSchedule(env, b.month) });
-    if (path === '/p/notices') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'notice', myKids, 100), p.id) }); // 아이를 정한 공지(회비 안내 등)는 그 가정만
+    if (path === '/p/notices') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'notice', myKids, 100), p.id, myKids) }); // 아이를 정한 공지(회비 안내 등)는 그 가정만
     if (path === '/p/home') {
       const today = kstDay(new Date());
       const out = { ok: true, me, today: {}, counts: {} };
@@ -206,12 +208,25 @@ async function route(path, req, env) {
         const asks = (await all(env, "SELECT * FROM posts WHERE ask = 1 AND type IN ('notice', 'journal') AND created > ? ORDER BY urgent DESC, created DESC LIMIT 40", Date.now() - 30 * 864e5))
           .filter(r => !done.has(r.id) && (J(r.target, []).length === 0 || J(r.target, []).some(x => myKids.includes(x)))).slice(0, 5);
         out.asks = asks.map(r => ({ id: r.id, type: r.type, kind: r.kind, title: r.title, body: r.body, urgent: !!r.urgent, at: r.created }));
+        // 📩 답장을 기다리는 봉투 (60일 안, 내 제자가 받는 사람인 것)
+        const envs = (await all(env, "SELECT * FROM posts WHERE env = 1 AND created > ? ORDER BY created DESC LIMIT 30", Date.now() - 60 * 864e5)).filter(r => J(r.target, []).some(x => myKids.includes(x)));
+        out.envs = (await withReplies(env, envs.map(r => ({ id: r.id, type: r.type, kind: r.kind, title: r.title, body: r.body, env: true, target: J(r.target, []), at: r.created })), myKids));
       }
       return json(out);
     }
     // 여기부터는 관장님 승인 후에만
     if (!p.ok) return json({ ok: false, error: '관장님 승인 후에 볼 수 있습니다', pending: true, me });
-    if (path === '/p/journal') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'journal', myKids, 100), p.id) });
+    if (path === '/p/journal') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'journal', myKids, 100), p.id, myKids) });
+    if (path === '/p/reply') { // 📩 봉투 답장: 참가·불참 (바꿀 수 있음)
+      const id = b.id | 0, kid = String(b.kid || ''), ans = b.ans === 'yes' ? 'yes' : b.ans === 'no' ? 'no' : '';
+      const r = await one(env, 'SELECT target, env, title, ev FROM posts WHERE id = ?', id);
+      if (!r || !r.env) return json({ ok: false, error: '지워진 봉투예요' });
+      if (!ans || !myKids.includes(kid) || !J(r.target, []).includes(kid)) return json({ ok: false, error: '답장할 수 없는 봉투예요' });
+      const now = Date.now();
+      await env.DB.batch([q(env, 'INSERT INTO replies (post, kid, parent, rel, ans, at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(post, kid) DO UPDATE SET parent = excluded.parent, rel = excluded.rel, ans = excluded.ans, at = excluded.at', id, kid, p.id, p.rel || '', ans, now), q(env, 'INSERT OR IGNORE INTO reads (post, parent, at) VALUES (?, ?, ?)', id, p.id, now)]);
+      if (r.ev) { try { await teamSync(env, '/sync/env-reply', { ev: r.ev, kid, ans, rel: p.rel || '' }); } catch (_) {} } // 참가 → 업무 앱 신청표 명단 (불참으로 바꾸면 빠짐)
+      return json({ ok: true, at: now });
+    }
     if (path === '/p/albums') return json({ ok: true, me, items: await listPosts(env, 'album', myKids, 60) });
     if (path === '/p/photo') return photo(env, b.id, b.size);
     if (path === '/p/attendance') {
@@ -493,9 +508,16 @@ async function route(path, req, env) {
       const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : null;
       if (type === 'schedule' && !date) return json({ ok: false, error: '날짜를 골라 주세요' });
       const urgent = type === 'notice' && b.urgent ? 1 : 0, ask = urgent || ((type === 'notice' || type === 'journal') && b.ask) ? 1 : 0; // 긴급이면 확인도 받음
-      const r = await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        type, String(b.kind || '').slice(0, 10), title, String(b.body || '').slice(0, 3000), date, JSON.stringify(target), JSON.stringify(photos), b.pin ? 1 : 0, Date.now(), urgent, ask);
+      const envl = (type === 'notice' || type === 'journal') && b.env ? 1 : 0; // 📩 봉투: 고른 제자만, 참가·불참 답장
+      if (envl && !target.length) return json({ ok: false, error: '봉투는 받을 제자를 골라야 해요' });
+      let envEv = '', envErr = ''; // 참가하면 넣을 업무 앱 신청표 ('new' = 봉투 제목으로 새로)
+      if (envl && b.envEv === 'new') { const e = await teamSync(env, '/sync/ev-new', { title, who: (ses && ses.name) || '' }); if (e.ok) envEv = String(e.id); else envErr = e.error || '신청표를 만들지 못했어요'; }
+      else if (envl && b.envEv) envEv = String(b.envEv).slice(0, 40);
+      const r = await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask, env) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        type, String(b.kind || '').slice(0, 10), title, String(b.body || '').slice(0, 3000), date, JSON.stringify(target), JSON.stringify(photos), b.pin ? 1 : 0, Date.now(), urgent, envl ? 0 : ask, envl);
       const pid = r.meta && r.meta.last_row_id;
+      if (envEv && pid) await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', envEv, pid);
+      if (envl) return json({ ok: true, id: pid, envEv, evError: envErr || undefined });
       if (type === 'schedule' && b.mkEv && pid) { // 🎟 신청표도 만들기 (2026-11-13 사용자 결정: 도장 일정은 알림 관리에서, 신청표는 여기서 같이)
         const e = await teamSync(env, '/sync/ev-from-sched', { sp: pid, title, date, body: String(b.body || '').slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '' });
         if (e.ok && e.id) { await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', String(e.id).slice(0, 40), pid); return json({ ok: true, id: pid, ev: e.id }); }
@@ -522,8 +544,10 @@ async function route(path, req, env) {
       await run(env, 'DELETE FROM posts WHERE id = ?', b.id | 0);
       await run(env, 'DELETE FROM reads WHERE post = ?', b.id | 0);
       await run(env, 'DELETE FROM acks WHERE post = ?', b.id | 0);
+      await run(env, 'DELETE FROM replies WHERE post = ?', b.id | 0);
       return json({ ok: true });
     }
+    if (path === '/admin/ev-tables') return json(await teamSync(env, '/sync/ev-tables', {}));
     if (path === '/admin/egrps') return json(await teamSync(env, '/sync/egrps', {}));
     if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, ev: r.ev || '' } } : { ok: false, error: '지워진 일정이에요' }); }
     if (path === '/admin/done-events') return json(await teamSync(env, '/sync/done-events', {})); // 완료한 행사표 참가자 → 알림장 받는 사람 (2026-11-13)
@@ -542,7 +566,16 @@ async function route(path, req, env) {
         it.reads = aud.filter(p => readers.has(p.id)).length; it.audience = aud.length;
         if (it.ask) { const ackers = new Set(aa.filter(r => r.post === it.id).map(r => r.parent)); it.acks = aud.filter(p => ackers.has(p.id)).length; }
       }
+      const envIds = items.filter(it => it.env).map(it => it.id);
+      if (envIds.length) { const rp = await all(env, 'SELECT post, ans FROM replies WHERE post IN (' + envIds.map(() => '?').join(',') + ')', ...envIds); for (const it of items) if (it.env) { const L = rp.filter(r => r.post === it.id); it.rYes = L.filter(r => r.ans === 'yes').length; it.rNo = L.filter(r => r.ans === 'no').length; } }
       return json({ ok: true, items });
+    }
+    if (path === '/admin/replies') { // 📩 봉투 답장 보기: 제자마다 참가·불참·아직
+      const r = await one(env, 'SELECT target, title FROM posts WHERE id = ? AND env = 1', b.id | 0); if (!r) return json({ ok: false, error: '지워진 봉투예요' });
+      const rs = await all(env, 'SELECT kid, rel, ans, at FROM replies WHERE post = ?', b.id | 0);
+      const rd = new Set((await all(env, 'SELECT parent FROM reads WHERE post = ?', b.id | 0)).map(x => x.parent));
+      const ps = await all(env, 'SELECT id, kids FROM parents WHERE ok = 1');
+      return json({ ok: true, title: r.title, rows: J(r.target, []).map(k => { const x = rs.find(y => y.kid === k); const fam = ps.filter(p => J(p.kids, []).includes(k)); return { kid: k, ans: x ? x.ans : '', rel: x ? x.rel : '', at: x ? x.at : 0, opened: fam.some(p => rd.has(p.id)), app: fam.length > 0 }; }) });
     }
     if (path === '/admin/reads') {
       const post = await one(env, 'SELECT target FROM posts WHERE id = ?', b.id | 0);
@@ -601,9 +634,10 @@ async function listPosts(env, type, kids, limit, admin) {
   return rows
     .filter(r => { const t = J(r.target, []); return admin || !kids || !t.length || t.some(x => kids.includes(x)); })
     .slice(0, limit)
-    .map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, target: J(r.target, []), photos: J(r.photos, []), pin: !!r.pin, urgent: !!r.urgent, ask: !!r.ask, at: r.created }));
+    .map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, target: J(r.target, []), photos: J(r.photos, []), pin: !!r.pin, urgent: !!r.urgent, ask: !!r.ask, env: !!r.env, at: r.created }));
 }
-async function withAcks(env, items, parentId) { // 학부모 화면: 내가 '확인했어요'를 눌렀는지
+async function withAcks(env, items, parentId, myKids) { // 학부모 화면: 내가 '확인했어요'를 눌렀는지 · 봉투 답장
+  if (items.some(x => x.env)) items = await withReplies(env, items, myKids || []);
   if (!items.some(x => x.ask)) return items;
   const mine = await all(env, 'SELECT post, at FROM acks WHERE parent = ?', parentId), m = {};
   mine.forEach(r => m[r.post] = r.at);
@@ -613,6 +647,12 @@ async function listSchedule(env, month) {
   const m = /^\d{4}-\d{2}$/.test(month || '') ? month : kstDay(new Date()).slice(0, 7);
   const rows = await all(env, "SELECT * FROM posts WHERE type = 'schedule' AND date LIKE ? ORDER BY date, created", m + '-%');
   return rows.map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, at: r.created, ev: r.ev || '' }));
+}
+// 📩 봉투: 내 제자(받는 사람 중)마다 답장 (학부모에게 다른 가정 이름은 안 보냄)
+async function withReplies(env, items, myKids) {
+  const ids = items.filter(x => x.env).map(x => x.id); if (!ids.length) return items;
+  const rs = await all(env, 'SELECT post, kid, ans, at FROM replies WHERE post IN (' + ids.map(() => '?').join(',') + ')', ...ids);
+  return items.map(x => x.env ? { ...x, target: [], envKids: x.target.filter(k => myKids.includes(k)).map(k => { const r = rs.find(y => y.post === x.id && y.kid === k); return { kid: k, ans: r ? r.ans : '', at: r ? r.at : 0 }; }) } : x);
 }
 async function photo(env, id, size) {
   const col = size === 'full' ? 'full' : 'thumb';
