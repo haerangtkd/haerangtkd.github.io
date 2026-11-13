@@ -28,10 +28,11 @@ function D1(file) { // Cloudflare D1 흉내 (prepare/bind/first/all/run/batch)
     first: async () => db.prepare(sql).get(...args) ?? null,
     all: async () => ({ results: db.prepare(sql).all(...args) }),
     run: async () => { const r = db.prepare(sql).run(...args); return { meta: { last_row_id: Number(r.lastInsertRowid), changes: r.changes } }; },
-    _run: () => db.prepare(sql).run(...args),
+    _run: () => /^\s*(SELECT|PRAGMA)/i.test(sql) ? { results: db.prepare(sql).all(...args) } : (db.prepare(sql).run(...args), { results: [] }),
   });
-  return { prepare: s => mk(s), batch: async st => { db.exec('BEGIN'); try { st.forEach(x => x._run()); db.exec('COMMIT'); } catch (e) { db.exec('ROLLBACK'); throw e; } return []; } };
+  return { prepare: s => mk(s), batch: async st => { db.exec('BEGIN'); try { const out = st.map(x => x._run()); db.exec('COMMIT'); return out; } catch (e) { db.exec('ROLLBACK'); throw e; } } };
 }
+// 서버끼리 부를 때 주소 이름(notice·attendance·team)이 실제 서비스 바인딩과 같음 → /sync/·/ledger/ 의 주소 이름 확인도 그대로 시험됨 (화면에서 부르면 'w')
 const bind = (w, env) => ({ fetch: (u, init) => w.fetch(new Request(u, init), env, ctx) });
 const ctx = { waitUntil: p => p && p.catch && p.catch(() => {}) };
 const aenv = { DB: D1('att.db'), ADMIN_PASSWORD: 'kwanjang', SYNC_KEY: 'sync123' };
