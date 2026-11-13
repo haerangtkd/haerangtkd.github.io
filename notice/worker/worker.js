@@ -43,6 +43,7 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE att ADD COLUMN tin_at INTEGER').run(); } catch (_) {}
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN urgent INTEGER DEFAULT 0').run(); } catch (_) {} // 긴급 공지
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ask INTEGER DEFAULT 0').run(); } catch (_) {}    // '확인했어요' 받기
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ev TEXT').run(); } catch (_) {}                  // 일정 ↔ 업무 앱 행사 신청표 id (2026-11-13)
   try { await env.DB.prepare('ALTER TABLE parents ADD COLUMN inv TEXT').run(); } catch (_) {}               // 가입할 때 쓴 초대번호
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   try { await env.DB.prepare('ALTER TABLE asess ADD COLUMN boss INTEGER DEFAULT 0').run(); } catch (_) {} // 업무 앱 관리자 (퇴관 원생은 관리자만)
@@ -288,6 +289,29 @@ async function route(path, req, env) {
     return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
   }
 
+  // 업무 앱: 도장 일정(알림 관리 일정표)을 업무 앱 달력에 · 업무 앱에서 만든 신청표의 날짜를 일정표에 (2026-11-13)
+  if (path === '/sync/schedule' || path === '/sync/sched-add' || path === '/sync/sched-upd') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    if (path === '/sync/schedule') {
+      const from = /^\d{4}-\d{2}-\d{2}$/.test(b.from || '') ? b.from : '0000', to = /^\d{4}-\d{2}-\d{2}$/.test(b.to || '') ? b.to : '9999';
+      const rows = await all(env, "SELECT id, kind, title, body, date, ev FROM posts WHERE type = 'schedule' AND date >= ? AND date <= ? ORDER BY date LIMIT 400", from, to);
+      return json({ ok: true, items: rows.map(r => ({ id: r.id, kind: r.kind || '', title: r.title, body: r.body || '', date: r.date, ev: r.ev || '' })) });
+    }
+    const title = String(b.title || '').slice(0, 100).trim(), date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : null;
+    if (path === '/sync/sched-add') {
+      if (!title || !date) return json({ ok: false, error: '제목과 날짜가 필요해요' });
+      const had = b.ev ? await one(env, "SELECT id FROM posts WHERE type = 'schedule' AND ev = ?", String(b.ev).slice(0, 40)) : null; // 같은 신청표로 두 번 안 만듦
+      if (had) return json({ ok: true, id: had.id });
+      const r = await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask, ev) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 0, 0, ?)', 'schedule', String(b.kind || '행사').slice(0, 10), title, String(b.body || '').slice(0, 3000), date, '[]', '[]', Date.now(), String(b.ev || '').slice(0, 40) || null);
+      return json({ ok: true, id: r.meta && r.meta.last_row_id });
+    }
+    const p = await one(env, "SELECT id FROM posts WHERE type = 'schedule' AND id = ?", b.id | 0); if (!p) return json({ ok: false, error: '일정표에서 지워진 일정이에요' });
+    if (b.del) { await run(env, 'UPDATE posts SET ev = NULL WHERE id = ?', p.id); return json({ ok: true }); } // 신청표를 지우면 일정은 남기고 연결만 풂
+    if (!title || !date) return json({ ok: false, error: '제목과 날짜가 필요해요' });
+    await run(env, 'UPDATE posts SET title = ?, date = ? WHERE id = ?', title, date, p.id);
+    return json({ ok: true });
+  }
+
   // 업무 앱 관리자: 태블릿 '하루 여러 번 등·하원 허용' (방학 등)
   if (path === '/sync/kiosk-multi') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
@@ -471,16 +495,37 @@ async function route(path, req, env) {
       const urgent = type === 'notice' && b.urgent ? 1 : 0, ask = urgent || ((type === 'notice' || type === 'journal') && b.ask) ? 1 : 0; // 긴급이면 확인도 받음
       const r = await run(env, 'INSERT INTO posts (type, kind, title, body, date, target, photos, pin, created, urgent, ask) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         type, String(b.kind || '').slice(0, 10), title, String(b.body || '').slice(0, 3000), date, JSON.stringify(target), JSON.stringify(photos), b.pin ? 1 : 0, Date.now(), urgent, ask);
-      return json({ ok: true, id: r.meta && r.meta.last_row_id });
+      const pid = r.meta && r.meta.last_row_id;
+      if (type === 'schedule' && b.mkEv && pid) { // 🎟 신청표도 만들기 (2026-11-13 사용자 결정: 도장 일정은 알림 관리에서, 신청표는 여기서 같이)
+        const e = await teamSync(env, '/sync/ev-from-sched', { sp: pid, title, date, body: String(b.body || '').slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '' });
+        if (e.ok && e.id) { await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', String(e.id).slice(0, 40), pid); return json({ ok: true, id: pid, ev: e.id }); }
+        return json({ ok: true, id: pid, evError: e.error || '업무 앱에 신청표를 만들지 못했어요' });
+      }
+      return json({ ok: true, id: pid });
+    }
+    if (path === '/admin/sched-edit') { // 일정표 수정 → 업무 앱 달력·연결된 신청표도 같이, 원하면 학부모 알림 (2026-11-13)
+      const p = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); if (!p) return json({ ok: false, error: '지워진 일정이에요' });
+      const title = String(b.title || '').slice(0, 100).trim(), date = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : null;
+      if (!title || !date) return json({ ok: false, error: '제목과 날짜를 확인해 주세요' });
+      const body = String(b.body || '').slice(0, 3000), kind = String(b.kind || p.kind || '').slice(0, 10);
+      await run(env, 'UPDATE posts SET title = ?, body = ?, date = ?, kind = ? WHERE id = ?', title, body, date, kind, p.id);
+      const out = { ok: true };
+      if (p.ev && (p.title !== title || p.date !== date)) { const e = await teamSync(env, '/sync/ev-sched-upd', { ev: p.ev, title, date, who: (ses && ses.name) || '' }); if (!e.ok) out.evError = e.error || '연결된 신청표를 바꾸지 못했어요'; }
+      if (!p.ev && b.mkEv) { const e = await teamSync(env, '/sync/ev-from-sched', { sp: p.id, title, date, body: body.slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '' }); if (e.ok && e.id) { await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', String(e.id).slice(0, 40), p.id); out.ev = e.id; } else out.evError = e.error || '업무 앱에 신청표를 만들지 못했어요'; }
+      if (b.notify) { const md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8)); out.notify = { title: '[일정 변경] ' + title, body: (p.date !== date ? md(p.date) + ' → ' + md(date) + ' · ' : '') + (body || '일정이 바뀌었어요').slice(0, 100) }; } // 보내기는 화면이 pushAll로 나눠서
+      return json(out);
     }
     if (path === '/admin/post-delete') {
-      const p = await one(env, 'SELECT photos FROM posts WHERE id = ?', b.id | 0);
+      const p = await one(env, 'SELECT photos, ev, title FROM posts WHERE id = ?', b.id | 0);
+      if (p && p.ev) { try { await teamSync(env, '/sync/ev-sched-del', { ev: p.ev, title: p.title, who: (ses && ses.name) || '' }); } catch (_) {} } // 신청표는 남기고 연결만 풂
       if (p) for (const ph of J(p.photos, [])) await run(env, 'DELETE FROM photos WHERE id = ?', ph);
       await run(env, 'DELETE FROM posts WHERE id = ?', b.id | 0);
       await run(env, 'DELETE FROM reads WHERE post = ?', b.id | 0);
       await run(env, 'DELETE FROM acks WHERE post = ?', b.id | 0);
       return json({ ok: true });
     }
+    if (path === '/admin/egrps') return json(await teamSync(env, '/sync/egrps', {}));
+    if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, ev: r.ev || '' } } : { ok: false, error: '지워진 일정이에요' }); }
     if (path === '/admin/done-events') return json(await teamSync(env, '/sync/done-events', {})); // 완료한 행사표 참가자 → 알림장 받는 사람 (2026-11-13)
     if (path === '/admin/jtpl') return json(await teamSync(env, '/sync/jtpl', {})); // 알림장 양식 (업무 앱에서 관리)
     if (path === '/admin/posts') {
@@ -567,7 +612,7 @@ async function withAcks(env, items, parentId) { // 학부모 화면: 내가 '확
 async function listSchedule(env, month) {
   const m = /^\d{4}-\d{2}$/.test(month || '') ? month : kstDay(new Date()).slice(0, 7);
   const rows = await all(env, "SELECT * FROM posts WHERE type = 'schedule' AND date LIKE ? ORDER BY date, created", m + '-%');
-  return rows.map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, at: r.created }));
+  return rows.map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, at: r.created, ev: r.ev || '' }));
 }
 async function photo(env, id, size) {
   const col = size === 'full' ? 'full' : 'thumb';
