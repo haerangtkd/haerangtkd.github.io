@@ -233,6 +233,11 @@ async function route(path, req, env, ctx) {
       return json({ ok: true, id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared });
     }
     if (path === '/sync/events') return json({ ok: true, events: await openEvents(env, kids) });
+    if (path === '/sync/done-events') { // 알림 관리 '알림장 쓰기': 완료한 행사표의 참가자 (2026-11-13 사용자 요청) — 완료한 지 30일 안, 최근 것부터
+      const rows = await all(env, "SELECT id, data, upd FROM items WHERE type = 'event' AND del = 0 AND upd > ? ORDER BY upd DESC LIMIT 60", Date.now() - 30 * 864e5);
+      return json({ ok: true, events: rows.map(r => ({ id: r.id, upd: r.upd, d: J(r.data, {}) })).filter(x => x.d.closed && x.d.kind !== 'goods').slice(0, 12)
+        .map(x => ({ id: x.id, title: str(x.d.title, 100), date: x.d.date || '', names: [...new Set((x.d.rows || []).filter(y => y && y.name && !y.wait && !y.appCancel && !y.guest).map(y => str(y.name, 20)))] })) });
+    }
     if (path === '/sync/jtpl') return json({ ok: true, tpl: await jtplGet(env) }); // 알림 관리 '알림장 쓰기' 양식
     if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 10', ...kids)).map(r => ({ id: r.id, kid: r.kid, label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r) })) : [] });
     if (path === '/sync/pmsg-send') return json(await pmsgSend(env, b, kids, ctx));
@@ -749,10 +754,12 @@ async function route(path, req, env, ctx) {
   // 할 일 · 일정 · 행사표 · 구매표 저장 (what: 알림에 쓸 한 줄)
   if (path === '/api/item') {
     const r = itemStmt(env, b.item || {}, me); if (!r) return json({ ok: false, error: '제목을 적어 주세요' });
+    const old = r.type === 'event' && b.item.id ? await one(env, "SELECT data FROM items WHERE id = ? AND type = 'event'", r.id) : null;
     await r.stmt.run();
     if (r.type === 'event') { // 행사표에 들어간 학부모 신청은 '넣음'으로
       const names = (Array.isArray(b.item.rows) ? b.item.rows : []).map(x => str(x && x.name, 20)).filter(Boolean).slice(0, 200);
       if (names.length) await run(env, "UPDATE esign SET state = 'in' WHERE ev = ? AND state = '' AND kid IN (" + names.map(() => '?').join(',') + ')', r.id, ...names);
+      if (old && Array.isArray(b.rm) && b.rm.length) ctx.waitUntil(staffCancel(env, r.id, J(old.data, {}), b.item, names, b.rm.map(x => str(x, 20)), me).catch(() => {})); // 업무 앱에서 명단에서 빼면 학부모 앱도 취소 + 알림 (2026-11-13)
     }
     // 업무 알림 (앞으로 올 것만 다시 적음)
     const now0 = Date.now(), it0 = b.item;
@@ -966,7 +973,7 @@ function evWindow(d, day) {
 }
 async function openEvents(env, kids) {
   const day = kstDay(), rows = await all(env, "SELECT id, data FROM items WHERE type = 'event' AND del = 0");
-  const mine = kids.length ? await all(env, 'SELECT ev, kid, data, cancel, at FROM esign WHERE kid IN (' + kids.map(() => '?').join(',') + ')', ...kids) : [];
+  const mine = kids.length ? await all(env, 'SELECT ev, kid, data, cancel, state, at FROM esign WHERE kid IN (' + kids.map(() => '?').join(',') + ')', ...kids) : [];
   const out = [], grps = await egrpGet(env), births = rows.some(r => { const e = J(r.data, {}).elig; return e && e.mode && e.mode !== 'all'; }) ? await kidBirths(env, kids) : {};
   for (const r of rows) {
     const d = J(r.data, {}); if (!d.pub || d.closed || d.kind === 'goods') continue;
@@ -974,7 +981,8 @@ async function openEvents(env, kids) {
     const w = evWindow(d, day); if (!w.open || (d.date && d.date < day)) continue;
     const staff = new Set((d.rows || []).map(x => x.name));
     out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), prep: str(d.prep, 300), elig: okKids, eligText: eligText(d.elig, grps), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit,
-      mine: kids.map(k => { const m = mine.find(x => x.ev === r.id && x.kid === k); return { kid: k, applied: !!(m && !m.cancel) || (!m && staff.has(k)), byStaff: !m && staff.has(k), cancel: !!(m && m.cancel), data: m ? J(m.data, {}) : null }; }) });
+      mine: kids.map(k => { const m0 = mine.find(x => x.ev === r.id && x.kid === k), m = m0 && m0.state === 'staff' && staff.has(k) ? null : m0; // 도장에서 뺐다가 다시 넣으면 다시 '도장에서 접수'
+        return { kid: k, applied: !!(m && !m.cancel) || (!m && staff.has(k)), byStaff: !m && staff.has(k), cancel: !!(m && m.cancel), staffCx: !!(m && m.cancel && m.state === 'staff'), data: m ? J(m.data, {}) : null }; }) });
   }
   return out.sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
 }
@@ -997,6 +1005,24 @@ async function esignSet(env, b, kids) {
   await run(env, 'INSERT INTO pushq (text, at) VALUES (?, ?)', d.title + ' · ' + what, now);
   await bumpItem(env, ev); // 업무 앱이 새로 받아 가도록
   return { ok: true };
+}
+// 업무 앱 행사표에서 제자를 빼면(✕) = 도장에서 신청 취소: 학부모 앱에 '도장에서 취소했어요' + 보호자 휴대폰 알림 (2026-11-13 사용자 요청)
+// 학부모 앱에서 신청했거나(esign) 학부모 앱에 보이는 행사(pub)에 직원이 넣었던 제자만. 비회원·대기·학부모가 이미 취소한 줄은 빼고.
+async function staffCancel(env, ev, oldD, newD, names, rm, me) {
+  if (oldD.kind === 'goods' || newD.kind === 'goods') return;
+  const keep = new Set(names), gone = [...new Set(rm)].filter(n => n && !keep.has(n)).slice(0, 50);
+  if (!gone.length) return;
+  const now = Date.now(), title = str(newD.title || oldD.title, 100);
+  for (const kid of gone) {
+    const row = (oldD.rows || []).find(x => x && x.name === kid);
+    if (row && (row.guest || row.wait || row.appCancel)) continue;
+    const e = await one(env, 'SELECT cancel FROM esign WHERE ev = ? AND kid = ?', ev, kid);
+    if (e && e.cancel) continue;
+    if (!e && (!row || !newD.pub)) continue; // 학부모 앱에 안 보이는 행사에 직원이 넣었다 뺀 것은 알리지 않음
+    await run(env, "INSERT INTO esign (ev, kid, data, rel, cancel, state, at, upd) VALUES (?, ?, '{}', '', 1, 'staff', ?, ?) ON CONFLICT(ev, kid) DO UPDATE SET cancel = 1, state = 'staff', upd = excluded.upd", ev, kid, now, now);
+    const r = await noticeSync(env, '/sync/notify', { name: kid, title: '🎟 행사 신청이 취소되었어요', body: title + ' · ' + kid + ' 신청이 도장에서 취소되었어요. 궁금한 점은 도장에 문의해 주세요', view: 'plan' });
+    await addLog(env, me.id, 'event', '🎟 ' + title + ': ' + kid + ' 신청 취소 (도장) · 학부모 ' + (r.ok ? '알림 보냄' : '알림 못 보냄' + (r.error ? ' — ' + str(r.error, 60) : '')), ev);
+  }
 }
 // ─────────── 학부모 연락 · 미션 ───────────
 async function ptplGet(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'ptpl'"); const l = r ? J(r.v, PTPL0) : PTPL0; return l.map(t => t.label === '오늘 컨디션이 안 좋아요' ? { ...t, label: '오늘은 운동을 살살 부탁드려요' } : t); } // 2026-11-13 문구 바꿈 (예전에 저장한 목록도)
