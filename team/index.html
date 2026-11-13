@@ -18,8 +18,8 @@
   :root{--brand:#0D326F;--brand2:#09244F;--brand3:#1E4C97;--soft:#E8EEF8;--soft2:#D3DEF1;--red:#A40F16;--ink:#1D2330;--muted:#7B8294;--paper:#F3F5F9;--card:#fff;--line:#E2E6EE;--chip:#EEF1F6;--ok:#1E8A5A;--okbg:#DDF3E7;--no:#C62828;--nobg:#FCE4E4;--org:#E0861F;--yel:#FFF5D9}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
-  html{-webkit-text-size-adjust:100%}
-  body{font-family:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5}
+  html{-webkit-text-size-adjust:100%;overscroll-behavior-y:none}
+  body{font-family:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5;overscroll-behavior-y:none} /* 스크롤 끝에서 화면이 튕기며 아래 메뉴가 같이 움직이던 것 (2026-11-13) */
   button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
   input,select,textarea{font:inherit;color:var(--ink)}
   svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
