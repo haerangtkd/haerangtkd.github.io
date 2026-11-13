@@ -918,8 +918,7 @@ function dashRow2() {
   return '<div class="kpis k2"><button data-go="kids"><small>재원 (휴원 빼고)</small><b>' + (ks ? ks.on : '–') + '</b><em>' + (chg || '&nbsp;') + '</em></button>' +
     '<button data-kh="1"><small>오늘 출석</small><b>' + (ks ? ks.here.length : '–') + '</b><em' + (ks && ks.notYet.length ? ' class="r"' : '') + '>' + (ks ? '결석 ' + ks.absent.length + ' · 미확인 ' + ks.notYet.length : '&nbsp;') + '</em></button>' +
     '<button data-app="appNtc"><small>가입 승인</small><b>' + (pd == null ? '–' : pd) + '</b><em' + (pd ? ' class="r"' : '') + '>' + (pd ? '기다리는 중' : '&nbsp;') + '</em></button>' +
-    '<button data-sign="1"><small>앱 행사 신청</small><b>' + ns + '</b><em' + (ns ? ' class="r"' : '') + '>' + (ns ? '새로 들어옴' : '&nbsp;') + '</em></button></div>' +
-    (ks && ks.notYet.length ? '<button class="kun" data-kh="1"><b>미확인 ' + ks.notYet.length + '</b> ' + ks.notYet.map(x => esc(x.name)).join(' · ') + '</button>' : ''); // 미확인은 이름까지
+    '<button data-sign="1"><small>앱 행사 신청</small><b>' + ns + '</b><em' + (ns ? ' class="r"' : '') + '>' + (ns ? '새로 들어옴' : '&nbsp;') + '</em></button></div>'; // 미확인 이름은 카드를 눌렀을 때 화면에서만 (2026-11-13 사용자 요청)
 }
 // ═════════ 대시보드 (한눈에: 오늘 할 일 · 현재 행사 · 등원 · 일정) ═════════
 function renderHome() {
