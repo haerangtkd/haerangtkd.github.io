@@ -66,7 +66,7 @@ async function jtplGet(env) { const v = J((await one(env, "SELECT v FROM kv WHER
 const PTPL0 = [
   { id: 'in', label: '보호자가 등원시킬게요', ask: 'who', act: 'in', reasons: [] },
   { id: 'out', label: '보호자가 하원시킬게요', ask: 'who', act: 'out', reasons: [] },
-  { id: 'cond', label: '오늘 컨디션이 안 좋아요', ask: 'why', act: '', reasons: ['감기 기운이 있어요', '배가 아파요', '피곤해해요', '다친 곳이 있어요'] },
+  { id: 'cond', label: '오늘은 운동을 살살 부탁드려요', ask: 'why', act: '', reasons: ['감기 기운이 있어요', '배가 아파요', '피곤해해요', '다친 곳이 있어요'] },
   { id: 'abs', label: '오늘 결석할게요', ask: 'why', act: 'absent', reasons: ['아파요', '가족 일정', '학교·학원 일정', '여행'] },
 ];
 // 청소 기본 설정 (이사범님이 설정에서 바꿀 수 있음): 한 주씩 돌아가며, 요일별 청소 + 매일 쓰레기
@@ -576,7 +576,7 @@ async function route(path, req, env, ctx) {
     const hws = await all(env, 'SELECT id, data, upd, del, mid FROM hw WHERE upd > ?', since), hwchk = hws.length ? await all(env, 'SELECT hw, kid, day, at, rel FROM hwchk WHERE hw IN (' + hws.map(() => '?').join(',') + ')', ...hws.map(h => h.id)) : [];
     const bkYm = addDays(td, 1).slice(8) === '01' ? td.slice(0, 7) : td.slice(8) <= '10' ? addDays(td.slice(0, 8) + '01', -1).slice(0, 7) : ''; // 말일 ~ 다음 달 10일
     const bkDue = me.boss && bkYm && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + bkYm)) ? bkYm : '';
-    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean),
+    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean), delReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'delreq:%'")).map(r => J(r.v, null)).filter(Boolean),
       msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: me.boss ? ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0 : 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
@@ -673,6 +673,12 @@ async function route(path, req, env, ctx) {
       return json({ ok: true, pending: true, id: sid });
     }
   }
+  if (path === '/api/delreq-no') { // 관리자: 삭제 요청 돌려보내기 (승인은 그냥 /api/item-del)
+    const nb = needBoss(); if (nb) return nb;
+    const k = 'delreq:' + str(b.id, 40), rq = J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, null);
+    await run(env, 'DELETE FROM kv WHERE k = ?', k); if (rq) await addLog(env, me.id, rq.type, me.name + '님이 \'' + rq.title + '\' 삭제 요청을 돌려보냈어요', rq.id); await bumpKv(env);
+    return json({ ok: true });
+  }
   if (path === '/api/outreq-ok' || path === '/api/outreq-no') { // 관리자: 퇴관 요청 승인·거절
     const nb = needBoss(); if (nb) return nb;
     const k = 'outreq:' + str(b.sid, 60), rq = J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, null);
@@ -690,7 +696,14 @@ async function route(path, req, env, ctx) {
   if (path === '/api/student-save') return json(await attSync(env, '/sync/student-save', { student: b.student, history: b.history, upd: b.upd, who: me.name, noRevive: !me.boss }));
   if (path === '/api/student-history') return json(await attSync(env, '/sync/history', { sid: str(b.sid, 60) }));
   // 첫 화면 카드: 학부모 앱 가입 승인 대기 수
-  if (path === '/api/dash') { const r = await noticeSync(env, '/sync/pending', {}); return json({ ok: true, pending: r.ok ? r.pending : null }); }
+  if (path === '/api/dash') { const r = await noticeSync(env, '/sync/pending', {}); return json({ ok: true, pending: r.ok ? r.pending : null, hpSkip: J((await one(env, "SELECT v FROM kv WHERE k = 'hpEvSkip'") || {}).v, []) }); }
+  if (path === '/api/hpev-skip') { // 홈페이지 행사 '행사표에 등록 안 함' (2026-11-13, 직원 모두에게서 사라짐)
+    const k = str(b.key, 120); if (!k) return json({ ok: false, error: '행사를 확인해 주세요' });
+    const list = [...new Set([...J((await one(env, "SELECT v FROM kv WHERE k = 'hpEvSkip'") || {}).v, []), k])].slice(-200);
+    await run(env, "INSERT INTO kv (k, v) VALUES ('hpEvSkip', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(list));
+    await addLog(env, me.id, 'event', '🎟 홈페이지 행사 행사표에 안 넣음: ' + k.split('|')[1], '');
+    return json({ ok: true, list });
+  }
 
   // 할 일 · 일정 · 행사표 · 구매표 저장 (what: 알림에 쓸 한 줄)
   if (path === '/api/item') {
@@ -719,6 +732,16 @@ async function route(path, req, env, ctx) {
   }
   if (path === '/api/item-del') {
     const it = await one(env, 'SELECT type, data FROM items WHERE id = ?', str(b.id, 40)); if (!it) return json({ ok: true });
+    if (!me.boss && (it.type === 'event' || it.type === 'buy')) { // 행사·물품·구매표 삭제는 관리자 승인 (2026-11-13 사용자 결정)
+      const id = str(b.id, 40), d = J(it.data, {});
+      await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'delreq:' + id, JSON.stringify({ id, title: d.title || '', type: it.type, kind: d.kind || '', mid: me.id, who: me.name, at: Date.now() }));
+      await addLog(env, me.id, it.type, me.name + '님이 \'' + (d.title || '') + '\' 삭제를 요청했어요 (관리자 승인 대기)', id);
+      const subs = await all(env, 'SELECT s.* FROM subs s JOIN members m ON m.id = s.mid WHERE m.boss = 1 AND s.mid <> ?', me.id);
+      ctx.waitUntil(pushTo(env, subs, '해랑 업무 · 삭제 승인', (d.title || '') + ' 삭제 요청 (' + me.name + ')', 'home').catch(() => {}));
+      await bumpKv(env);
+      return json({ ok: true, pending: true });
+    }
+    await run(env, "DELETE FROM kv WHERE k = ?", 'delreq:' + str(b.id, 40));
     await run(env, 'UPDATE items SET del = 1, upd = ? WHERE id = ?', Date.now(), str(b.id, 40));
     await run(env, 'DELETE FROM reminders WHERE item = ?', str(b.id, 40));
     notify(me.name, TYPE_KO[it.type] + ' 지움: ' + (J(it.data, {}).title || ''), it.type, '');
@@ -904,7 +927,7 @@ async function openEvents(env, kids) {
     const d = J(r.data, {}); if (!d.pub || d.closed || d.kind === 'goods') continue;
     const w = evWindow(d, day); if (!w.open || (d.date && d.date < day)) continue;
     const staff = new Set((d.rows || []).map(x => x.name));
-    out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit,
+    out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), prep: str(d.prep, 300), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit,
       mine: kids.map(k => { const m = mine.find(x => x.ev === r.id && x.kid === k); return { kid: k, applied: !!(m && !m.cancel) || (!m && staff.has(k)), byStaff: !m && staff.has(k), cancel: !!(m && m.cancel), data: m ? J(m.data, {}) : null }; }) });
   }
   return out.sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
@@ -929,14 +952,14 @@ async function esignSet(env, b, kids) {
   return { ok: true };
 }
 // ─────────── 학부모 연락 · 숙제 ───────────
-async function ptplGet(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'ptpl'"); return r ? J(r.v, PTPL0) : PTPL0; }
+async function ptplGet(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'ptpl'"); const l = r ? J(r.v, PTPL0) : PTPL0; return l.map(t => t.label === '오늘 컨디션이 안 좋아요' ? { ...t, label: '오늘은 운동을 살살 부탁드려요' } : t); } // 2026-11-13 문구 바꿈 (예전에 저장한 목록도)
 // 학부모 연락 짧게: '엄마 하원' · '결석 · 아파요' (업무 앱 카드·학부모 앱 목록·확인 알림이 같이 씀)
 function pmShort(m) {
   const t = m.text ? ' · ' + m.text : '';
   if (m.act === 'in' || m.act === 'out') return (m.who || m.rel || '보호자') + (m.act === 'in' ? ' 등원' : ' 하원') + t;
   if (m.act === 'absent') return '결석' + (m.why ? ' · ' + m.why : '') + t;
   if (!m.kind || m.kind === 'text') return m.text || '';
-  return String(m.label || '').replace(/^오늘 /, '') + (m.who ? ' (' + m.who + ')' : '') + (m.why ? ' · ' + m.why : '') + t;
+  return String(m.label || '').replace(/^오늘은? /, '') + (m.who ? ' (' + m.who + ')' : '') + (m.why ? ' · ' + m.why : '') + t;
 }
 async function pmsgSend(env, b, kids, ctx) {
   const kid = str(b.kid, 20); if (!kids.includes(kid)) return { ok: false, error: '제자 이름을 확인해 주세요' };
@@ -1006,6 +1029,21 @@ async function runNoteAlerts(env, day) {
   }
 }
 
+// 출석부 '연락 필요' (2026-11-13): 새로 생긴 것만 직원 모두에게 한 번 알림 + 알림 기록 (대시보드 긴급 카드는 /api/students의 cneed)
+async function runCneed(env, day) {
+  const r = await attSync(env, '/sync/cneed', {}); if (!r.ok) return;
+  const key = 'cnsent', sent = J((await one(env, 'SELECT v FROM kv WHERE k = ?', key) || {}).v, {}), live = {};
+  let changed = false;
+  for (const x of r.list || []) {
+    const k = x.day + ':' + x.sid; live[k] = sent[k] || x.at;
+    if (sent[k] === x.at) continue; changed = true; live[k] = x.at;
+    const body = x.name + ' 학생이나 부모님께 연락이 필요해요' + (x.why ? ' · ' + x.why : '') + (x.who ? ' (' + x.who + ')' : '');
+    await pushAll(env, '', '🚨 긴급 · 연락 필요', body, 'home');
+    await addLog(env, '', 'kid', '🚨 ' + body, '');
+  }
+  if (changed || Object.keys(sent).length !== Object.keys(live).length) await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', key, JSON.stringify(live));
+}
+
 // ─────────── 청소 ───────────
 async function cleanConf(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'clean'"); return r ? J(r.v, null) : null; }
 const KDAY = ['일', '월', '화', '수', '목', '금', '토'];
@@ -1055,6 +1093,7 @@ async function runTimed(env, now = Date.now()) {
   if (m >= 8 * 60 && m < 21 * 60) { const q2 = await all(env, 'SELECT id, text FROM pushq2 ORDER BY id LIMIT 30'); if (q2.length) { await run(env, 'DELETE FROM pushq2 WHERE id <= ?', q2[q2.length - 1].id); await pushAll(env, '', '💬 밤사이 학부모 연락 ' + q2.length + '건', q2.slice(0, 3).map(x => x.text).join('\n') + (q2.length > 3 ? '\n외 ' + (q2.length - 3) + '건' : ''), 'home'); } }
   await runPickupAlerts(env, day);
   try { await runNoteAlerts(env, day); } catch (_) {}
+  try { await runCneed(env, day); } catch (_) {}
   // 매달 말일 12시: 관리자에게 '앱 전체 백업 받기' (주말이면 월요일 12시에 — 직원 알림 시간 규칙)
   if (m >= 12 * 60 && addDays(day, 1).slice(8) === '01' && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + day.slice(0, 7))) && await onceAt(env, 'sent:' + day + ':bk')) {
     const ids = (await all(env, 'SELECT id FROM members WHERE boss = 1')).map(x => x.id);
