@@ -183,6 +183,7 @@ async function route(path, req, env) {
       }
       return json({ ok: true, added: out });
     }
+    if (path === '/sync/student-delete') return json(await studentDelete(env, str(b.sid, 60), !!b.dry)); // 업무 앱 '원생 삭제'(관리자만, 업무 서버가 확인) — dry: 무엇이 지워지는지만
     if (path === '/sync/fam-set') { // 업무 앱: 형제·자매 묶기/풀기 {sids, famId}
       const ids = (Array.isArray(b.sids) ? b.sids : []).slice(0, 10).map(x => str(x, 60)), fam = str(b.famId, 40), now = Date.now(), st = [];
       for (const id of ids) {
@@ -394,10 +395,9 @@ async function route(path, req, env) {
     try { const r = await env.NOTICE.fetch('https://notice/sync/teacher-checkin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify({ name: J(st.data, {}).name }) }); return json(await r.json()); }
     catch (_) { return json({ ok: false, error: '학부모 알림 앱에 연결하지 못했어요' }); }
   }
-  if (path === '/api/student-delete') {
-    const id = str(b.id, 60);
-    await env.DB.batch(['students WHERE id', 'att WHERE sid', 'absences WHERE sid', 'history WHERE sid'].map(t => q(env, 'DELETE FROM ' + t + ' = ?', id)));
-    return json({ ok: true });
+  if (path === '/api/student-delete') { // 원생 삭제는 관리자만 (2026-11-14 사용자 결정) — 학부모 앱·태블릿 쪽도 같이 지움
+    if (!me.boss) return json({ ok: false, error: '원생 삭제는 관리자만 할 수 있어요' }, 403);
+    return json(await studentDelete(env, str(b.id, 60), false));
   }
   if (path === '/api/history') return json({ ok: true, items: await all(env, 'SELECT id, sid, tid, at, text, who FROM history WHERE sid = ? ORDER BY at DESC LIMIT 200', str(b.sid, 60)) });
 
@@ -479,6 +479,16 @@ async function importChunk(env, b) {
 
 // 내려받기 비밀번호 확인 (5번마다 잠금, 1분·2분·3분…)
 // 업무 앱 직원·PIN은 알림 서버를 거쳐 업무 서버에서 확인 (출석부에는 업무 서버 연결이 없음) — 2026-11-13 사용자 결정: 사범님 PIN은 업무 앱에서만
+// 원생 삭제 (2026-11-14 사용자 결정: 한쪽에서 지우면 다 같이, 관리자만): 출석부 기록 + 학부모 앱·태블릿(이름이 같은 다른 원생이 있으면 알림 쪽은 건드리지 않음)
+async function studentDelete(env, sid, dry) {
+  const r = sid ? await one(env, 'SELECT data FROM students WHERE id = ?', sid) : null; if (!r) return { ok: false, error: '원생을 찾지 못했어요' };
+  const name = String(J(r.data, {}).name || ''), same = (await all(env, 'SELECT data FROM students WHERE id <> ?', sid)).some(x => J(x.data, {}).name === name);
+  const cnt = async t => ((await one(env, 'SELECT COUNT(*) AS n FROM ' + t + ' WHERE sid = ?', sid)) || {}).n || 0;
+  const att = { att: await cnt('att'), absences: await cnt('absences'), history: await cnt('history') };
+  const notice = same ? { ok: true, skip: true } : await noticeCall(env, '/sync/kid-remove', { name, dry });
+  if (!dry) await env.DB.batch(['students WHERE id', 'att WHERE sid', 'absences WHERE sid', 'history WHERE sid'].map(t => q(env, 'DELETE FROM ' + t + ' = ?', sid)));
+  return { ok: true, name, same, att, notice };
+}
 async function noticeCall(env, path, body) {
   if (!env.NOTICE || !env.SYNC_KEY) return { ok: false, error: '업무 앱에 연결되지 않았어요' };
   try { return await (await env.NOTICE.fetch('https://notice' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify(body) })).json(); }
