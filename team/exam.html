@@ -181,7 +181,7 @@ function drawList() {
   if (!V.length) h += '<p class="empty">' + (n ? '맞는 제자가 없어요' : '출석부 명단이 비어 있어요') + '</p>';
   GROUPS.forEach(g => { const G = V.filter(k => k.group === g); if (!G.length) return; h += '<div class="gh">' + g + ' ' + G.length + '명</div><div class="grid">' + G.map(k => { const s = stateOf(k), d = dataOf(k); const up = s === 'done' && d.pass !== false && d.nb && d.nb !== k.cur;
     return '<button class="kid ' + s + '" data-k="' + esc(k.id) + '"><b>' + esc(k.name) + '</b><small>' + esc(k.grade || '') + ' · ' + esc(k.cur || '띠 모름') + '</small><em>' + (s === 'done' ? (d.pass === false ? '불합격' : up ? '합격 → ' + esc(d.nb) : '합격 · 띠 그대로') : SLBL[s]) + (k.status === '휴원' ? ' · 휴원' : '') + '</em></button>'; }).join('') + '</div>'; });
-  h += '<div class="bar" style="margin-top:16px">' + (closed() ? '<p class="help" style="margin:0 0 8px">마감을 풀면 이번 심사로 바뀐 띠가 예전 띠로 돌아가요 (그 뒤에 손으로 바꾼 띠는 그대로).</p><button class="btn" id="reopen">마감 풀기</button>' :
+  h += '<div class="bar" style="margin-top:16px">' + (closed() ? (meta.closed.notified ? '<p class="help" style="margin:0 0 8px">✅ ' + new Date(meta.closed.notified).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' 학부모님께 결과 알림을 보냈어요.</p>' : '<button class="btn p" id="notify" style="margin-bottom:10px">학부모님께 결과 알림 보내기</button>') + '<p class="help" style="margin:0 0 8px">마감을 풀면 이번 심사로 바뀐 띠가 예전 띠로 돌아가요 (그 뒤에 손으로 바꾼 띠는 그대로). 학부모 앱 심사 결과도 다시 마감할 때까지 안 보여요.</p><button class="btn" id="reopen">마감 풀기</button>' :
     '<p class="help" style="margin:0 0 8px">다 채점했으면 마감해 주세요. 마감하면 합격한 제자의 새 띠가 📈 성장에 들어가요.</p><button class="btn r" id="close">심사 마감 · 띠 반영</button>') + '</div>';
   $('#main').innerHTML = h;
   $('#q').oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; drawList(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); };
@@ -191,6 +191,7 @@ function drawList() {
   $('#setB').onclick = setSheet;
   if ($('#close')) $('#close').onclick = closeExam;
   if ($('#reopen')) $('#reopen').onclick = reopenExam;
+  if ($('#notify')) $('#notify').onclick = () => { if (confirm('학부모님께 심사 결과 알림을 보낼까요?')) notifyExam(); };
 }
 function visible(L) { const q = S.q.trim(); return L.filter(k => (!S.g || k.group === S.g) && (!q || k.name.includes(q)) && (S.f === 'all' || (S.f === 'todo' ? ['todo', 'half'].includes(stateOf(k)) : stateOf(k) === S.f))); }
 function drawCard() {
@@ -259,6 +260,12 @@ async function closeExam() {
   const j = await api('/api/exam-close', { month: S.month });
   if (!j.ok) return toast(j.error || '마감하지 못했어요');
   toast('마감했어요 · 띠 바뀐 제자 ' + j.n + '명'); await load(true);
+  if (confirm('학부모님께 \'' + (+S.month.slice(5)) + '월 심사 결과가 나왔어요\' 알림을 보낼까요?\n(이번 달 심사를 본 제자의 보호자에게만, 학부모 앱 성장 리포트 → 심사에서 점수와 결과가 보여요)')) notifyExam();
+}
+async function notifyExam() { // 6명씩 나눠 보내기 (알림 서버 무료 한도)
+  toast('학부모님께 알림 보내는 중…'); let off = 0, sent = 0;
+  for (let i = 0; i < 60; i++) { const r = await api('/api/exam-notify', { month: S.month, offset: off }); if (!r.ok) { toast(r.error || '알림을 다 보내지 못했어요'); return load(false); } sent += r.sent || 0; if (!r.next) break; off = r.next; }
+  toast('알림을 보냈어요 · ' + sent + '명'); load(false);
 }
 async function reopenExam() {
   if (!confirm('마감을 풀까요?\n이번 심사로 바뀐 띠가 예전 띠로 돌아가요.')) return;

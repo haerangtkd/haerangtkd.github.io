@@ -405,7 +405,7 @@ async function route(path, req, env) {
   // 업무 앱: 숙제 올릴 때 학부모님께 알림 (대상 제자 또는 모두)
   if (path === '/sync/broadcast') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
-    return json(await send(env, { kind: '미션', title: b.title, body: b.body, children: b.children, view: '', offset: b.offset | 0 })); // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
+    return json(await send(env, { kind: b.kind === '심사' ? '심사' : '미션', title: b.title, body: b.body, children: b.children, view: b.view === 'grow' ? 'grow' : '', offset: b.offset | 0 })); // view 'grow' = 승급 심사 결과 → 성장 리포트 // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
   }
   // 업무 앱 '한 파일 백업': 표 목록·표 내용 (관리자 비밀번호는 업무 서버가 먼저 확인)
   if (path === '/sync/bk-tables' || path === '/sync/bk-dump') {

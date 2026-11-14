@@ -210,6 +210,7 @@ textarea{resize:vertical;line-height:1.65}
     <div class="field"><span>들어가는 기록</span><div class="qinfo" id="sQuarter"></div></div>
     <label class="field"><span>휴무일 (출석 계산에서 빼요)</span><input type="text" id="sHol" placeholder="예: 9/24, 9/25"></label>
     <div class="field"><span>끈기와 꾸준함 기준 (출석률 %)</span><div class="two" style="gap:6px"><label><span class="sr">아주 잘해요 기준</span><input type="number" id="sThHi" min="0" max="100" placeholder="아주 잘해요 90"></label><label><span class="sr">잘해요 기준</span><input type="number" id="sThMid" min="0" max="100" placeholder="잘해요 75"></label></div></div>
+    <div class="field"><span>집중·자신감·배려 기준 (심사 평균 점수, 5점 만점)</span><div class="two" style="gap:6px"><label><span class="sr">아주 잘해요 기준</span><input type="number" id="sExHi" min="1" max="5" step="0.1" placeholder="아주 잘해요 4.5"></label><label><span class="sr">잘해요 기준</span><input type="number" id="sExMid" min="1" max="5" step="0.1" placeholder="잘해요 3.5"></label></div></div>
     <label class="field"><span>현재 선범단 인원</span><input type="number" id="sSbN" min="1" step="1" inputmode="numeric"></label>
     <label class="field"><span>연락처</span><input type="text" id="sPhone"></label>
   </section>
@@ -498,8 +499,20 @@ const hasQ = k => qVals(k,curEv()).some(x=>x.v!=null);
 const hasAny = k => DATA.events.some(e=>k.rec[e.name]&&Object.keys(k.rec[e.name]).length);
 function attPct(i){ if(!i) return null; if(i.an!=null&&i.an!==''&&+i.at>0) return +i.an/+i.at*100; if(i.rate!=null&&i.rate!=='') return +i.rate; return null; }
 function attAuto(i){ const p=attPct(i); if(p==null) return null; const hi=+((settings.attTh||{}).hi??90), mid=+((settings.attTh||{}).mid??75); return p>=hi? '아주 잘해요' : p>=mid? '잘해요' : '성장 중이에요'; }
-function effAtt(i){ const a=[...((i&&i.att)||[null,null,null,null])]; const au=attAuto(i); if(au) a[1]=au; return a; }
-function isDone(k){const i=peek(k); return !!(i && effAtt(i).every(Boolean) && i.cm.trim());}
+/* 승급 심사 → 02·04·05 자동 (2026-11-14): 그 달이 든 분기 안에서 그 달까지 마감한 심사의 평균 점수 (업무 앱 🏅 심사). 02 ← 품새, 04 ← 웅변·영어, 05 ← 예절·태도(채점했을 때만) */
+let EXAM=null;
+async function loadExam(){ try{ const j=await tcall('/api/exam-closed',{}); EXAM=j.ex||{}; renderList(); if(view==='detail'){renderEditor();renderPreview();} }catch(e){} }
+const exTh=()=>({hi:+((settings.examTh||{}).hi??4.5), mid:+((settings.examTh||{}).mid??3.5)});
+function examAuto(k){
+  if(!EXAM||!k) return {}; const month=settings.month||todayISO().slice(0,7), y=+month.slice(0,4), mo=+month.slice(5), q0=Math.floor((mo-1)/3)*3+1, S={poom:[],talk:[],manner:[]}, th=exTh(); let n=0;
+  for(let m=q0;m<=mo;m++){ const rows=EXAM[y+'-'+String(m).padStart(2,'0')]; if(!rows) continue;
+    const r=rows.find(x=>k.sid&&x.sid===k.sid) || (!k.sid||!rows.some(x=>x.sid===k.sid)? rows.find(x=>x.name===k.name) : null); if(!r||r.absent) continue; const sc=r.sc||{}; let any=false;
+    if(sc.poom){S.poom.push(+sc.poom);any=true;} ['speech','eng'].forEach(x=>{ if(sc[x]){S.talk.push(+sc[x]);any=true;} }); if(sc.manner){S.manner.push(+sc.manner);any=true;} if(any) n++; }
+  const lv=a=>{ if(!a.length) return null; const v=a.reduce((x,z)=>x+z,0)/a.length; return {lv: v>=th.hi?'아주 잘해요': v>=th.mid?'잘해요':'성장 중이에요', avg:Math.round(v*10)/10}; };
+  return {0:lv(S.poom), 2:lv(S.talk), 3:lv(S.manner), n};
+}
+function effAtt(i,k){ const a=[...((i&&i.att)||[null,null,null,null])]; const au=attAuto(i); if(au) a[1]=au; const ex=examAuto(k); [0,2,3].forEach(j=>{ if(ex[j]) a[j]=ex[j].lv; }); return a; }
+function isDone(k){const i=peek(k); return !!(i && effAtt(i,k).every(Boolean) && i.cm.trim());}
 const better = (ev,a,b) => ev.lower? a<b : a>b;
 const isFail = v => v!=null && typeof v==='object';
 function vtxt(v,ev){ if(v==null) return '–'; if(isFail(v)) return (v.f? v.f+ev.unit+' 도전 ':'')+'실패'; return fmt(v)+ev.unit+(ev.pf?' 성공':''); }
@@ -626,7 +639,7 @@ function sheetResult(k){
   const cards = FACTORS.map((f,j)=>{
     let body;
     if(j===0) body=`<div style="font-size:${s&&s.ms.length>1&&s.d>0?17:15}px;font-weight:900;line-height:1.35">${g}</div>`;
-    else { const lv=effAtt(i)[j-1]; body=lvBar(lv)+`<div style="font-size:14px;font-weight:700;min-height:20px">${esc(lv||'')}</div>`+(j===2&&attLine(i)?`<div style="font-size:12px;color:#3D3D3D;line-height:1.5">${attLine(i)}</div>`:''); }
+    else { const lv=effAtt(i,k)[j-1]; body=lvBar(lv)+`<div style="font-size:14px;font-weight:700;min-height:20px">${esc(lv||'')}</div>`+(j===2&&attLine(i)?`<div style="font-size:12px;color:#3D3D3D;line-height:1.5">${attLine(i)}</div>`:''); }
     return `<div style="border:1px solid #D9D3CA;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px">
 <div style="display:flex;align-items:center;gap:7px">${fIcon(f)}<div style="font-size:14px;font-weight:900;color:${A};line-height:1.3">${f.br}</div></div>
 <div style="height:62px;display:flex;flex-direction:column;gap:6px">${body}</div>
@@ -680,7 +693,7 @@ function sheetInvite(k){
   const rowsF = FACTORS.map((f,j)=>{
     let c2='', c3='';
     if(j===0){ c2='성장 측정을 해야해요'; c3=''; }
-    else { c2 = j===2? attLine(i) : ''; c3 = `<div style="font-size:14px;font-weight:700">${esc(effAtt(i)[j-1]||'')}</div>`; }
+    else { c2 = j===2? attLine(i) : ''; c3 = `<div style="font-size:14px;font-weight:700">${esc(effAtt(i,k)[j-1]||'')}</div>`; }
     return `<div style="border:1px solid #D9D3CA;border-radius:10px;padding:7px 16px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;align-items:center;min-height:22px">
 <div style="grid-column:span 3;font-size:14px;font-weight:900;color:${A}">0${j+1} ${f.t}</div>
 <div style="grid-column:span ${j===0?5:3};font-size:13px;color:${j===0?A:'#3D3D3D'};${j===0?'font-weight:700':''}">${esc(c2)}</div>
@@ -736,7 +749,7 @@ function renderGrid(v){
     const done=isDone(k), q=hasQ(k), i=peek(k)||{att:[],cm:''};
     const any=hasAny(k), id=kidId(k), b=beltOf(k), rate=rateOf(k);
     const rec = q? qVals(k,ev).filter(x=>x.v!=null).map(x=>`${x.m}월 ${vtxt(x.v,ev)}`).join(' · ') : any? '이번 분기 기록 없음' : '올해 기록 없음';
-    const ea=effAtt(i), dots = [0,1,2,3].map(j=>`<span class="dot ${ea[j]?'on':''}"></span>`).join('') + `<span class="dot ${i.cm&&i.cm.trim()?'on':''}"></span>`;
+    const ea=effAtt(i,k), dots = [0,1,2,3].map(j=>`<span class="dot ${ea[j]?'on':''}"></span>`).join('') + `<span class="dot ${i.cm&&i.cm.trim()?'on':''}"></span>`;
     let foot;
     if(promo){ const n=nextBelt(k); foot = `<span class="promo-line">${!b?'띠 미입력 · 골라서 띠 지정':n===b?`${esc(b)} 그대로`:`${esc(b)} → <b>${esc(n)}</b>`}</span>`; }
     else foot = `<span class="prog" aria-label="성장 관찰 4개와 한마디 입력 상태">${dots}<span>${done?'입력 끝':'관찰 · 한마디'}</span></span>`;
@@ -818,10 +831,12 @@ function renderEditor(){
   <label class="check sbcheck"><input type="checkbox" id="eSB" ${sb?'checked':''}> 선범단이에요</label>
 
   <div class="sec"><h3>5가지 성장 <em>02~05 사범님 관찰</em></h3>
-    ${ATT.map((a,j)=>{ const au = j===1? attAuto(i) : null;
+    ${ATT.map((a,j)=>{ const au = j===1? attAuto(i) : null, ex = j!==1? examAuto(k)[j] : null;
       if(au) return `<div class="att"><span>0${j+2} ${a}</span><div class="autolv"><b>${au}</b> <span>출석 ${esc(attLine(i).replace('출석 ',''))} · 자동</span></div></div>`;
+      if(ex) return `<div class="att"><span>0${j+2} ${a}</span><div class="autolv"><b>${ex.lv}</b> <span>심사 ${['품새','','웅변·영어','예절·태도'][j]} 평균 ${ex.avg}점 · 자동</span></div></div>`;
       return `<div class="att" role="radiogroup" aria-label="${a}"><span>0${j+2} ${a}</span><div class="seg">${LEVELS.map(l=>`<label><input type="radio" name="att${j}" value="${l}" ${i.att[j]===l?'checked':''}>${l}</label>`).join('')}</div></div>`; }).join('')}
     <div class="meta">끈기와 꾸준함은 출석이 들어오면 자동이에요 · ${(settings.attTh||{}).hi??90}% 이상 아주 잘해요, ${(settings.attTh||{}).mid??75}% 이상 잘해요, 그 아래 성장 중이에요</div>
+    <div class="meta">집중과 자기조절(품새)·자신감과 표현력(웅변·영어)·배려와 리더십(예절·태도)은 🏅 심사를 마감하면 자동이에요 · 이번 분기 평균 ${exTh().hi}점 이상 아주 잘해요, ${exTh().mid}점 이상 잘해요</div>
   </div>
   <div class="sec"><h3><label for="eCm">사범님 한마디</label><em>ㅇㅇ 자리에 ${esc(callName(k.name))} 들어가요</em></h3>
     <textarea id="eCm" rows="4" placeholder="아래에서 고르거나 직접 써주세요">${esc(i.cm)}</textarea>
@@ -879,11 +894,12 @@ new ResizeObserver(fit).observe($('stage'));
 /* ---------- settings ---------- */
 function renderSettings(){
   const ev=curEv(), {y,m}=reportMonth();
-  $('sMonth').value=settings.month; $('sThHi').value=(settings.attTh||{}).hi??90; $('sThMid').value=(settings.attTh||{}).mid??75; $('sHol').value=settings.holidays==null?'9/4, 9/24, 9/25':settings.holidays; $('sPhone').value=settings.phone||''; $('sSbN').value=sbCount();
+  $('sMonth').value=settings.month; $('sThHi').value=(settings.attTh||{}).hi??90; $('sExHi').value=exTh().hi; $('sExMid').value=exTh().mid; $('sThMid').value=(settings.attTh||{}).mid??75; $('sHol').value=settings.holidays==null?'9/4, 9/24, 9/25':settings.holidays; $('sPhone').value=settings.phone||''; $('sSbN').value=sbCount();
   $('sQuarter').textContent = `${m<=3?y-1:y}년 ${qLabel(ev)} ${ev.name}`;
   $('srcLine').textContent = `${DATA.file} · ${DATA.students.length}명`;
 }
 $('sMonth').onchange=e=>{ if(!e.target.value) return; const was=periodKey(); settings.month=e.target.value; save(); renderSettings(); renderList(); if(view==='detail'){renderEditor();renderPreview();} if(periodKey()!==was) toast(`${reportMonth().m}월 결과지 입력으로 바뀌었어요 · ${qLabel(curEv())} 기록`);};
+['sExHi','sExMid'].forEach((id,n)=>$(id).oninput=e=>{settings.examTh=Object.assign({hi:4.5,mid:3.5},settings.examTh||{}); settings.examTh[n?'mid':'hi']=e.target.value===''?(n?3.5:4.5):+e.target.value; changed(true); if(view==='detail') renderEditor();});
 ['sThHi','sThMid'].forEach((id,n)=>$(id).oninput=e=>{settings.attTh=Object.assign({hi:90,mid:75},settings.attTh||{}); settings.attTh[n?'mid':'hi']=e.target.value===''?(n?75:90):+e.target.value; changed(true); if(view==='detail') renderEditor();});
 $('sHol').oninput=e=>{settings.holidays=e.target.value;save();};
 $('sPhone').oninput=e=>{settings.phone=e.target.value;changed();};
@@ -1131,7 +1147,7 @@ $('fBk').onchange=async e=>{
     toast('불러왔어요. 다시 여는 중이에요'); setTimeout(()=>location.reload(),900);
   }catch(err){ setSync(''); toast('불러오지 못했어요. '+(err.message||'')); }
 };
-load(); renderAll(); dbInit().then(()=>{ if(db) loadAttStatus(); });
+load(); renderAll(); dbInit().then(()=>{ if(db){ loadAttStatus(); loadExam(); } });
 </script>
 
 </body></html>

@@ -283,25 +283,27 @@ async function route(path, req, env, ctx) {
         sbList: L.filter(k => sb[id(k)] && status[id(k)] !== '퇴관').map(k => ({ name: k.name, belt: belts[id(k)] || k.belt0 || '' })),
         events: data ? (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })) : [], rec: me ? (me.rec || {}) : {} });
     }
-    if (path === '/sync/grow') { // 학부모 앱 '성장 리포트' (2026-11-14): 내 제자 이름의 성장 측정 기록만 — 결과지가 완성된 달(4가지 평가 + 사범님 한마디)만 보냄
+    if (path === '/sync/grow') { // 학부모 앱 '성장 리포트' (2026-11-14): 내 제자 이름의 성장 측정 기록만 — 결과지가 완성된 달(4가지 평가 + 사범님 한마디)만 보냄 + 마감한 승급 심사 결과
       const names = (Array.isArray(b.names) ? b.names : []).map(x => str(x, 20)).filter(Boolean).slice(0, 10); if (!names.length) return json({ ok: true, events: [], kids: [] });
       const gd = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
-      const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {};
-      if (!data || !Array.isArray(data.students)) return json({ ok: true, events: [], kids: [] });
+      const data = (await gd('app/data')) || {}, st = ((await gd('app/settings')) || {}).settings || {}, studs = Array.isArray(data.students) ? data.students : [];
       const th = st.attTh || {}, hi = +(th.hi ?? 90), mid = +(th.mid ?? 75);
       const pct = i => (i.an != null && i.an !== '' && +i.at > 0) ? +i.an / +i.at * 100 : (i.rate != null && i.rate !== '') ? +i.rate : null;
       const bat = c => { const k = c.charCodeAt(c.length - 1) - 0xAC00; return k >= 0 && k <= 11171 && k % 28 > 0; };
       const callName = n => { n = String(n).trim(); const g = n.length >= 4 ? n.slice(2) : n.length === 3 ? n.slice(1) : n; return g && bat(g) ? g + '이' : g; };
       const fill = (t, n) => String(t || '').replace(/(\[아이 ?이름\]|\[이름\]|○○|ㅇㅇ)(이(?=[는가를의도랑와한]))?/g, callName(n));
-      const per = await all(env, "SELECT path, data FROM gdocs WHERE path LIKE 'inputs/P%'");
-      const kids = data.students.filter(k => k && names.includes(k.name)).map(k => {
-        const id = k.name + '|' + k.birth, ps = [];
-        per.forEach(r => { const x = ((J(r.data, {}) || {}).kids || {})[id]; if (!x) return; const a = [...(x.att || [null, null, null, null])], p = pct(x); if (p != null) a[1] = p >= hi ? '아주 잘해요' : p >= mid ? '잘해요' : '성장 중이에요';
-          if (a.every(Boolean) && String(x.cm || '').trim()) ps.push({ month: r.path.slice(8), att: a, cm: fill(x.cm, k.name).slice(0, 600), pct: p == null ? null : Math.round(p), an: x.an ?? null, at: x.at ?? null }); });
-        ps.sort((p, q) => p.month.localeCompare(q.month));
-        return { name: k.name, rec: k.rec || {}, periods: ps };
-      });
-      return json({ ok: true, events: (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })), kids });
+      const per = studs.length ? await all(env, "SELECT path, data FROM gdocs WHERE path LIKE 'inputs/P%'") : [];
+      const ex = await examClosed(env), exTh = examTh(st);
+      const kids = names.map(n => {
+        const k = studs.find(x => x && x.name === n), ps = [], who = { sid: k && k.sid, name: n };
+        if (k) { const id = k.name + '|' + k.birth;
+          per.forEach(r => { const x = ((J(r.data, {}) || {}).kids || {})[id]; if (!x) return; const mo = r.path.slice(8), a = [...(x.att || [null, null, null, null])], p = pct(x); if (p != null) a[1] = p >= hi ? '아주 잘해요' : p >= mid ? '잘해요' : '성장 중이에요';
+            const au = examAuto(ex, who, mo.slice(0, 7), exTh); if (au.a0) a[0] = au.a0; if (au.a2) a[2] = au.a2; if (au.a3) a[3] = au.a3; // 심사 점수로 02·04·05 자동 (2026-11-14)
+            if (a.every(Boolean) && String(x.cm || '').trim()) ps.push({ month: mo, att: a, cm: fill(x.cm, k.name).slice(0, 600), pct: p == null ? null : Math.round(p), an: x.an ?? null, at: x.at ?? null, exam: au.n || 0 }); });
+          ps.sort((p, q) => p.month.localeCompare(q.month)); }
+        return { name: n, rec: (k && k.rec) || {}, periods: ps, exams: examList(ex, who) };
+      }).filter(x => x.periods.length || x.exams.length || studs.some(y => y && y.name === x.name));
+      return json({ ok: true, events: (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })), kids, examTh: exTh });
     }
     if (path === '/sync/done-events') { // 알림 관리 '알림장 쓰기': 완료한 행사표의 참가자 (2026-11-13 사용자 요청) — 완료한 지 30일 안, 최근 것부터
       const rows = await all(env, "SELECT id, data, upd FROM items WHERE type = 'event' AND del = 0 AND upd > ? ORDER BY upd DESC LIMIT 60", Date.now() - 30 * 864e5);
@@ -425,6 +427,10 @@ async function route(path, req, env, ctx) {
     await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', gp, d, Date.now(), me.id);
     return json({ ok: true });
   }
+  if (path === '/api/exam-closed') { // 📈 성장 화면: 마감한 심사 점수 (02·04·05 자동 채우기용, 점수만)
+    const ex = await examClosed(env), out = {}; Object.keys(ex).forEach(m => { out[m] = ex[m].rows.map(r => ({ sid: r.sid, name: r.name, sc: r.d.sc || {}, absent: !!r.d.absent })); });
+    return json({ ok: true, ex: out });
+  }
   // ═════════ 승급 심사 채점 (team/exam.html, 2026-11-14 사용자 결정) — 매달 한 번 모든 제자, 과목마다 1~5점, 합격·새 띠, 직원 누구나 채점·마감 ═════════
   if (path.startsWith('/api/exam-')) {
     const month = str(b.month, 7); if (!/^\d{4}-\d{2}$/.test(month)) return json({ ok: false, error: '잘못된 달이에요' });
@@ -443,6 +449,14 @@ async function route(path, req, env, ctx) {
         const ms = await all(env, 'SELECT id, name FROM members'); out.names = Object.fromEntries(ms.map(m => [m.id, m.name]));
       }
       return json(out);
+    }
+    if (path === '/api/exam-notify') { // 마감한 심사 → 그 달 심사를 본 제자의 보호자에게 '심사 결과가 나왔어요' (6명씩, 화면이 next 로 이어서 부름)
+      if (!meta.closed) return json({ ok: false, error: '마감한 뒤에 보낼 수 있어요' });
+      const kidsN = (await all(env, 'SELECT name, data FROM exam WHERE month = ?', month)).filter(r => !J(r.data, {}).absent).map(r => r.name).filter(Boolean);
+      if (!kidsN.length) return json({ ok: true, sent: 0, next: null });
+      const r = await noticeSync(env, '/sync/broadcast', { title: '🏅 ' + (+month.slice(5)) + '월 심사 결과가 나왔어요', body: '성장 리포트 → 심사에서 점수와 결과를 볼 수 있어요', children: kidsN, offset: b.offset | 0, view: 'grow', kind: '심사' });
+      if (r.ok && !r.next) { meta.closed.notified = Date.now(); await ks(mk, meta); }
+      return json(r);
     }
     if (path === '/api/exam-set') {
       if (meta.closed) return json({ ok: false, error: '마감한 심사예요. 고치려면 마감을 풀어 주세요' });
@@ -1081,6 +1095,30 @@ async function runReminders(env) {
   if (Math.random() < 0.05) await run(env, 'DELETE FROM reminders WHERE sent = 1 AND at < ?', now - 30 * 86400e3);
 }
 function fixMsg(m) { return { ...m, refs: J(m.refs, []), reply: J(m.reply, null), rx: J(m.rx, {}) }; }
+// 승급 심사 → 성장 측정지 자동 (2026-11-14, '해랑경희 웹앱 의견 정리' 3번): 02 집중과 자기조절 ← 품새, 04 자신감과 표현력 ← 웅변·영어, 05 배려와 리더십 ← 예절·태도(켰을 때만)
+// 그 달이 든 분기(1~3·4~6·7~9·10~12월) 안에서 그 달까지 마감한 심사의 평균 점수 → 기준(기본 4.5 이상 아주 잘해요, 3.5 이상 잘해요)
+const examTh = st => { const t = (st && st.examTh) || {}; return { hi: +(t.hi ?? 4.5), mid: +(t.mid ?? 3.5) }; };
+async function examClosed(env) { // 마감한 달만: { 'YYYY-MM': { meta, rows:[{sid, name, d}] } }
+  const ms = (await all(env, "SELECT k, v FROM kv WHERE k LIKE 'exam:%'")).map(r => ({ m: r.k.slice(5), meta: J(r.v, {}) })).filter(x => x.meta.closed && /^\d{4}-\d{2}$/.test(x.m));
+  const out = {}; if (!ms.length) return out; ms.forEach(x => { out[x.m] = { meta: x.meta, rows: [] }; });
+  const rs = await all(env, 'SELECT month, sid, name, data FROM exam WHERE month IN (' + ms.map(() => '?').join(',') + ')', ...ms.map(x => x.m));
+  rs.forEach(r => { out[r.month].rows.push({ sid: r.sid, name: r.name, d: J(r.data, {}) }); }); return out;
+}
+const examRowOf = (m, who) => m.rows.find(r => who.sid && r.sid === who.sid) || (!who.sid || !m.rows.some(r => r.sid === who.sid) ? m.rows.find(r => r.name === who.name) : null);
+function examAuto(ex, who, month, th) {
+  const y = +month.slice(0, 4), q0 = Math.floor((+month.slice(5) - 1) / 3) * 3 + 1, sum = { poom: [], talk: [], manner: [] }; let n = 0;
+  for (let mo = q0; mo <= +month.slice(5); mo++) { const m = ex[y + '-' + String(mo).padStart(2, '0')]; if (!m) continue; const r = examRowOf(m, who); if (!r || r.d.absent) continue; const sc = r.d.sc || {}; let any = false;
+    if (sc.poom) { sum.poom.push(+sc.poom); any = true; } ['speech', 'eng'].forEach(k => { if (sc[k]) { sum.talk.push(+sc[k]); any = true; } }); if (sc.manner) { sum.manner.push(+sc.manner); any = true; } if (any) n++; }
+  const lv = a => { if (!a.length) return null; const v = a.reduce((x, z) => x + z, 0) / a.length; return v >= th.hi ? '아주 잘해요' : v >= th.mid ? '잘해요' : '성장 중이에요'; };
+  return { a0: lv(sum.poom), a2: lv(sum.talk), a3: lv(sum.manner), n };
+}
+function examList(ex, who) { // 학부모 앱 '심사': 마감한 달마다 (최근 12달)
+  const cfg = examCfg(null).subj;
+  return Object.keys(ex).sort().slice(-12).map(m => { const r = examRowOf(ex[m], who); if (!r) return null; const d = r.d, meta = ex[m].meta;
+    return { month: m, date: meta.date || '', absent: !!d.absent, pass: d.pass !== false, cur: d.cur || '', nb: d.nb && d.nb !== d.cur ? d.nb : '',
+      subj: cfg.filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, v: d.sc[x.k], note: (meta.notes || {})[x.k] || '' })) };
+  }).filter(Boolean);
+}
 // 승급 심사 과목 (opt: 켜고 끄는 과목 — 예절·태도는 승인되면 켬)
 const EXAM_SUBJ = [{ k: 'speech', n: '웅변' }, { k: 'kick', n: '발차기' }, { k: 'eng', n: '영어' }, { k: 'poom', n: '품새' }, { k: 'manner', n: '예절·태도', opt: true }];
 function examCfg(c) { const on = c && Array.isArray(c.subj) ? Object.fromEntries(c.subj.map(x => [x.k, !!x.on])) : {}; return { subj: EXAM_SUBJ.map(x => Object.assign({}, x, { on: x.opt ? !!on[x.k] : true })) }; }
