@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>해랑 기네스 기록장</title>
+<meta name="theme-color" content="#0D326F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="기네스">
+<link rel="manifest" href="record.webmanifest">
+<link rel="apple-touch-icon" href="rec-apple-touch-icon.png">
+<script src="config.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* 🏆 기네스 기록장 (2026-11-14): GPT 기네스 앱 대신 — 기록 입력 · 순위 · 타이머. 원생은 출석부 명단, 성별은 업무 앱 원생 정보, 종목·기록은 📈 성장과 같은 곳(업무 서버 gdocs app/data) */
+:root{--navy:#0D326F;--brand:#A40F16;--gold:#C9962B;--paper:#F4F5F8;--card:#fff;--ink:#1B1E24;--muted:#6B7280;--line:#E2E5EB;--ok:#1E7A46;--okbg:#E5F4EA}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;line-height:1.5;overscroll-behavior-y:none;word-break:keep-all}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 8px}
+.tr{display:flex;align-items:center;gap:8px}
+.top h1{font-size:18px;margin:0;font-weight:900;flex:1;white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}
+.btn.p{background:var(--navy);border-color:var(--navy);color:#fff}
+.tabs{display:flex;gap:6px;margin-top:8px}
+.tabs button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px;font-weight:700}
+.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.wrap{max-width:820px;margin:0 auto;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + 40px)}
+.evbar{background:linear-gradient(135deg,#0D326F,#1B4A93);color:#fff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.evbar b{font-size:20px;font-weight:900}.evbar small{opacity:.8}
+.mon{display:flex;align-items:center;gap:2px;font-weight:900;margin-left:auto}
+.mon button{border:0;background:rgba(255,255,255,.15);color:#fff;border-radius:8px;font-size:18px;padding:2px 10px}
+.prog{height:6px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden;width:100%}.prog i{display:block;height:100%;background:var(--gold)}
+.inp{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.chips button{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 12px;font-size:14px;font-weight:600}
+.chips button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.chips button em{font-style:normal;font-weight:900;margin-left:4px}
+.list{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .nm{flex:1;min-width:0}.row .nm b{display:block;font-size:16px}.row .nm small{color:var(--muted);font-size:12px}
+.row input{width:78px;text-align:center;font-size:18px;font-weight:800;border:1px solid var(--line);border-radius:10px;padding:8px 4px}
+.row input:placeholder-shown{font-size:14px;font-weight:500}
+.row .u{font-size:13px;color:var(--muted);width:18px}
+.row .st{width:44px;font-size:12px;text-align:center;color:var(--muted)}
+.row .st.ok{color:var(--ok);font-weight:700}.row .st.err{color:var(--brand);font-weight:700}
+.pf{display:flex;gap:4px}.pf button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 8px;font-size:13px;font-weight:700}
+.pf button.on.y{background:var(--ok);border-color:var(--ok);color:#fff}.pf button.on.n{background:var(--brand);border-color:var(--brand);color:#fff}
+.help{font-size:13px;color:var(--muted);margin:6px 2px}
+.empty{color:var(--muted);text-align:center;padding:30px 0}
+/* 순위 */
+.rk{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px}
+.rk h3{margin:0 0 10px;font-size:17px}
+.pod{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:8px;align-items:end;margin-bottom:10px}
+.pod div{border-radius:12px 12px 4px 4px;text-align:center;padding:10px 4px 8px}
+.pod b{display:block;font-size:15px}.pod small{color:var(--muted);font-size:12px;display:block}.pod strong{display:block;font-size:24px;font-weight:900}
+.pod .p1{background:#FBEFCF;min-height:150px}.pod .p2{background:#ECEEF2;min-height:120px}.pod .p3{background:#F6E3D3;min-height:105px}
+.pod .rkn{font-size:13px;font-weight:900;color:var(--gold)}
+.rl{display:flex;align-items:center;gap:10px;padding:7px 4px;border-top:1px solid var(--line);font-size:15px}
+.rl span{width:36px;font-weight:900;color:var(--muted)}.rl b{flex:1}.rl em{font-style:normal;font-weight:900}
+/* 타이머 */
+.tm{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
+.tm .big{font-size:min(28vw,180px);font-weight:900;letter-spacing:-2px;line-height:1.05;color:var(--navy);font-variant-numeric:tabular-nums}
+.tm .big.run{color:var(--brand)}.tm .big.end{color:var(--ok)}
+.tm .set{display:flex;gap:8px;justify-content:center;align-items:center;margin:8px 0}
+.tm .set input{width:80px;text-align:center;font-size:22px;font-weight:800;border:1px solid var(--line);border-radius:10px;padding:8px}
+.tm .go{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.tm .go button{min-width:120px;padding:14px;font-size:18px;border-radius:14px}
+/* 로그인 */
+.login{max-width:360px;margin:40px auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.login h2{margin:0 0 6px}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:30;max-width:90vw;text-align:center}
+</style></head>
+<body>
+<div class="top"><div class="tr"><button class="btn" id="back">‹ 업무</button><h1>🏆 기네스 기록장</h1></div>
+<div class="tabs" id="tabs"><button data-t="in" class="on">기록 입력</button><button data-t="rank">순위</button><button data-t="timer">타이머</button></div></div>
+<div class="wrap" id="main"><p class="empty">불러오는 중…</p></div>
+<script>
+const API = window.HAERANG_TEAM_API || '', TK = 'haerang-team-tok';
+const tok = () => { try { return localStorage.getItem(TK) || ''; } catch (e) { return ''; } };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const now = new Date();
+async function api(path, body) {
+  try { const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ tok: tok() }, body || {})) }); return await r.json(); }
+  catch (e) { return { ok: false, error: '인터넷 연결을 확인해 주세요' }; }
+}
+function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2400); }
+function gradeOf(birth) { const y = +String(birth || '').slice(0, 4); if (!y) return ''; const sy = now.getMonth() >= 2 ? now.getFullYear() : now.getFullYear() - 1, g = sy - y - 6;
+  return g <= 0 ? '유치부' : g <= 6 ? '초' + g : g <= 9 ? '중' + (g - 6) : g <= 12 ? '고' + (g - 9) : '성인'; }
+const fmt = v => (Math.round(+v * 100) / 100).toString();
+const isFail = v => v != null && typeof v === 'object';
+
+const S = { tab: 'in', mo: now.getMonth() + 1, events: [], kids: [], f: 'all', q: '', st: {}, err: '' };
+const curEv = () => S.events.find(e => (e.months || []).includes(S.mo)) || null;
+async function load() {
+  const j = await api('/api/grec-get');
+  if (!j.ok) { S.err = j.relogin || /로그인/.test(j.error || '') ? 'login' : j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '불러오지 못했어요'); return draw(); }
+  S.err = ''; S.events = j.events || [];
+  const gs = j.students || [];
+  S.kids = j.roster.map(r => { const g = gs.find(x => x.sid && x.sid === r.id) || gs.find(x => !x.sid && x.name === r.name && String(x.birth).slice(0, 4) === String(r.birth).slice(0, 4)) || null; const gr = gradeOf(r.birth);
+    return { sid: r.id, name: r.name, birth: r.birth, grade: gr, kinder: gr === '유치부', gender: r.gender || (g && g.gender) || '', status: r.status, rec: (g && g.rec) || {} }; })
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  draw();
+}
+const valOf = (k, ev, m) => ((k.rec[ev.name] || {})[m]);
+function draw() {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
+  if (S.err === 'login') return drawLogin();
+  if (S.err) { $('#main').innerHTML = '<p class="empty">' + esc(S.err) + '</p>'; return; }
+  if (S.tab === 'timer') return drawTimer();
+  const ev = curEv();
+  const head = '<div class="evbar"><div><small>' + (ev ? '이번 분기 종목 · ' + (ev.months.indexOf(S.mo) + 1) + '/' + ev.months.length + '개월차' : '이 달에는 종목이 없어요') + '</small><br><b>' + esc(ev ? ev.name : '–') + '</b>' + (ev ? ' <small>(' + esc(ev.unit) + (ev.lower ? ' · 낮을수록 좋아요' : '') + ')</small>' : '') + '</div>' +
+    '<div class="mon"><button id="mP">‹</button><span style="padding:0 8px">' + S.mo + '월</span><button id="mN">›</button></div>' +
+    (ev && S.tab === 'in' ? (() => { const L = S.kids.filter(k => k.status === '재원'), n = L.filter(k => valOf(k, ev, S.mo) != null).length; return '<div style="width:100%"><small>이번 달 기록 ' + n + ' / ' + L.length + '명</small><div class="prog"><i style="width:' + (L.length ? n / L.length * 100 : 0) + '%"></i></div></div>'; })() : '') + '</div>';
+  $('#main').innerHTML = head + (ev ? (S.tab === 'in' ? drawIn(ev) : drawRank(ev)) : '');
+  $('#mP').onclick = () => { S.mo = S.mo === 1 ? 12 : S.mo - 1; draw(); }; $('#mN').onclick = () => { S.mo = S.mo === 12 ? 1 : S.mo + 1; draw(); };
+  if (S.tab === 'in' && ev) bindIn(ev);
+}
+const groupOf = k => !k.gender ? '' : k.kinder ? '유치 ' + k.gender : k.gender;
+function drawIn(ev) {
+  const L = S.kids.filter(k => k.status === '재원'), cnt = f => L.filter(f).length, none = k => valOf(k, ev, S.mo) == null;
+  const F = [['all', '전체', () => true], ['남', '남', k => groupOf(k) === '남'], ['여', '여', k => groupOf(k) === '여'], ['유치 남', '유치 남', k => groupOf(k) === '유치 남'], ['유치 여', '유치 여', k => groupOf(k) === '유치 여'], ['none', '미측정', none]];
+  const fl = (F.find(x => x[0] === S.f) || F[0])[2], q = S.q.trim(), V = L.filter(k => fl(k) && (!q || k.name.includes(q)));
+  const noG = cnt(k => !k.gender);
+  return '<input class="inp" id="q" style="margin-top:12px" placeholder="이름 검색" autocomplete="off" value="' + esc(S.q) + '">' +
+    '<div class="chips" id="fc">' + F.map(([k, t, f]) => '<button data-f="' + k + '" class="' + (S.f === k ? 'on' : '') + '">' + t + '<em>' + cnt(f) + '</em></button>').join('') + '</div>' +
+    (noG ? '<p class="help">성별이 없는 제자 ' + noG + '명은 순위에서 빠져요. 업무 앱 → 🥋 원생 → 정보 수정에서 성별을 넣어 주세요.</p>' : '') +
+    '<p class="help">' + S.mo + '월 기록을 넣고 칸을 벗어나면 바로 저장돼요. 지우면 미측정으로 돌아가요.' + (ev.pf ? ' 장수를 넣고 성공·실패를 눌러 주세요.' : '') + '</p>' +
+    '<div class="list" id="L">' + (V.length ? V.map(k => rowHtml(k, ev)).join('') : '<p class="empty">맞는 제자가 없어요</p>') + '</div>';
+}
+function rowHtml(k, ev) {
+  const v = valOf(k, ev, S.mo), fail = isFail(v), num = v == null ? '' : fail ? (v.f || '') : v, st = S.st[k.sid] || '';
+  return '<div class="row" data-sid="' + esc(k.sid) + '"><div class="nm"><b>' + esc(k.name) + '</b><small>' + esc([k.grade, k.gender || '성별 없음'].filter(Boolean).join(' · ')) + '</small></div>' +
+    '<input inputmode="decimal" placeholder="미측정" value="' + esc(num) + '">' + '<span class="u">' + esc(ev.unit) + '</span>' +
+    (ev.pf ? '<div class="pf"><button class="y' + (v != null && !fail ? ' on' : '') + '" data-pf="y">성공</button><button class="n' + (fail ? ' on' : '') + '" data-pf="n">실패</button></div>' : '') +
+    '<span class="st ' + (st === '✓' ? 'ok' : st === '!' ? 'err' : '') + '">' + (st === '✓' ? '저장됨' : st === '…' ? '저장 중' : st === '!' ? '다시' : '') + '</span></div>';
+}
+function bindIn(ev) {
+  $('#q').oninput = e => { S.q = e.target.value; const p = e.target.selectionStart; draw(); const q = $('#q'); q.focus(); q.setSelectionRange(p, p); };
+  $('#fc').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { S.f = b.dataset.f; draw(); } };
+  const L = $('#L');
+  L.addEventListener('change', e => { const inp = e.target.closest('input'); if (!inp) return; const row = inp.closest('.row'), k = S.kids.find(x => x.sid === row.dataset.sid), raw = inp.value.trim().replace(',', '.');
+    if (raw !== '' && !isFinite(+raw)) { toast('숫자만 넣어 주세요'); return; }
+    const old = valOf(k, ev, S.mo); let v = raw === '' ? null : +raw; if (ev.pf && v != null && isFail(old)) v = { f: v };
+    saveVal(k, ev, v, row); });
+  L.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input')) { e.preventDefault(); const rows = [...L.querySelectorAll('.row input')], i = rows.indexOf(e.target); e.target.blur(); if (rows[i + 1]) rows[i + 1].focus(); } });
+  L.onclick = e => { const b = e.target.closest('[data-pf]'); if (!b) return; const row = b.closest('.row'), k = S.kids.find(x => x.sid === row.dataset.sid), n = row.querySelector('input').value.trim();
+    if (b.dataset.pf === 'y' && !n) return toast('성공한 장수를 먼저 넣어 주세요');
+    saveVal(k, ev, b.dataset.pf === 'y' ? +n : { f: +n || 0 }, row, true); };
+}
+async function saveVal(k, ev, v, row, redraw) {
+  S.st[k.sid] = '…'; setSt(row, '…');
+  const j = await api('/api/grec-set', { sid: k.sid, name: k.name, birth: k.birth, grade: k.grade, ev: ev.name, m: S.mo, v });
+  if (!j.ok) { S.st[k.sid] = '!'; setSt(row, '!'); return toast(j.error || '저장하지 못했어요'); }
+  k.rec[ev.name] = k.rec[ev.name] || {}; if (v == null) delete k.rec[ev.name][S.mo]; else k.rec[ev.name][S.mo] = v;
+  S.st[k.sid] = '✓'; setSt(row, '✓');
+  if (redraw) { const y = scrollY; draw(); scrollTo(0, y); }
+}
+function setSt(row, st) { const el = row && row.querySelector('.st'); if (!el) return; el.className = 'st ' + (st === '✓' ? 'ok' : st === '!' ? 'err' : ''); el.textContent = st === '✓' ? '저장됨' : st === '…' ? '저장 중' : '다시'; }
+/* 순위: 이번 분기에서 고른 달까지의 가장 좋은 기록(실패·미측정 빼고) · 남자부·여자부·유치부 남·유치부 여 따로 · 같은 기록은 같은 순위 */
+function bestOf(k, ev) { let best = null; ev.months.filter(m => m <= S.mo || ev.months.indexOf(S.mo) < 0).forEach(m => { const v = valOf(k, ev, m); if (v == null || isFail(v)) return; if (best == null || (ev.lower ? v < best : v > best)) best = +v; }); return best; }
+function drawRank(ev) {
+  const G = [['남', '남자부'], ['여', '여자부'], ['유치 남', '유치부 남자'], ['유치 여', '유치부 여자']];
+  const upto = ev.months.slice(0, ev.months.indexOf(S.mo) + 1).map(m => m + '월').join('·');
+  let h = '<p class="help" style="margin-top:10px">' + upto + ' 가운데 가장 좋은 기록으로 순위를 매겨요. 같은 기록은 같은 순위예요.' + (ev.pf ? ' 실패한 달은 빼요.' : '') + '</p>';
+  G.forEach(([g, t]) => {
+    const L = S.kids.filter(k => k.status === '재원' && groupOf(k) === g).map(k => ({ k, v: bestOf(k, ev) })).filter(x => x.v != null).sort((a, b) => ev.lower ? a.v - b.v : b.v - a.v);
+    let r = 0; L.forEach((x, i) => { if (i === 0 || x.v !== L[i - 1].v) r = i + 1; x.r = r; });
+    const cell = (n, cls) => { const T = L.filter(x => x.r === n); return '<div class="' + cls + '">' + (T.length ? '<span class="rkn">' + n + '위' + (T.length > 1 ? ' 공동' : '') + '</span>' + T.slice(0, 3).map(x => '<b>' + esc(x.k.name) + '</b><small>' + esc(x.k.grade) + '</small>').join('') + '<strong>' + fmt(T[0].v) + '<small style="display:inline">' + esc(ev.unit) + '</small></strong>' : '<small>도전자를 기다려요</small>') + '</div>'; };
+    const ranks = [...new Set(L.map(x => x.r))];
+    h += '<div class="rk"><h3>' + t + ' <small style="color:var(--muted);font-weight:500">' + L.length + '명</small></h3>' + (L.length ? '<div class="pod">' + cell(ranks[1] || 99, 'p2') + cell(ranks[0], 'p1') + cell(ranks[2] || 99, 'p3') + '</div>' +
+      L.map(x => '<div class="rl"><span>' + x.r + '위</span><b>' + esc(x.k.name) + ' <small style="color:var(--muted);font-weight:500">' + esc(x.k.grade) + '</small></b><em>' + fmt(x.v) + esc(ev.unit) + '</em></div>').join('') : '<p class="help">아직 기록이 없어요</p>') + '</div>';
+  });
+  const noG = S.kids.filter(k => k.status === '재원' && !k.gender && bestOf(k, ev) != null).length;
+  if (noG) h += '<p class="help">성별이 없어 순위에서 빠진 제자 ' + noG + '명 — 업무 앱 원생 정보에서 성별을 넣어 주세요.</p>';
+  return h;
+}
+/* 타이머 */
+const T = { total: 10, left: 10, run: false, t0: 0, iv: null, ac: null };
+function beep(f, d) { try { T.ac = T.ac || new (window.AudioContext || window.webkitAudioContext)(); const o = T.ac.createOscillator(), g = T.ac.createGain(); o.frequency.value = f; o.connect(g); g.connect(T.ac.destination); g.gain.value = .25; o.start(); o.stop(T.ac.currentTime + d); } catch (e) {} }
+const mmss = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + pad(s % 60); };
+function drawTimer() {
+  $('#main').innerHTML = '<div class="tm"><div class="set"><input id="tMin" inputmode="numeric" value="' + Math.floor(T.total / 60) + '"> 분 <input id="tSec" inputmode="numeric" value="' + T.total % 60 + '"> 초</div>' +
+    '<div class="chips" style="justify-content:center">' + [10, 30, 60, 120, 180].map(s => '<button data-s="' + s + '">' + (s < 60 ? s + '초' : s / 60 + '분') + '</button>').join('') + '</div>' +
+    '<div class="big" id="tBig">' + mmss(T.left) + '</div><div class="go"><button class="btn p" id="tGo">' + (T.run ? '멈춤' : '시작') + '</button><button class="btn" id="tRe">다시</button></div>' +
+    '<p class="help">시작하면 3·2·1 소리 뒤에 재요. 끝나면 긴 소리가 나요.</p></div>';
+  const setT = s => { if (T.run) return; T.total = T.left = Math.max(1, s); drawTimer(); };
+  $('#main').querySelector('.chips').onclick = e => { const b = e.target.closest('[data-s]'); if (b) setT(+b.dataset.s); };
+  $('#tMin').onchange = $('#tSec').onchange = () => setT((+$('#tMin').value || 0) * 60 + (+$('#tSec').value || 0));
+  $('#tGo').onclick = () => { if (T.run) { T.run = false; clearInterval(T.iv); drawTimer(); return; } if (T.left <= 0) T.left = T.total; countIn(3); };
+  $('#tRe').onclick = () => { T.run = false; clearInterval(T.iv); T.left = T.total; drawTimer(); };
+}
+function countIn(n) { const big = $('#tBig'); if (!big) return; if (n > 0) { big.textContent = n; big.className = 'big run'; beep(660, .15); setTimeout(() => countIn(n - 1), 1000); return; }
+  beep(990, .3); T.run = true; T.t0 = Date.now() - (T.total - T.left) * 1000; drawTimer();
+  T.iv = setInterval(() => { T.left = T.total - (Date.now() - T.t0) / 1000; const b = $('#tBig'); if (b) { b.textContent = mmss(T.left); b.className = 'big run'; }
+    if (T.left <= 0) { clearInterval(T.iv); T.run = false; T.left = 0; beep(880, 1.2); if (navigator.vibrate) navigator.vibrate([400, 100, 400]); const b2 = $('#tBig'); if (b2) { b2.textContent = '끝!'; b2.className = 'big end'; } const g = $('#tGo'); if (g) g.textContent = '시작'; } }, 100); }
+/* 로그인 (홈 화면에 따로 추가한 경우: 업무 앱과 같은 이름·PIN) */
+async function drawLogin() {
+  $('#main').innerHTML = '<div class="login"><h2>들어가기</h2><p class="help">업무 앱과 같은 이름과 PIN으로 들어가요.</p><select class="inp" id="lM"><option value="">이름 고르기</option></select><input class="inp" id="lP" type="password" inputmode="numeric" placeholder="PIN" style="margin-top:8px"><button class="btn p" id="lGo" style="width:100%;margin-top:10px;padding:12px">들어가기</button><p class="help" id="lMsg"></p></div>';
+  const j = await api('/api/members'); if (j.ok) $('#lM').innerHTML += j.members.map(m => '<option value="' + esc(m.id) + '">' + esc(m.name) + '</option>').join('');
+  $('#lGo').onclick = async () => { const mid = $('#lM').value, pin = $('#lP').value; if (!mid || !pin) return;
+    const r = await api('/api/login', { mid, pin }); if (!r.ok) { $('#lMsg').textContent = r.error || 'PIN이 맞지 않아요'; return; }
+    if (r.mustPin) { $('#lMsg').textContent = '처음 PIN을 바꿔야 해요. 업무 앱에서 먼저 들어가 주세요.'; return; }
+    try { localStorage.setItem(TK, r.tok); } catch (e) {} S.err = ''; load(); };
+}
+$('#tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { S.tab = b.dataset.t; draw(); scrollTo(0, 0); } };
+$('#back').onclick = () => { location.href = '/team/'; };
+if (matchMedia('(display-mode: standalone)').matches && !sessionStorage.getItem('haerang-from-team')) $('#back').hidden = true; // 홈 화면에 따로 추가한 기록장에서는 '업무' 버튼 숨김
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !S.err && S.tab !== 'timer' && !document.activeElement.matches('input')) load(); });
+if (!tok()) { S.err = 'login'; draw(); } else load();
+</script>
+</body></html>

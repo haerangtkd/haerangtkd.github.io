@@ -316,7 +316,7 @@
   .tb.bell{position:relative}.tb.bell .dot{top:2px;left:auto;right:0}
   /* 더보기 */
   .greet{display:flex;align-items:center;padding:6px 0 4px}.greet small{display:block;color:var(--muted);font-size:14px}.greet b{font-size:22px;font-weight:900}
-  .apps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 2px}.apps button{display:flex;flex-direction:column;align-items:center;gap:1px;background:#fff;border:1px solid #E1E6EF;border-radius:14px;padding:8px 4px;font-size:13px;white-space:nowrap;font-weight:700;text-align:center}.apps button span{font-size:22px;line-height:1.2}.apps button em{display:none}
+  .apps{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0 2px}.apps button{display:flex;flex-direction:column;align-items:center;gap:1px;background:#fff;border:1px solid #E1E6EF;border-radius:14px;padding:8px 2px;font-size:12px;white-space:nowrap;font-weight:700;text-align:center}.apps button span{font-size:22px;line-height:1.2}.apps button em{display:none}
   .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;margin:14px 0 4px}
   .sgrid button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13.5px}
   .sgrid button span{width:58px;height:58px;border-radius:18px;background:#EEF1F7;display:grid;place-items:center;font-size:26px}
@@ -923,7 +923,7 @@ async function savePickup(p, what) {
   if (!j.ok) toast(j.error || '저장하지 못했어요');
 }
 // 다른 앱 바로 열기 (같은 사이트 안 다른 화면, 따로 불러와서 업무 앱이 무거워지지 않음)
-const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'], appExam: ['🏅', '심사', '/team/exam.html'] }; // 심사 채점 (2026-11-14)
+const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'] }; // 심사 채점 (2026-11-14)
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
 const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
@@ -1090,7 +1090,7 @@ function renderMore() {
   const t = today(), evs = tableItems().filter(x => !x.closed).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
   const soon = [...itemsOf('sched'), ...dsItems()].filter(x => x.date >= t && x.date <= addDays(t, 30)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   $('v-more').innerHTML =
-    '<div class="sgrid">' + SHORT.filter(([k]) => (k !== 'backup' && k !== 'docs') || isBoss()).map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' + '<p class="hint" style="text-align:center;margin-top:14px">출석부 · 알림 관리 · 성장 · 심사 · 등원·픽업은 대시보드에서 열어요</p>';
+    '<div class="sgrid">' + SHORT.filter(([k]) => (k !== 'backup' && k !== 'docs') || isBoss()).map(([k, e, n]) => '<button data-sc="' + k + '"><span>' + e + '</span>' + n + (k === 'docs' && S.docNew ? ' <b class="dn">' + S.docNew + '</b>' : '') + '</button>').join('') + '</div>' + '<p class="hint" style="text-align:center;margin-top:14px">출석부 · 알림 관리 · 성장 · 심사 · 기네스 · 등원·픽업은 대시보드에서 열어요</p>';
 }
 $('v-more').onclick = async e => {
   const sc = e.target.closest('[data-sc]'); if (sc) { const k = sc.dataset.sc;

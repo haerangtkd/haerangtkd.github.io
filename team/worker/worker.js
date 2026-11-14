@@ -423,6 +423,11 @@ async function route(path, req, env, ctx) {
   if (path === '/api/gdoc-list') { const pre = str(b.coll, 30) + '/'; if (!/^[a-z]+\/$/.test(pre)) return json({ ok: false, error: '잘못된 요청' }); const rs = await all(env, 'SELECT path, data FROM gdocs WHERE substr(path, 1, ?) = ?', pre.length, pre); return json({ ok: true, docs: rs.map(r => ({ id: r.path.slice(pre.length), data: J(r.data, null) })) }); }
   if (path === '/api/gdoc-set') {
     const gp = str(b.path, 80); if (!/^(app|inputs)\/[\w-]{1,40}$/.test(gp)) return json({ ok: false, error: '잘못된 요청' });
+    if (gp === 'app/data' && b.data && Array.isArray(b.data.students)) { // 🏆 기네스 기록장에서 넣은 기록을 예전 화면이 덮어쓰지 않게: 서버에만 있는 기록 칸은 남김 (2026-11-14)
+      const cur = J((await one(env, 'SELECT data FROM gdocs WHERE path = ?', 'app/data') || {}).data, null);
+      if (cur && Array.isArray(cur.students)) b.data.students.forEach(k => { const o = cur.students.find(x => (k.sid && x.sid === k.sid) || (x.name === k.name && String(x.birth) === String(k.birth))); if (!o || !o.rec) return; k.rec = k.rec || {};
+        Object.keys(o.rec).forEach(ev => { k.rec[ev] = k.rec[ev] || {}; Object.keys(o.rec[ev] || {}).forEach(mm => { if (k.rec[ev][mm] == null) k.rec[ev][mm] = o.rec[ev][mm]; }); }); });
+    }
     const d = JSON.stringify(b.data == null ? null : b.data); if (d.length > 900000) return json({ ok: false, error: '기록이 너무 커요' });
     await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', gp, d, Date.now(), me.id);
     return json({ ok: true });
@@ -443,6 +448,30 @@ async function route(path, req, env, ctx) {
     return json(r);
   }
   if (path === '/api/grow-notified') { const v = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'grownotify:' + str(b.period, 10)) || {}).v, null); return json({ ok: true, sent: v }); }
+  // ═════════ 🏆 기네스 기록장 (team/record.html, 2026-11-14: GPT 기네스 앱 대신) — 기록은 📈 성장(gdocs app/data students[].rec[종목][월])에 바로 ═════════
+  if (path === '/api/grec-get') {
+    const r = await one(env, 'SELECT data, upd FROM gdocs WHERE path = ?', 'app/data'), d = r ? J(r.data, {}) : {};
+    const at = await attSync(env, '/sync/students', {}); if (!at.ok) return json({ ok: false, error: at.error || '출석부를 불러오지 못했어요' });
+    return json({ ok: true, events: d.events || [], upd: r ? r.upd : 0,
+      students: (d.students || []).filter(k => k && k.name).map(k => ({ sid: k.sid || '', name: k.name, birth: k.birth || '', grade: k.grade || '', gender: k.gender || '', rec: k.rec || {} })),
+      roster: at.students.filter(x => x.name && x.status !== '퇴관').map(x => ({ id: x.id, name: x.name, birth: x.birth || '', gender: x.gender || '', status: x.status || '재원' })) });
+  }
+  if (path === '/api/grec-set') { // 한 제자 한 칸만 바꿈 (동시에 여러 직원이 넣어도 안 겹치게 upd 확인 후 다시 시도)
+    const ev = str(b.ev, 40), m = b.m | 0, sid = str(b.sid, 40), name = str(b.name, 20); if (!ev || m < 1 || m > 12 || !name) return json({ ok: false, error: '잘못된 요청' });
+    let v = b.v; if (v != null && typeof v === 'object') v = { f: Math.max(0, +v.f || 0) }; else if (v != null && v !== '') { v = +v; if (!isFinite(v) || v < 0 || v > 100000) return json({ ok: false, error: '숫자를 확인해 주세요' }); } else v = null;
+    for (let t = 0; t < 4; t++) {
+      const r = await one(env, 'SELECT data, upd FROM gdocs WHERE path = ?', 'app/data'); if (!r) return json({ ok: false, error: '📈 성장 화면을 먼저 한 번 열어 주세요' });
+      const d = J(r.data, {}); d.students = d.students || []; if (!(d.events || []).some(e => e.name === ev)) return json({ ok: false, error: '없는 종목이에요' });
+      let k = (sid && d.students.find(x => x.sid === sid)) || d.students.find(x => !x.sid && x.name === name && String(x.birth || '').slice(0, 4) === String(b.birth || '').slice(0, 4));
+      if (!k) { if (v == null) return json({ ok: true }); k = { belt0: '', name, birth: str(b.birth, 10), grade: str(b.grade, 10), gender: '', status: '재원', rec: {}, sid }; d.students.push(k); }
+      if (sid && !k.sid) k.sid = sid; k.rec = k.rec || {}; k.rec[ev] = k.rec[ev] || {};
+      if (v == null) delete k.rec[ev][m]; else k.rec[ev][m] = v;
+      const now = Date.now(), w = await env.DB.prepare('UPDATE gdocs SET data = ?, upd = ?, mid = ? WHERE path = ? AND upd = ?').bind(JSON.stringify(d), now, me.id, 'app/data', r.upd).run();
+      if (w.meta && w.meta.changes) return json({ ok: true, upd: now });
+    }
+    return json({ ok: false, error: '잠깐 뒤에 다시 저장해 주세요' });
+  }
+  if (path === '/api/whoami') return json({ ok: true, id: me.id, name: me.name, boss: !!me.boss, shared: !!me.shared }); // 📈 성장 등 따로 열린 화면이 관리자인지 확인
   if (path === '/api/exam-closed') { // 📈 성장 화면: 마감한 심사 점수 (02·04·05 자동 채우기용, 점수만)
     const ex = await examClosed(env), out = {}; Object.keys(ex).forEach(m => { out[m] = ex[m].rows.map(r => ({ sid: r.sid, name: r.name, sc: r.d.sc || {}, absent: !!r.d.absent })); });
     return json({ ok: true, ex: out });

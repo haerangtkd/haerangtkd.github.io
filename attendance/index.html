@@ -213,7 +213,7 @@
       <button data-t="today" class="on">오늘 출석</button>
       <button data-t="students">원생 관리</button>
       <button data-t="manage">출결관리</button>
-      <button data-t="month">월별 기록</button>
+      <!-- 월별 기록 탭은 2026-11-14 사용자 결정으로 뺌 (출석률은 원생 관리 목록에, 가로 PDF는 사범님 공간 → 관리자 칸에서 달을 골라 받음) -->
     </nav>
     <div class="crumb"><span class="t">해랑경희 / <b id="crumbT">출석 관리</b></span><span class="pill" id="savePill">저장됨</span><button class="obtn" id="spaceBtn">사범님 공간</button></div>
 
@@ -640,6 +640,7 @@ $('bulk').onclick = async e => {
 
 // ═════════════ 원생 관리 ═════════════
 function renderStudents() {
+  const ymNow = today().slice(0, 7); if (!S.months.has(ymNow)) loadMonth(ymNow).then(() => { if (S.tab === 'students') renderStudents(); });
   const g = S.grp.s, q = $('sQ').value, showLeave = $('sLeave').checked;
   const leaveN = S.students.filter(s => s.status === '휴원').length;
   $('sLeaveT').textContent = '휴원 ' + leaveN + '명도 같이 보기';
@@ -650,6 +651,7 @@ function renderStudents() {
     const gr = grade(s), tg = [];
     if (s.status !== '재원') tg.push('<span class="tag ' + (s.status === '휴원' ? 'yel' : 'red') + '">' + s.status + '</span>');
     if (tempOn(s, today())) tg.push('<span class="tag yel">임시변경 중</span>');
+    if (s.status === '재원' && S.months.has(ymNow)) { const r = monthStats(s, ymNow, today()).rate; if (r != null) tg.push('<span class="tag ' + (r < 80 ? 'red' : 'grn') + '" title="' + (+ymNow.slice(5)) + '월 출석률">출석 ' + Math.round(r) + '%</span>'); } // 2026-11-14: 월별 기록 탭 대신 여기에
     const nN = (s.notes || []).filter(n => !notePast(n, today())).length; if (nN) tg.push('<span class="tag" style="background:#FFF0E3;color:#8A2A00">📌 중요사항 ' + nN + '</span>');
     return '<li class="st" data-id="' + s.id + '"><div class="av">' + esc(s.name.length > 2 ? s.name.slice(-2) : s.name) + '</div><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc([gr.label, daysLabel(s.days), s.no].filter(Boolean).join(' · ')) + '</small>' + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><div class="acts"><button class="ab" data-a="n">중요사항</button><button class="ab" data-a="st">회원상태</button><button class="ab" data-a="t">임시변경</button></div></li>';
   }).join('') : '<li class="empty"><b>원생이 없어요</b>원생 등록은 업무 앱 → 더보기 → 🥋 원생에서 해요.</li>';
@@ -1104,8 +1106,9 @@ $('spaceBtn').onclick = () => {
   const locked = !getAdmin();
   sheet('<h2>사범님 공간</h2><p class="help">' + esc(S.me.name) + ' 사범님으로 들어와 있어요.</p>' +
     (false ? '<div style="border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:14px;background:#FCFAF9"><b>관리자 비밀번호</b><p class="help">이 기기에서 처음 한 번만 넣으면 돼요. 관리자 메뉴(사범님 추가, 백업 불러오기, 초기화)를 쓸 때 필요해요.</p><div class="row2" style="margin-top:8px"><input class="inp" id="adPw" type="password" autocomplete="new-password" name="haerang-admin-pw" placeholder="관리자 비밀번호"><button class="sbtn red" id="adOk">확인</button></div><p class="help" id="adMsg" style="color:var(--no)"></p></div>' : '') +
-    '<h3>출결 기록 받기</h3><button class="big" data-x="csvM">' + ymLabel(ym) + ' 출결 기록 내려받기 (CSV)</button><button class="big" data-x="pdf">' + ymLabel(ym) + ' 출석부 가로 PDF</button>' + (S.me.boss ? '<button class="big" data-x="csvY">' + yr + '년 전체 출결 받기 (CSV)</button>' : '') +
-    (S.me.boss ? '<h3>관리자만 · 개인정보 파일</h3><p class="help">원생 명단·백업 파일에는 연락처 등 개인정보가 있어서 관리자 비밀번호를 한 번 더 확인해요.</p><button class="big" data-x="csvS">원생 명단 내려받기 (CSV)</button><button class="big red" data-x="bak">백업 파일 받기 (전체 데이터)</button>' : '') +
+    (S.me.boss ? '<h3>관리자만 · 출석부 가로 PDF</h3><p class="help">앱에 문제가 생길 때를 대비해 매달 받아 두는 출석부예요(출석률 포함).</p><div class="row" style="gap:8px"><select class="inp" id="pdfM">' + Array.from({ length: 24 }, (_, i) => addMonth(today().slice(0, 7), -i)).map(m => '<option value="' + m + '">' + ymLabel(m) + '</option>').join('') + '</select><button class="big" data-x="pdf" style="margin:0;flex:none">가로 PDF 받기</button></div>' : '') + // 2026-11-14: CSV(엑셀) 내려받기는 뺌, PDF는 관리자만
+
+    (S.me.boss ? '<h3>관리자만 · 백업 파일</h3><p class="help">백업 파일에는 연락처 등 개인정보가 있어서 관리자 비밀번호를 한 번 더 확인해요.</p><button class="big red" data-x="bak">백업 파일 받기 (전체 데이터)</button>' : '') +
     (S.me.boss ?     '<h3>출결 태블릿</h3><p class="help">' + (S.kioskOff ? '지금은 <b>태블릿 출결을 안 써요.</b> 출석을 눌러도 등원 알림 창이 안 뜨고 \'태블릿 안 누름\' 표시도 안 나와요.' : '지금 태블릿 출결을 쓰고 있어요. 태블릿을 안 누른 제자를 출석으로 누르면 등원 알림을 보낼지 물어요.') + '</p><button class="big' + (S.kioskOff ? '' : ' line') + '" data-x="kiosk">' + (S.kioskOff ? '태블릿 출결 다시 쓰기 (알림 창 켜기)' : '태블릿 출결 잠깐 안 쓰기 (알림 창 끄기)') + '</button>' : '') + // 태블릿 출결 끄기·켜기는 관리자만 (2026-11-13)
     '<h3>내 PIN</h3><p class="help">PIN은 업무 앱과 같아요. 바꾸기·사범님 추가는 업무 앱 → 설정에서 해요.</p><button class="big" data-x="out">로그아웃</button>' +
     (S.me.boss ? '<h3>관리 (관리자만)</h3><button class="big" data-x="imp">백업 파일 불러오기 (예전 출석부 포함)</button><button class="big line" data-x="wipe">출석부 초기화</button>' +
@@ -1126,7 +1129,7 @@ $('spaceBtn').onclick = () => {
       if (['csvS', 'bak'].includes(x) && !(await askDl())) return; // 개인정보 파일(명단·백업)은 관리자 + 관리자 비밀번호. 출결 기록은 사범님 누구나 (2026-11-13)
       if (x === 'csvS') downloadCsv('원생명단_' + today() + '.csv', studentCsv());
       if (x === 'csvM') { await loadMonth(ym); downloadCsv(ym.slice(2, 4) + ym.slice(5) + '_출결기록.csv', monthCsv(ym)); }
-      if (x === 'pdf') { closeSheet(); printMonth(ym); }
+      if (x === 'pdf') { if (!S.me.boss) return toast('관리자만 할 수 있어요'); const m = (ov.querySelector('#pdfM') || {}).value || ym; closeSheet(); printMonth(m); }
       if (x === 'csvY') { b.textContent = '불러오는 중…'; const j = await api('/api/att', { year: yr }, true); if (!j.ok) return toast(j.error); downloadCsv(yr + '_전체출결.csv', yearCsv(yr, j.rows, j.absences)); b.textContent = yr + '년 전체 출결 받기 (CSV)'; }
       if (x === 'bak') { b.textContent = '만드는 중…'; const j = await api('/api/export', { dlpin: S.dlOk && S.dlOk.pin }, true); b.textContent = '백업 파일 받기 (전체 데이터)'; if (!j.ok) return toast(j.error); download('해랑출석부_백업_' + today() + '.json', JSON.stringify(j.backup), 'application/json'); }
       if (x === 'pin') pinSheet();
