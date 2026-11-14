@@ -519,6 +519,12 @@ async function saveStudentRow(env, b, who) {
   const s = cleanStudent(b.student || {});
   if (!s.name) return { ok: false, error: '이름을 적어 주세요' };
   const id = str(b.student && b.student.id, 60) || crypto.randomUUID(), upd = Date.now();
+  // 동명이인 막기 (2026-11-14 사용자 결정): 학부모 앱·태블릿·행사·픽업이 이름으로 찾아서, 같은 이름이면 다른 가정에 알림이 감 → 새로 넣거나 이름을 바꿀 때 같은 이름(퇴관 포함)이 있으면 저장 안 함
+  const nm = x => String(x || '').replace(/\s+/g, ''), cur = await one(env, 'SELECT data FROM students WHERE id = ?', id);
+  if (!cur || nm(J(cur.data, {}).name) !== nm(s.name)) {
+    const dup = (await all(env, 'SELECT id, data FROM students WHERE id <> ?', id)).map(r => J(r.data, {})).find(x => nm(x.name) === nm(s.name));
+    if (dup) return { ok: false, dupName: true, error: '같은 이름(' + s.name + ') 제자가 이미 있어요' + (dup.status === '퇴관' ? ' (퇴관한 제자)' : '') + '. 이름 뒤에 구분 글자를 붙여 주세요 (예: ' + s.name + 'B)' };
+  }
   const st = [q(env, 'INSERT INTO students (id, data, upd) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', id, JSON.stringify(s), upd)];
   for (const t of (Array.isArray(b.history) ? b.history : []).slice(0, 20)) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), id, str(b.tid, 60), upd, str(t, 200), who));
   await env.DB.batch(st);
