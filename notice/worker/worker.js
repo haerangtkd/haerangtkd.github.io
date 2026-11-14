@@ -436,6 +436,10 @@ async function route(path, req, env) {
     await run(env, "DELETE FROM kv WHERE k = 'kidStatus'"); return json({ ok: true }); // 회원 상태는 출석부에서 다시 받음
   }
   // 업무 앱 원생 화면: 그 제자의 가족 초대번호(QR)·학부모 앱 가입 상태 (2026-11-13)
+  if (path === '/sync/kid-remove') { // 출석부 원생 삭제 → 학부모 앱·태블릿에서도 (2026-11-14)
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    return json(await kidRemove(env, cleanNames([b.name])[0] || '', !!b.dry));
+  }
   if (path === '/sync/kid-family' || path === '/sync/invite-save') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     if (path === '/sync/invite-save') { await run(env, "DELETE FROM kv WHERE k = 'kidStatus'"); try { await kidStatus(env); } catch (_) {} return json(await inviteSave(env, b)); } // 방금 등록한 원생도 바로 명단에
@@ -940,6 +944,23 @@ async function rosterFollow(env, students) {
 // ─────────── 출석부 회원 상태 (재원이 아닌 아이만: {이름: '휴원'|'퇴관'}) — 10분마다 새로 받음, 연결 안 되면 마지막 값 ───────────
 // 퇴관: 휴대폰 알림이 가지 않고 태블릿 출결 번호도 막힘. 출석부에서 다시 재원으로 바꾸면 그대로 돌아옴. 휴원: 표시만.
 // 도장에 등록된 보호자 번호(업무 앱 원생 정보의 연락처·연락처2) 뒷자리 — 가입 확인용
+// 원생 삭제 (2026-11-14 사용자 결정: 한쪽에서 지우면 다 같이): 명단·태블릿 번호, 그 제자만 있는 보호자 가입·초대번호는 지우고, 형제와 같이 있으면 그 이름만 뺌
+async function kidRemove(env, name, dry) {
+  if (!name) return { ok: false, error: '이름이 없어요' };
+  const kid = await one(env, 'SELECT codes FROM kids WHERE name = ?', name);
+  const ps = (await all(env, 'SELECT id, kids, rel FROM parents')).filter(p => J(p.kids, []).includes(name));
+  const ivs = (await all(env, 'SELECT code, kids FROM invites')).filter(i => J(i.kids, []).includes(name));
+  const only = x => J(x.kids, []).length === 1;
+  const out = { ok: true, kid: !!kid, codes: kid ? J(kid.codes, []) : [], parentsGone: ps.filter(only).map(p => p.rel), parentsKeep: ps.filter(p => !only(p)).map(p => p.rel), invitesGone: ivs.filter(only).length, invitesKeep: ivs.filter(i => !only(i)).length, kcode: !!(await one(env, 'SELECT name FROM kcodes WHERE name = ?', name)) };
+  if (dry) return out;
+  const st = [];
+  for (const p of ps) st.push(only(p) ? q(env, 'DELETE FROM parents WHERE id = ?', p.id) : q(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify(J(p.kids, []).filter(k => k !== name)), p.id));
+  for (const i of ivs) st.push(only(i) ? q(env, 'DELETE FROM invites WHERE code = ?', i.code) : q(env, 'UPDATE invites SET kids = ? WHERE code = ?', JSON.stringify(J(i.kids, []).filter(k => k !== name)), i.code));
+  for (const t of ['kids', 'att', 'kcodes', 'ksess']) st.push(q(env, 'DELETE FROM ' + t + ' WHERE name = ?', name));
+  st.push(q(env, 'DELETE FROM kv WHERE k IN (?, ?, ?)', 'kqr:' + name, 'kprof:' + name, 'ksbph:' + name), q(env, "DELETE FROM kv WHERE k = 'kidStatus'"));
+  await env.DB.batch(st);
+  return out;
+}
 async function kidPhoneTails(env, kids) {
   const r = await attSync(env, '/sync/roster', { all: true, phones: true });
   const out = new Set(); if (!r.ok) return out;
