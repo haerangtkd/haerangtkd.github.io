@@ -973,6 +973,24 @@ async function route(path, req, env, ctx) {
 
   // ═════════ 원생 (출석부 원생 기록을 그대로 읽고 씀) ═════════
   if (path === '/api/students') { const r = await attSync(env, '/sync/students', {}); if (r.ok && !me.boss) r.students = r.students.filter(s => s.status !== '퇴관'); return json(r); } // 퇴관 명단은 관리자만
+  if (path === '/api/student-delete') { // 🗑 원생 삭제 (2026-11-14 사용자 결정: 관리자만, 한쪽에서 지우면 다 같이) — dry: 무엇이 지워지는지 먼저 보여 줌
+    const nb = needBoss(); if (nb) return nb;
+    const sid = str(b.sid, 60), r = await attSync(env, '/sync/student-delete', { sid, dry: !!b.dry }); if (!r.ok) return json(r);
+    if (!b.dry) {
+      if (!r.same) { // 등원·픽업 기본 명단·시간에서 이름 빼기 (같은 이름 원생이 남아 있으면 그대로)
+        const d = J((await one(env, "SELECT v FROM kv WHERE k = 'pickupDefault'") || {}).v, {}), t = J((await one(env, "SELECT v FROM kv WHERE k = 'pickupTimes'") || {}).v, {});
+        for (const w of Object.keys(d)) if (Array.isArray(d[w])) d[w] = d[w].filter(x => x !== r.name);
+        for (const w of Object.keys(t)) if (t[w] && typeof t[w] === 'object') delete t[w][r.name];
+        await run(env, "INSERT INTO kv (k, v) VALUES ('pickupDefault', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(d));
+        await run(env, "INSERT INTO kv (k, v) VALUES ('pickupTimes', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(t));
+      }
+      const g = J((await one(env, "SELECT v FROM kv WHERE k = 'kgoal'") || {}).v, null); if (g && sid in g) { delete g[sid]; await run(env, "UPDATE kv SET v = ? WHERE k = 'kgoal'", JSON.stringify(g)); }
+      await run(env, 'DELETE FROM kv WHERE k = ?', 'outreq:' + sid);
+      await addLog(env, me.id, 'kid', '🗑 ' + me.name + '님이 ' + r.name + ' 원생을 지웠어요 (출석부·학부모 앱·태블릿)', '');
+      await bumpKv(env);
+    }
+    return json(r);
+  }
   if (path === '/api/student-save' && !me.boss && b.student && b.student.status === '퇴관') { // 직원이 퇴관으로 바꾸면 관리자 승인 대기 (2026-11-13)
     const cur = ((await attSync(env, '/sync/students', {})).students || []).find(x => x.id === b.student.id);
     if (cur && cur.status !== '퇴관') {
