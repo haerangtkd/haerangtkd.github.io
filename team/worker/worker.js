@@ -36,6 +36,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, mid TEXT, kind TEXT, text TEXT, ref TEXT, at INTEGER)',
   'CREATE INDEX IF NOT EXISTS logs_at ON logs (at)',
   'CREATE TABLE IF NOT EXISTS gdocs (path TEXT PRIMARY KEY, data TEXT, upd INTEGER, mid TEXT)', // 기네스 결과지 (guinness.html)
+  'CREATE TABLE IF NOT EXISTS exam (month TEXT, sid TEXT, name TEXT, data TEXT, upd INTEGER, mid TEXT, PRIMARY KEY (month, sid))', // 승급 심사 채점 (team/exam.html, 2026-11-14) — 제자(출석부 원생 id)마다 한 줄
   // 학부모 앱에서 들어온 행사 신청 (ev: 행사표 id, kid: 제자 이름) — state '' 새로 들어옴(행사표에 아직 안 넣음) / 'in' 행사표에 넣음
   'CREATE TABLE IF NOT EXISTS esign (ev TEXT, kid TEXT, data TEXT, rel TEXT, cancel INTEGER DEFAULT 0, state TEXT DEFAULT \'\', at INTEGER, upd INTEGER, PRIMARY KEY (ev, kid))',
   'CREATE INDEX IF NOT EXISTS esign_upd ON esign (upd)',
@@ -423,6 +424,63 @@ async function route(path, req, env, ctx) {
     const d = JSON.stringify(b.data == null ? null : b.data); if (d.length > 900000) return json({ ok: false, error: '기록이 너무 커요' });
     await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', gp, d, Date.now(), me.id);
     return json({ ok: true });
+  }
+  // ═════════ 승급 심사 채점 (team/exam.html, 2026-11-14 사용자 결정) — 매달 한 번 모든 제자, 과목마다 1~5점, 합격·새 띠, 직원 누구나 채점·마감 ═════════
+  if (path.startsWith('/api/exam-')) {
+    const month = str(b.month, 7); if (!/^\d{4}-\d{2}$/.test(month)) return json({ ok: false, error: '잘못된 달이에요' });
+    const kg = async k => J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, null);
+    const ks = (k, v) => run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify(v));
+    const cfg = examCfg(await kg('examcfg')), mk = 'exam:' + month, meta = (await kg(mk)) || {};
+    const gd = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
+    if (path === '/api/exam-get') {
+      const rows = (await all(env, 'SELECT sid, name, data, upd, mid FROM exam WHERE month = ?', month)).map(r => ({ sid: r.sid, name: r.name, data: J(r.data, {}), upd: r.upd, mid: r.mid }));
+      const out = { ok: true, cfg, meta, rows };
+      if (b.full) { // 지금 띠: 📈 성장(gdocs app/data·app/settings)의 띠를 출석부 원생 번호(sid)로 찾아 줌
+        const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {}, belts = {};
+        ((data && data.students) || []).forEach(k => { if (k && k.sid) belts[k.sid] = { belt: (st.belts || {})[k.name + '|' + k.birth] || '', kinder: String(k.grade || '').includes('유치') }; });
+        out.belts = belts; const r = await attSync(env, '/sync/roster', { all: true });
+        out.roster = r.ok ? r.students.filter(s => (s.status || '재원') !== '퇴관').map(s => ({ id: s.id, name: s.name, birth: s.birth || '', status: s.status || '재원' })) : []; if (!r.ok) out.rosterErr = r.error || '출석부를 불러오지 못했어요';
+        const ms = await all(env, 'SELECT id, name FROM members'); out.names = Object.fromEntries(ms.map(m => [m.id, m.name]));
+      }
+      return json(out);
+    }
+    if (path === '/api/exam-set') {
+      if (meta.closed) return json({ ok: false, error: '마감한 심사예요. 고치려면 마감을 풀어 주세요' });
+      const sid = str(b.sid, 40); if (!sid) return json({ ok: false, error: '잘못된 요청' });
+      const d = b.data || {}, sc = {}; cfg.subj.forEach(x => { const v = +((d.sc || {})[x.k]); if (v >= 1 && v <= 5) sc[x.k] = Math.round(v); });
+      const clean = { sc, pass: d.pass !== false, nb: str(d.nb, 10), cur: str(d.cur, 10), absent: !!d.absent, memo: str(d.memo, 300), by: me.name };
+      await run(env, 'INSERT INTO exam (month, sid, name, data, upd, mid) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(month, sid) DO UPDATE SET name = excluded.name, data = excluded.data, upd = excluded.upd, mid = excluded.mid', month, sid, str(b.name, 20), JSON.stringify(clean), Date.now(), me.id);
+      return json({ ok: true, upd: Date.now() });
+    }
+    if (path === '/api/exam-meta') { // 이 달 심사 날짜 · 과목마다 이번 달 내용(예: 영어 문장) · 예절·태도 켜기
+      if (Array.isArray(b.on)) { cfg.subj.forEach(x => { if (x.opt) x.on = b.on.includes(x.k); }); await ks('examcfg', cfg); }
+      if (b.date !== undefined) meta.date = /^\d{4}-\d{2}-\d{2}$/.test(str(b.date, 10)) ? str(b.date, 10) : '';
+      if (b.notes && typeof b.notes === 'object') { meta.notes = {}; cfg.subj.forEach(x => { const t = str(b.notes[x.k], 200).trim(); if (t) meta.notes[x.k] = t; }); }
+      await ks(mk, meta); return json({ ok: true, cfg, meta });
+    }
+    if (path === '/api/exam-close' || path === '/api/exam-reopen') { // 마감 = 합격한 제자의 새 띠를 📈 성장에 넣음 / 마감 풀기 = 그때 바꾼 띠를 되돌림(그 뒤 손으로 바꾼 띠는 그대로)
+      const sd = await gd('app/settings'), data = await gd('app/data');
+      if (!sd || !data || !Array.isArray(data.students)) return json({ ok: false, error: '📈 성장 기록이 없어요. 성장 화면을 한 번 열어 주세요' });
+      const st = sd.settings || (sd.settings = {}); st.belts = st.belts || {}; const bySid = {}; data.students.forEach(k => { if (k && k.sid) bySid[k.sid] = k; });
+      const ym = (+month.slice(5)) + '월';
+      if (path === '/api/exam-close') {
+        if (meta.closed) return json({ ok: false, error: '이미 마감했어요' });
+        const rows = await all(env, 'SELECT sid, name, data FROM exam WHERE month = ?', month), applied = [], miss = [];
+        rows.forEach(r => { const d = J(r.data, {}); if (d.absent || d.pass === false || !d.nb) return; const k = bySid[r.sid]; if (!k) { miss.push(r.name); return; }
+          const id = k.name + '|' + k.birth, prev = st.belts[id] || ''; if (prev === d.nb) return; st.belts[id] = d.nb; applied.push([id, prev, d.nb, r.name]); });
+        await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', 'app/settings', JSON.stringify(sd), Date.now(), me.id);
+        meta.closed = { at: Date.now(), by: me.name, applied, miss }; await ks(mk, meta);
+        await addLog(env, me.id, 'exam', ym + ' 승급 심사를 마감했어요 · 띠 바뀐 제자 ' + applied.length + '명', month).catch(() => {});
+        return json({ ok: true, meta, n: applied.length, miss });
+      }
+      if (!meta.closed) return json({ ok: false, error: '마감하지 않은 심사예요' });
+      let back = 0; (meta.closed.applied || []).forEach(([id, prev, nb]) => { if (st.belts[id] !== nb) return; if (prev) st.belts[id] = prev; else delete st.belts[id]; back++; });
+      await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', 'app/settings', JSON.stringify(sd), Date.now(), me.id);
+      delete meta.closed; await ks(mk, meta);
+      await addLog(env, me.id, 'exam', ym + ' 승급 심사 마감을 풀었어요 · 띠 ' + back + '명 되돌림', month).catch(() => {});
+      return json({ ok: true, meta, n: back });
+    }
+    return json({ ok: false, error: 'not found' });
   }
   // 알림 보내기 + (채팅 말고는) 알림 기록에 남기기
   const notify = (title, body, view, ref, to) => {
@@ -1023,6 +1081,9 @@ async function runReminders(env) {
   if (Math.random() < 0.05) await run(env, 'DELETE FROM reminders WHERE sent = 1 AND at < ?', now - 30 * 86400e3);
 }
 function fixMsg(m) { return { ...m, refs: J(m.refs, []), reply: J(m.reply, null), rx: J(m.rx, {}) }; }
+// 승급 심사 과목 (opt: 켜고 끄는 과목 — 예절·태도는 승인되면 켬)
+const EXAM_SUBJ = [{ k: 'speech', n: '웅변' }, { k: 'kick', n: '발차기' }, { k: 'eng', n: '영어' }, { k: 'poom', n: '품새' }, { k: 'manner', n: '예절·태도', opt: true }];
+function examCfg(c) { const on = c && Array.isArray(c.subj) ? Object.fromEntries(c.subj.map(x => [x.k, !!x.on])) : {}; return { subj: EXAM_SUBJ.map(x => Object.assign({}, x, { on: x.opt ? !!on[x.k] : true })) }; }
 async function addLog(env, mid, kind, text, ref) {
   const now = Date.now();
   await run(env, 'INSERT INTO logs (mid, kind, text, ref, at) VALUES (?, ?, ?, ?, ?)', mid, str(kind, 12), str(text, 300), str(ref, 40), now);

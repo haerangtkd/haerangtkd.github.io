@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>해랑 승급 심사</title>
+<meta name="theme-color" content="#0D326F">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="config.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* 승급 심사 채점 (2026-11-14): 태블릿에서 제자를 넘기며 과목마다 1~5점 → 합격·새 띠. 저장은 업무 서버 exam 표, 마감하면 📈 성장의 띠에 반영 */
+:root{--navy:#0D326F;--brand:#A40F16;--paper:#F4F5F8;--card:#fff;--ink:#1B1E24;--muted:#6B7280;--line:#E2E5EB;--ok:#1E7A46;--okbg:#E5F4EA;--warn:#B26A00;--warnbg:#FFF4DC;--sel:#0D326F}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;line-height:1.5;overscroll-behavior-y:none;word-break:keep-all}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+body{-webkit-user-select:none;user-select:none}
+input,textarea{-webkit-user-select:text;user-select:text}
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 8px;display:flex;align-items:center;gap:8px}
+.top h1{font-size:18px;margin:0;font-weight:900;flex:1;white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}
+.btn.p{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.r{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn:disabled{opacity:.45}
+.mon{display:flex;align-items:center;gap:2px;font-weight:900}
+.mon button{border:0;background:none;font-size:22px;padding:2px 8px;color:var(--navy)}
+.wrap{max-width:760px;margin:0 auto;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + 90px)}
+.bar{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.nums{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.nums b{font-size:20px}
+.nums span{font-size:13px;color:var(--muted);margin-right:8px}
+.prog{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:var(--ok)}
+.banner{border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:14px}
+.banner.ok{background:var(--okbg);color:var(--ok)}
+.banner.warn{background:var(--warnbg);color:var(--warn)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chips button{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 12px;font-size:14px;font-weight:600}
+.chips button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.inp{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+.kid{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:2px;min-height:68px}
+.kid b{font-size:16px}
+.kid small{color:var(--muted);font-size:12px}
+.kid em{font-style:normal;font-size:12px;font-weight:700}
+.kid.done{border-color:#9FD3B2;background:#F4FBF6}.kid.done em{color:var(--ok)}
+.kid.half{border-color:#BFC8DA}.kid.half em{color:var(--navy)}
+.kid.abs{background:#F7F7F7}.kid.abs em{color:var(--muted)}
+.kid.todo em{color:var(--brand)}
+.gh{margin:14px 2px 0;font-size:14px;color:var(--muted);font-weight:700}
+/* 채점 카드 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.who{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.who h2{margin:0;font-size:28px;font-weight:900}
+.who small{color:var(--muted);font-size:15px}
+.belt{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14px;border:1px solid var(--line);border-radius:20px;padding:3px 10px 3px 6px}
+.belt i{width:22px;height:10px;border-radius:3px;border:1px solid rgba(0,0,0,.15);display:inline-block}
+.subj{border-top:1px solid var(--line);padding:12px 0}
+.subj:first-of-type{border-top:0}
+.sh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sh b{font-size:18px}
+.sh span{font-size:14px;color:var(--navy);font-weight:700}
+.note{font-size:13px;color:var(--muted);margin-top:2px}
+.sc{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px}
+.sc button{border:2px solid var(--line);background:var(--card);border-radius:14px;height:64px;font-size:26px;font-weight:900;color:var(--navy)}
+.sc button.on{background:var(--sel);border-color:var(--sel);color:#fff}
+.dim .sc,.dim .res{opacity:.35;pointer-events:none}
+.res{border-top:1px solid var(--line);padding-top:12px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pf{display:flex;gap:6px}
+.pf button{border:2px solid var(--line);background:var(--card);border-radius:12px;padding:10px 18px;font-weight:900;font-size:17px}
+.pf button.on.y{background:var(--ok);border-color:var(--ok);color:#fff}
+.pf button.on.n{background:var(--brand);border-color:var(--brand);color:#fff}
+.res select{border:1px solid var(--line);border-radius:10px;padding:10px;font-weight:700;font-size:16px;background:var(--card)}
+.help{font-size:13px;color:var(--muted);margin:6px 0 0}
+.abs{border:1px dashed var(--muted);background:none;border-radius:10px;padding:8px 12px;font-weight:700;color:var(--muted)}
+.abs.on{background:#555;color:#fff;border-style:solid;border-color:#555}
+.navb{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;gap:8px;justify-content:center;z-index:5}
+.navb[hidden]{display:none}
+.navb .btn{flex:1;max-width:240px;padding:14px;font-size:16px}
+.saved{font-size:12px;color:var(--muted);text-align:right;min-height:18px;margin-top:6px}
+/* 시트 */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:640px;max-height:88svh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
+.sheet h3{margin:0 0 10px;font-size:19px}
+.f{display:block;font-weight:700;font-size:14px;margin:12px 0 4px}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.sw{display:flex;align-items:center;gap:8px;font-size:15px;margin-top:8px}
+.sw input{width:20px;height:20px;accent-color:var(--navy)}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:30;max-width:90vw;text-align:center}
+.empty{color:var(--muted);text-align:center;padding:30px 0}
+@media (min-width:700px){.sc button{height:72px}}
+</style></head>
+<body>
+<div class="top"><button class="btn" id="back">‹ 업무</button><h1>🏅 승급 심사</h1><div class="mon"><button id="mPrev" aria-label="지난달">‹</button><span id="mLbl"></span><button id="mNext" aria-label="다음 달">›</button></div></div>
+<div class="wrap" id="main"><p class="empty">불러오는 중…</p></div>
+<div class="navb" id="navb" hidden></div>
+<script>
+const API = window.HAERANG_TEAM_API || '';
+const tok = () => { try { return localStorage.getItem('haerang-team-tok') || ''; } catch (e) { return ''; } };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const now = new Date(), thisMonth = now.getFullYear() + '-' + pad(now.getMonth() + 1);
+async function api(path, body) {
+  try { const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ tok: tok() }, body || {})) }); return await r.json(); }
+  catch (e) { return { ok: false, error: '인터넷 연결을 확인해 주세요' }; }
+}
+function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+
+/* 띠 (📈 성장과 같은 순서·규칙): 사이 띠(줄띠·검은띠)는 유치부만, 유치부는 밤띠까지·초등부 이상은 빨간띠까지 자동, 빨간띠·품띠는 직접 고름 */
+const BELTS = ['흰띠','노란줄띠','노란띠','초록줄띠','초록띠','초록검은띠','보라띠','보라검은띠','파란띠','파란검은띠','주황띠','주황검은띠','분홍띠','밤띠','빨간띠','1품','2품','3품','4품','5품','6품'];
+const STRIPE = ['노란줄띠','초록줄띠','초록검은띠','보라검은띠','파란검은띠','주황검은띠'];
+const BCOL = { 흰: '#fff', 노란: '#F6D32D', 초록: '#3BA55C', 보라: '#7E4BC4', 파란: '#2F6FDB', 주황: '#F08A24', 분홍: '#F28AB8', 밤: '#6B3E26', 빨간: '#D62828' };
+const beltColor = b => /품$/.test(b) ? 'linear-gradient(90deg,#D62828 50%,#111 50%)' : /검은띠$/.test(b) ? 'linear-gradient(90deg,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 60%,#111 60%)' : /줄띠$/.test(b) ? 'linear-gradient(180deg,#fff 35%,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 35%,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 65%,#fff 65%)' : (BCOL[b.replace(/띠$/, '')] || '#ddd');
+const beltTag = b => b ? '<span class="belt"><i style="background:' + beltColor(b) + '"></i>' + esc(b) + '</span>' : '<span class="belt" style="color:var(--muted)">띠 모름</span>';
+function nextBelt(cur, kinder) {
+  if (!cur) return ''; const i = BELTS.indexOf(cur); if (i < 0 || cur === '빨간띠' || /품$/.test(cur)) return cur;
+  const max = BELTS.indexOf(kinder ? '밤띠' : '빨간띠');
+  for (let j = i + 1; j <= max; j++) if (kinder || !STRIPE.includes(BELTS[j])) return BELTS[j];
+  return cur;
+}
+const beltList = kinder => kinder ? BELTS : BELTS.filter(b => !STRIPE.includes(b));
+function gradeOf(birth) { const y = +String(birth || '').slice(0, 4); if (!y) return ''; const sy = now.getMonth() >= 2 ? now.getFullYear() : now.getFullYear() - 1, g = sy - y - 6;
+  return g <= 0 ? '유치부' : g <= 6 ? '초' + g : g <= 9 ? '중' + (g - 6) : g <= 12 ? '고' + (g - 9) : '성인'; }
+const groupOf = g => /유치/.test(g) ? '유치부' : /^초/.test(g) ? '초등부' : g ? '중고등부·성인' : '학년 모름';
+const GROUPS = ['유치부', '초등부', '중고등부·성인', '학년 모름'];
+const WORDS = ['', '다시 해 봐요', '조금 더 노력해요', '보통이에요', '잘해요', '아주 잘해요'];
+
+const S = { month: thisMonth, cfg: null, meta: {}, rows: {}, belts: {}, roster: [], names: {}, view: 'list', sid: null, f: 'all', g: '', q: '', pend: {}, timers: {}, err: '' };
+const subjOn = () => (S.cfg ? S.cfg.subj : []).filter(x => x.on);
+const kids = () => S.roster.filter(k => k.status !== '퇴관').map(k => { const g = gradeOf(k.birth), b = S.belts[k.id]; return Object.assign({}, k, { grade: g, group: groupOf(g), kinder: b ? b.kinder || /유치/.test(g) : /유치/.test(g), cur: b ? b.belt : '', inGrow: !!b }); })
+  .sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.name.localeCompare(b.name, 'ko'));
+const kidBy = sid => kids().find(k => k.id === sid);
+function dataOf(k) { const r = S.rows[k.id]; if (r) return r.data; return { sc: {}, pass: true, nb: nextBelt(k.cur, k.kinder), cur: k.cur, absent: false, memo: '' }; }
+function stateOf(k) { const r = S.rows[k.id]; if (!r) return 'todo'; const d = r.data; if (d.absent) return 'abs'; const n = subjOn().filter(x => d.sc && d.sc[x.k]).length; return n >= subjOn().length ? 'done' : n ? 'half' : 'todo'; }
+const SLBL = { todo: '아직', half: '하는 중', done: '끝남', abs: '안 봄' };
+const closed = () => !!S.meta.closed;
+
+async function load(full) {
+  const j = await api('/api/exam-get', { month: S.month, full: full ? 1 : 0 });
+  if (!j.ok) { S.err = j.relogin || /로그인/.test(j.error || '') ? 'login' : (j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : j.error || '불러오지 못했어요'); draw(); return; }
+  S.err = ''; S.cfg = j.cfg; S.meta = j.meta || {};
+  const rows = {}; j.rows.forEach(r => { rows[r.sid] = r; }); Object.keys(S.pend).forEach(sid => { if (S.rows[sid]) rows[sid] = S.rows[sid]; }); S.rows = rows;
+  if (full) { S.belts = j.belts || {}; S.roster = j.roster || []; S.names = j.names || {}; S.rosterErr = j.rosterErr || ''; }
+  draw();
+}
+function save(k, d) { // 누를 때마다 0.5초 뒤 저장 (여러 번 눌러도 한 번)
+  S.rows[k.id] = { sid: k.id, name: k.name, data: d, upd: Date.now(), mine: 1 }; S.pend[k.id] = 1; setSaved('저장하는 중…');
+  clearTimeout(S.timers[k.id]); S.timers[k.id] = setTimeout(async () => {
+    const j = await api('/api/exam-set', { month: S.month, sid: k.id, name: k.name, data: d });
+    delete S.pend[k.id];
+    if (!j.ok) { toast(j.error || '저장하지 못했어요'); setSaved('⚠ 저장 안 됨'); if (/마감/.test(j.error || '')) load(true); return; }
+    setSaved('저장했어요 ✓');
+  }, 500);
+}
+function setSaved(t) { const el = $('#saved'); if (el) el.textContent = t; }
+
+function draw() {
+  const [y, m] = S.month.split('-'); $('#mLbl').textContent = y + '년 ' + (+m) + '월'; $('#mNext').style.visibility = S.month >= thisMonth ? 'hidden' : '';
+  if (S.err) { $('#navb').hidden = true; $('#main').innerHTML = S.err === 'login' ? '<p class="empty">업무 앱에서 로그인한 뒤 열어 주세요.<br><br><a class="btn p" href="/team/">업무 앱으로</a></p>' : '<p class="empty">' + esc(S.err) + '</p>'; return; }
+  if (!S.cfg) return;
+  if (S.view === 'card' && S.sid && kidBy(S.sid)) return drawCard();
+  S.view = 'list'; drawList();
+}
+function drawList() {
+  $('#navb').hidden = true;
+  const L = kids(), st = L.map(stateOf), n = L.length, done = st.filter(x => x === 'done').length, abs = st.filter(x => x === 'abs').length, half = st.filter(x => x === 'half').length;
+  const pass = L.filter((k, i) => st[i] === 'done' && dataOf(k).pass !== false).length;
+  const noGrow = L.filter(k => !k.inGrow).length, meta = S.meta;
+  let h = '';
+  if (closed()) { const c = meta.closed; h += '<div class="banner ok">✅ ' + new Date(c.at).toLocaleDateString('ko-KR') + ' ' + esc(c.by) + '님이 마감했어요 · 띠 바뀐 제자 ' + (c.applied || []).length + '명' + ((c.miss || []).length ? ' · 성장 명단에 없어 띠를 못 넣은 제자: ' + esc(c.miss.join(', ')) : '') + '</div>'; }
+  if (S.rosterErr) h += '<div class="banner warn">' + esc(S.rosterErr) + '</div>';
+  h += '<div class="bar"><div class="nums"><b>' + (done + abs) + '</b><span>/ ' + n + '명 끝남</span><b>' + pass + '</b><span>합격</span>' + (half ? '<b>' + half + '</b><span>하는 중</span>' : '') + (abs ? '<b>' + abs + '</b><span>안 봄</span>' : '') +
+    '<span style="flex:1"></span><button class="btn" id="setB">⚙ 이번 달 심사</button></div><div class="prog"><i style="width:' + (n ? Math.round((done + abs) / n * 100) : 0) + '%"></i></div>' +
+    (meta.date ? '<p class="help">심사일 ' + esc(meta.date.slice(5).replace('-', '/')) + '</p>' : '') + '</div>';
+  if (noGrow) h += '<div class="banner warn">📈 성장 명단에 아직 없는 제자 ' + noGrow + '명은 지금 띠를 몰라요. 📈 성장 화면을 한 번 열면 들어와요.</div>';
+  h += '<input class="inp" id="q" placeholder="이름 검색" autocomplete="off" value="' + esc(S.q) + '">';
+  h += '<div class="chips" id="fc">' + [['all', '전체'], ['todo', '아직'], ['done', '끝남'], ['abs', '안 봄']].map(([k, t]) => '<button data-f="' + k + '" class="' + (S.f === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
+  h += '<div class="chips" id="gc"><button data-g="" class="' + (!S.g ? 'on' : '') + '">모두</button>' + GROUPS.filter(g => L.some(k => k.group === g)).map(g => '<button data-g="' + g + '" class="' + (S.g === g ? 'on' : '') + '">' + g + '</button>').join('') + '</div>';
+  const V = visible(L);
+  if (!V.length) h += '<p class="empty">' + (n ? '맞는 제자가 없어요' : '출석부 명단이 비어 있어요') + '</p>';
+  GROUPS.forEach(g => { const G = V.filter(k => k.group === g); if (!G.length) return; h += '<div class="gh">' + g + ' ' + G.length + '명</div><div class="grid">' + G.map(k => { const s = stateOf(k), d = dataOf(k); const up = s === 'done' && d.pass !== false && d.nb && d.nb !== k.cur;
+    return '<button class="kid ' + s + '" data-k="' + esc(k.id) + '"><b>' + esc(k.name) + '</b><small>' + esc(k.grade || '') + ' · ' + esc(k.cur || '띠 모름') + '</small><em>' + (s === 'done' ? (d.pass === false ? '불합격' : up ? '합격 → ' + esc(d.nb) : '합격 · 띠 그대로') : SLBL[s]) + (k.status === '휴원' ? ' · 휴원' : '') + '</em></button>'; }).join('') + '</div>'; });
+  h += '<div class="bar" style="margin-top:16px">' + (closed() ? '<p class="help" style="margin:0 0 8px">마감을 풀면 이번 심사로 바뀐 띠가 예전 띠로 돌아가요 (그 뒤에 손으로 바꾼 띠는 그대로).</p><button class="btn" id="reopen">마감 풀기</button>' :
+    '<p class="help" style="margin:0 0 8px">다 채점했으면 마감해 주세요. 마감하면 합격한 제자의 새 띠가 📈 성장에 들어가요.</p><button class="btn r" id="close">심사 마감 · 띠 반영</button>') + '</div>';
+  $('#main').innerHTML = h;
+  $('#q').oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; drawList(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); };
+  $('#fc').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { S.f = b.dataset.f; drawList(); } };
+  $('#gc').onclick = e => { const b = e.target.closest('[data-g]'); if (b) { S.g = b.dataset.g; drawList(); } };
+  $('#main').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { S.sid = b.dataset.k; S.view = 'card'; draw(); scrollTo(0, 0); });
+  $('#setB').onclick = setSheet;
+  if ($('#close')) $('#close').onclick = closeExam;
+  if ($('#reopen')) $('#reopen').onclick = reopenExam;
+}
+function visible(L) { const q = S.q.trim(); return L.filter(k => (!S.g || k.group === S.g) && (!q || k.name.includes(q)) && (S.f === 'all' || (S.f === 'todo' ? ['todo', 'half'].includes(stateOf(k)) : stateOf(k) === S.f))); }
+function drawCard() {
+  const k = kidBy(S.sid), d = JSON.parse(JSON.stringify(dataOf(k))), ro = closed(), notes = S.meta.notes || {};
+  if (!S.rows[k.id]) d.cur = k.cur;
+  const r = S.rows[k.id], by = r && r.data && r.data.by;
+  let h = (ro ? '<div class="banner ok">마감한 심사라 볼 수만 있어요</div>' : '') + '<div class="card' + (d.absent ? ' dim' : '') + '" id="card">';
+  h += '<div class="who"><h2>' + esc(k.name) + '</h2><small>' + esc(k.grade || '') + (k.status === '휴원' ? ' · 휴원' : '') + '</small><span style="flex:1"></span>' + beltTag(d.cur || k.cur) + '</div>';
+  if (!k.inGrow) h += '<p class="help">📈 성장 명단에 없어서 지금 띠를 몰라요. 성장 화면을 한 번 열면 들어와요.</p>';
+  subjOn().forEach(x => { const v = (d.sc || {})[x.k] || 0;
+    h += '<div class="subj"><div class="sh"><b>' + esc(x.n) + '</b><span>' + (v ? v + '점 · ' + WORDS[v] : '') + '</span></div>' + (notes[x.k] ? '<div class="note">이번 달: ' + esc(notes[x.k]) + '</div>' : '') +
+      '<div class="sc" data-s="' + x.k + '">' + [1, 2, 3, 4, 5].map(i => '<button data-v="' + i + '" class="' + (v === i ? 'on' : '') + '"' + (ro ? ' disabled' : '') + '>' + i + '</button>').join('') + '</div></div>'; });
+  const opts = beltList(k.kinder); if (d.nb && !opts.includes(d.nb)) opts.push(d.nb);
+  const auto = nextBelt(d.cur || k.cur, k.kinder), manual = (d.cur || k.cur) === '빨간띠' || /품$/.test(d.cur || k.cur || '');
+  h += '<div class="res"><div class="pf" id="pf"><button class="y' + (d.pass !== false ? ' on' : '') + '" data-p="1"' + (ro ? ' disabled' : '') + '>합격</button><button class="n' + (d.pass === false ? ' on' : '') + '" data-p="0"' + (ro ? ' disabled' : '') + '>불합격</button></div>' +
+    (d.pass !== false ? '<label style="display:flex;align-items:center;gap:6px;font-weight:700">새 띠 <select id="nb"' + (ro ? ' disabled' : '') + '><option value="">그대로</option>' + opts.map(b => '<option' + (b === d.nb && d.nb !== (d.cur || k.cur) ? ' selected' : '') + '>' + b + '</option>').join('') + '</select></label>' : '') + '</div>';
+  if (d.pass !== false) h += '<p class="help">' + (manual ? '빨간띠·품띠는 자동으로 오르지 않아요. 공인단 심사에 합격했으면 직접 골라 주세요.' : !(d.cur || k.cur) ? '지금 띠를 몰라서 새 띠를 직접 골라 주세요.' : auto === (d.cur || k.cur) ? '최고 띠라 그대로예요.' : '합격하면 ' + esc(auto) + '로 올라가요. 다르면 바꿔 주세요.') + '</p>';
+  h += '<input class="inp" id="memo" style="margin-top:12px" maxlength="300" placeholder="메모 (직원만 보여요)" value="' + esc(d.memo || '') + '"' + (ro ? ' disabled' : '') + '>';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-top:12px"><button class="abs' + (d.absent ? ' on' : '') + '" id="absB"' + (ro ? ' disabled' : '') + '>' + (d.absent ? '✓ 이번 달 안 봄' : '이번 달 안 봄 (결석)') + '</button><span style="flex:1"></span><div class="saved" id="saved">' + (by ? esc(by) + '님이 채점' : '') + '</div></div>';
+  h += '</div>';
+  $('#main').innerHTML = h;
+  const L = visible(kids()), i = L.findIndex(x => x.id === k.id);
+  const nextTodo = () => { const A = kids(); for (let j = 1; j <= A.length; j++) { const x = A[(A.findIndex(y => y.id === k.id) + j) % A.length]; if (['todo', 'half'].includes(stateOf(x)) && x.id !== k.id) return x; } return null; };
+  const nt = nextTodo();
+  $('#navb').hidden = false;
+  $('#navb').innerHTML = '<button class="btn" id="pv"' + (i <= 0 ? ' disabled' : '') + '>‹ 이전</button><button class="btn" id="ls">목록</button>' + (nt ? '<button class="btn p" id="nt">다음 · ' + esc(nt.name) + ' ›</button>' : '<button class="btn p" id="nx"' + (i < 0 || i >= L.length - 1 ? ' disabled' : '') + '>다음 ›</button>');
+  const go = x => { if (!x) return; S.sid = x.id; drawCard(); scrollTo(0, 0); };
+  $('#pv').onclick = () => go(L[i - 1]); $('#ls').onclick = () => { S.view = 'list'; draw(); };
+  if ($('#nt')) $('#nt').onclick = () => go(nt); if ($('#nx')) $('#nx').onclick = () => go(L[i + 1]);
+  // 옆으로 밀어서 넘기기
+  let sx = null, sy = 0; const c = $('#card');
+  c.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  c.addEventListener('touchend', e => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? (L[i + 1] || null) : (L[i - 1] || null)); });
+  if (ro) return;
+  const upd = () => { save(k, d); drawCard(); };
+  $('#main').querySelectorAll('.sc').forEach(row => row.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; d.sc = d.sc || {}; const v = +b.dataset.v; d.sc[row.dataset.s] = d.sc[row.dataset.s] === v ? undefined : v; if (!d.sc[row.dataset.s]) delete d.sc[row.dataset.s]; if (navigator.vibrate) navigator.vibrate(10); upd(); });
+  $('#pf').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; d.pass = b.dataset.p === '1'; if (d.pass && (!d.nb || d.nb === (d.cur || k.cur))) d.nb = nextBelt(d.cur || k.cur, k.kinder); upd(); };
+  if ($('#nb')) $('#nb').onchange = e => { d.nb = e.target.value || (d.cur || k.cur || ''); upd(); };
+  $('#memo').onchange = e => { d.memo = e.target.value; save(k, d); };
+  $('#absB').onclick = () => { d.absent = !d.absent; upd(); };
+}
+function sheet(html, init) { const ov = document.createElement('div'); ov.className = 'ov'; ov.innerHTML = '<div class="sheet">' + html + '</div>'; ov.onclick = e => { if (e.target === ov) ov.remove(); }; document.body.appendChild(ov); init && init(ov); return ov; }
+function setSheet() {
+  const meta = S.meta, notes = meta.notes || {}, ro = closed();
+  sheet('<h3>⚙ ' + (+S.month.slice(5)) + '월 심사</h3><label class="f">심사 날짜</label><input type="date" class="inp" id="dt" value="' + esc(meta.date || '') + '"' + (ro ? ' disabled' : '') + '>' +
+    '<label class="f">과목마다 이번 달 내용 (선택)</label><p class="help" style="margin-top:0">예: 영어 문장, 웅변 주제. 채점 화면에 작게 보여요. 나중에 학부모 앱 심사 결과에도 쓸 수 있어요.</p>' +
+    S.cfg.subj.filter(x => x.on).map(x => '<label class="f" style="font-weight:500">' + esc(x.n) + '</label><input class="inp" data-n="' + x.k + '" maxlength="200" value="' + esc(notes[x.k] || '') + '"' + (ro ? ' disabled' : '') + '>').join('') +
+    '<label class="f">과목 켜기</label>' + S.cfg.subj.filter(x => x.opt).map(x => '<label class="sw"><input type="checkbox" data-o="' + x.k + '"' + (x.on ? ' checked' : '') + (ro ? ' disabled' : '') + '> ' + esc(x.n) + ' 채점하기</label>').join('') +
+    '<p class="help">예절·태도는 승인되면 켜 주세요. 켜고 끄는 건 앞으로의 심사 모두에 적용돼요.</p>' +
+    '<div class="row"><button class="btn" id="x">닫기</button>' + (ro ? '' : '<button class="btn p" id="ok">저장</button>') + '</div>', ov => {
+    ov.querySelector('#x').onclick = () => ov.remove();
+    if (ro) return;
+    ov.querySelector('#ok').onclick = async () => {
+      const nt = {}; ov.querySelectorAll('[data-n]').forEach(i => { nt[i.dataset.n] = i.value; }); Object.keys(notes).forEach(k => { if (!(k in nt)) nt[k] = notes[k]; });
+      const on = [...ov.querySelectorAll('[data-o]')].filter(i => i.checked).map(i => i.dataset.o);
+      const j = await api('/api/exam-meta', { month: S.month, date: ov.querySelector('#dt').value, notes: nt, on });
+      if (!j.ok) return toast(j.error || '저장하지 못했어요'); S.cfg = j.cfg; S.meta = j.meta; ov.remove(); draw(); toast('저장했어요');
+    };
+  });
+}
+async function closeExam() {
+  if (Object.keys(S.pend).length) return toast('저장하는 중이에요. 잠깐 뒤에 눌러 주세요');
+  const L = kids(), st = L.map(stateOf), todo = st.filter(x => x === 'todo' || x === 'half').length;
+  const up = L.filter((k, i) => st[i] !== 'abs' && S.rows[k.id] && dataOf(k).pass !== false && dataOf(k).nb && dataOf(k).nb !== k.cur);
+  if (!confirm((+S.month.slice(5)) + '월 심사를 마감할까요?\n\n띠가 바뀌는 제자 ' + up.length + '명' + (todo ? '\n아직 채점 안 끝난 제자 ' + todo + '명 (점수를 넣은 제자는 띠도 바뀌어요)' : '') + '\n\n마감하면 📈 성장의 띠가 바뀌고, 점수는 고칠 수 없어요(마감 풀기로 되돌릴 수 있어요).')) return;
+  const j = await api('/api/exam-close', { month: S.month });
+  if (!j.ok) return toast(j.error || '마감하지 못했어요');
+  toast('마감했어요 · 띠 바뀐 제자 ' + j.n + '명'); await load(true);
+}
+async function reopenExam() {
+  if (!confirm('마감을 풀까요?\n이번 심사로 바뀐 띠가 예전 띠로 돌아가요.')) return;
+  const j = await api('/api/exam-reopen', { month: S.month });
+  if (!j.ok) return toast(j.error || '풀지 못했어요');
+  toast('마감을 풀었어요 · 띠 ' + j.n + '명 되돌림'); await load(true);
+}
+$('#back').onclick = () => { location.href = '/team/'; };
+$('#mPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m - 2, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
+$('#mNext').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
+// 다른 직원이 채점한 것도 보이게: 화면을 보는 동안 30초마다 (저장 중인 제자는 건드리지 않음)
+setInterval(() => { if (document.visibilityState === 'visible' && S.cfg && !Object.keys(S.pend).length) load(false); }, 30000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.cfg) load(false); });
+if (!tok()) { S.err = 'login'; draw(); } else load(true);
+</script>
+</body></html>
