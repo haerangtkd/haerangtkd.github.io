@@ -1351,7 +1351,7 @@
       (s.approved ? '<button class="li" data-x="info"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 확인</b><small>출생연도 · 수련 요일 · 회비 · ' + esc(s.relation || '') + ' · 번호 뒷자리 ' + esc(s.phone4 || '') + '</small></span>' + ICON.right + '</button>' : '') +
       (canPush ? '<button class="li" data-x="push"><span class="lic">' + IC.bell + '</span><span class="lt"><b>알림</b><small>' + (pushOk ? '켜져 있어요 · 눌러서 확인' : '꺼져 있어요 · 눌러서 켜기') + '</small></span>' + ICON.right + '</button>' : '') +
       (s.approved ? '<button class="li" data-x="fam"><span class="lic">' + IC.share + '</span><span class="lt"><b>도장에 가족 추가 요청하기</b><small>할머니·아빠 등 다른 가족도 알림을 받을 수 있게 도장에서 도와드려요</small></span>' + ICON.right + '</button>' : '') +
-      '<button class="li" data-x="tokid"><span class="lic" style="font-size:18px">🥋</span><span class="lt"><b>제자 모드로 바꾸기</b><small>제자 본인 휴대폰이면 여기서 바꿔요 · 사범님께 코드 받기</small></span>' + ICON.right + '</button>' +
+      '<button class="li" data-x="tokid" data-k="' + esc(k) + '"><span class="lic" style="font-size:18px">🥋</span><span class="lt"><b>' + (s.approved ? esc(k) + ' 제자 모드로 보기' : '제자 모드로 바꾸기') + '</b><small>' + (s.approved ? '코드 없이 바로 · 폰이 없는 친구도 띠·뱃지·미션을 봐요' : '제자 본인 휴대폰이면 여기서 바꿔요 · 사범님께 코드 받기') + '</small></span>' + ICON.right + '</button>' +
       '</div><p class="note" style="margin:10px 4px 0">정보가 다르면 도장에 알려 주세요. 퇴관하면 이 휴대폰 등록도 함께 해제돼요.</p></section>';
     const head = kidSel + '<div class="att-kid"><span class="avatar">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장 · ' + (s.approved ? '확인 완료' : '도장 확인 중') + '</small></div><span class="cnt" id="attCnt"></span></div>'
       + (s.approved ? '<button class="growbtn" data-x="grow"><span style="font-size:26px">📈</span><span><b>' + esc(k) + ' 성장 리포트</b><small>출석 · 성장 측정 · 심사를 한눈에</small></span><span class="ar">›</span></button>' : '');
@@ -1385,7 +1385,9 @@
       if (x === 'info') openPage('info');
       if (x === 'edit') { fillJoin(me(), true); show('v-gate', 'g-join'); scrollTo(0, 0); }
       if (x === 'share') copy();
-      if (x === 'tokid') { if (confirm('이 휴대폰을 제자 모드로 바꿀까요?\n도장에서 사범님께 제자 코드를 받아야 들어갈 수 있어요. 학부모 화면은 제자 화면 맨 아래 \'학부모 화면으로\'를 누르면 돌아와요.')) toKid(); }
+      if (x === 'tokid') { // 2026-11-14: 승인된 학부모 휴대폰은 코드 없이 제자 모드로 (폰 없는 제자). 제자 화면 맨 아래 '학부모 화면으로'로 돌아옴
+        if (s && s.approved && s.token) { try { localStorage.setItem('haerang-kid-pick', r.dataset.k || ''); } catch (_) {} toKid(); }
+        else if (confirm('이 휴대폰을 제자 모드로 바꿀까요?\n도장에서 사범님께 제자 코드를 받아야 들어갈 수 있어요. 학부모 화면은 제자 화면 맨 아래 \'학부모 화면으로\'를 누르면 돌아와요.')) toKid(); }
       if (x === 'fam') famSheet();
       if (x === 'push') {
         if (canPush && s.push && Notification.permission === 'granted') { (reg || await navigator.serviceWorker.ready).showNotification('해랑경희', { body: '알림이 잘 오고 있어요.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test' }); return; }

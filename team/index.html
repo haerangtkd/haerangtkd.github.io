@@ -490,6 +490,12 @@
   .viewer img{max-width:100%;max-height:100%}
   .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1D2330;color:#fff;font-size:14.5px;padding:10px 18px;border-radius:99px;z-index:90;opacity:0;transition:opacity .2s;pointer-events:none;max-width:92vw;text-align:center}
   .toast.show{opacity:1}
+  /* 목록 짧게 보기 (2026-11-14, 의견 정리 2번): 4~5줄 높이 · 칸 안 스크롤 · 아래 흐리게 · 'n명 더 ↓' */
+  .clipw{position:relative}
+  .clip{position:relative;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .clip.more{-webkit-mask-image:linear-gradient(#000 calc(100% - 34px),transparent);mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
+  .clipmore{display:none;margin:4px auto 0;border:0;background:var(--soft);color:var(--brand);font-weight:800;font-size:13px;border-radius:99px;padding:5px 14px}
+  .clipmore.on{display:block}
 </style>
 </head>
 <body>
@@ -926,7 +932,7 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'] }; // 심사 채점 (2026-11-14)
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
+const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '선 모으기'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -947,14 +953,14 @@ async function loadCneed() { // 대시보드를 보는 동안 20초마다 (출�
 function cneedCard() {
   loadCneed();
   const L = S.cneed || []; if (!L.length) return '';
-  return '<div class="sec blink cnd"><div class="sh"><h2>🚨 긴급 · 연락 필요 <em>' + L.length + '</em></h2></div>' + L.map(x => '<div class="cnr" data-kid="' + esc(x.sid) + '"><div><b>' + esc(x.name) + '</b> 학생이나 부모님께 연락이 필요해요' +
-    '<small>' + esc([x.day !== today() ? md(x.day) : '', x.why, x.who ? x.who + ' (출석부)' : ''].filter(Boolean).join(' · ')) + '</small></div><span class="lbtn">연락처 ›</span></div>').join('') + '<p class="hint">연락한 뒤 출석부에서 출석·결석을 넣으면 사라져요</p></div>';
+  return '<div class="sec blink cnd"><div class="sh"><h2>🚨 긴급 · 연락 필요 <em>' + L.length + '</em></h2></div>' + clip('hCn', L.map(x => '<div class="cnr" data-kid="' + esc(x.sid) + '"><div><b>' + esc(x.name) + '</b> 학생이나 부모님께 연락이 필요해요' +
+    '<small>' + esc([x.day !== today() ? md(x.day) : '', x.why, x.who ? x.who + ' (출석부)' : ''].filter(Boolean).join(' · ')) + '</small></div><span class="lbtn">연락처 ›</span></div>').join(''), '명') + '<p class="hint">연락한 뒤 출석부에서 출석·결석을 넣으면 사라져요</p></div>';
 }
 // 출석번호 없는 원생 (관리자, 2026-11-13): 번호가 없으면 태블릿 등원을 못 함
 function noNoCard() {
   if (!isBoss() || !S.kids) return ''; const L = S.kids.filter(s => s.status !== '퇴관' && !String(s.no || '').trim()).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   if (!L.length) return '';
-  return '<div class="sec"><div class="sh"><h2>⚠ 출석번호 없는 원생 <em style="color:var(--no);font-style:normal">' + L.length + '</em></h2></div><p class="hint" style="margin:0 0 8px">관리자 확인이 필요해요. 번호가 없으면 태블릿에서 등원을 못 눌러요. 이름을 눌러 정보 수정에서 넣어 주세요.</p><div class="nonos">' + L.map(s => '<button data-kid="' + esc(s.id) + '">' + esc(s.name) + '</button>').join('') + '</div></div>';
+  return '<div class="sec"><div class="sh"><h2>⚠ 출석번호 없는 원생 <em style="color:var(--no);font-style:normal">' + L.length + '</em></h2></div><p class="hint" style="margin:0 0 8px">관리자 확인이 필요해요. 번호가 없으면 태블릿에서 등원을 못 눌러요. 이름을 눌러 정보 수정에서 넣어 주세요.</p>' + clip('hNo', L.map(s => '<button data-kid="' + esc(s.id) + '">' + esc(s.name) + '</button>').join(''), '명', 'nonos') + '</div>';
 }
 // 홈페이지 도장 일정의 '행사' → 행사표에 등록할까요? (2026-11-13, 직원 모두)
 async function loadSite() { if (S.siteAt && Date.now() - S.siteAt < 600000) return; S.siteAt = Date.now(); try { const d = await (await fetch('/data.json?t=' + Date.now(), { cache: 'no-store' })).json(); S.site = d; if (S.tab === 'home') render(); } catch (_) {} }
@@ -986,12 +992,12 @@ async function onHomeExtra(e) {
 // 삭제 승인 요청 (관리자 대시보드, 2026-11-13): 직원이 행사·물품·구매표를 지우려 할 때
 function delReqCard() {
   const L = (S.delReq || []).filter(r => { const it = S.items.get(r.id); return it && !it.del; }); if (!L.length || !isBoss()) return '';
-  return '<div class="sec"><div class="sh"><h2>삭제 승인 요청 ' + L.length + '</h2></div>' + L.map(r => '<div class="orq"><div><b>' + esc(r.title) + '</b> <small>' + (r.type === 'buy' ? '구매표' : r.kind === 'goods' ? '물품 신청표' : '행사 신청표') + ' · ' + esc(r.who) + ' 요청</small></div><div class="orb"><button class="btn" data-drv="' + esc(r.id) + '">보기</button><button class="btn g" data-drok="' + esc(r.id) + '">삭제</button><button class="btn" data-drno="' + esc(r.id) + '">돌려보내기</button></div></div>').join('') + '</div>';
+  return '<div class="sec"><div class="sh"><h2>삭제 승인 요청 ' + L.length + '</h2></div>' + clip('hDr', L.map(r => '<div class="orq"><div><b>' + esc(r.title) + '</b> <small>' + (r.type === 'buy' ? '구매표' : r.kind === 'goods' ? '물품 신청표' : '행사 신청표') + ' · ' + esc(r.who) + ' 요청</small></div><div class="orb"><button class="btn" data-drv="' + esc(r.id) + '">보기</button><button class="btn g" data-drok="' + esc(r.id) + '">삭제</button><button class="btn" data-drno="' + esc(r.id) + '">돌려보내기</button></div></div>').join(''), '건') + '</div>';
 }
 // 퇴관 승인 요청 (관리자 대시보드, 2026-11-13)
 function outReqCard() {
   const L = S.outReq || []; if (!L.length || !isBoss()) return '';
-  return '<div class="sec"><div class="sh"><h2>퇴관 승인 요청 ' + L.length + '</h2></div>' + L.map(r => '<div class="orq"><div><b>' + esc(r.name) + '</b> <small>' + esc(r.from) + ' → 퇴관 · ' + esc(r.who) + ' 요청' + (r.date ? ' · ' + esc(r.date.slice(5).replace('-', '/')) : '') + '</small>' + (r.why ? '<p>' + esc(r.why) + '</p>' : '') + '</div><div class="orb"><button class="btn" data-orno="' + esc(r.sid) + '">돌려보내기</button><button class="btn red" data-orok="' + esc(r.sid) + '">퇴관 승인</button></div></div>').join('') + '</div>';
+  return '<div class="sec"><div class="sh"><h2>퇴관 승인 요청 ' + L.length + '</h2></div>' + clip('hOr', L.map(r => '<div class="orq"><div><b>' + esc(r.name) + '</b> <small>' + esc(r.from) + ' → 퇴관 · ' + esc(r.who) + ' 요청' + (r.date ? ' · ' + esc(r.date.slice(5).replace('-', '/')) : '') + '</small>' + (r.why ? '<p>' + esc(r.why) + '</p>' : '') + '</div><div class="orb"><button class="btn" data-orno="' + esc(r.sid) + '">돌려보내기</button><button class="btn red" data-orok="' + esc(r.sid) + '">퇴관 승인</button></div></div>').join(''), '건') + '</div>';
 }
 function dashRow2() {
   loadKids(); loadDash(); loadDs();
@@ -1003,6 +1009,31 @@ function dashRow2() {
     '<button data-sign="1"><small>앱 행사 신청</small><b>' + ns + '</b><em' + (ns ? ' class="r"' : '') + '>' + (ns ? '새로 들어옴' : '&nbsp;') + '</em></button></div>'; // 미확인 이름은 카드를 눌렀을 때 화면에서만 (2026-11-13 사용자 요청)
 }
 // ═════════ 대시보드 (한눈에: 오늘 할 일 · 현재 행사 · 등원 · 일정) ═════════
+// ═════════ 목록 짧게 보기 (2026-11-14, 의견 정리 2번) ═════════
+// clip(키, 줄들 html, 단위) → 4줄 + 다섯째 줄 반쯤 보이는 높이로 고정, 칸 안에서 스크롤. 아래는 흐리게 + 'n명 더 ↓'.
+// 5줄 이하면 그대로. 화면을 다시 그려도(20초마다 새로고침 등) 키로 스크롤 위치를 기억함.
+const clipPos = {};
+function clip(key, html, unit, cls, id) { return '<div class="clipw"><div class="clip' + (cls ? ' ' + cls : '') + '"' + (id ? ' id="' + id + '"' : '') + ' data-ck="' + esc(key) + '" data-unit="' + esc(unit || '개') + '">' + html + '</div><button type="button" class="clipmore"></button></div>'; }
+function clipRows(el) { const tops = []; for (const c of el.children) { const t = c.offsetTop; if (!tops.some(v => Math.abs(v - t) < 3)) tops.push(t); } return tops.sort((a, b) => a - b); }
+function clipFit(el) {
+  if (!el.offsetParent) return; if (el._n !== el.children.length) { el._n = el.children.length; el._h = 0; } const rows = clipRows(el);
+  if (rows.length <= 5) { el.style.maxHeight = ''; el._h = 0; } else if (!el._h) {
+    const r5 = [...el.children].find(c => Math.abs(c.offsetTop - rows[4]) < 3), h = rows[4] + Math.max(14, Math.round((r5 ? r5.offsetHeight : 30) / 2));
+    el._h = h; el.style.maxHeight = h + 'px';
+    if (!el._restored) { el._restored = 1; const v = clipPos[el.dataset.ck]; if (v) el.scrollTop = v; }
+  }
+  clipMark(el);
+}
+function clipMark(el) {
+  const b = el.parentNode && el.parentNode.querySelector(':scope > .clipmore'); if (!b) return;
+  const end = el.scrollTop + el.clientHeight, left = el._h ? [...el.children].filter(c => c.offsetTop + c.offsetHeight > end + 2).length : 0;
+  el.classList.toggle('more', left > 0); b.classList.toggle('on', left > 0); const tx = left + el.dataset.unit + ' 더 ↓'; if (left && b.textContent !== tx) b.textContent = tx;
+}
+let clipRaf = 0; const clipAll = () => { clipRaf = 0; document.querySelectorAll('.clip').forEach(clipFit); };
+new MutationObserver(() => { if (!clipRaf) clipRaf = requestAnimationFrame(clipAll); }).observe(document.body, { childList: true, subtree: true });
+window.addEventListener('resize', () => { document.querySelectorAll('.clip').forEach(el => { el._h = 0; }); clipAll(); });
+document.addEventListener('scroll', e => { const el = e.target; if (el.classList && el.classList.contains('clip')) { clipPos[el.dataset.ck] = el.scrollTop; clipMark(el); } }, true);
+document.addEventListener('click', e => { const b = e.target.closest('.clipmore'); if (!b) return; e.stopPropagation(); const el = b.parentNode.querySelector('.clip'); el.scrollBy({ top: el.clientHeight - 30, behavior: 'smooth' }); }, true);
 function renderHome() {
   const t = today(), h = kNow().getUTCHours(), open = itemsOf('todo').filter(x => !isDone(x) && statusOf(x) !== '보류');
   const todayT = open.filter(x => (x.due && x.due <= t) || (x.start && x.start <= t && (!x.due || x.due >= t))).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999')), late = todayT.filter(isLate).length;
@@ -1022,11 +1053,11 @@ function renderHome() {
     '<button data-go="table"><small>진행 중 행사</small><b>' + evs.length + '</b><em>' + (evs.find(x => x.date && x.date >= t) ? dday(evs.find(x => x.date && x.date >= t).date) + ' ' + esc(evs.find(x => x.date && x.date >= t).title).slice(0, 6) : '&nbsp;') + '</em></button>' +
     '<button data-scroll="pkSec"' + (pkLate() ? ' class="blink"' : '') + '><small>오늘 픽업</small><b>' + kidsD + '<span>/' + kidsN + '</span></b><em' + (kAb ? ' class="r"' : '') + '>' + (kAb ? '결석 ' + kAb : '&nbsp;') + '</em></button>' +
     '<button data-go="chat"><small>새 채팅</small><b>' + cu + '</b><em>&nbsp;</em></button></div>' + cneedCard() + dashRow2() + outReqCard() + delReqCard() + pmCard() + noNoCard() + hpEvCard() + docCard() +
-    '<div class="sec"><div class="sh"><h2>오늘 할 일</h2><button class="more" data-go="task">업무 ›</button></div>' + (todayT.length || doneToday.length ? todayT.map(tdRow).join('') + doneToday.map(tdRow).join('') : '<p class="empty">오늘까지 할 일이 없어요 👍</p>') +
+    '<div class="sec"><div class="sh"><h2>오늘 할 일</h2><button class="more" data-go="task">업무 ›</button></div>' + (todayT.length || doneToday.length ? clip('hTodo', todayT.map(tdRow).join('') + doneToday.map(tdRow).join(''), '개') : '<p class="empty">오늘까지 할 일이 없어요 👍</p>') +
     '<button class="big" id="todoAdd" style="margin-top:10px">+ 할 일 추가</button></div>' +
-    '<div class="sec"><div class="sh"><h2>현재 행사</h2><button class="more" data-go="table">행사표 ›</button></div>' + (evs.length ? evs.slice(0, 4).map(tableCard).join('') : '<p class="empty">진행 중인 행사가 없어요</p>') + (gbHid.length ? '<button class="evmore" data-gb="1">🛒 완료되지 않은 물품·구매 <b>' + gbHid.length + '건</b><span>›</span></button>' : '') + '</div>' +
+    '<div class="sec"><div class="sh"><h2>현재 행사</h2><button class="more" data-go="table">행사표 ›</button></div>' + (evs.length ? clip('hEv', evs.map(tableCard).join(''), '개') : '<p class="empty">진행 중인 행사가 없어요</p>') + (gbHid.length ? '<button class="evmore" data-gb="1">🛒 완료되지 않은 물품·구매 <b>' + gbHid.length + '건</b><span>›</span></button>' : '') + '</div>' +
     pickupCard() + cleanCard() +
-    '<div class="sec"><div class="sh"><h2>이번 주 일정</h2><button class="more" data-go="cal">달력 ›</button></div>' + (sch.length ? sch.map(schLi).join('') : '<p class="empty">이번 주 일정이 없어요</p>') + '</div>';
+    '<div class="sec"><div class="sh"><h2>이번 주 일정</h2><button class="more" data-go="cal">달력 ›</button></div>' + (sch.length ? clip('hSch', sch.map(schLi).join(''), '개') : '<p class="empty">이번 주 일정이 없어요</p>') + '</div>';
 }
 async function onPickupClick(e, view) {
   const pd = e.target.closest('[data-pd]'); if (pd) { S.homeDay = addDays(S.homeDay, +pd.dataset.pd); render(); return true; }
@@ -1100,6 +1131,7 @@ $('v-more').onclick = async e => {
     if (k === 'kids') return setTab('kids');
     if (k === 'hw') return hwListSheet();
     if (k === 'kcode') return kcodeSheet();
+    if (k === 'sun') return sunSheet();
     if (k === 'docs') return docsSheet();
     if (k === 'backup') return backupSheet();
     if (k === 'cal') return setTab('cal'); if (k === 'mine') { S.tkf = 'mine'; return setTab('task'); }
@@ -1497,8 +1529,8 @@ function daySheet(d) {
   const isAb = k => p.absent.includes(k) || aa.includes(k);
   const schRow = x => '<div class="tk schr" data-id="' + x.id + '"><span class="tbox" style="background:' + itemColor(x) + '">' + (timeKo(x.time) || '종일') + '</span><div class="tt"><b>📅 ' + esc(x.title) + '</b>' + (x.memo ? '<small><span>' + esc(x.memo) + '</span></small>' : '') + '</div></div>';
   sheet('<div class="grab"></div><div class="shead"><h2>' + (+d.slice(5, 7)) + '월 ' + (+d.slice(8)) + '일 ' + wd(d) + '요일</h2><button class="btn g" id="dsS">+ 일정</button><button class="btn" id="dsT">+ 할 일</button></div>' +
-    '<h3 class="dsh">📅 일정 ' + sch.length + '</h3>' + (sch.length ? sch.map(schRow).join('') : '<p class="empty" style="padding:10px">일정이 없어요</p>') +
-    '<h3 class="dsh">☑ 할 일 ' + tds.length + '</h3>' + (tds.length ? tds.map(x => taskRow(x)).join('') : '<p class="empty" style="padding:10px">할 일이 없어요</p>') +
+    '<h3 class="dsh">📅 일정 ' + sch.length + '</h3>' + (sch.length ? clip('dS' + d, sch.map(schRow).join(''), '개') : '<p class="empty" style="padding:10px">일정이 없어요</p>') +
+    '<h3 class="dsh">☑ 할 일 ' + tds.length + '</h3>' + (tds.length ? clip('dT' + d, tds.map(x => taskRow(x)).join(''), '개') : '<p class="empty" style="padding:10px">할 일이 없어요</p>') +
     '<h3 class="dsh">🚌 등원·픽업 ' + (kids.length ? (kids.length - kids.filter(isAb).length) + '명' : '') + '</h3>' + (kids.length ? '<div class="chips">' + kids.map(k => '<button class="' + (isAb(k) ? 'off' : '') + '" disabled>' + (tm[k] ? tmKo(tm[k]) + ' ' : '') + esc(k) + (isAb(k) ? ' (결석)' : '') + '</button>').join('') + '</div>' : '<p class="empty" style="padding:10px">픽업 명단이 없어요</p>'), sh => {
     sh.onclick = e => { const sp = e.target.closest('[data-stp]'); if (sp) return stMenu(sp); if (e.target.id === 'dsS') return newOf('sched', d); if (e.target.id === 'dsT') return newOf('todo', d); const r = e.target.closest('.tk'); if (r) openItem(getIt(r.dataset.id)); };
   });
@@ -1705,7 +1737,7 @@ function eventSheet(ev0) {
     const body = () => '<div class="sumbar"><div><small>' + W + '</small><b>' + act.length + '명</b></div>' + (free ? '' : '<div><small>결제</small><b>' + act.filter(r => r.paid).length + '/' + act.length + '</b></div>') + (free && !goods ? '<div><small>참가비</small><b>무료</b></div>' : '<div><small>' + (goods ? '지급' : '합계') + '</small><b>' + (goods ? act.filter(r => r.given).length + '/' + act.length : won(tot)) + '</b></div>') + '</div>' +
       (free ? '' : act.some(r => !r.paid) ? '<p class="help">미결제: ' + act.filter(r => !r.paid).map(r => esc(r.name)).join(', ') + ' (' + won(tot - paidAmt) + ')</p>' : act.length ? '<p class="help" style="color:var(--ok)">모두 결제했어요 · 합계 ' + won(tot) + '</p>' : '') +
       '<div class="row" style="margin-top:12px"><button class="btn g" id="evAdd" style="flex:1">+ 사람 추가</button><button class="btn" id="evSet">설정</button><button class="btn" id="evDone">' + (ev.closed ? '다시 진행' : '완료로') + '</button></div>' +
-      rows.map(card).join('') + (rows.length ? '' : '<p class="empty">+ 사람 추가로 명단을 넣어 주세요</p>') +
+      (rows.length ? clip('ev' + ev.id, rows.map(card).join(''), '명') : '<p class="empty">+ 사람 추가로 명단을 넣어 주세요</p>') +
       '<h3>댓글 ' + cms.length + '</h3>' + cmList(cms) + '<div class="row" style="margin-top:8px"><input class="inp" id="evC" placeholder="댓글 달기"><button class="btn g" id="evCo">등록</button></div>';
     return body();
   };
@@ -1861,15 +1893,43 @@ function kidSheet(id) {
     line('출석번호', esc(s.no || '')) + line('어린이집·유치원', esc(s.inst || '')) + line('메모', esc(s.memo || '')) + '</div>' +
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
-    (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + L.map(x => pmRow(x, false)).join('') : ''; })() +
-    '<div id="kSib"></div><div id="kFam"></div><div id="kDocs"></div><h3>바뀐 기록</h3><div id="kHist"><p class="help">불러오는 중…</p></div>', ov => {
+    (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + clip('kPm' + s.id, L.map(x => pmRow(x, false)).join(''), '건') : ''; })() +
+    '<div id="kSib"></div><div id="kFam"></div><div id="kGoal"></div><div id="kDocs"></div><h3>바뀐 기록</h3>' + clip('kHist' + s.id, '<p class="help">불러오는 중…</p>', '개', '', 'kHist'), ov => {
     ov.classList.add('full');
     if (isBoss()) loadDocs().then(() => { const el = ov.querySelector('#kDocs'); const L = (S.docs || []).filter(d => d.sid === s.id); if (el && L.length) { el.innerHTML = '<h3>등록 서류</h3>' + L.map(docRow).join(''); el.onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); }; } });
-    kidSiblings(ov.querySelector('#kSib'), s); kidFamily(ov.querySelector('#kFam'), s);
+    kidSiblings(ov.querySelector('#kSib'), s); kidFamily(ov.querySelector('#kFam'), s); if (s.status !== '퇴관') kidGoal(ov.querySelector('#kGoal'), s);
     ov.querySelector('#kSt').onclick = () => kidStatusSheet(s);
     ov.querySelector('#kTp').onclick = () => kidTempSheet(s);
     ov.querySelector('#kEd').onclick = () => kidEdit(s);
     api('/api/student-history', { sid: s.id }).then(j => { const el = ov.querySelector('#kHist'); if (el) el.innerHTML = j.ok && (j.items || []).length ? j.items.map(h => '<div class="kh">' + esc(h.text) + '<small>' + longTime(h.at) + (h.who ? ' · ' + esc(h.who) : '') + '</small></div>').join('') : '<p class="help">기록이 없어요</p>'; });
+  });
+}
+// 제자 모드 '목표 띠' (2026-11-14, 의견 정리 4번): 기본 유치부 밤띠 · 초등부 이상 빨간띠 · 빨간띠 넘으면 4품. 밤띠 제도 전 제자처럼 기준이 안 맞으면 여기서 바꿈
+const GOAL_BELTS = ['노란띠', '초록띠', '보라띠', '파란띠', '주황띠', '분홍띠', '밤띠', '빨간띠', '1품', '2품', '3품', '4품', '5품', '6품'];
+async function kidGoal(el, s) {
+  if (!el) return; const j = await api('/api/kgoal-get', { sid: s.id }); if (!j.ok) return;
+  const draw = g => { el.innerHTML = '<h3>🎯 제자 모드 목표 띠</h3><div class="row"><select class="inp" id="kGs" style="flex:1"><option value="">기본 (유치부 밤띠 · 초등부 이상 빨간띠 · 빨간띠 넘으면 4품)</option>' + GOAL_BELTS.map(b => '<option' + (b === g ? ' selected' : '') + '>' + b + '</option>').join('') + '</select></div><p class="help">제자 모드 내 띠 카드의 \'○○까지 몇 단계\' 막대 목표예요. 지금 띠보다 낮으면 기본으로 보여요.</p>';
+    el.querySelector('#kGs').onchange = async e => { const v = e.target.value, r = await api('/api/kgoal-set', { sid: s.id, name: s.name, belt: v }); toast(r.ok ? '목표 띠: ' + (v || '기본') : (r.error || '저장하지 못했어요')); }; };
+  draw(j.goal || '');
+}
+// ⭐ 선 모으기 (2026-11-14): 선범단이 한 좋은 일을 사범님이 한 줄로 → 제자 모드 '선범단'에서 모든 제자가 봄 (이번 달)
+async function sunSheet(mon) {
+  mon = mon || today().slice(0, 7); let D = { list: [], sb: [] };
+  const draw = ov => { const cnt = {}; D.list.forEach(x => { cnt[x.name] = (cnt[x.name] || 0) + 1; });
+    ov.querySelector('#suB').innerHTML = '<label class="f">선범단 (' + D.sb.length + '명) · 이름을 눌러 고르고 한 줄 적기</label><div class="chips" id="suK">' + (D.sb.map(k => '<button data-n="' + esc(k.name) + '">' + esc(k.name) + (cnt[k.name] ? ' ⭐' + cnt[k.name] : '') + '</button>').join('') || '<span class="help">📈 성장에서 선범단을 정하면 여기 보여요</span>') + '</div>' +
+      '<div class="row" style="margin-top:8px"><input class="inp" id="suT" maxlength="80" placeholder="예: 동생에게 품새 가르쳐 줌" style="flex:1"><button class="btn g" id="suA">+ 선</button></div>' +
+      '<h3>' + (+mon.slice(5)) + '월 선 모으기 ' + D.list.length + '개</h3>' + (D.list.length ? clip('sun' + mon, D.list.slice().reverse().map(x => '<div class="kh"><b>' + esc(x.name) + '</b> ' + esc(x.text) + '<small>' + md(dayOf(x.at)) + ' · ' + esc(x.by) + (x.by === S.me.name || isBoss() ? ' · <a href="#" data-sd="' + esc(x.id) + '" style="color:#C0392B">지우기</a>' : '') + '</small></div>').join(''), '개') : '<p class="empty">아직 없어요</p>'); };
+  let pick = '';
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>⭐ 선 모으기</h2><button class="btn" id="suP">‹ 지난달</button></div><p class="help">선범단 제자가 한 좋은 일을 한 줄로 넣어요. 제자 모드 \'선범단\'에서 모든 제자가 봐요 (선범단 개인 카드와는 따로).</p><div id="suB"><p class="help">불러오는 중…</p></div>', async ov => {
+    ov.classList.add('full');
+    const load = async (path, body) => { const j = await api(path, Object.assign({ month: mon }, body || {})); if (!j.ok) return toast(j.error || '불러오지 못했어요'); D = j; draw(ov); if (pick) { const b = ov.querySelector('#suK [data-n="' + CSS.escape(pick) + '"]'); if (b) b.classList.add('on'); } };
+    await load('/api/sun-list');
+    ov.onclick = async e => {
+      if (e.target.id === 'suP') { const d = new Date(mon + '-01T00:00:00Z'); d.setUTCMonth(d.getUTCMonth() - 1); return sunSheet(d.toISOString().slice(0, 7)); }
+      const n = e.target.closest('#suK [data-n]'); if (n) { pick = n.dataset.n; ov.querySelectorAll('#suK button').forEach(b => b.classList.toggle('on', b === n)); return ov.querySelector('#suT').focus(); }
+      if (e.target.id === 'suA') { const t = ov.querySelector('#suT').value.trim(); if (!pick) return toast('선범단 이름을 먼저 골라 주세요'); if (!t) return toast('한 줄을 적어 주세요'); await load('/api/sun-add', { name: pick, text: t }); toast(pick + ' ⭐ 선 +1'); return; }
+      const d = e.target.closest('[data-sd]'); if (d) { e.preventDefault(); if (!confirm('이 기록을 지울까요?')) return; await load('/api/sun-del', { id: d.dataset.sd }); }
+    };
   });
 }
 // 형제·자매 (2026-11-13): 업무 앱에서 묶음 → 학부모 앱 초대번호(형제 함께 가입)·장부(확인 알림)에 반영
@@ -2065,9 +2125,9 @@ function kidsTodaySheet() {
   const ks = kidStats();
   const chip = s => '<button data-kid="' + esc(s.id) + '">' + esc(s.name) + '</button>';
   sheet('<h2>오늘 출석 (출석부 기준)</h2><p class="help">' + md(today()) + ' · 출석 ' + ks.here.length + ' · 결석 ' + ks.absent.length + ' · 미확인 ' + ks.notYet.length + '. 미확인 = 오늘 수련 요일인데 출석부에 출석도 결석도 아직 없는 제자예요. 쉬는 날은 빼지 않았어요.</p>' +
-    '<label class="f">미확인 ' + ks.notYet.length + '명</label><div class="chips" id="ktL">' + (ks.notYet.map(chip).join('') || '<span class="help">모두 확인됐어요 👍</span>') + '</div>' +
-    '<label class="f">결석 ' + ks.absent.length + '명 (미리 연락 온 결석 포함)</label><div class="chips">' + (ks.absent.map(chip).join('') || '<span class="help">없어요</span>') + '</div>' +
-    '<label class="f">출석한 제자 ' + ks.here.length + '명</label><div class="chips" id="ktH">' + (ks.here.map(chip).join('') || '<span class="help">아직 없어요</span>') + '</div>' +
+    '<label class="f">미확인 ' + ks.notYet.length + '명</label>' + clip('ktL', ks.notYet.map(chip).join('') || '<span class="help">모두 확인됐어요 👍</span>', '명', 'chips', 'ktL') +
+    '<label class="f">결석 ' + ks.absent.length + '명 (미리 연락 온 결석 포함)</label>' + clip('ktA', ks.absent.map(chip).join('') || '<span class="help">없어요</span>', '명', 'chips') +
+    '<label class="f">출석한 제자 ' + ks.here.length + '명</label>' + clip('ktH', ks.here.map(chip).join('') || '<span class="help">아직 없어요</span>', '명', 'chips', 'ktH') +
     '<div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', ov => {
     ov.onclick = e => { const b = e.target.closest('[data-kid]'); if (b) kidSheet(b.dataset.kid); };
   });
@@ -2402,24 +2462,26 @@ function hwListSheet() {
   });
 }
 function hwEdit(h0) {
-  const h = h0 ? JSON.parse(JSON.stringify(h0)) : { title: '', body: '', mode: 'once', start: today(), end: '', kids: [] }; let pickAll = !(h.kids || []).length, notifyOn = !h0;
+  const h = h0 ? JSON.parse(JSON.stringify(h0)) : { title: '', body: '', mode: 'once', start: today(), end: '', kids: [], who: 'with' }; let pickAll = !(h.kids || []).length, notifyOn = !h0; // 선범단만 = pickAll + h.sb (명단은 그때그때 선범단)
   sheet('<h2>' + (h0 ? '미션 고치기' : '미션 올리기') + '</h2><label class="f">미션 이름</label><input class="inp" id="hT" maxlength="60" value="' + esc(h.title) + '" placeholder="예: 추석 동안 어른께 인사하기">' +
     '<label class="f">설명 (학부모님께 보여요)</label><textarea class="inp" id="hB" rows="3" maxlength="1000">' + esc(h.body) + '</textarea>' +
     '<label class="f">체크 방식</label><div class="chips" id="hM"><button data-m="once" class="' + (h.mode === 'once' ? 'on' : '') + '">한 번만 체크</button><button data-m="daily" class="' + (h.mode === 'daily' ? 'on' : '') + '">기간 동안 매일 체크</button></div>' +
     '<label class="f">시작일 ~ 끝나는 날</label><div class="row"><input type="date" class="inp" id="hS" style="min-width:0" value="' + esc(h.start) + '"><input type="date" class="inp" id="hE" style="min-width:0" value="' + esc(h.end) + '"></div><p class="help" id="hEh"></p>' +
-    '<label class="f">대상</label><div class="chips" id="hK"><button data-all="1" class="' + (pickAll ? 'on' : '') + '">모든 제자</button><button data-all="0" class="' + (!pickAll ? 'on' : '') + '">골라서</button></div><div class="chips" id="hKL" style="margin-top:8px"></div>' +
+    '<label class="f">누가 해요 (제자 모드에 보여요)</label><div class="chips" id="hW"><button data-w="with" class="' + (h.who !== 'self' ? 'on' : '') + '">👨‍👩‍👧 학부모와 같이 해요</button><button data-w="self" class="' + (h.who === 'self' ? 'on' : '') + '">🙋 제자 혼자 해요</button></div>' +
+    '<label class="f">대상</label><div class="chips" id="hK"><button data-all="1" class="' + (pickAll && !h.sb ? 'on' : '') + '">모든 제자</button><button data-all="0" class="' + (!pickAll && !h.sb ? 'on' : '') + '">골라서</button><button data-all="sb" class="' + (h.sb ? 'on' : '') + '">⭐ 선범단만</button></div><div class="chips" id="hKL" style="margin-top:8px"></div>' +
     '<label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:15px"><input type="checkbox" id="hN"' + (notifyOn ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 학부모님께 휴대폰 알림 보내기</label>' +
     '<div class="foot">' + (h0 ? '<button class="del" id="hX">삭제</button>' : '') + '<span class="sp"></span><button id="hBack">취소</button><button class="save" id="hOk">' + (h0 ? '저장' : '올리기') + '</button></div>', async ov => {
     const g = id => ov.querySelector('#' + id);
     const drawK = () => { g('hEh').textContent = h.mode === 'daily' ? '매일 체크는 끝나는 날이 꼭 있어야 해요.' : '끝나는 날은 안 정해도 돼요.'; g('hKL').innerHTML = pickAll ? '' : S.roster.map(n => '<button data-n="' + esc(n) + '" class="' + (h.kids.includes(n) ? 'on' : '') + '">' + esc(n) + '</button>').join('') || '<span class="help">출석부 명단을 불러오는 중이에요</span>'; };
     drawK(); loadRoster().then(drawK);
     g('hM').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; h.mode = b.dataset.m; g('hM').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); drawK(); };
-    g('hK').onclick = e => { const b = e.target.closest('[data-all]'); if (!b) return; pickAll = b.dataset.all === '1'; g('hK').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); drawK(); };
+    g('hW').onclick = e => { const b = e.target.closest('[data-w]'); if (!b) return; h.who = b.dataset.w; g('hW').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+    g('hK').onclick = e => { const b = e.target.closest('[data-all]'); if (!b) return; h.sb = b.dataset.all === 'sb'; pickAll = b.dataset.all === '1' || h.sb; g('hK').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); drawK(); };
     g('hKL').onclick = e => { const b = e.target.closest('[data-n]'); if (!b) return; const n = b.dataset.n; h.kids = h.kids.includes(n) ? h.kids.filter(x => x !== n) : [...h.kids, n]; b.classList.toggle('on'); };
     g('hBack').onclick = () => hwListSheet();
     if (g('hX')) g('hX').onclick = async () => { if (!confirm('이 미션을 지울까요?')) return; await api('/api/hw-del', { id: h.id }); await sync(); hwListSheet(); };
     g('hOk').onclick = async () => {
-      h.title = g('hT').value.trim(); h.body = g('hB').value.trim(); h.start = g('hS').value; h.end = g('hE').value; if (pickAll) h.kids = [];
+      h.title = g('hT').value.trim(); h.body = g('hB').value.trim(); h.start = g('hS').value; h.end = g('hE').value; if (pickAll) h.kids = []; h.sb = !!h.sb;
       if (!pickAll && !h.kids.length) return toast('대상 제자를 골라 주세요');
       const j = await api('/api/hw-save', { hw: h }); if (!j.ok) return toast(j.error);
       if (g('hN').checked) { toast('학부모님께 알림 보내는 중…'); let off = 0, sent = 0; for (let i = 0; i < 60; i++) { const r = await api('/api/hw-notify', { id: j.id, offset: off }); if (!r.ok) { toast(r.error || '알림을 다 보내지 못했어요'); break; } sent += r.sent || 0; if (!r.next) break; off = r.next; } toast('올렸어요 · 알림 ' + sent + '명'); }
@@ -2429,13 +2491,22 @@ function hwEdit(h0) {
   });
 }
 function hwDetail(id) {
-  const h = S.hw.get(id); if (!h) return; const tgt = (h.kids || []).length ? h.kids : S.roster, t = today();
+  const h = S.hw.get(id); if (!h) return; const t = today(); let tgt = (h.kids || []).length ? h.kids : S.roster;
+  if (h.sb && !S.sbNames) { api('/api/sun-list').then(j => { S.sbNames = j.ok ? j.sb.map(x => x.name) : []; hwDetail(id); }); }
+  if (h.sb) tgt = S.sbNames || [];
   const daysN = h.mode === 'daily' ? Math.round((dObj(h.end) - dObj(h.start)) / 864e5) + 1 : 0;
-  const row = n => { const c = h.chk.filter(x => x.kid === n); return '<div class="hwk' + (c.length ? ' on' : '') + '"><b>' + esc(n) + '</b><span>' + (h.mode === 'daily' ? c.length + '/' + daysN + '일' + (c.some(x => x.day === t) ? ' · 오늘 ✓' : '') : c.length ? '✓ ' + md(dayOf(c[0].at)) + (c[0].rel ? ' · ' + esc(c[0].rel) : '') : '아직') + '</span></div>'; };
+  const row = n => { const c = h.chk.filter(x => x.kid === n); return '<div class="hwk' + (c.length ? ' on' : '') + '" data-hk="' + esc(n) + '"><b>' + esc(n) + '</b><span>' + (h.mode === 'daily' ? c.length + '/' + daysN + '일' + (c.some(x => x.day === t) ? ' · 오늘 ✓' : '') : c.length ? '✓ ' + md(dayOf(c[0].at)) + (c[0].rel ? ' · ' + esc(c[0].rel) : '') : '아직') + '</span></div>'; };
   const done = tgt.filter(n => h.chk.some(x => x.kid === n)), yet = tgt.filter(n => !h.chk.some(x => x.kid === n));
   sheet('<div class="shead"><button class="btn" id="hdB">‹</button><h2>' + esc(h.title) + '</h2><button class="btn" id="hdE">고치기</button></div><p class="help">' + (h.mode === 'daily' ? '매일 체크 · ' + md(h.start) + '~' + md(h.end) : '한 번 체크' + (h.end ? ' · ' + md(h.end) + '까지' : '')) + (h.body ? '<br>' + esc(h.body) : '') + '</p>' +
+    '<p class="help">' + (h.sb ? '⭐ 선범단 미션 · ' : '') + (h.who === 'self' ? '🙋 제자 혼자 해요' : '👨‍👩‍👧 학부모와 같이 해요') + ' · 폰이 없는 친구는 이름을 눌러 도장에서 체크해요' + (h.mode === 'daily' ? ' (오늘 날짜로)' : '') + '</p>' +
     '<h3>했어요 ' + done.length + '명</h3>' + (done.map(row).join('') || '<p class="empty">아직 없어요</p>') + '<h3>아직 ' + yet.length + '명</h3>' + yet.map(row).join(''), ov => {
     ov.classList.add('full'); ov.querySelector('#hdB').onclick = () => hwListSheet(); ov.querySelector('#hdE').onclick = () => hwEdit(h);
+    ov.addEventListener('click', async e => { const r = e.target.closest('[data-hk]'); if (!r) return; const n = r.dataset.hk, daily = h.mode === 'daily';
+      if (daily && (t < h.start || t > h.end)) return toast('미션 기간이 아니에요');
+      const on = !h.chk.some(x => x.kid === n && (daily ? x.day === t : true)); if (!on && !confirm(n + ' 체크를 지울까요?')) return;
+      const j = await api('/api/hw-check', { hw: h.id, kid: n, day: t, on }); if (!j.ok) return toast(j.error || '저장하지 못했어요');
+      h.chk = h.chk.filter(x => !(x.kid === n && (daily ? x.day === t : true))); if (on) h.chk.push({ kid: n, day: daily ? t : '', at: Date.now(), rel: '도장 · ' + S.me.name });
+      toast(n + (on ? ' 했어요 ✓ (도장)' : ' 체크 지움')); hwDetail(id); });
   });
 }
 

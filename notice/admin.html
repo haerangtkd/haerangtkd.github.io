@@ -401,12 +401,21 @@
       </div>
       <div class="card">
         <h2>⭐ 선범단 · 띠</h2>
-        <p class="hint">선범단 명단과 제자 띠, '다음 띠까지 %'는 <b>업무 앱 📈 성장</b>(성장 측정지)에서 정한 것이 제자 모드에 그대로 보여요.</p>
+        <p class="hint">선범단 명단과 제자 띠는 <b>업무 앱 📈 성장</b>(성장 측정지)에서 정한 것이 제자 모드에 그대로 보여요. 제자마다 목표 띠는 업무 앱 원생 상세, 선 모으기는 업무 앱 더보기 → ⭐ 선 모으기.</p>
         <a class="btn ghost" href="../team/guinness.html" style="display:block;text-align:center;text-decoration:none">📈 성장 측정 열기</a>
       </div>
       <div class="card">
-        <h2>💬 선범단방 글</h2>
-        <p class="hint">선범단만 글을 올릴 수 있어요(사진 없이 글만). 맞지 않는 글은 여기서 지워 주세요.</p>
+        <h2>🪪 선범단 카드</h2>
+        <p class="hint">제자 모드 ⭐ 선범단에서 <b>본인만</b> 보는 카드예요. 사진은 도장에서 넣어요(제자가 올리지 않음). 경고가 1 이상이면 카드가 노란색이 돼요.</p>
+        <label class="hint" style="display:block;margin-top:6px">선범단 다짐 (카드 뒷면, 모두 같음)</label>
+        <textarea id="ksbP" rows="3" maxlength="600" style="width:100%" placeholder="나는 도장의 모범이 되고, 친구를 도와주며, 배운 것을 나누겠습니다."></textarea>
+        <ul class="list" id="ksbL" style="margin-top:8px"><li class="empty">불러오는 중…</li></ul>
+        <button class="btn" id="ksbSave" style="margin-top:8px">선범단 카드 저장</button>
+        <input type="file" id="ksbF" accept="image/*" hidden>
+      </div>
+      <div class="card">
+        <h2>💬 예전 선범단방 글</h2>
+        <p class="hint">선범단방은 닫았어요(2026-11-14, 제자끼리 글 주고받기 없음). 남아 있는 글은 여기서 지울 수 있어요.</p>
         <ul class="list" id="kpL" style="margin-top:8px"></ul>
       </div>
     </section>
@@ -486,7 +495,7 @@
   document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
     ['att', 'news', 'sched', 'fee', 'roster', 'kmode'].forEach(t => $('t-' + t).hidden = t !== b.dataset.t);
-    if (b.dataset.t === 'kmode') loadKmode();
+    if (b.dataset.t === 'kmode') { loadKmode(); loadKsb(); }
     if (b.dataset.t === 'news') loadNews();
     if (b.dataset.t === 'sched') loadSched();
     if (b.dataset.t === 'fee') loadFees();
@@ -885,6 +894,34 @@
   };
   $('kcL').onclick = async e => { const d = e.target.closest('[data-kcd]'); if (!d || !confirm('이 대회 기록을 지울까요?')) return; const j = await post('/admin/kmode-save', { best: km.best, comps: (km.comps || []).filter(c => c.id !== d.dataset.kcd) }); if (j.ok) { km = j.km; drawComps(); } };
   $('kpL').onclick = async e => { const d = e.target.closest('[data-kpd]'); if (!d || !confirm('이 글을 지울까요?')) return; await post('/admin/kpost-del', { id: +d.dataset.kpd }); loadKmode(); };
+  // 🪪 선범단 카드 (2026-11-14): 번호 · 임명일 · 경고 · 사진 · 다짐
+  let ksb = null, ksbPick = '';
+  async function loadKsb() {
+    const j = await post('/admin/ksb-get', {}); if (!j.ok) { $('ksbL').innerHTML = '<li class="empty">' + esc(j.error || '불러오지 못했어요') + '</li>'; return; }
+    ksb = j; $('ksbP').value = j.pledge || ''; drawKsb();
+  }
+  function drawKsb() {
+    const L = ksb.sb || [];
+    $('ksbL').innerHTML = L.length ? L.map(k => { const x = ksb.info[k.name] || {}; return '<li class="nt" data-sbn="' + esc(k.name) + '" style="flex-wrap:wrap;gap:6px"><div style="flex:1 1 100%"><b>' + esc(k.name) + '</b><small>' + esc(k.belt || '') + ' · 사진 ' + (ksb.photo[k.name] ? '있음' : '없음') + '</small></div>' +
+      '<input type="text" data-f="no" placeholder="번호" value="' + esc(x.no || '') + '" style="width:70px"><input type="date" data-f="date" value="' + esc(x.date || '') + '" style="width:150px"><select data-f="warn">' + [0, 1, 2, 3].map(w => '<option value="' + w + '"' + ((x.warn | 0) === w ? ' selected' : '') + '>경고 ' + w + '</option>').join('') + '</select>' +
+      '<div class="act"><button data-ph="' + esc(k.name) + '">사진</button>' + (ksb.photo[k.name] ? '<button data-phx="' + esc(k.name) + '">사진 지우기</button>' : '') + '</div></li>'; }).join('') : '<li class="empty">' + esc(ksb.err || '📈 성장에서 선범단을 정하면 여기 보여요') + '</li>';
+  }
+  $('ksbL').onclick = async e => {
+    const p = e.target.closest('[data-ph]'); if (p) { ksbPick = p.dataset.ph; $('ksbF').value = ''; return $('ksbF').click(); }
+    const x = e.target.closest('[data-phx]'); if (x) { if (!confirm(x.dataset.phx + ' 사진을 지울까요?')) return; const j = await post('/admin/ksb-photo', { name: x.dataset.phx, data: '' }); if (j.ok) { delete ksb.photo[x.dataset.phx]; drawKsb(); toast('지웠어요'); } }
+  };
+  $('ksbF').onchange = async () => { // 사진을 3:4로 잘라 작게(300×400) 줄여서 보냄
+    const f = $('ksbF').files[0]; if (!f || !ksbPick) return;
+    const img = new Image(); img.src = URL.createObjectURL(f); try { await img.decode(); } catch (_) { return toast('사진을 읽지 못했어요'); }
+    const c = document.createElement('canvas'); c.width = 300; c.height = 400; const g = c.getContext('2d'), r = Math.max(300 / img.width, 400 / img.height), w = img.width * r, h = img.height * r;
+    g.drawImage(img, (300 - w) / 2, (400 - h) / 2, w, h); let q = .82, d = c.toDataURL('image/jpeg', q); while (d.length > 110000 && q > .4) { q -= .1; d = c.toDataURL('image/jpeg', q); }
+    const j = await post('/admin/ksb-photo', { name: ksbPick, data: d }); if (!j.ok) return toast(j.error || '올리지 못했어요'); ksb.photo[ksbPick] = 1; drawKsb(); toast(ksbPick + ' 사진을 넣었어요');
+  };
+  $('ksbSave').onclick = async () => {
+    const info = {}; document.querySelectorAll('#ksbL [data-sbn]').forEach(li => { const g = f => li.querySelector('[data-f="' + f + '"]').value; info[li.dataset.sbn] = { no: g('no'), date: g('date'), warn: +g('warn') }; });
+    Object.keys(ksb.info || {}).forEach(n => { if (!(n in info)) info[n] = ksb.info[n]; }); // 지금 선범단이 아닌 제자 정보도 남김
+    const j = await post('/admin/ksb-save', { pledge: $('ksbP').value, info }); if (!j.ok) return toast(j.error || '저장하지 못했어요'); ksb.info = info; ksb.pledge = $('ksbP').value; toast('저장했어요 · 제자 모드 선범단 카드에 보여요');
+  };
   // ✏ 이 달 수련 계획 고치기 (2026-11-14: 홈페이지 관리에서 하던 것을 여기서 — 저장하면 홈페이지·학부모 앱에 같이)
   $('pEdit').onclick = async () => {
     await loadHp(); const m = sMonth, base = JSON.parse(JSON.stringify(hpPlan || hpRaw || { weekday: {}, focus: [], months: [] }));

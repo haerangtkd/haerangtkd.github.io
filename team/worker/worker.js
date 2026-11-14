@@ -279,7 +279,15 @@ async function route(path, req, env, ctx) {
       const L = data && Array.isArray(data.students) ? data.students.filter(k => k && k.name) : [], id = k => k.name + '|' + k.birth;
       const me = L.find(k => k.name === name), mid = me ? id(me) : '';
       let pct = null; if (me) { const per = await all(env, "SELECT path, data FROM gdocs WHERE path LIKE 'inputs/P%' ORDER BY path DESC"); for (const r of per) { const x = ((J(r.data, {}) || {}).kids || {})[mid]; if (x && x.beltPct != null && x.beltPct !== '') { pct = Math.max(0, Math.min(100, +x.beltPct)); break; } } }
-      return json({ ok: true, belt: me ? (belts[mid] || me.belt0 || '') : '', beltPct: pct, sb: !!(me && sb[mid]),
+      // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번): 유치부 여부 · 목표 띠(업무 앱 원생 상세) · 심사 결과 · 이번 달 심사 준비 · 선 모으기(모두 봄)
+      const kv = async k => J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, null), mon = kstDay().slice(0, 7);
+      const goals = (await kv('kgoal')) || {}, goal = me ? (goals[me.sid] || goals['n:' + name] || '') : '';
+      const ex = me ? await examClosed(env) : {}, exams = me ? examList(ex, { sid: me.sid, name }) : [];
+      const em = (await kv('exam:' + mon)) || {}, vids = (await kv('examvid')) || {}, myBelt = me ? (belts[mid] || me.belt0 || '') : '';
+      const prep = { month: mon, date: em.date || '', closed: !!em.closed, notes: em.notes || {}, vid: vids[myBelt] || '' };
+      const sun = ((await kv('sun:' + mon)) || []).map(x => ({ name: x.name, text: x.text, at: x.at }));
+      return json({ ok: true, sid: me ? me.sid || '' : '', kinder: !!(me && String(me.grade || '').includes('유치')), goal, exams, prep, sun,
+        belt: me ? (belts[mid] || me.belt0 || '') : '', beltPct: pct, sb: !!(me && sb[mid]),
         sbList: L.filter(k => sb[id(k)] && status[id(k)] !== '퇴관').map(k => ({ name: k.name, belt: belts[id(k)] || k.belt0 || '' })),
         events: data ? (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })) : [], rec: me ? (me.rec || {}) : {} });
     }
@@ -314,6 +322,7 @@ async function route(path, req, env, ctx) {
     if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 10', ...kids)).map(r => ({ id: r.id, kid: r.kid, label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r) })) : [] });
     if (path === '/sync/pmsg-send') return json(await pmsgSend(env, b, kids, ctx));
     if (path === '/sync/hw') return json({ ok: true, hw: await hwFor(env, kids) });
+    if (path === '/sync/sb-names') return json({ ok: true, list: await sbNames(env) }); // 알림 관리 제자 탭 '선범단 카드' (2026-11-14)
     if (path === '/sync/contract-cfg') return json({ ok: true, fees: J((await one(env, "SELECT v FROM kv WHERE k = 'cfees'") || {}).v, null) });
     if (path === '/sync/contract-save') { // 태블릿 상담 모드에서 받은 등록 서류
       const rec = b.rec || {}, id = rid(8), now = Date.now(), name = str(rec.name, 20).replace(/\s+/g, '');
@@ -485,7 +494,7 @@ async function route(path, req, env, ctx) {
     const gd = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
     if (path === '/api/exam-get') {
       const rows = (await all(env, 'SELECT sid, name, data, upd, mid FROM exam WHERE month = ?', month)).map(r => ({ sid: r.sid, name: r.name, data: J(r.data, {}), upd: r.upd, mid: r.mid }));
-      const out = { ok: true, cfg, meta, rows };
+      const out = { ok: true, cfg, meta, rows, vid: (await kg('examvid')) || {} };
       if (b.full) { // 지금 띠: 📈 성장(gdocs app/data·app/settings)의 띠를 출석부 원생 번호(sid)로 찾아 줌
         const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {}, belts = {};
         ((data && data.students) || []).forEach(k => { if (k && k.sid) belts[k.sid] = { belt: (st.belts || {})[k.name + '|' + k.birth] || '', kinder: String(k.grade || '').includes('유치') }; });
@@ -514,8 +523,9 @@ async function route(path, req, env, ctx) {
     if (path === '/api/exam-meta') { // 이 달 심사 날짜 · 과목마다 이번 달 내용(예: 영어 문장) · 예절·태도 켜기
       if (Array.isArray(b.on)) { cfg.subj.forEach(x => { if (x.opt) x.on = b.on.includes(x.k); }); await ks('examcfg', cfg); }
       if (b.date !== undefined) meta.date = /^\d{4}-\d{2}-\d{2}$/.test(str(b.date, 10)) ? str(b.date, 10) : '';
-      if (b.notes && typeof b.notes === 'object') { meta.notes = {}; cfg.subj.forEach(x => { const t = str(b.notes[x.k], 200).trim(); if (t) meta.notes[x.k] = t; }); }
-      await ks(mk, meta); return json({ ok: true, cfg, meta });
+      if (b.notes && typeof b.notes === 'object') { meta.notes = {}; cfg.subj.forEach(x => { const t = str(b.notes[x.k], x.k === 'speech' ? 1500 : 300).trim(); if (t) meta.notes[x.k] = t; }); }
+      if (b.vid && typeof b.vid === 'object') { const v = {}; Object.keys(b.vid).slice(0, 30).forEach(k => { const u = str(b.vid[k], 300).trim(); if (/^https:\/\//.test(u)) v[str(k, 10)] = u; }); await ks('examvid', v); } // 띠별 품새 영상 (제자 모드 '심사 준비')
+      await ks(mk, meta); return json({ ok: true, cfg, meta, vid: (await kg('examvid')) || {} });
     }
     if (path === '/api/exam-close' || path === '/api/exam-reopen') { // 마감 = 합격한 제자의 새 띠를 📈 성장에 넣음 / 마감 풀기 = 그때 바꾼 띠를 되돌림(그 뒤 손으로 바꾼 띠는 그대로)
       const sd = await gd('app/settings'), data = await gd('app/data');
@@ -698,7 +708,8 @@ async function route(path, req, env, ctx) {
   }
   if (path === '/api/hw-save') {
     const d = b.hw || {}, id = str(d.id, 40) || rid(8);
-    const v = { title: str(d.title, 60).trim(), body: str(d.body, 1000), mode: d.mode === 'daily' ? 'daily' : 'once', start: isDay(d.start) ? d.start : kstDay(), end: isDay(d.end) ? d.end : '', kids: (Array.isArray(d.kids) ? d.kids : []).map(x => str(x, 20)).filter(Boolean).slice(0, 200) };
+    const v = { title: str(d.title, 60).trim(), body: str(d.body, 1000), mode: d.mode === 'daily' ? 'daily' : 'once', start: isDay(d.start) ? d.start : kstDay(), end: isDay(d.end) ? d.end : '', kids: (Array.isArray(d.kids) ? d.kids : []).map(x => str(x, 20)).filter(Boolean).slice(0, 200), who: d.who === 'self' ? 'self' : 'with', sb: !!d.sb };
+    if (v.sb) v.kids = []; // 선범단 전용 = 그때그때 선범단 모두 (2026-11-14)
     if (!v.title) return json({ ok: false, error: '미션 이름을 적어 주세요' });
     if (v.end && v.end < v.start) return json({ ok: false, error: '끝나는 날이 시작일보다 빨라요' });
     if (v.mode === 'daily' && !v.end) return json({ ok: false, error: '매일 체크는 끝나는 날을 정해 주세요' });
@@ -709,7 +720,38 @@ async function route(path, req, env, ctx) {
   if (path === '/api/hw-notify') { // 학부모님께 미션 알림 (6명씩 나눠서, 화면이 next 로 이어서 부름)
     const h = await one(env, 'SELECT data FROM hw WHERE id = ? AND del = 0', str(b.id, 40)); if (!h) return json({ ok: false, error: '없는 미션이에요' });
     const v = J(h.data, {});
-    return json(await noticeSync(env, '/sync/broadcast', { title: '🎯 미션: ' + v.title, body: (v.mode === 'daily' ? (+v.start.slice(5, 7)) + '/' + (+v.start.slice(8)) + '~' + (+v.end.slice(5, 7)) + '/' + (+v.end.slice(8)) + ' 매일 · ' : '') + (v.body || '해 보면 좋아요. 학부모 앱에서 체크해 주세요').slice(0, 120), children: v.kids, offset: b.offset | 0 }));
+    if (v.sb && !(await sbNames(env)).length) return json({ ok: true, sent: 0, next: null }); // 선범단이 없으면 아무에게도 안 보냄 (빈 명단 = 모두가 되지 않게)
+    return json(await noticeSync(env, '/sync/broadcast', { title: '🎯 미션: ' + v.title, body: (v.mode === 'daily' ? (+v.start.slice(5, 7)) + '/' + (+v.start.slice(8)) + '~' + (+v.end.slice(5, 7)) + '/' + (+v.end.slice(8)) + ' 매일 · ' : '') + (v.body || '해 보면 좋아요. 학부모 앱에서 체크해 주세요').slice(0, 120), children: v.sb ? (await sbNames(env)).map(x => x.name) : v.kids, offset: b.offset | 0 })); // 선범단 미션은 선범단 보호자만
+  }
+  if (path === '/api/hw-check') { // 도장(사범님 확인)에서 미션 했어요 (2026-11-14, 폰 없는 친구)
+    const kid = str(b.kid, 20), id = str(b.hw, 40), day = isDay(b.day) ? b.day : kstDay();
+    const h = await one(env, 'SELECT data FROM hw WHERE id = ? AND del = 0', id); if (!h || !kid) return json({ ok: false, error: '지워진 미션이에요' });
+    const d = J(h.data, {}), key = d.mode === 'daily' ? day : '';
+    if (b.on) await run(env, 'INSERT OR REPLACE INTO hwchk (hw, kid, day, at, rel) VALUES (?, ?, ?, ?, ?)', id, kid, key, Date.now(), '도장 · ' + me.name);
+    else await run(env, 'DELETE FROM hwchk WHERE hw = ? AND kid = ? AND day = ?', id, kid, key);
+    await run(env, 'UPDATE hw SET upd = ? WHERE id = ?', Date.now(), id);
+    return json({ ok: true });
+  }
+  if (path === '/api/kgoal-get') { const g = J((await one(env, "SELECT v FROM kv WHERE k = 'kgoal'") || {}).v, {}); return json({ ok: true, goal: g[str(b.sid, 40)] || '' }); }
+  if (path === '/api/kgoal-set') { // 제자 모드 '목표 띠' (사범님이 제자마다, 비우면 기본: 유치부 밤띠 · 초등부 이상 빨간띠 · 빨간띠 넘으면 4품)
+    const sid = str(b.sid, 40); if (!sid) return json({ ok: false, error: '원생 번호가 없어요' });
+    const g = J((await one(env, "SELECT v FROM kv WHERE k = 'kgoal'") || {}).v, {}), belt = str(b.belt, 10);
+    if (belt) g[sid] = belt; else delete g[sid];
+    await run(env, "INSERT INTO kv (k, v) VALUES ('kgoal', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(g));
+    await addLog(env, me.id, 'member', '🎯 ' + str(b.name, 20) + ' 제자 모드 목표 띠: ' + (belt || '기본'), '');
+    return json({ ok: true });
+  }
+  if (path === '/api/sun-list' || path === '/api/sun-add' || path === '/api/sun-del') { // ⭐ 선범단 선 모으기 (2026-11-14): 사범님이 넣고, 제자 모드에서 모든 제자가 봄
+    const mon = /^\d{4}-\d{2}$/.test(str(b.month, 7)) ? str(b.month, 7) : kstDay().slice(0, 7), k = 'sun:' + mon;
+    let L = J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, []); if (!Array.isArray(L)) L = [];
+    if (path === '/api/sun-add') {
+      const name = str(b.name, 20), text = str(b.text, 80).trim(); if (!name || !text) return json({ ok: false, error: '한 줄을 적어 주세요' });
+      if (L.length >= 600) return json({ ok: false, error: '이번 달 기록이 너무 많아요' });
+      L.push({ id: rid(4), name, text, at: Date.now(), by: me.name });
+    }
+    if (path === '/api/sun-del') { const x = L.find(y => y.id === str(b.id, 20)); if (!x) return json({ ok: false, error: '이미 지워졌어요' }); if (x.by !== me.name && !me.boss) return json({ ok: false, error: '넣은 사람이나 관리자만 지울 수 있어요' }); L = L.filter(y => y !== x); }
+    if (path !== '/api/sun-list') await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify(L));
+    return json({ ok: true, month: mon, list: L, sb: await sbNames(env) });
   }
   if (path === '/api/hw-del') { await run(env, 'UPDATE hw SET del = 1, upd = ? WHERE id = ?', Date.now(), str(b.id, 40)); return json({ ok: true }); }
   if (path === '/api/clean-check') { // 그 주 청소 담당자만 체크
@@ -1313,13 +1355,19 @@ async function pickupMark(env, day, kid, act, memo, by) {
   const d = cleanPickup(p);
   await run(env, 'INSERT INTO pickup (day, data, upd) VALUES (?, ?, ?) ON CONFLICT(day) DO UPDATE SET data = excluded.data, upd = excluded.upd', day, JSON.stringify(d), Date.now());
 }
+async function sbNames(env) { // 📈 성장 설정의 선범단 (퇴관 빼고)
+  const g = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
+  const data = await g('app/data'), st = ((await g('app/settings')) || {}).settings || {}, sb = st.sb || {}, status = st.status || {}, belts = st.belts || {};
+  return ((data && data.students) || []).filter(k => k && k.name && sb[k.name + '|' + k.birth] && status[k.name + '|' + k.birth] !== '퇴관').map(k => ({ name: k.name, sid: k.sid || '', belt: belts[k.name + '|' + k.birth] || k.belt0 || '' }));
+}
 async function hwFor(env, kids) {
-  const day = kstDay(), out = [];
+  const day = kstDay(), out = []; let sbs = null;
   for (const h of await all(env, 'SELECT id, data FROM hw WHERE del = 0')) {
     const d = J(h.data, {}); if (d.start > day || (d.end && d.end < addDays(day, -3))) continue;
-    const mine = kids.filter(k => !(d.kids || []).length || d.kids.includes(k)); if (!mine.length) continue;
-    const chk = await all(env, 'SELECT kid, day FROM hwchk WHERE hw = ? AND kid IN (' + mine.map(() => '?').join(',') + ')', h.id, ...mine);
-    out.push({ id: h.id, title: d.title, body: d.body, mode: d.mode, start: d.start, end: d.end, kids: mine, chk });
+    if (d.sb && !sbs) sbs = new Set((await sbNames(env)).map(x => x.name));
+    const mine = kids.filter(k => (d.sb ? sbs.has(k) : true) && (!(d.kids || []).length || d.kids.includes(k))); if (!mine.length) continue;
+    const chk = await all(env, 'SELECT kid, day, rel FROM hwchk WHERE hw = ? AND kid IN (' + mine.map(() => '?').join(',') + ')', h.id, ...mine);
+    out.push({ id: h.id, title: d.title, body: d.body, mode: d.mode, start: d.start, end: d.end, kids: mine, chk, who: d.who === 'self' ? 'self' : 'with', sb: !!d.sb });
   }
   return out.sort((a, b) => (a.end || '9999').localeCompare(b.end || '9999'));
 }

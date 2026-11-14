@@ -139,7 +139,7 @@ const closed = () => !!S.meta.closed;
 async function load(full) {
   const j = await api('/api/exam-get', { month: S.month, full: full ? 1 : 0 });
   if (!j.ok) { S.err = j.relogin || /로그인/.test(j.error || '') ? 'login' : (j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : j.error || '불러오지 못했어요'); draw(); return; }
-  S.err = ''; S.cfg = j.cfg; S.meta = j.meta || {};
+  S.err = ''; S.cfg = j.cfg; S.meta = j.meta || {}; S.vid = j.vid || {};
   const rows = {}; j.rows.forEach(r => { rows[r.sid] = r; }); Object.keys(S.pend).forEach(sid => { if (S.rows[sid]) rows[sid] = S.rows[sid]; }); S.rows = rows;
   if (full) { S.belts = j.belts || {}; S.roster = j.roster || []; S.names = j.names || {}; S.rosterErr = j.rosterErr || ''; }
   draw();
@@ -202,7 +202,7 @@ function drawCard() {
   h += '<div class="who"><h2>' + esc(k.name) + '</h2><small>' + esc(k.grade || '') + (k.status === '휴원' ? ' · 휴원' : '') + '</small><span style="flex:1"></span>' + beltTag(d.cur || k.cur) + '</div>';
   if (!k.inGrow) h += '<p class="help">📈 성장 명단에 없어서 지금 띠를 몰라요. 성장 화면을 한 번 열면 들어와요.</p>';
   subjOn().forEach(x => { const v = (d.sc || {})[x.k] || 0;
-    h += '<div class="subj"><div class="sh"><b>' + esc(x.n) + '</b><span>' + (v ? v + '점 · ' + WORDS[v] : '') + '</span></div>' + (notes[x.k] ? '<div class="note">이번 달: ' + esc(notes[x.k]) + '</div>' : '') +
+    h += '<div class="subj"><div class="sh"><b>' + esc(x.n) + '</b><span>' + (v ? v + '점 · ' + WORDS[v] : '') + '</span></div>' + (notes[x.k] ? '<div class="note">이번 달: ' + esc(String(notes[x.k]).replace(/\s+/g, ' ').slice(0, 80)) + (String(notes[x.k]).length > 80 ? '…' : '') + '</div>' : '') +
       '<div class="sc" data-s="' + x.k + '">' + [1, 2, 3, 4, 5].map(i => '<button data-v="' + i + '" class="' + (v === i ? 'on' : '') + '"' + (ro ? ' disabled' : '') + '>' + i + '</button>').join('') + '</div></div>'; });
   const opts = beltList(k.kinder); if (d.nb && !opts.includes(d.nb)) opts.push(d.nb);
   const auto = nextBelt(d.cur || k.cur, k.kinder), manual = (d.cur || k.cur) === '빨간띠' || /품$/.test(d.cur || k.cur || '');
@@ -237,8 +237,10 @@ function sheet(html, init) { const ov = document.createElement('div'); ov.classN
 function setSheet() {
   const meta = S.meta, notes = meta.notes || {}, ro = closed();
   sheet('<h3>⚙ ' + (+S.month.slice(5)) + '월 심사</h3><label class="f">심사 날짜</label><input type="date" class="inp" id="dt" value="' + esc(meta.date || '') + '"' + (ro ? ' disabled' : '') + '>' +
-    '<label class="f">과목마다 이번 달 내용 (선택)</label><p class="help" style="margin-top:0">예: 영어 문장, 웅변 주제. 채점 화면에 작게 보여요. 나중에 학부모 앱 심사 결과에도 쓸 수 있어요.</p>' +
-    S.cfg.subj.filter(x => x.on).map(x => '<label class="f" style="font-weight:500">' + esc(x.n) + '</label><input class="inp" data-n="' + x.k + '" maxlength="200" value="' + esc(notes[x.k] || '') + '"' + (ro ? ' disabled' : '') + '>').join('') +
+    '<label class="f">과목마다 이번 달 내용 (선택)</label><p class="help" style="margin-top:0">예: 웅변 원고, 영어 문장. 채점 화면에 작게, <b>제자 모드 \'이번 달 심사 준비\'</b>와 학부모 앱 심사 결과에 보여요.</p>' +
+    S.cfg.subj.filter(x => x.on).map(x => '<label class="f" style="font-weight:500">' + esc(x.n) + (x.k === 'speech' ? ' 원고' : '') + '</label>' + (x.k === 'speech' || x.k === 'eng' ? '<textarea class="inp" data-n="' + x.k + '" rows="' + (x.k === 'speech' ? 5 : 2) + '" maxlength="' + (x.k === 'speech' ? 1500 : 300) + '"' + (ro ? ' disabled' : '') + '>' + esc(notes[x.k] || '') + '</textarea>' : '<input class="inp" data-n="' + x.k + '" maxlength="300" value="' + esc(notes[x.k] || '') + '"' + (ro ? ' disabled' : '') + '>')).join('') +
+    '<label class="f">띠별 품새 영상 (제자 모드에 \'내 띠 품새 영상\'으로, 모든 달 같이)</label><p class="help" style="margin-top:0">유튜브 등 https 주소. 비우면 안 보여요.</p>' +
+    BELTS.slice(0, 19).map(b => '<div class="row" style="margin-top:4px;align-items:center"><span style="width:76px;flex:none;font-size:13px">' + b + '</span><input class="inp" data-v="' + b + '" placeholder="https://" value="' + esc((S.vid || {})[b] || '') + '"></div>').join('') +
     '<label class="f">과목 켜기</label>' + S.cfg.subj.filter(x => x.opt).map(x => '<label class="sw"><input type="checkbox" data-o="' + x.k + '"' + (x.on ? ' checked' : '') + (ro ? ' disabled' : '') + '> ' + esc(x.n) + ' 채점하기</label>').join('') +
     '<p class="help">예절·태도는 승인되면 켜 주세요. 켜고 끄는 건 앞으로의 심사 모두에 적용돼요.</p>' +
     '<div class="row"><button class="btn" id="x">닫기</button>' + (ro ? '' : '<button class="btn p" id="ok">저장</button>') + '</div>', ov => {
@@ -247,8 +249,10 @@ function setSheet() {
     ov.querySelector('#ok').onclick = async () => {
       const nt = {}; ov.querySelectorAll('[data-n]').forEach(i => { nt[i.dataset.n] = i.value; }); Object.keys(notes).forEach(k => { if (!(k in nt)) nt[k] = notes[k]; });
       const on = [...ov.querySelectorAll('[data-o]')].filter(i => i.checked).map(i => i.dataset.o);
-      const j = await api('/api/exam-meta', { month: S.month, date: ov.querySelector('#dt').value, notes: nt, on });
-      if (!j.ok) return toast(j.error || '저장하지 못했어요'); S.cfg = j.cfg; S.meta = j.meta; ov.remove(); draw(); toast('저장했어요');
+      const vid = {}; ov.querySelectorAll('[data-v]').forEach(i => { const u = i.value.trim(); if (u) vid[i.dataset.v] = u; });
+      if (Object.values(vid).some(u => !/^https:\/\//.test(u))) return toast('영상 주소는 https:// 로 시작해야 해요');
+      const j = await api('/api/exam-meta', { month: S.month, date: ov.querySelector('#dt').value, notes: nt, on, vid });
+      if (!j.ok) return toast(j.error || '저장하지 못했어요'); S.cfg = j.cfg; S.meta = j.meta; S.vid = j.vid || vid; ov.remove(); draw(); toast('저장했어요');
     };
   });
 }
