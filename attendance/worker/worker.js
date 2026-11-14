@@ -184,6 +184,13 @@ async function route(path, req, env) {
       return json({ ok: true, added: out });
     }
     if (path === '/sync/student-delete') return json(await studentDelete(env, str(b.sid, 60), !!b.dry)); // 업무 앱 '원생 삭제'(관리자만, 업무 서버가 확인) — dry: 무엇이 지워지는지만
+    if (path === '/sync/trial-add') { // 업무 앱 행사 비회원 → 체험 수업 '예정' (2026-11-15)
+      const d = { name: str(b.name, 20).replace(/\s+/g, ''), date: isDay(b.date) ? b.date : '', per: '', birth: '', guardian: '', phone: str(b.phone, 20).replace(/[^0-9]/g, ''), inst: '', memo: str(b.memo, 500), status: '예정', studentId: '' };
+      if (!d.name || !d.date) return json({ ok: false, error: '이름과 체험 날짜가 필요해요' });
+      const id = rid(16);
+      await env.DB.batch([q(env, 'INSERT INTO trials (id, data, upd) VALUES (?, ?, ?)', id, JSON.stringify(d), Date.now()), q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), '', id, Date.now(), '행사 비회원에서 체험 수업으로 넘어옴', str(b.who, 20) || '업무 앱')]);
+      return json({ ok: true, id });
+    }
     if (path === '/sync/student-fill') { // 등록 서류를 원생과 연결하면 원생 정보의 빈 칸만 채움 (2026-11-14) — 이미 있는 값은 안 바꿈
       const r = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.sid, 60)); if (!r) return json({ ok: false, error: '원생을 찾지 못했어요' });
       const d = J(r.data, {}), f = cleanStudent({ ...d, ...(b.fill || {}) }), got = [];
