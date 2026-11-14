@@ -634,7 +634,12 @@ const roomOf = m => m.room || '';
 const roomName = r => r ? nameOf(r.split(':').slice(1).find(x => x !== S.me.id)) : '해랑경희 직원방';
 const roomMsgs = r => S.msgs.filter(m => roomOf(m) === r && !S.hidden.has(m.id));
 const unreadIn = r => { const at = (S.readAt || {})[r] || 0; return S.msgs.filter(m => roomOf(m) === r && m.id > at && m.mid !== S.me.id).length; };
-function markRoomRead(r) { const l = roomMsgs(r); if (!l.length) return; S.readAt = S.readAt || {}; S.readAt[r] = l[l.length - 1].id; try { localStorage.setItem('haerang-team-read', JSON.stringify(S.readAt)); } catch (_) {} }
+function markRoomRead(r) { const l = roomMsgs(r); if (!l.length) return; S.readAt = S.readAt || {}; const was = S.readAt[r] | 0; S.readAt[r] = Math.max(was, l[l.length - 1].id); try { localStorage.setItem('haerang-team-read', JSON.stringify(S.readAt)); } catch (_) {} if (S.readAt[r] !== was) readSave(); }
+// 채팅 읽은 곳을 서버에도 (2026-11-14): 읽으면 2초 뒤, 앱을 닫는 순간엔 바로 → 내 다른 기기와 맞춤 · 5분 뒤 다시 알림 · 위젯이 씀
+let readT = null, readDirty = false;
+function readSave(now) { readDirty = true; clearTimeout(readT); const go = () => { if (!readDirty || !S.tok || !S.readAt) return; readDirty = false; const body = JSON.stringify({ tok: S.tok, read: S.readAt }); try { fetch(API + '/api/read-set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => { readDirty = true; }); } catch (_) {} }; if (now) go(); else readT = setTimeout(go, 2000); }
+document.addEventListener('visibilitychange', () => { if (document.hidden && readDirty) readSave(true); });
+window.addEventListener('pagehide', () => { if (readDirty) readSave(true); });
 
 async function api(path, body = {}) {
   try {
@@ -672,7 +677,11 @@ async function sync(first) {
     changed = true;
   }
   S.msgs.sort((a, b) => a.id - b.id); if (S.msgs.length) S.lastMsg = Math.max(S.lastMsg, S.msgs[S.msgs.length - 1].id);
+  if (!S.readAt && j.readAt) S.readAt = {}; // 이 기기는 처음이지만 서버에 읽은 곳이 있으면 그것부터
   if (!S.readAt) { S.readAt = {}; for (const m of S.msgs) S.readAt[roomOf(m)] = Math.max(S.readAt[roomOf(m)] || 0, m.id); try { localStorage.setItem('haerang-team-read', JSON.stringify(S.readAt)); } catch (_) {} }
+  if (j.readAt) { let ch = false; for (const [r, id] of Object.entries(j.readAt)) if ((id | 0) > (S.readAt[r] | 0)) { S.readAt[r] = id | 0; ch = true; } if (ch) { changed = true; try { localStorage.setItem('haerang-team-read', JSON.stringify(S.readAt)); } catch (_) {} } // 다른 기기에서 읽은 것 합치기
+    if (Object.entries(S.readAt).some(([r, id]) => (id | 0) > (j.readAt[r] | 0))) readSave(); }
+  else if (j.readAt === null && !S.readSent) { S.readSent = true; readSave(); } // 서버에 아직 없으면 이 기기 것을 한 번 올림 (그래야 다시 알림·위젯 채팅이 시작됨)
   if (S.tab === 'room' && !document.hidden) markRoomRead(S.room);
   for (const it of j.items) { const cur = S.items.get(it.id); if (!cur || cur.upd <= it.upd || it.del) S.items.set(it.id, it); }
   for (const c of j.comments) { const l = S.comments.get(c.item) || []; if (!l.some(x => x.id === c.id)) l.push(c); S.comments.set(c.item, l.sort((a, b) => a.at - b.at)); }
@@ -932,7 +941,7 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'] }; // 심사 채점 (2026-11-14)
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '선 모으기'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
+const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '선 모으기'], ['widget', '📱', '위젯'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -1132,6 +1141,7 @@ $('v-more').onclick = async e => {
     if (k === 'hw') return hwListSheet();
     if (k === 'kcode') return kcodeSheet();
     if (k === 'sun') return sunSheet();
+    if (k === 'widget') return widgetSheet();
     if (k === 'docs') return docsSheet();
     if (k === 'backup') return backupSheet();
     if (k === 'cal') return setTab('cal'); if (k === 'mine') { S.tkf = 'mine'; return setTab('task'); }
@@ -1912,6 +1922,35 @@ async function kidGoal(el, s) {
     el.querySelector('#kGs').onchange = async e => { const v = e.target.value, r = await api('/api/kgoal-set', { sid: s.id, name: s.name, belt: v }); toast(r.ok ? '목표 띠: ' + (v || '기본') : (r.error || '저장하지 못했어요')); }; };
   draw(j.goal || '');
 }
+// 📱 위젯 (2026-11-14 사용자 결정): 휴대폰 홈 화면에 내 할 일 · 안 읽은 채팅 · 오늘 출석 미확인 · 가입 승인 대기. 아이폰 Scriptable · 안드로이드 KWGT (무료 앱)
+const W_IOS = k => `// 해랑 업무 위젯 (Scriptable에 붙여넣기)
+const r = await new Request("${API}/api/widget?k=${k}").loadJSON();
+const w = new ListWidget(); w.backgroundColor = new Color("#0D326F"); w.url = "${location.origin}/team/";
+const T = (s, z, c) => { const t = w.addText(s); t.font = Font.boldSystemFont(z); t.textColor = new Color(c || "#ffffff"); t.lineLimit = 1; return t; };
+if (!r.ok) T(r.error || "연결 안 됨", 12); else {
+  T("해랑 업무 · " + r.name, 11, "#B9C7E6");
+  T("할 일 " + r.todoN + "  ·  채팅 " + (r.chat ?? "–") + "  ·  미확인 " + (r.notYet ?? "–") + (r.pending ? "  ·  가입 " + r.pending : ""), 13);
+  w.addSpacer(4); for (const x of r.todos.slice(0, config.widgetFamily === "large" ? 8 : 3)) T((x.late ? "⚠ " : "☐ ") + x.title, 12, x.late ? "#FFB4B4" : "#ffffff");
+}
+w.refreshAfterDate = new Date(Date.now() + 15 * 60000); Script.setWidget(w); Script.complete();`;
+async function widgetSheet() {
+  const j = await api('/api/widget-key-get'); if (!j.ok) return toast(j.error || '서버를 새로 올려야 해요');
+  const draw = (ov, k) => { const url = k ? API + '/api/widget?k=' + k : '';
+    ov.querySelector('#wgB').innerHTML = !k ? '<p class="help">아직 위젯 열쇠가 없어요. 만들면 이 열쇠로 <b>로그인 없이</b> 내 할 일·채팅 수·출석 미확인·가입 승인 숫자만 읽어요(다른 사람에게 주지 마세요).</p><button class="big" id="wgN">🔑 위젯 열쇠 만들기</button>' :
+      '<label class="f">내 위젯 주소</label><div class="row"><input class="inp" readonly value="' + esc(url) + '" style="flex:1;font-size:12px"><button class="btn" data-cp="' + esc(url) + '">복사</button></div>' +
+      '<h3>🍎 아이폰</h3><p class="help">① 앱 스토어에서 <b>Scriptable</b>(무료) 설치 → ② Scriptable 열고 오른쪽 위 ＋ → ③ 아래 \'코드 복사\'를 눌러 붙여넣기 → 이름 \'해랑 업무\' → ④ 홈 화면 길게 누르기 → ＋ → Scriptable 위젯 추가 → 위젯을 눌러 Script에서 \'해랑 업무\' 고르기</p><button class="btn g" data-cp="ios">코드 복사</button>' +
+      '<h3>🤖 안드로이드</h3><p class="help">① 플레이 스토어에서 <b>KWGT</b>(무료) 설치 → ② 홈 화면 길게 누르기 → 위젯 → KWGT 추가 → 눌러서 편집 → ③ ＋ → 텍스트 → 글자 칸에 아래 \'수식 복사\' 붙여넣기 → 저장. (15분마다 새로 받아요)</p><button class="btn g" data-cp="kw">수식 복사</button>' +
+      '<div class="row" style="margin-top:18px"><button class="btn" id="wgR" style="flex:1">열쇠 새로 만들기</button><button class="btn" id="wgX" style="flex:1;color:#C0392B">위젯 끄기</button></div><p class="help">휴대폰을 잃어버렸거나 열쇠가 다른 사람에게 갔으면 \'새로 만들기\'를 눌러요. 예전 열쇠는 바로 못 써요.</p>'; };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📱 위젯</h2></div><p class="help">휴대폰 홈 화면에 <b>내 할 일(내 담당 + 담당자 없음) · 안 읽은 채팅 · 오늘 출석 미확인 · 학부모 가입 승인 대기</b>를 띄워요. 사람마다 따로예요.</p><div id="wgB"></div>', ov => {
+    ov.classList.add('full'); let k = j.key; draw(ov, k);
+    ov.onclick = async e => {
+      if (e.target.id === 'wgN' || e.target.id === 'wgR') { if (e.target.id === 'wgR' && !confirm('열쇠를 새로 만들까요? 지금 위젯은 새 주소로 다시 넣어야 해요.')) return; const r = await api('/api/widget-key', {}); if (!r.ok) return toast(r.error); k = r.key; draw(ov, k); return toast('위젯 열쇠를 만들었어요'); }
+      if (e.target.id === 'wgX') { if (!confirm('위젯을 끌까요? 홈 화면 위젯이 더 이상 숫자를 못 받아요.')) return; const r = await api('/api/widget-key', { off: true }); if (!r.ok) return toast(r.error); k = ''; draw(ov, k); return toast('위젯을 껐어요'); }
+      const c = e.target.closest('[data-cp]'); if (c) { const v = c.dataset.cp === 'ios' ? W_IOS(k) : c.dataset.cp === 'kw' ? '할 일 $wg("' + API + '/api/widget?k=' + k + '", json, .todoN)$ · 채팅 $wg("' + API + '/api/widget?k=' + k + '", json, .chat)$ · 미확인 $wg("' + API + '/api/widget?k=' + k + '", json, .notYet)$' : c.dataset.cp;
+        try { await navigator.clipboard.writeText(v); toast('복사했어요'); } catch (_) { prompt('길게 눌러 복사해 주세요', v); } }
+    };
+  });
+}
 // ⭐ 선 모으기 (2026-11-14): 선범단이 한 좋은 일을 사범님이 한 줄로 → 제자 모드 '선범단'에서 모든 제자가 봄 (이번 달)
 async function sunSheet(mon) {
   mon = mon || today().slice(0, 7); let D = { list: [], sb: [] };
@@ -2371,7 +2410,7 @@ async function pushStatusSheet() {
   const tO = j.testOnly && j.testOnly.mid ? j.testOnly.mid : '';
   sheet('<h2>직원 알림 상태</h2>' +
     '<div style="border:1px solid #F0C24B;background:#FFF9E8;border-radius:14px;padding:10px 12px;margin:8px 0 12px"><b>🧪 시험 모드</b><p class="help" style="margin:4px 0 8px">켜면 업무 앱 직원 알림(채팅·업무·행사 신청·연락 필요 등)이 고른 한 사람에게만 가요. 시험이 끝나면 꼭 꺼 주세요. 학부모 알림은 그대로예요.</p><div class="chips" id="psT"><button data-tm="" class="' + (tO ? '' : 'on') + '">끔 (모두에게)</button>' + j.list.filter(x => !x.shared).map(x => '<button data-tm="' + esc(x.id) + '" class="' + (tO === x.id ? 'on' : '') + '">' + esc(x.name) + '에게만</button>').join('') + '</div></div>' +
-    '<p class="help">\'알림 꺼짐\'이면 그 직원 휴대폰 업무 앱(홈 화면에 추가한 앱)에서 대시보드의 \'알림 켜기\'를 눌러야 해요. 알림은 평일 12~22시에만 울려요.</p>' +
+    '<p class="help">\'알림 꺼짐\'이면 그 직원 휴대폰 업무 앱(홈 화면에 추가한 앱)에서 대시보드의 \'알림 켜기\'를 눌러야 해요. 알림은 시간 제한 없이 바로 가요.</p>' +
     j.list.map(x => '<div class="mem"><span class="av l" style="background:' + (x.n ? 'var(--ok)' : '#9AA1B0') + '">' + esc(avName(x.name)) + '</span><b>' + esc(x.name) + (x.shared ? ' <small>(공용)</small>' : '') + '</b><small style="margin-left:auto;text-align:right">' + (x.n ? '알림 켜짐 · 기기 ' + x.n + '대<br>마지막 알림 ' + ago(x.last) : '<span style="color:var(--no)">알림 꺼짐</span>') + '</small></div>').join('') +
     '<div class="foot"><span class="sp"></span><button id="psBack">닫기</button></div>', ov => { ov.querySelector('#psBack').onclick = () => settingsSheet();
       ov.querySelector('#psT').onclick = async e => { const b = e.target.closest('[data-tm]'); if (!b) return; const r = await api('/api/test-push', { mid: b.dataset.tm }); if (!r.ok) return toast(r.error || '바꾸지 못했어요'); S.testOnly = r.testOnly; toast(r.testOnly ? '🧪 시험 모드: ' + r.testOnly.name + '님에게만 알림이 가요' : '시험 모드를 껐어요. 다시 모두에게 알림이 가요'); closeSheet(); pushStatusSheet(); render(); }; });

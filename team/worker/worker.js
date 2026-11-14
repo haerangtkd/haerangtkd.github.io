@@ -92,11 +92,9 @@ const ROLES0 = ['사범', '코치', '공용'];
 // 학부모 신청 알림을 울려도 되는 때 (평일, 한국 시간): 12:00~14:00, 20:00~21:00 은 바로 / 14:00~20:00 은 쉬는 시간에만
 const RING_OPEN = [[12 * 60, 14 * 60], [20 * 60, 21 * 60]];
 const RING_BREAK = [[14 * 60 + 50, 15 * 60], [15 * 60 + 50, 16 * 60], [16 * 60 + 50, 17 * 60], [17 * 60 + 50, 18 * 60 + 40], [19 * 60 + 30, 20 * 60]];
-// 직원 알림이 울려도 되는 때: 평일 12:00~22:00 (한국 시간)
-function staffHours(t = Date.now()) {
-  const k = new Date(t + 9 * 3600e3), wd = k.getUTCDay(), h = k.getUTCHours();
-  return wd !== 0 && wd !== 6 && h >= 12 && h < 22;
-}
+// 직원 알림이 울려도 되는 때 — 2026-11-14 사용자 결정: 시간 제한 없음(언제든 바로). 예전엔 평일 12~22시만, 밖이면 모아 두었다가 보냄.
+// 예전에 모아 둔 알림(pushhold)은 runHeld 가 다음 5분 안에 보냄. 학부모 연락 밤 9시~아침 8시 모아 보내기는 따로(그대로).
+function staffHours() { return true; }
 function canRing(t = Date.now()) {
   const k = new Date(t + 9 * 3600e3), wd = k.getUTCDay(), m = k.getUTCHours() * 60 + k.getUTCMinutes();
   if (wd === 0 || wd === 6) return false;
@@ -172,7 +170,7 @@ async function renameMember(env, id, from, to) {
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
   // 2026-11-13: 하나가 실패해도 나머지는 돌게 각각 따로, 시간이 정해진 알림(runTimed)을 먼저
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, rosterFollow]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -198,6 +196,7 @@ async function route(path, req, env, ctx) {
   if (path.startsWith('/sync/') && new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
   const b = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
   const ip = req.headers.get('cf-connecting-ip') || 'x';
+  if (path === '/api/widget') return json(await widgetData(env, new URL(req.url).searchParams.get('k') || b.k)); // 📱 위젯 (2026-11-14): 로그인 없이 위젯 열쇠로만 읽기
   // ═════════ 장부 서버에서 부름 — 서비스 바인딩으로만 (주소 이름이 'team'인 요청은 바깥에서 올 수 없음) ═════════
   if (path.startsWith('/ledger/')) {
     if (new URL(req.url).hostname !== 'team') return json({ ok: false, error: 'not found' }, 404);
@@ -723,6 +722,21 @@ async function route(path, req, env, ctx) {
     if (v.sb && !(await sbNames(env)).length) return json({ ok: true, sent: 0, next: null }); // 선범단이 없으면 아무에게도 안 보냄 (빈 명단 = 모두가 되지 않게)
     return json(await noticeSync(env, '/sync/broadcast', { title: '🎯 미션: ' + v.title, body: (v.mode === 'daily' ? (+v.start.slice(5, 7)) + '/' + (+v.start.slice(8)) + '~' + (+v.end.slice(5, 7)) + '/' + (+v.end.slice(8)) + ' 매일 · ' : '') + (v.body || '해 보면 좋아요. 학부모 앱에서 체크해 주세요').slice(0, 120), children: v.sb ? (await sbNames(env)).map(x => x.name) : v.kids, offset: b.offset | 0 })); // 선범단 미션은 선범단 보호자만
   }
+  if (path === '/api/read-set') { // 채팅 읽은 곳을 직원마다 서버에 (2026-11-14): 같은 사람의 휴대폰·태블릿끼리 맞춤 + 다시 알림·위젯이 씀
+    const cur = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'read:' + me.id) || {}).v, {}) || {};
+    Object.entries(b.read && typeof b.read === 'object' ? b.read : {}).slice(0, 60).forEach(([r, id]) => { r = str(r, 60); if (roomOk(r, me.id)) cur[r] = Math.max(cur[r] | 0, id | 0); });
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'read:' + me.id, JSON.stringify(cur));
+    return json({ ok: true, readAt: cur });
+  }
+  if (path === '/api/widget-key-get') { const k = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'wk:' + me.id) || {}).v, ''); return json({ ok: true, key: k || '' }); }
+  if (path === '/api/widget-key') { // 위젯 열쇠 새로 만들기(예전 열쇠는 못 씀) · 끄기
+    if (me.shared) return json({ ok: false, error: '도장 공용 계정은 위젯을 만들 수 없어요. 본인 이름으로 들어와 주세요' });
+    const old = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'wk:' + me.id) || {}).v, ''); if (old) await run(env, 'DELETE FROM kv WHERE k = ?', 'wkey:' + old);
+    if (b.off) { await run(env, 'DELETE FROM kv WHERE k = ?', 'wk:' + me.id); return json({ ok: true, key: '' }); }
+    const k = rid(16);
+    await env.DB.batch([q(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'wk:' + me.id, JSON.stringify(k)), q(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'wkey:' + k, JSON.stringify(me.id))]);
+    return json({ ok: true, key: k });
+  }
   if (path === '/api/hw-check') { // 도장(사범님 확인)에서 미션 했어요 (2026-11-14, 폰 없는 친구)
     const kid = str(b.kid, 20), id = str(b.hw, 40), day = isDay(b.day) ? b.day : kstDay();
     const h = await one(env, 'SELECT data FROM hw WHERE id = ? AND del = 0', id); if (!h || !kid) return json({ ok: false, error: '지워진 미션이에요' });
@@ -873,7 +887,8 @@ async function route(path, req, env, ctx) {
     const hws = await all(env, 'SELECT id, data, upd, del, mid FROM hw WHERE upd > ?', since), hwchk = hws.length ? await all(env, 'SELECT hw, kid, day, at, rel FROM hwchk WHERE hw IN (' + hws.map(() => '?').join(',') + ')', ...hws.map(h => h.id)) : [];
     const bkYm = addDays(td, 1).slice(8) === '01' ? td.slice(0, 7) : td.slice(8) <= '10' ? addDays(td.slice(0, 8) + '01', -1).slice(0, 7) : ''; // 말일 ~ 다음 달 10일
     const bkDue = me.boss && bkYm && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + bkYm)) ? bkYm : '';
-    return json({ ok: true, now: Date.now(), me, members, bkDue, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), egrps: (v => Array.isArray(v) && v.length ? v : EGRP0)(J(kv('egrps'), null)), testOnly: J(kv('testOnly'), null), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean), delReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'delreq:%'")).map(r => J(r.v, null)).filter(Boolean),
+    const readAt = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'read:' + me.id) || {}).v, null);
+    return json({ ok: true, now: Date.now(), me, members, bkDue, readAt, restoredAt: kv('restoredAt') || '', cats: J(kv('cats'), null), egrps: (v => Array.isArray(v) && v.length ? v : EGRP0)(J(kv('egrps'), null)), testOnly: J(kv('testOnly'), null), outReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'outreq:%'")).map(r => J(r.v, null)).filter(Boolean), delReq: (await all(env, "SELECT v FROM kv WHERE k LIKE 'delreq:%'")).map(r => J(r.v, null)).filter(Boolean),
       msgs: msgs.map(fixMsg), hidden, logs, joins, docNew: me.boss ? ((await one(env, 'SELECT COUNT(*) AS n FROM contracts WHERE del = 0 AND sid IS NULL')) || {}).n || 0 : 0, esigns, notice: J(kv('notice'), null),
       clean: J(kv('clean'), null), cleanchk, roles: J(kv('roles'), ROLES0), kioskMulti: kv('kioskMulti') === '1', pmsg, ptpl: await ptplGet(env), rels: RELS,
       hw: hws.map(h => ({ id: h.id, upd: h.upd, del: !!h.del, mid: h.mid, ...J(h.data, {}), chk: hwchk.filter(c => c.hw === h.id) })), pkchk: { day: td, v: J(kv('pkchk:' + td), null) },
@@ -1531,8 +1546,46 @@ async function runHeld(env) {
     else await pushTo(env, subs, '🔔 쉬는 동안 온 알림 ' + list.length + '건', list.slice(-3).map(x => x.title + ' · ' + x.body).join('\n').slice(0, 300) + (list.length > 3 ? '\n외 ' + (list.length - 3) + '건' : ''), 'log', true);
   }
 }
+// 💬 채팅 다시 알림 (2026-11-14 사용자 결정): 받은 채팅을 5분이 지나도 안 읽었으면 한 번만 더. 메시지마다 한 번(kv crm:직원 = 마지막으로 다시 알린 메시지 번호).
+// 읽은 곳이 서버에 있는 직원만(앱을 한 번 열어야 생김). 도장 공용 계정은 뺌. 5분마다 도니까 실제로는 5~10분 뒤.
+const unreadFor = (msgs, mid, read) => msgs.filter(m => m.mid !== mid && (!m.room || m.room.split(':').includes(mid)) && m.id > ((read || {})[m.room || ''] | 0));
+async function runChatRemind(env) {
+  const now = Date.now(), msgs = await all(env, 'SELECT id, mid, text, photo, room, at FROM msgs WHERE at > ? AND at < ? ORDER BY id', now - 3600e3, now - 5 * 60e3); if (!msgs.length) return;
+  const mem = await all(env, 'SELECT id, name, shared FROM members'), nm = Object.fromEntries(mem.map(m => [m.id, m.name]));
+  for (const m of mem.filter(x => !x.shared)) {
+    const read = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'read:' + m.id) || {}).v, null); if (!read) continue;
+    const last = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'crm:' + m.id) || {}).v, 0) | 0;
+    const L = unreadFor(msgs, m.id, read).filter(x => x.id > last); if (!L.length) continue;
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'crm:' + m.id, String(L[L.length - 1].id));
+    const subs = await all(env, 'SELECT * FROM subs WHERE mid = ?', m.id); if (!subs.length) continue;
+    const z = L[L.length - 1], dm = L.some(x => x.room), grp = L.some(x => !x.room);
+    await pushTo(env, subs, '💬 아직 안 읽은 채팅 ' + L.length + '개 (' + [grp ? '단체방' : '', dm ? '1:1' : ''].filter(Boolean).join('·') + ')', (nm[z.mid] || '') + ': ' + (z.text || (z.photo ? '사진' : '')).slice(0, 100), 'chat', true);
+  }
+}
+// 📱 위젯 (2026-11-14): 내 할 일(내 담당 + 담당자 없음) · 안 읽은 채팅 · 오늘 출석 미확인 · 학부모 가입 승인 대기
+async function widgetData(env, k) {
+  k = str(k, 40); const mid = k ? J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'wkey:' + k) || {}).v, '') : '';
+  const me = mid ? await one(env, 'SELECT id, name FROM members WHERE id = ?', mid) : null;
+  if (!me) return { ok: false, error: '위젯 열쇠가 맞지 않아요. 업무 앱 → 더보기 → 📱 위젯에서 다시 만들어 주세요' };
+  const t = kstDay(), todos = [];
+  for (const r of await all(env, "SELECT id, data, mid FROM items WHERE type = 'todo' AND del = 0")) {
+    const d = J(r.data, {}), st = d.status === '요청' ? '진행' : d.status || (d.done ? '완료' : '진행'), whos = Array.isArray(d.whos) ? d.whos : d.who ? [d.who] : [];
+    if (st === '완료' || st === '보류' || d.done) continue; if (d.share === 'private' && r.mid !== me.id) continue; if (whos.length && !whos.includes(me.name)) continue;
+    if (!((d.due && d.due <= t) || (d.start && d.start <= t && (!d.due || d.due >= t)))) continue;
+    todos.push({ title: str(d.title, 60), due: d.due || '', late: !!(d.due && d.due < t) });
+  }
+  todos.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  const read = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'read:' + me.id) || {}).v, null);
+  const msgs = await all(env, "SELECT id, mid, room FROM msgs WHERE at > ? AND (room IS NULL OR room = '' OR instr(room, ?) > 0)", Date.now() - 14 * 864e5, me.id);
+  const chat = read ? unreadFor(msgs, me.id, read).length : null;
+  let notYet = null; const r = await attSync(env, '/sync/students', {});
+  if (r.ok) { const here = new Set(r.here || []), abs = new Set(r.absent || []), wdk = ['일', '월', '화', '수', '목', '금', '토'][new Date(t + 'T00:00:00Z').getUTCDay()];
+    notYet = (r.students || []).filter(s => s.status === '재원' && (!s.joined || s.joined <= t) && !(s.leavePeriods || []).some(p => (!p.start || p.start <= t) && (!p.end || t < p.end))).filter(s => { const tp = (s.temporarySchedules || []).find(x => x.start && x.start <= t && (!x.end || t <= x.end)); return (tp ? tp.days : s.days || []).includes(wdk); }).filter(s => !here.has(s.id) && !abs.has(s.id)).length; }
+  const pd = await noticeSync(env, '/sync/pending', {});
+  return { ok: true, name: me.name, at: Date.now(), todoN: todos.length, todos: todos.slice(0, 8), chat, notYet, pending: pd.ok ? pd.pending : null };
+}
 async function runPushQueue(env) {
-  if (!staffHours()) return; // 2026-11-13 사용자 요청: 쉬는 시간까지 기다리지 않고 직원 알림 시간(평일 12~22시) 안이면 바로
+  if (!staffHours()) return; // 2026-11-14: 시간 제한 없음 → 늘 바로
   const q0 = await all(env, 'SELECT id, text FROM pushq ORDER BY id LIMIT 50'); if (!q0.length) return;
   await run(env, 'DELETE FROM pushq WHERE id <= ?', q0[q0.length - 1].id);
   const body = q0.length === 1 ? q0[0].text : q0.slice(0, 3).map(x => x.text).join('\n') + (q0.length > 3 ? '\n외 ' + (q0.length - 3) + '건' : '');
