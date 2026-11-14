@@ -692,8 +692,14 @@ async function route(path, req, env, ctx) {
   if (path === '/api/contract-link') { // 출석부 원생과 연결 (sid '' 이면 연결 풀기)
     const r = await one(env, 'SELECT name FROM contracts WHERE id = ? AND del = 0', str(b.id, 30)); if (!r) return json({ ok: false, error: '지워진 서류예요' });
     await run(env, 'UPDATE contracts SET sid = ?, upd = ? WHERE id = ?', str(b.sid, 60) || null, Date.now(), str(b.id, 30));
-    if (b.sid) await addLog(env, me.id, 'doc', '📝 ' + r.name + ' 등록 서류를 원생과 연결했어요', str(b.id, 30));
-    return json({ ok: true });
+    let got = [];
+    if (b.sid) { // 원생 정보의 빈 칸을 서류로 채움 (성별·생년월일·주소·학교·반·번호·연락처, 2026-11-14)
+      const c = await one(env, 'SELECT data FROM contracts WHERE id = ?', str(b.id, 30)), rec = J(c && c.data, {}), v = rec.raw || {};
+      const fill = { gender: v.sex, bday: v.birth, lunar: v.lunar === '음력', addr: v.addr, inst: v.school, cls: v.cls, sno: v.num, phone: String(v.phone || '').replace(/\D/g, '').length >= 10 ? v.phone : '' };
+      const f = await attSync(env, '/sync/student-fill', { sid: str(b.sid, 60), fill, who: me.name }).catch(() => null); got = (f && f.got) || [];
+      await addLog(env, me.id, 'doc', '📝 ' + r.name + ' 등록 서류를 원생과 연결했어요' + (got.length ? ' · 원생 정보 채움: ' + got.join(', ') : ''), str(b.id, 30));
+    }
+    return json({ ok: true, got });
   }
   if (path === '/api/contract-del') {
     const nb = needBoss(); if (nb) return nb;
