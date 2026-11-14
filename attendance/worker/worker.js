@@ -78,7 +78,7 @@ async function route(path, req, env) {
     if (path === '/sync/kid-info') { // 학부모 앱 '정보 확인': 이름으로 출생연도·수련 요일·임시변경(오늘 이후) (2026-11-13)
       const names = (Array.isArray(b.names) ? b.names : []).map(x => str(x, 20)).slice(0, 10), day = kstDay();
       const L = (await all(env, 'SELECT id, data FROM students')).map(r => ({ ...J(r.data, {}), id: r.id })).filter(s => names.includes(s.name) && s.status !== '퇴관');
-      return json({ ok: true, kids: L.map(s => ({ sid: s.id, name: s.name, birth: s.birth || '', days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
+      return json({ ok: true, kids: L.map(s => ({ sid: s.id, name: s.name, birth: s.birth || '', bday: s.lunar ? '' : (s.bday || ''), days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
     }
     if (path === '/sync/day-absent') { // 업무 앱 등원표: 그날 결석(출석부 '결석' + 미리 연락 온 결석 예정)
       const day = isDay(b.day) ? b.day : kstDay();
@@ -184,6 +184,17 @@ async function route(path, req, env) {
       return json({ ok: true, added: out });
     }
     if (path === '/sync/student-delete') return json(await studentDelete(env, str(b.sid, 60), !!b.dry)); // 업무 앱 '원생 삭제'(관리자만, 업무 서버가 확인) — dry: 무엇이 지워지는지만
+    if (path === '/sync/student-fill') { // 등록 서류를 원생과 연결하면 원생 정보의 빈 칸만 채움 (2026-11-14) — 이미 있는 값은 안 바꿈
+      const r = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.sid, 60)); if (!r) return json({ ok: false, error: '원생을 찾지 못했어요' });
+      const d = J(r.data, {}), f = cleanStudent({ ...d, ...(b.fill || {}) }), got = [];
+      const lab = { gender: '성별', bday: '생년월일', addr: '주소', inst: '학교·유치원', cls: '반', sno: '번호', phone: '연락처' };
+      for (const k of Object.keys(lab)) if (!d[k] && f[k]) { d[k] = f[k]; got.push(lab[k]); }
+      if (got.includes('생년월일')) { d.lunar = f.lunar; d.birth = +d.bday.slice(0, 4); }
+      if (!got.length) return json({ ok: true, got });
+      const upd = Date.now();
+      await env.DB.batch([q(env, 'UPDATE students SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), upd, str(b.sid, 60)), q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), str(b.sid, 60), '', upd, '등록 서류에서 채움: ' + got.join(', '), str(b.who, 20) || '업무 앱')]);
+      return json({ ok: true, got });
+    }
     if (path === '/sync/fam-set') { // 업무 앱: 형제·자매 묶기/풀기 {sids, famId}
       const ids = (Array.isArray(b.sids) ? b.sids : []).slice(0, 10).map(x => str(x, 60)), fam = str(b.famId, 40), now = Date.now(), st = [];
       for (const id of ids) {
@@ -517,6 +528,7 @@ async function dlCheckOld(env, pin, key) { // 예전 '내려받기 비밀번호'
 
 async function saveStudentRow(env, b, who) {
   const s = cleanStudent(b.student || {});
+  if (s.bday) s.birth = +s.bday.slice(0, 4); // 생년월일이 있으면 출생연도는 거기서 (2026-11-14)
   if (!s.name) return { ok: false, error: '이름을 적어 주세요' };
   const id = str(b.student && b.student.id, 60) || crypto.randomUUID(), upd = Date.now();
   // 동명이인 막기 (2026-11-14 사용자 결정): 학부모 앱·태블릿·행사·픽업이 이름으로 찾아서, 같은 이름이면 다른 가정에 알림이 감 → 새로 넣거나 이름을 바꿀 때 같은 이름(퇴관 포함)이 있으면 저장 안 함
@@ -542,6 +554,8 @@ function cleanStudent(s) {
     status: ['재원', '휴원', '퇴관'].includes(s.status) ? s.status : '재원',
     joined: okDay(s.joined),
     gender: ['남', '여'].includes(s.gender) ? s.gender : '',
+    // 원생 정보 칸 (2026-11-14 사용자 결정: 이름·성별·생년월일·주소·학교·반·번호·연락처) — 등록 서류를 연결하면 빈 칸만 채움
+    bday: okDay(s.bday), lunar: !!s.lunar, addr: str(s.addr, 80).trim(), cls: str(s.cls, 10).trim(), sno: str(s.sno, 3).replace(/\D/g, ''),
     memo: str(s.memo, 500),
     no: str(s.no, 4).replace(/\D/g, ''),
     guardian: str(s.guardian, 10),
