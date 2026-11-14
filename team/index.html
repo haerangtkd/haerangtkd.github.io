@@ -1900,7 +1900,8 @@ function kidSheet(id) {
     (s.status === '휴원' ? line('휴원', esc(kLp((s.leavePeriods || []).filter(p => !p.end)))) : '') +
     line('보호자', esc([s.guardian, kPhone(s.phone)].filter(Boolean).join(' ')) + (s.phone ? ' <a class="btn" href="tel:' + esc(s.phone) + '" style="padding:3px 10px;margin-left:6px;text-decoration:none;color:inherit">전화</a>' : '')) +
     line('다른 보호자', esc(kPhone(s.phone2 || ''))) +
-    line('출석번호', esc(s.no || '')) + line('어린이집·유치원', esc(s.inst || '')) + line('메모', esc(s.memo || '')) + '</div>' +
+    line('성별', esc(s.gender || '')) + line('생년월일', esc(s.bday ? s.bday + (s.lunar ? ' (음력)' : '') : '')) +
+    line('출석번호', esc(s.no || '')) + line('학교·유치원', esc([s.inst, s.cls ? s.cls + '반' : '', s.sno ? s.sno + '번' : ''].filter(Boolean).join(' '))) + line('주소', esc(s.addr || '')) + line('메모', esc(s.memo || '')) + '</div>' +
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + clip('kPm' + s.id, L.map(x => pmRow(x, false)).join(''), '건') : ''; })() +
@@ -2141,7 +2142,10 @@ function kidEdit(s0, pre, after) {
   const y = +today().slice(0, 4), years = []; for (let i = y - 3; i >= 1950; i--) years.push(i); let noTouched = !!s.no;
   sheet('<h2>' + (s0 ? '원생 정보 수정' : '새 원생 등록') + '</h2>' +
     '<label class="f">이름</label><input class="inp" id="eName" value="' + esc(s.name) + '">' +
-    '<label class="f">출생연도</label><select class="inp" id="eBirth"><option value="">선택해 주세요</option>' + years.map(v => '<option value="' + v + '"' + (+s.birth === v ? ' selected' : '') + '>' + v + '년생</option>').join('') + '</select>' +
+    '<label class="f">성별</label><div class="chips" id="eSex">' + ['남', '여'].map(x => '<button data-v="' + x + '" class="' + (s.gender === x ? 'on' : '') + '">' + x + '</button>').join('') + '</div>' +
+    '<label class="f">생년월일</label><input type="date" class="inp" id="eBday" value="' + esc(s.bday || '') + '">' +
+    '<label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:14px"><input type="checkbox" id="eLunar"' + (s.lunar ? ' checked' : '') + ' style="width:18px;height:18px;accent-color:var(--brand)"> 음력이에요 <small style="color:var(--muted)">(음력이면 제자 모드 생일 축하는 안 떠요)</small></label>' +
+    '<label class="f">출생연도 <small style="color:var(--muted)">(생년월일을 넣으면 자동)</small></label><select class="inp" id="eBirth"><option value="">선택해 주세요</option>' + years.map(v => '<option value="' + v + '"' + (+s.birth === v ? ' selected' : '') + '>' + v + '년생</option>').join('') + '</select>' +
     '<label class="f">수련 요일</label><div class="chips" id="eDays">' + KWEEK.map(x => '<button data-v="' + x + '" class="' + (s.days.includes(x) ? 'on' : '') + '">' + x + '</button>').join('') + '<button data-v="all">월~금</button></div>' +
     '<label class="f">입관일</label><input type="date" class="inp" id="eJoin" value="' + esc(s.joined || '') + '">' +
     '<label class="f">보호자</label><div class="chips" id="eGd">' + ['어머니', '아버지', '기타'].map(x => '<button data-v="' + x + '" class="' + (s.guardian === x ? 'on' : '') + '">' + x + '</button>').join('') + '</div>' +
@@ -2149,19 +2153,25 @@ function kidEdit(s0, pre, after) {
     '<input class="inp" id="ePhone2" inputmode="tel" placeholder="다른 보호자 연락처 (예: 아빠, 없으면 비워 두기)" value="' + esc(s.phone2 || '') + '" style="margin-top:8px">' +
     '<p class="help">학부모 앱은 이 번호들 뒷자리로만 가입할 수 있어요.</p>' +
     '<label class="f">출석번호 (태블릿에 누르는 4자리, 보통 연락처 뒷자리)</label><input class="inp" id="eNo" inputmode="numeric" maxlength="4" value="' + esc(s.no) + '">' +
-    '<label class="f">어린이집·유치원 (유치부만)</label><input class="inp" id="eInst" value="' + esc(s.inst) + '">' +
+    '<label class="f">학교·유치원</label><input class="inp" id="eInst" value="' + esc(s.inst) + '">' +
+    '<div style="display:flex;gap:8px"><div style="flex:1"><label class="f">반</label><input class="inp" id="eCls" value="' + esc(s.cls || '') + '" placeholder="예: 3"></div><div style="flex:1"><label class="f">번호</label><input class="inp" id="eSno" inputmode="numeric" maxlength="3" value="' + esc(s.sno || '') + '" placeholder="예: 12"></div></div>' +
+    '<label class="f">주소</label><input class="inp" id="eAddr" value="' + esc(s.addr || '') + '">' +
     '<label class="f">메모</label><textarea class="inp" id="eMemo" rows="2">' + esc(s.memo) + '</textarea>' +
     '<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="eNoAsk"' + (s.noAsk ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 태블릿을 안 눌러도 등원 알림을 묻지 않기 (보호자가 데려다주는 제자)</label>' +
     (s0 ? '<p class="help">회원 상태(휴원·퇴관)는 앞 화면의 \'회원 상태\'에서 바꿔요.</p>' : '') +
     '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="eSave">' + (s0 ? '저장' : '등록') + '</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
     g('eDays').onclick = e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v; if (v === 'all') s.days = KWEEK.every(x => s.days.includes(x)) ? [] : [...KWEEK]; else s.days = s.days.includes(v) ? s.days.filter(x => x !== v) : KWEEK.filter(x => x === v || s.days.includes(x)); g('eDays').querySelectorAll('button').forEach(x => x.classList.toggle('on', s.days.includes(x.dataset.v))); };
+    g('eSex').onclick = e => { const b = e.target.closest('button'); if (!b) return; s.gender = s.gender === b.dataset.v ? '' : b.dataset.v; g('eSex').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === s.gender)); };
+    g('eBday').onchange = () => { const v = g('eBday').value; if (v) g('eBirth').value = String(+v.slice(0, 4)); };
     g('eGd').onclick = e => { const b = e.target.closest('button'); if (!b) return; s.guardian = s.guardian === b.dataset.v ? '' : b.dataset.v; g('eGd').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === s.guardian)); };
     g('ePhone').oninput = e => { const d = e.target.value.replace(/\D/g, ''); if (!noTouched && d.length >= 4) g('eNo').value = d.slice(-4); };
     g('eNo').oninput = () => { noTouched = true; };
     if (!s0) setTimeout(() => g('eName').focus(), 60);
     g('eSave').onclick = async () => {
-      s.name = g('eName').value.replace(/\s+/g, ''); s.birth = +g('eBirth').value || ''; s.joined = g('eJoin').value; s.phone = g('ePhone').value.replace(/\D/g, ''); s.phone2 = g('ePhone2').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4); s.inst = g('eInst').value.trim(); s.memo = g('eMemo').value.trim(); s.noAsk = g('eNoAsk').checked;
+      s.name = g('eName').value.replace(/\s+/g, ''); s.birth = +g('eBirth').value || '';
+      // 원생 정보 칸 (2026-11-14): 생년월일·음력·반·번호·주소
+      s.bday = g('eBday').value || ''; s.lunar = g('eLunar').checked; if (s.bday) s.birth = +s.bday.slice(0, 4); s.cls = g('eCls').value.trim(); s.sno = g('eSno').value.replace(/\D/g, ''); s.addr = g('eAddr').value.trim(); s.joined = g('eJoin').value; s.phone = g('ePhone').value.replace(/\D/g, ''); s.phone2 = g('ePhone2').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4); s.inst = g('eInst').value.trim(); s.memo = g('eMemo').value.trim(); s.noAsk = g('eNoAsk').checked;
       if (!s.name) return toast('이름을 적어 주세요');
       if (s.no && s.no.length !== 4) return toast('출석번호는 4자리로 적어 주세요');
       const dup = (S.kids || []).find(x => x.name === s.name && (!s0 || x.id !== s0.id) && x.status !== '퇴관');
@@ -2590,13 +2600,13 @@ async function docView(id) {
     '<div class="row" style="margin:6px 0 12px;flex-wrap:wrap">' + (d.sid ? '<span class="help" style="flex:1">출석부 원생 <b>' + esc(linked ? linked.name : '') + '</b>과 연결돼 있어요</span><button class="btn" id="dvUn">연결 풀기</button>' : '<button class="btn g" id="dvNew" style="flex:1">출석부 원생으로 등록</button><button class="btn" id="dvLink" style="flex:1">있는 원생과 연결</button>') + '<button class="btn" id="dvPr">인쇄·PDF</button>' + (isBoss() ? '<button class="btn" id="dvDel">지우기</button>' : '') + '</div>' +
     '<div class="card" style="padding:14px 14px 18px">' + HF.view(d) + '</div>', ov => {
     ov.classList.add('full'); const g = x => ov.querySelector('#' + x);
-    const link = async sid => { const r = await api('/api/contract-link', { id, sid }); if (!r.ok) return toast(r.error || '연결하지 못했어요'); S.docsAt = 0; await loadDocs(true); toast(sid ? '원생과 연결했어요' : '연결을 풀었어요'); docView(id); };
+    const link = async sid => { const r = await api('/api/contract-link', { id, sid }); if (!r.ok) return toast(r.error || '연결하지 못했어요'); S.docsAt = 0; await loadDocs(true); toast(sid ? '원생과 연결했어요' + ((r.got || []).length ? ' · ' + r.got.join(', ') + ' 채움' : '') : '연결을 풀었어요'); if ((r.got || []).length) S.kidsAt = 0; docView(id); };
     if (g('dvUn')) g('dvUn').onclick = () => { if (confirm('원생 연결을 풀까요? 서류는 그대로 남아요.')) link(''); };
     if (g('dvNew')) g('dvNew').onclick = () => {
       const r = d.raw || {}, ph = (r.phone || '').replace(/\D/g, ''), fam = (r.family || []).find(x => x && x[3]) || [], gp = (fam[3] || '').replace(/\D/g, '');
       const days = Object.entries(r.week || {}).filter(([, w]) => w && (w.t || w.car)).map(([k]) => k);
       const rel = d.signerRel === '엄마' ? '어머니' : d.signerRel === '아빠' ? '아버지' : d.signerRel && d.signerRel !== '본인' ? '기타' : '';
-      const pre = { name: d.name, birth: +(String(d.birth || '').slice(0, 4)) || '', phone: d.kind === 'kid' ? (gp || ph) : (ph || gp), guardian: rel, days: KWEEK.filter(x => days.includes(x)), joined: r.start || today(), inst: /유치원|어린이집/.test(r.school || '') ? r.school : '', memo: ['등록 서류 ' + (d.date || ''), d.photoNo ? '사진·영상 업로드 원하지 않음' : ''].filter(Boolean).join(' · ') };
+      const pre = { name: d.name, birth: +(String(d.birth || '').slice(0, 4)) || '', phone: d.kind === 'kid' ? (gp || ph) : (ph || gp), guardian: rel, days: KWEEK.filter(x => days.includes(x)), joined: r.start || today(), inst: r.school || '', gender: ['남', '여'].includes(r.sex) ? r.sex : '', bday: /^\d{4}-\d{2}-\d{2}$/.test(r.birth || '') ? r.birth : '', lunar: r.lunar === '음력', addr: r.addr || '', cls: r.cls || '', sno: String(r.num || '').replace(/\D/g, '').slice(0, 3), memo: ['등록 서류 ' + (d.date || ''), d.photoNo ? '사진·영상 업로드 원하지 않음' : ''].filter(Boolean).join(' · ') };
       pre.no = pre.phone ? pre.phone.slice(-4) : '';
       // 등록 서류 → (직원 확인) 원생 등록 → 가족 초대번호 바로 만들고 QR 화면 (2026-11-13 사용자 결정)
       kidEdit(null, pre, async sid => {
