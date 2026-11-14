@@ -1654,7 +1654,25 @@ $('v-table').onclick = e => {
     return sheet('<div class="grab"></div><h2>무엇을 만들까요?</h2><div class="tiles" id="mkT">' + [['event', '🎟', '행사', '#FBE5E6'], ['goods', '👕', '물품 신청', '#E8EEF8'], ['buy', '🛒', '구매표', '#FFF0DC']].map(([k, e, n, c]) => '<button data-k="' + k + '"><span style="background:' + c + '">' + e + '</span>' + n + '</button>').join('') + '</div><p class="help" style="margin-top:12px">행사: 참가 신청·결제 / 물품 신청: 도복·띠처럼 주문·결제·지급 / 구매표: 도장에서 살 물건</p>', ov => { ov.querySelector('#mkT').onclick = ev => { const b = ev.target.closest('button'); if (b) newOf(b.dataset.k); }; }); }
   const c = e.target.closest('.tc'); if (c) openTable(S.items.get(c.dataset.id));
 };
-function rowAmt(ev, r) { const ps = ev.products || []; return ps.length ? (r.prods || []).reduce((a, i) => a + (+(ps[i] || {}).p || 0), 0) : (+ev.base || 0); }
+function rowAmt(ev, r) { const ps = ev.products || []; return ps.length ? (r.prods || []).reduce((a, i) => a + (+(ps[i] || {}).p || 0), 0) : (r.guest && ev.gbase !== '' && ev.gbase != null ? +ev.gbase : (+ev.base || 0)); } // 비회원 금액(gbase)이 있으면 비회원은 그 금액 (2026-11-15)
+// 비회원 정보 (2026-11-15 사용자 결정: 합숙 등 친구가 올 때) — 학년·보호자 연락처·비상 연락처·데려온 제자
+const guestLine = r => [r.gGrade, r.gPh ? '보호자 ' + r.gPh : '', r.gEm ? '비상 ' + r.gEm : '', r.gBy ? r.gBy + ' 친구' : ''].filter(Boolean).join(' · ');
+const pastGuests = ev => { const m = new Map(); for (const it of itemsOf('event').sort((a, b) => (b.upd || 0) - (a.upd || 0))) { if (it.id === ev.id) continue; for (const r of it.rows || []) if (r && r.guest && r.name) { const k = r.name + '|' + (r.gPh || ''); if (!m.has(k)) m.set(k, { name: r.name, gGrade: r.gGrade || '', gPh: r.gPh || '', gEm: r.gEm || '', gBy: r.gBy || '', from: it.title }); } } return [...m.values()].slice(0, 60); };
+function guestEdit(ev, r, done) {
+  const ov2 = document.createElement('div'); ov2.className = 'ov'; ov2.style.zIndex = 60;
+  const mates = (ev.rows || []).filter(x => !x.guest && x !== r).map(x => x.name);
+  ov2.innerHTML = '<div class="sheet"><h2>' + esc(r.name) + ' · 비회원 정보</h2>' +
+    '<label class="f">학년·나이</label><input class="inp" id="gG" value="' + esc(r.gGrade || '') + '" placeholder="예: 초2, 7살">' +
+    '<label class="f">보호자 연락처</label><input class="inp" id="gP" inputmode="tel" value="' + esc(r.gPh || '') + '" placeholder="010-0000-0000">' +
+    '<label class="f">비상 연락처 (합숙 등)</label><input class="inp" id="gE" inputmode="tel" value="' + esc(r.gEm || '') + '">' +
+    '<label class="f">데려온 제자</label><input class="inp" id="gB" list="gBl" value="' + esc(r.gBy || '') + '" placeholder="누구 친구인지"><datalist id="gBl">' + mates.map(n => '<option value="' + esc(n) + '">').join('') + '</datalist>' +
+    '<p class="help">비회원은 원생 명단·출석부·학부모 앱에 안 들어가요. 연락처는 이 행사표에만 남아요.</p>' +
+    '<div class="foot"><span class="sp"></span><button id="gX">취소</button><button class="save" id="gOk">저장</button></div></div>';
+  document.body.appendChild(ov2); const g = id => ov2.querySelector('#' + id);
+  g('gX').onclick = () => ov2.remove();
+  g('gOk').onclick = () => { r.gGrade = g('gG').value.trim().slice(0, 20); r.gPh = g('gP').value.trim().slice(0, 20); r.gEm = g('gE').value.trim().slice(0, 20); r.gBy = g('gB').value.trim().slice(0, 20); ov2.remove(); done(); };
+  setTimeout(() => g('gG').focus(), 60);
+}
 function openTable(it0, isNew) { if (!it0) return; if (it0.type === 'buy') return buySheet(it0, isNew); if (isNew) return eventSetup(it0, true); eventSheet(it0); }
 
 // 행사표 만들기·설정 (행사명, 날짜, 품목·금액, 선택 항목, 체크 칸, 하원차)
@@ -1664,6 +1682,7 @@ function eventSetup(ev0, isNew) {
     '<label class="f">' + (goods ? '이름' : '행사명') + '</label><input class="inp" id="eT" value="' + esc(ev.title) + '" placeholder="' + (goods ? '예: 품도복 구매' : '예: 해랑경희데이') + '">' +
     '<label class="f">종류</label><div class="chips" id="eK"><button data-k="" class="' + (!goods ? 'on' : '') + '">🎟 행사</button><button data-k="goods" class="' + (goods ? 'on' : '') + '">👕 물품 신청</button></div>' +
     '<label class="f">날짜' + (goods ? ' (없어도 돼요)' : '') + ' · 기본 금액</label><div class="row"><input type="date" class="inp" id="eD" value="' + esc(ev.date || '') + '"><input class="inp" id="eB" inputmode="numeric" placeholder="기본 금액 (원)" value="' + (ev.base || '') + '"></div>' +
+    '<label class="f">비회원 금액 <small style="color:var(--muted)">(비워 두면 기본 금액과 같아요 · 품목이 있으면 품목 금액)</small></label><input class="inp" id="eGB" inputmode="numeric" placeholder="예: 60000" value="' + (ev.gbase != null && ev.gbase !== '' ? ev.gbase : '') + '">' +
     '<label class="f">품목 · 금액 (금액이 여러 개면 나눠 적기, 예: 도복 50000)</label><textarea class="inp" id="eP" rows="3" placeholder="도복 50000&#10;띠 10000">' + esc((ev.products || []).map(p => p.n + ' ' + p.p).join('\n')) + '</textarea>' +
     '<label class="f">선택 항목 (예: 사이즈: 110,120,130 / 색상: 빨강,파랑)</label><textarea class="inp" id="eO" rows="2" placeholder="사이즈: 110,120,130,140">' + esc((ev.options || []).map(o => o.n + ': ' + (o.c || []).join(',')).join('\n')) + '</textarea>' +
     '<label class="f">체크 칸 (쉼표로, 예: 양말, 신발)</label><input class="inp" id="eC" value="' + esc((ev.checks || []).join(', ')) + '">' +
@@ -1696,7 +1715,7 @@ function eventSetup(ev0, isNew) {
     if (isNew) setTimeout(() => g('eT').focus(), 60);
     g('eOk').onclick = async () => {
       ev.title = g('eT').value.trim(); if (!ev.title) return toast('이름을 적어 주세요');
-      ev.date = g('eD').value; ev.base = +g('eB').value.replace(/\D/g, '') || 0;
+      ev.date = g('eD').value; ev.base = +g('eB').value.replace(/\D/g, '') || 0; { const gb = g('eGB').value.replace(/\D/g, ''); ev.gbase = gb === '' ? '' : +gb; }
       ev.products = g('eP').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const m = l.match(/^(.*?)[\s:]*([\d,]+)\s*원?$/); return m ? { n: m[1].trim() || '품목', p: +m[2].replace(/,/g, '') } : { n: l, p: 0 }; });
       ev.options = g('eO').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const [n, c] = l.split(/[:：]/); let ch = (c || '').split(/[,，]/).map(x => x.trim()).filter(Boolean); if (!ch.length && /사이즈/.test(n)) for (let s = 90; s <= 190; s += 10) ch.push(String(s)); return { n: n.trim(), c: ch }; });
       ev.checks = g('eC').value.split(/[,，]/).map(x => x.trim()).filter(Boolean);
@@ -1742,10 +1761,12 @@ function eventSheet(ev0) {
       '<div class="sub">' + (ev.checks || []).map(c => '<button class="tg' + ((r.chk || {})[c] ? ' on' : '') + '" data-a="chk" data-c="' + esc(c) + '">' + esc(c) + '</button>').join('') +
       (free ? '' : '<button class="tg pay' + (r.paid ? ' on' : '') + '" data-a="paid">' + (r.paid ? '✓ 결제' : '결제') + '</button>') + (give ? '<button class="tg pay' + (r.given ? ' on' : '') + '" data-a="given">' + (r.given ? '✓ 지급' : '지급') + '</button>' : '') + (ev.van ? '<button class="tg' + (r.van ? ' on' : '') + '" data-a="van">하원차</button>' : '') + (r.wait ? '<button class="tg" data-a="unwait">참가로</button>' : '') + '</div>' +
       (r.pmemo ? '<p class="help" style="margin:4px 2px 0">학부모님 말: ' + esc(r.pmemo) + '</p>' : '') +
+      (r.guest ? '<div class="sub" style="align-items:center"><button class="tg" data-a="ginfo">✏️ 비회원 정보</button><span class="help" style="margin:0 4px">' + (esc(guestLine(r)) || '학년·보호자 연락처를 넣어 주세요') + '</span></div>' : '') +
       '<input class="memo2" data-a="memo" placeholder="비고" value="' + esc(r.memo || '') + '"></div>';
     S._evDraw = () => { const sh = document.querySelector('.sheet.full'); if (!sh) return; const y = sh.scrollTop; sh.querySelector('#evBody').innerHTML = body(); sh.scrollTop = y; };
     const body = () => '<div class="sumbar"><div><small>' + W + '</small><b>' + act.length + '명</b></div>' + (free ? '' : '<div><small>결제</small><b>' + act.filter(r => r.paid).length + '/' + act.length + '</b></div>') + (free && !goods ? '<div><small>참가비</small><b>무료</b></div>' : '<div><small>' + (goods ? '지급' : '합계') + '</small><b>' + (goods ? act.filter(r => r.given).length + '/' + act.length : won(tot)) + '</b></div>') + '</div>' +
       (free ? '' : act.some(r => !r.paid) ? '<p class="help">미결제: ' + act.filter(r => !r.paid).map(r => esc(r.name)).join(', ') + ' (' + won(tot - paidAmt) + ')</p>' : act.length ? '<p class="help" style="color:var(--ok)">모두 결제했어요 · 합계 ' + won(tot) + '</p>' : '') +
+      (rows.some(r => r.guest && !r.appCancel) ? '<button class="btn" id="evGuests" style="width:100%;margin-top:10px">📋 비회원 ' + rows.filter(r => r.guest && !r.appCancel).length + '명 연락처 모아 보기</button>' : '') +
       '<div class="row" style="margin-top:12px"><button class="btn g" id="evAdd" style="flex:1">+ 사람 추가</button><button class="btn" id="evSet">설정</button><button class="btn" id="evDone">' + (ev.closed ? '다시 진행' : '완료로') + '</button></div>' +
       (rows.length ? clip('ev' + ev.id, rows.map(card).join(''), '명') : '<p class="empty">+ 사람 추가로 명단을 넣어 주세요</p>') +
       '<h3>댓글 ' + cms.length + '</h3>' + cmList(cms) + '<div class="row" style="margin-top:8px"><input class="inp" id="evC" placeholder="댓글 달기"><button class="btn g" id="evCo">등록</button></div>';
@@ -1757,11 +1778,15 @@ function eventSheet(ev0) {
     ov.addEventListener('click', async e => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.id === 'evSet') { await flush(); return eventSetup(ev); }
+      if (b.id === 'evGuests') { // 비회원 보호자 연락처 모아 보기·복사 (비회원은 학부모 앱이 없어서 문자로 연락, 2026-11-15)
+        const G = (ev.rows || []).filter(r => r.guest && !r.appCancel), txt = ev.title + ' 비회원 ' + G.length + '명\n' + G.map(r => '· ' + r.name + (guestLine(r) ? ' · ' + guestLine(r) : '') + (r.wait ? ' (대기)' : '')).join('\n');
+        try { await navigator.clipboard.writeText(txt); toast('비회원 연락처를 복사했어요'); } catch (_) { prompt('길게 눌러 복사해 주세요', txt); }
+        return; }
       if (b.id === 'evDone') { ev.closed = !ev.closed; redraw(); queue(ev.closed ? '완료로 옮김' : '다시 진행');
         const pn = (ev.rows || []).filter(r => !r.wait && !r.appCancel && !r.guest).length; // 완료 → 참가자에게 알림장 (알림 관리에서 받는 사람이 골라진 채로, 2026-11-13)
         if (ev.closed && !goods && pn) { await flush(); if (confirm('완료했어요. 참가자 ' + pn + '명에게 알림장을 쓸까요?\n(알림 관리가 열리고 받는 사람이 참가자로 골라져요)')) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = '/notice/admin.html?ev=' + encodeURIComponent(ev.id); } }
         return; }
-      if (b.id === 'evAdd') return addPeople(ev, list => { const have = new Set(ev.rows.map(r => r.name)); list.forEach(x => { if (!have.has(x.name)) ev.rows.push({ name: x.name, guest: x.guest, wait: x.wait, prods: (ev.products || []).map((_, k) => k), opts: {}, chk: {}, paid: false, given: false, van: false, memo: '' }); }); redraw(); queue(list.map(x => x.name).slice(0, 3).join(', ') + (list.length > 3 ? ' 외 ' + (list.length - 3) + '명' : '') + ' 추가'); });
+      if (b.id === 'evAdd') return addPeople(ev, list => { const have = new Set(ev.rows.map(r => r.name)); list.forEach(x => { if (have.has(x.name)) return; have.add(x.name); ev.rows.push({ name: x.name, guest: x.guest, wait: x.wait, prods: (ev.products || []).map((_, k) => k), opts: {}, chk: {}, paid: false, given: false, van: false, memo: '', ...(x.info || {}) }); }); redraw(); queue(list.map(x => x.name).slice(0, 3).join(', ') + (list.length > 3 ? ' 외 ' + (list.length - 3) + '명' : '') + ' 추가'); });
       if (b.id === 'evCo') { const v = ov.querySelector('#evC').value.trim(); if (!v || !ev.id) return; await flush(); const j = await api('/api/comment', { item: ev.id, text: v }); if (!j.ok) return toast(j.error); const l = S.comments.get(ev.id) || []; l.push({ id: j.id, item: ev.id, mid: S.me.id, text: v, at: j.at }); S.comments.set(ev.id, l); return redraw(); }
       const box = b.closest('.er'); if (!box) return; const r = ev.rows[box.dataset.i], a = b.dataset.a;
       if (a === 'rm') { if (!isBoss() && (r.app || r.paid)) return toast('학부모 앱 신청·결제한 사람은 관리자만 뺄 수 있어요. 관리자에게 말해 주세요'); if (!confirm(r.name + '을(를) 명단에서 뺄까요?' + (!goods && !r.guest && !r.wait && !r.appCancel && (r.app || ev.pub) ? '\n학부모 앱에도 \'도장에서 취소했어요\'로 바뀌고 보호자 휴대폰에 취소 알림이 가요.' : ''))) return; ev.rows.splice(box.dataset.i, 1); (ev._rm = ev._rm || []).push(r.name); redraw(); return queue(r.name + ' 빠짐'); }
@@ -1769,6 +1794,7 @@ function eventSheet(ev0) {
       if (a === 'chk') { r.chk = r.chk || {}; r.chk[b.dataset.c] = !r.chk[b.dataset.c]; redraw(); return queue(r.name + ' ' + b.dataset.c + (r.chk[b.dataset.c] ? ' ✓' : ' 해제')); }
       if (a === 'paid' || a === 'given' || a === 'van') { r[a] = !r[a]; redraw(); return queue(r.name + ' ' + { paid: '결제', given: '지급', van: '하원차' }[a] + (r[a] ? ' ✓' : ' 취소')); }
       if (a === 'unwait') { r.wait = false; redraw(); return queue(r.name + ' 참가로'); }
+      if (a === 'ginfo') return guestEdit(ev, r, () => { redraw(); queue(r.name + ' 비회원 정보'); });
     });
     ov.addEventListener('change', e => { const el = e.target, box = el.closest('.er'); if (!box) return; const r = ev.rows[box.dataset.i]; if (el.dataset.a === 'opt' || el.dataset.a === 'optt') { r.opts = r.opts || {}; r.opts[el.dataset.o] = el.value; queue(r.name + ' ' + el.dataset.o + ' ' + el.value); } if (el.dataset.a === 'memo') { r.memo = el.value; queue(r.name + ' 비고'); } });
     ov.addEventListener('keydown', e => { if (e.target.id === 'evC' && e.key === 'Enter' && !e.isComposing) ov.querySelector('#evCo').click(); });
@@ -1779,15 +1805,21 @@ function eventSheet(ev0) {
 function addPeople(ev, done) {
   const pick = new Set(); let wait = false;
   const ov2 = document.createElement('div'); ov2.className = 'ov'; ov2.style.zIndex = 60;
-  ov2.innerHTML = '<div class="sheet full"><div class="shead lt srch"><button class="tb" id="apX2">' + ic('back') + '</button><input class="inp" id="apQ" placeholder="이름 검색" autocomplete="off"><button class="save sbtn" id="apOk2">추가</button></div><p class="help">이름을 눌러 여러 명 고르세요. 이미 있는 사람은 흐리게 보여요.</p><div class="chips" id="apL" style="margin-top:10px"></div><label class="f">이름 직접 입력 (명단에 없으면 비회원, 쉼표로 여러 명)</label><input class="inp" id="apT"><label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="apW" style="width:20px;height:20px;accent-color:var(--brand)"> 대기자로 추가</label><div class="foot"><span class="sp"></span><button id="apX">취소</button><button class="save" id="apOk">추가</button></div></div>';
+  ov2.innerHTML = '<div class="sheet full"><div class="shead lt srch"><button class="tb" id="apX2">' + ic('back') + '</button><input class="inp" id="apQ" placeholder="이름 검색" autocomplete="off"><button class="save sbtn" id="apOk2">추가</button></div><p class="help">이름을 눌러 여러 명 고르세요. 이미 있는 사람은 흐리게 보여요.</p><div class="chips" id="apL" style="margin-top:10px"></div><label class="f">이름 직접 입력 (명단에 없으면 비회원, 쉼표로 여러 명)</label><input class="inp" id="apT"><div id="apPG"></div><label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="apW" style="width:20px;height:20px;accent-color:var(--brand)"> 대기자로 추가</label><div class="foot"><span class="sp"></span><button id="apX">취소</button><button class="save" id="apOk">추가</button></div></div>';
   document.body.appendChild(ov2);
   const g = id => ov2.querySelector('#' + id), have = new Set(ev.rows.map(r => r.name));
   const draw = () => { const qv = g('apQ').value.trim(); g('apL').innerHTML = S.roster.filter(n => !qv || n.includes(qv)).map(n => '<button data-n="' + esc(n) + '" class="' + (pick.has(n) ? 'on' : have.has(n) ? 'off' : '') + '">' + esc(n) + '</button>').join('') || '<span class="help">출석부 명단이 없어요. 아래에 직접 적어 주세요.</span>'; };
   loadRoster().then(draw); draw();
+  // 지난 행사에 왔던 비회원 불러오기 (학년·연락처 같이, 2026-11-15)
+  const PG = pastGuests(ev).filter(x => !have.has(x.name)), pg = new Map();
+  if (PG.length) { g('apPG').innerHTML = '<label class="f">지난 행사에 왔던 비회원 (누르면 연락처까지 같이 들어가요)</label><div class="chips" id="apG">' + PG.map((x, i) => '<button data-g="' + i + '">' + esc(x.name) + (x.gBy ? ' <small>' + esc(x.gBy) + ' 친구</small>' : '') + '</button>').join('') + '</div>';
+    g('apG').onclick = e => { const b = e.target.closest('[data-g]'); if (!b) return; const x = PG[b.dataset.g]; pg.has(x.name) ? pg.delete(x.name) : pg.set(x.name, x); b.classList.toggle('on', pg.has(x.name)); }; }
   g('apQ').oninput = draw;
   g('apL').onclick = e => { const b = e.target.closest('button'); if (!b || have.has(b.dataset.n)) return; pick.has(b.dataset.n) ? pick.delete(b.dataset.n) : pick.add(b.dataset.n); draw(); };
   g('apX').onclick = () => ov2.remove(); g('apX2').onclick = () => ov2.remove(); g('apOk2').onclick = () => g('apOk').click();
-  g('apOk').onclick = () => { wait = g('apW').checked; const typed = g('apT').value.split(/[,，\s]+/).map(x => x.trim()).filter(Boolean); const list = [...[...pick].map(n => ({ name: n, guest: false, wait })), ...typed.map(n => ({ name: n, guest: !S.roster.includes(n), wait }))]; ov2.remove(); if (list.length) done(list); };
+  g('apOk').onclick = () => { wait = g('apW').checked; const typed = g('apT').value.split(/[,，\n]+/).map(x => x.replace(/\s+/g, '')).filter(Boolean); // 쉼표로만 나눔 — '김 구름'이 두 사람이 되지 않게 (2026-11-15)
+    const seen = new Set(), list = [...[...pick].map(n => ({ name: n, guest: false, wait })), ...[...pg.values()].map(x => ({ name: x.name, guest: !S.roster.includes(x.name), wait, info: { gGrade: x.gGrade, gPh: x.gPh, gEm: x.gEm, gBy: x.gBy } })), ...typed.map(n => ({ name: n, guest: !S.roster.includes(n), wait }))].filter(x => !seen.has(x.name) && seen.add(x.name)); // 같은 이름 두 번 안 들어가게
+    ov2.remove(); if (list.length) done(list); };
 }
 // 구매표
 function buySheet(b0, isNew) {
