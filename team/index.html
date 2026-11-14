@@ -1904,15 +1904,35 @@ function kidSheet(id) {
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + clip('kPm' + s.id, L.map(x => pmRow(x, false)).join(''), '건') : ''; })() +
-    '<div id="kSib"></div><div id="kFam"></div><div id="kGoal"></div><div id="kDocs"></div><h3>바뀐 기록</h3>' + clip('kHist' + s.id, '<p class="help">불러오는 중…</p>', '개', '', 'kHist'), ov => {
+    '<div id="kSib"></div><div id="kFam"></div><div id="kGoal"></div><div id="kDocs"></div><h3>바뀐 기록</h3>' + clip('kHist' + s.id, '<p class="help">불러오는 중…</p>', '개', '', 'kHist') +
+    (isBoss() ? '<div style="margin:28px 0 8px;text-align:center"><button class="btn" id="kDel" style="color:#C62828;background:#FDECEC">🗑 원생 삭제 (관리자)</button><p class="help">그만둔 제자는 보통 퇴관으로 바꿔요. 잘못 넣은 원생·시험용만 지워 주세요.</p></div>' : ''), ov => {
     ov.classList.add('full');
     if (isBoss()) loadDocs().then(() => { const el = ov.querySelector('#kDocs'); const L = (S.docs || []).filter(d => d.sid === s.id); if (el && L.length) { el.innerHTML = '<h3>등록 서류</h3>' + L.map(docRow).join(''); el.onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); }; } });
     kidSiblings(ov.querySelector('#kSib'), s); kidFamily(ov.querySelector('#kFam'), s); if (s.status !== '퇴관') kidGoal(ov.querySelector('#kGoal'), s);
     ov.querySelector('#kSt').onclick = () => kidStatusSheet(s);
     ov.querySelector('#kTp').onclick = () => kidTempSheet(s);
     ov.querySelector('#kEd').onclick = () => kidEdit(s);
+    if (ov.querySelector('#kDel')) ov.querySelector('#kDel').onclick = () => kidDelete(s);
     api('/api/student-history', { sid: s.id }).then(j => { const el = ov.querySelector('#kHist'); if (el) el.innerHTML = j.ok && (j.items || []).length ? j.items.map(h => '<div class="kh">' + esc(h.text) + '<small>' + longTime(h.at) + (h.who ? ' · ' + esc(h.who) : '') + '</small></div>').join('') : '<p class="help">기록이 없어요</p>'; });
   });
+}
+// 🗑 원생 삭제 (2026-11-14 사용자 결정: 관리자만, 한쪽에서 지우면 다 같이) — 무엇이 지워지는지 먼저 보여 주고 한 번 더 묻기
+async function kidDelete(s) {
+  const j = await api('/api/student-delete', { sid: s.id, dry: true }); if (!j.ok) return toast(j.error || '불러오지 못했어요');
+  const a = j.att || {}, n = j.notice || {}, L = [];
+  L.push('· 출석부: 출결 ' + (a.att || 0) + '건, 미리 연락 온 결석 ' + (a.absences || 0) + '건, 바뀐 기록 ' + (a.history || 0) + '건');
+  if (j.same) L.push('· 같은 이름 원생이 또 있어서 학부모 앱·태블릿 쪽은 그대로 둬요');
+  else if (n.ok) {
+    L.push('· 태블릿 번호: ' + ((n.codes || []).join(', ') || '없음'));
+    if ((n.parentsGone || []).length) L.push('· 학부모 앱 가입 해제: ' + n.parentsGone.join(', '));
+    if ((n.parentsKeep || []).length) L.push('· 형제와 같이 가입한 보호자는 이 이름만 빠져요: ' + n.parentsKeep.join(', '));
+    if (n.invitesGone || n.invitesKeep) L.push('· 가족 초대번호: ' + (n.invitesGone || 0) + '개 지움' + (n.invitesKeep ? ', ' + n.invitesKeep + '개는 이름만 빠짐' : ''));
+    if (n.kcode) L.push('· 제자 모드 코드');
+  } else L.push('· 학부모 앱 쪽을 확인하지 못했어요 (' + (n.error || '연결 안 됨') + ')');
+  L.push('· 등원·픽업 기본 명단·시간, 제자 모드 목표 띠');
+  if (!confirm(s.name + ' 원생을 지울까요? 되돌릴 수 없어요.\n\n같이 지워지는 것:\n' + L.join('\n') + '\n\n장부 회원은 장부에서 따로 정리해 주세요.')) return;
+  const r = await api('/api/student-delete', { sid: s.id }); if (!r.ok) return toast(r.error || '지우지 못했어요');
+  S.kids = (S.kids || []).filter(x => x.id !== s.id); closeSheet(); render(); toast(s.name + ' 원생을 지웠어요');
 }
 // 제자 모드 '목표 띠' (2026-11-14, 의견 정리 4번): 기본 유치부 밤띠 · 초등부 이상 빨간띠 · 빨간띠 넘으면 4품. 밤띠 제도 전 제자처럼 기준이 안 맞으면 여기서 바꿈
 const GOAL_BELTS = ['노란띠', '초록띠', '보라띠', '파란띠', '주황띠', '분홍띠', '밤띠', '빨간띠', '1품', '2품', '3품', '4품', '5품', '6품'];
