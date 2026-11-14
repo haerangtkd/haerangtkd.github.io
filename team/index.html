@@ -2165,7 +2165,7 @@ function kidEdit(s0, pre, after) {
       if (!s.name) return toast('이름을 적어 주세요');
       if (s.no && s.no.length !== 4) return toast('출석번호는 4자리로 적어 주세요');
       const dup = (S.kids || []).find(x => x.name === s.name && (!s0 || x.id !== s0.id) && x.status !== '퇴관');
-      if (dup && !confirm('같은 이름(' + s.name + ')이 이미 있어요. 그래도 저장할까요?')) return;
+      if (dup) return toast('같은 이름(' + s.name + ') 제자가 이미 있어요. 이름 뒤에 구분 글자를 붙여 주세요 (예: ' + s.name + 'B)'); // 동명이인 막기 (2026-11-14) — 서버에서도 막음
       const h = [];
       if (!s0) h.push('원생 등록');
       else {
