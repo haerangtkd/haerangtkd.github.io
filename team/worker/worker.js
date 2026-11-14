@@ -997,6 +997,11 @@ async function route(path, req, env, ctx) {
     }
     return json(r);
   }
+  if (path === '/api/guest-trial') { // 행사 비회원 → 출석부 체험 수업으로 (2026-11-15 사용자 결정) — 직원 누구나
+    const r = await attSync(env, '/sync/trial-add', { name: str(b.name, 20), date: str(b.date, 10), phone: str(b.phone, 20), memo: str(b.memo, 300), who: me.name }); if (!r.ok) return json(r);
+    await addLog(env, me.id, 'kid', '🥋 ' + me.name + '님이 ' + str(b.name, 20) + '(행사 비회원)을 체험 수업으로 넘겼어요 · ' + str(b.date, 10), '');
+    return json(r);
+  }
   if (path === '/api/student-save' && !me.boss && b.student && b.student.status === '퇴관') { // 직원이 퇴관으로 바꾸면 관리자 승인 대기 (2026-11-13)
     const cur = ((await attSync(env, '/sync/students', {})).students || []).find(x => x.id === b.student.id);
     if (cur && cur.status !== '퇴관') {
@@ -1314,7 +1319,7 @@ async function openEvents(env, kids) {
     const yr = +(d.date || day).slice(0, 4), okKids = kids.filter(k => eligOk(d.elig, births[k], yr, grps, k)); if (!okKids.length) continue; // 신청 대상이 아닌 가정에는 안 보임 (2026-11-13)
     const w = evWindow(d, day); if (!w.open || (d.date && d.date < day)) continue;
     const staff = new Set((d.rows || []).map(x => x.name));
-    out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), prep: str(d.prep, 300), elig: okKids, eligText: eligText(d.elig, grps), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit,
+    out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), prep: str(d.prep, 300), elig: okKids, eligText: eligText(d.elig, grps), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit, friendsOk: !!d.friendsOk, gbase: d.gbase === '' || d.gbase == null ? null : +d.gbase || 0, // 같이 오는 친구 (2026-11-15)
       mine: kids.map(k => { const m0 = mine.find(x => x.ev === r.id && x.kid === k), m = m0 && m0.state === 'staff' && staff.has(k) ? null : m0; // 도장에서 뺐다가 다시 넣으면 다시 '도장에서 접수'
         return { kid: k, applied: !!(m && !m.cancel) || (!m && staff.has(k)), byStaff: !m && staff.has(k), cancel: !!(m && m.cancel), staffCx: !!(m && m.cancel && m.state === 'staff'), data: m ? J(m.data, {}) : null }; }) });
   }
@@ -1331,10 +1336,11 @@ async function esignSet(env, b, kids) {
   const x = b.data || {}, ps = d.products || [];
   const data = { prods: (Array.isArray(x.prods) ? x.prods : []).map(n => n | 0).filter(n => n >= 0 && n < ps.length), opts: {}, van: x.van === true ? true : x.van === false ? false : null, memo: str(x.memo, 100) };
   for (const o of (d.options || [])) { const v = str((x.opts || {})[o.n], 30); if (v && (!o.c.length || o.c.includes(v))) data.opts[o.n] = v; }
+  data.friends = d.friendsOk ? (Array.isArray(x.friends) ? x.friends : []).map(f => ({ name: str(f && f.name, 12).replace(/\s+/g, ''), grade: str(f && f.grade, 10).trim(), ph: str(f && f.ph, 20).trim() })).filter(f => f.name).slice(0, 3) : []; // 학부모 앱 '같이 오는 친구' (2026-11-15) — 신청표에 비회원으로
   const cancel = b.cancel ? 1 : 0, now = Date.now(), had = await one(env, 'SELECT cancel FROM esign WHERE ev = ? AND kid = ?', ev, kid);
   if (cancel && !had) return { ok: true };
   await run(env, "INSERT INTO esign (ev, kid, data, rel, cancel, state, at, upd) VALUES (?, ?, ?, ?, ?, '', ?, ?) ON CONFLICT(ev, kid) DO UPDATE SET data = excluded.data, rel = excluded.rel, cancel = excluded.cancel, state = '', upd = excluded.upd", ev, kid, JSON.stringify(data), str(b.rel, 10), cancel, now, now);
-  const what = kid + ' ' + (cancel ? '신청 취소' : had && !had.cancel ? '신청 내용 바꿈' : '신청') + ' (' + (str(b.rel, 10) || '학부모') + ')';
+  const what = kid + ' ' + (cancel ? '신청 취소' : had && !had.cancel ? '신청 내용 바꿈' : '신청') + ' (' + (str(b.rel, 10) || '학부모') + ')' + (!cancel && data.friends.length ? ' + 친구 ' + data.friends.map(f => f.name).join(', ') : '');
   await addLog(env, '', 'event', '🎟 ' + d.title + ': ' + what + ' · 학부모 앱', ev);
   await run(env, 'INSERT INTO pushq (text, at) VALUES (?, ?)', d.title + ' · ' + what, now);
   await bumpItem(env, ev); // 업무 앱이 새로 받아 가도록
