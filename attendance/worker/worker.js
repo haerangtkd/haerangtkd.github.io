@@ -122,6 +122,25 @@ async function route(path, req, env) {
       }
       return json({ ok: true, day, items: out });
     }
+    if (path === '/sync/month-stats') { // 📈 성장 측정지 출석 자동 (2026-11-14): 원생마다 달별 출석일·수련 대상일 — 출석부 '월별 기록'의 출석률과 같은 계산(화면 monthStats)
+      const months = (Array.isArray(b.months) ? b.months : []).filter(m => /^\d{4}-\d{2}$/.test(m)).slice(0, 6); if (!months.length) return json({ ok: true, students: [] });
+      const extra = new Set((Array.isArray(b.closed) ? b.closed : []).filter(isDay)), td = kstDay(), first = months[0] + '-01', last = months[months.length - 1] + '-31';
+      const [studs, att, abs, cl] = await Promise.all([all(env, 'SELECT id, data FROM students'), all(env, 'SELECT day, sid, r FROM att WHERE day >= ? AND day <= ?', first, last),
+        all(env, 'SELECT sid, date FROM absences WHERE date >= ? AND date <= ?', first, last), all(env, 'SELECT day FROM closed WHERE day >= ? AND day <= ?', first, last)]);
+      const closed = new Set([...cl.map(r => r.day), ...extra]), A = new Map(); att.forEach(r => A.set(r.sid + '|' + r.day, r.r)); const AB = new Set(abs.map(r => r.sid + '|' + r.date));
+      const W = ['일', '월', '화', '수', '목', '금', '토'], wdOf = d => W[new Date(d + 'T00:00:00Z').getUTCDay()];
+      const days = m => { const [y, mo] = m.split('-').map(Number), n = new Date(Date.UTC(y, mo, 0)).getUTCDate(); return Array.from({ length: n }, (_, i) => m + '-' + String(i + 1).padStart(2, '0')); };
+      const out = studs.map(r => ({ id: r.id, ...J(r.data, {}) })).filter(s => s.name).map(s => {
+        const lp = s.leavePeriods || [], onLeave = d => lp.some(p => (!p.start || p.start <= d) && (!p.end || d < p.end)) || (s.status === '휴원' && !lp.some(p => !p.end));
+        const daysOn = d => { const t = (s.temporarySchedules || []).find(t => t.start && t.start <= d && (!t.end || d <= t.end)); return t ? t.days || [] : (s.days || []); };
+        const sched = d => !closed.has(d) && s.status !== '퇴관' && (!s.joined || d >= s.joined) && !onLeave(d) && daysOn(d).includes(wdOf(d));
+        const m = {};
+        months.forEach(ym => { let o = 0, tot = 0; days(ym).forEach(d => { if (d > td) return; const r = A.get(s.id + '|' + d), k = r === 'o' ? 'o' : r === 'x' ? 'x' : (AB.has(s.id + '|' + d) && sched(d)) ? 'x' : closed.has(d) ? 'closed' : (s.status !== '퇴관' && onLeave(d) && (!s.joined || d >= s.joined)) ? 'leave' : 'u';
+          if (k === 'o') o++; if (k !== 'closed' && k !== 'leave' && (sched(d) || k === 'o')) tot++; }); m[ym] = { o, tot }; });
+        return { id: s.id, name: s.name, m };
+      });
+      return json({ ok: true, students: out, closed: [...closed].sort() });
+    }
     if (path === '/sync/closed') return json({ ok: true, closed: !!(await one(env, 'SELECT day FROM closed WHERE day = ?', isDay(b.day) ? b.day : kstDay())) });
     if (path === '/sync/dlpin-set') { // 업무 앱 이사범님이 정함
       const pin = String(b.pin || ''); if (!/^\d{4,8}$/.test(pin)) return json({ ok: false, error: '숫자 4~8자리로 정해 주세요' });

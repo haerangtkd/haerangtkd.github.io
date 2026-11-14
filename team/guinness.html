@@ -41,6 +41,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 a.btn{text-decoration:none;color:inherit}
 .btn.primary{background:var(--red);color:var(--red-ink);border-color:var(--red);font-weight:700}
 .btn.primary:hover{filter:brightness(1.07)}
+.draft{margin:8px 0;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--sunk);font-size:13px}.draft span{display:block;margin:4px 0 8px}.draft-b{display:flex;gap:6px}
 .btn:disabled{opacity:.5;cursor:default}
 .btn svg{width:16px;height:16px;flex:none}
 .btn.sm{min-height:34px;padding:0 10px;font-size:13px}
@@ -195,7 +196,7 @@ textarea{resize:vertical;line-height:1.65}
       <input class="sr" type="file" id="fRec" accept=".xlsx,.xls,.csv">
       <label class="btn" for="fCm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>한마디 파일 올리기</label>
       <input class="sr" type="file" id="fCm" accept=".xlsx,.xls,.csv,.txt">
-      <label class="btn" for="fAtt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 15l2 2 4-4"/></svg>출석 파일 올리기</label>
+      <label class="btn" for="fAtt" id="fAttBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 15l2 2 4-4"/></svg>출석 파일 올리기</label>
       <input class="sr" type="file" id="fAtt" accept=".xlsx,.xls,.csv">
       <button class="btn" id="bkOut" type="button">백업 내려받기</button>
       <label class="btn" for="fBk">백업 불러오기</label>
@@ -208,7 +209,7 @@ textarea{resize:vertical;line-height:1.65}
   <section class="settings" aria-label="공통 설정">
     <label class="field"><span>결과지 보내는 달</span><input type="month" id="sMonth"></label>
     <div class="field"><span>들어가는 기록</span><div class="qinfo" id="sQuarter"></div></div>
-    <label class="field"><span>휴무일 (출석 계산에서 빼요)</span><input type="text" id="sHol" placeholder="예: 9/24, 9/25"></label>
+    <label class="field" id="sHolF"><span>휴무일 (출석 계산에서 빼요)</span><input type="text" id="sHol" placeholder="예: 9/24, 9/25"></label>
     <div class="field"><span>끈기와 꾸준함 기준 (출석률 %)</span><div class="two" style="gap:6px"><label><span class="sr">아주 잘해요 기준</span><input type="number" id="sThHi" min="0" max="100" placeholder="아주 잘해요 90"></label><label><span class="sr">잘해요 기준</span><input type="number" id="sThMid" min="0" max="100" placeholder="잘해요 75"></label></div></div>
     <div class="field"><span>집중·자신감·배려 기준 (심사 평균 점수, 5점 만점)</span><div class="two" style="gap:6px"><label><span class="sr">아주 잘해요 기준</span><input type="number" id="sExHi" min="1" max="5" step="0.1" placeholder="아주 잘해요 4.5"></label><label><span class="sr">잘해요 기준</span><input type="number" id="sExMid" min="1" max="5" step="0.1" placeholder="잘해요 3.5"></label></div></div>
     <label class="field"><span>현재 선범단 인원</span><input type="number" id="sSbN" min="1" step="1" inputmode="numeric"></label>
@@ -222,6 +223,8 @@ textarea{resize:vertical;line-height:1.65}
       <div class="chips" id="chips"></div>
       <div class="stabs" id="stabs" role="group" aria-label="회원 상태"></div>
       <span class="grow"></span>
+      <button class="btn" id="cmDraftBtn" type="button">✍ 한마디 초안</button>
+      <button class="btn" id="growNoti" type="button">📣 성장 리포트 알림</button>
       <button class="btn" id="promoBtn" type="button" aria-pressed="false">승급심사 합격 처리</button>
       <label class="sr" for="scope">묶어서 저장할 범위</label>
       <select id="scope" class="scope">
@@ -511,6 +514,37 @@ function examAuto(k){
   const lv=a=>{ if(!a.length) return null; const v=a.reduce((x,z)=>x+z,0)/a.length; return {lv: v>=th.hi?'아주 잘해요': v>=th.mid?'잘해요':'성장 중이에요', avg:Math.round(v*10)/10}; };
   return {0:lv(S.poom), 2:lv(S.talk), 3:lv(S.manner), n};
 }
+/* 출석 자동 (2026-11-14): 그 달이 든 분기의 출석부 기록(그 달까지) — 출석부 휴관일 + 알림 관리 일정표 '휴관'은 빼고 셈. 출석 횟수 입력·출석 파일·휴무일 입력이 필요 없어짐 */
+let ATTQ=null;
+async function loadAttQ(){
+  try{ const pk=periodKey(), j=await tcall('/api/att-quarter',{month:settings.month||todayISO().slice(0,7)}); if(pk!==periodKey()) return;
+    ATTQ={pk, months:j.months, closed:j.closed, schedOk:j.schedOk, by:Object.fromEntries(j.kids.map(x=>[x.id,x]))}; let ch=0;
+    DATA.students.forEach(k=>{ const a=k.sid&&ATTQ.by[k.sid]; if(!a) return; const ms=ATTQ.months.map(m=>a.m[m]||{o:0,tot:0}), an=ms.reduce((s,x)=>s+x.o,0), at=ms.reduce((s,x)=>s+x.tot,0); if(!at) return;
+      const i=peek(k)||(an? inp(k) : null); if(!i) return; const nr=Math.round(Math.min(an,at)/at*100);
+      if(i.an!==Math.min(an,at)||i.at!==at||i.attSrc!=='출석부'){ i.an=Math.min(an,at); i.at=at; i.rate=nr; i.attSrc='출석부'; i.attm=Object.fromEntries(ATTQ.months.map((m,n)=>[m,{an:ms[n].o,at:ms[n].tot}])); ch++; } });
+    if(ch) save(); attUi(); renderList(); if(view==='detail'){renderEditor();renderPreview();}
+  }catch(e){ ATTQ=null; attUi(); }
+}
+function attUi(){ const on=!!ATTQ; const b=$('fAttBtn'), h=$('sHolF'); if(b) b.hidden=on; if(h) h.hidden=on; }
+/* 사범님 한마디 초안 (2026-11-14): 기록·심사·출석을 보고 문장 묶음에서 고름(전에 그 제자에게 쓴 문장은 빼고) → 사범님은 고칠 제자만 고치고 '이대로 쓰기' */
+function cmCat(k){
+  const i=peek(k)||{}, ev=curEv(), st=ev? stats(k,ev) : null, ea=effAtt(i,k), g=String(k.grade||'');
+  if(!st && (/유치|초1|초2/.test(g))) return '첫 참여·저학년';
+  if(ea[1]==='성장 중이에요') return '출석';
+  if(ea[0]==='성장 중이에요'||ea[2]==='성장 중이에요') return '집중·자신감 필요';
+  if(st && st.ms.length===1) return '첫 참여·저학년';
+  if(st && st.d>0) return ea.filter(x=>x==='아주 잘해요').length>=2? '기록 우수' : '기록 성장';
+  if(ea.filter(x=>x==='아주 잘해요').length>=3) return '기록 우수';
+  if(st && st.ms.length>1 && st.d<=0) return '기록 아쉬움';
+  return '태도·예절';
+}
+function cmPick(k, skip){
+  const used=usedBefore(k), cat=cmCat(k), pool=comments.filter(c=>c.cat===cat), all=pool.length? pool : comments;
+  let L=all.filter(c=>!used[c.text] && c.text!==skip); if(!L.length) L=all.filter(c=>c.text!==skip); if(!L.length) return null;
+  const taken=new Set(DATA.students.filter(o=>o!==k).map(o=>(peek(o)||{}).cmDraft||(peek(o)||{}).cm).filter(Boolean));
+  const fresh=L.filter(c=>!taken.has(c.text)); const P=fresh.length? fresh : L; let h=0; for(const ch of k.name+(skip||'')) h=(h*31+ch.charCodeAt(0))>>>0;
+  return {text:P[h%P.length].text, cat};
+}
 function effAtt(i,k){ const a=[...((i&&i.att)||[null,null,null,null])]; const au=attAuto(i); if(au) a[1]=au; const ex=examAuto(k); [0,2,3].forEach(j=>{ if(ex[j]) a[j]=ex[j].lv; }); return a; }
 function isDone(k){const i=peek(k); return !!(i && effAtt(i,k).every(Boolean) && i.cm.trim());}
 const better = (ev,a,b) => ev.lower? a<b : a>b;
@@ -777,6 +811,23 @@ function renderPromo(){
   $('promoCount').textContent=`${picked.size}명 선택`;
   $('promoGo').disabled=!picked.size; $('promoSet').disabled=!picked.size; $('promoUndo').hidden=!undo;
 }
+$('cmDraftBtn').onclick=()=>{
+  const L=visible().filter(k=>!String((peek(k)||{}).cm||'').trim()); if(!L.length) return toast('한마디가 비어 있는 친구가 없어요');
+  if(!confirm(`지금 목록에서 한마디가 비어 있는 ${L.length}명에게 초안을 만들까요?\n기록·심사·출석을 보고 문장 묶음에서 골라요(전에 쓴 문장은 빼고).`)) return;
+  let n=0; L.forEach(k=>{ const p=cmPick(k); if(p){ inp(k).cmDraft=p.text; n++; } });
+  if(n && confirm(`${n}명 초안을 만들었어요.\n\n[확인] 초안을 모두 그대로 한마디로 쓰기\n[취소] 한 명씩 보고 '이대로 쓰기' 누르기`)){ L.forEach(k=>{ const i=peek(k); if(i&&i.cmDraft){ i.cm=i.cmDraft; delete i.cmDraft; } }); toast(`${n}명 한마디를 넣었어요 · 고칠 친구만 고쳐 주세요`); }
+  else if(n) toast(`${n}명 초안을 만들었어요 · 친구를 눌러 확인해 주세요`);
+  save(); renderList(); if(view==='detail'){renderEditor();renderPreview();}
+};
+$('growNoti').onclick=async()=>{
+  const names=DATA.students.filter(k=>statusOf(k)==='재원' && isDone(k)).map(k=>k.name);
+  if(!names.length) return toast('결과지를 다 마친 친구가 없어요 (5가지 평가 + 한마디)');
+  let sent=null; try{ sent=(await tcall('/api/grow-notified',{period:periodKey()})).sent; }catch(e){}
+  if(!confirm(`${reportMonth().m}월 결과지를 마친 ${names.length}명의 보호자에게\n'📈 성장 리포트가 도착했어요' 알림을 보낼까요?\n학부모 앱 성장 리포트에서 바로 보여요.`+(sent? `\n\n※ ${new Date(sent.at).toLocaleDateString('ko-KR')} ${sent.by}님이 이미 ${sent.n}명에게 보냈어요.` : ''))) return;
+  toast('학부모님께 알림 보내는 중…'); let off=0, n=0;
+  try{ for(let t=0;t<60;t++){ const r=await tcall('/api/grow-notify',{period:periodKey(), names, offset:off}); n+=r.sent||0; if(!r.next) break; off=r.next; } toast(`알림을 보냈어요 · ${n}명`); }
+  catch(e){ toast(e.message||'알림을 다 보내지 못했어요'); }
+};
 $('promoBtn').onclick=()=>{promo=!promo; if(!promo) picked.clear(); renderPromo(); renderGrid(visible());};
 $('promoEnd').onclick=()=>{promo=false; picked.clear(); renderPromo(); renderGrid(visible());};
 $('promoAll').onclick=()=>{visible().forEach(k=>picked.add(kidId(k))); renderPromo(); renderGrid(visible());};
@@ -823,10 +874,10 @@ function renderEditor(){
     <label class="field"><span>띠</span><select id="eBelt"><option value="">선택 안 함</option>${beltOptions(k).map(b=>`<option ${b===beltOf(k)?'selected':''}>${b}</option>`).join('')}</select></label>
     <label class="field"><span>회원 상태${attStatusOf(k)?' · 출석부 기준':''}</span><select id="eSt" ${attStatusOf(k)?'disabled title="회원 상태는 출석부 원생 관리에서 바꿔요"':''}>${STATUSES.map(s=>`<option ${s===statusOf(k)?'selected':''}>${s}</option>`).join('')}</select></label>
   </div>
-  <div class="two">
+  ${i.attSrc==='출석부'&&ATTQ? `<div class="meta">출석 ${i.an} / ${i.at}회 · 출석부에서 자동 (${ATTQ.months.map(m=>+m.slice(5)+'월').join('·')}, 휴관일 빼고)</div>` : `<div class="two">
     <label class="field"><span>출석 (회)</span><input type="number" id="eAn" min="0" step="1" inputmode="numeric" value="${i.an!=null?esc(i.an):''}" placeholder="예: 20"></label>
     <label class="field"><span>전체 수업 (회)</span><input type="number" id="eAt" min="0" step="1" inputmode="numeric" value="${i.at!=null?esc(i.at):''}" placeholder="예: 22"></label>
-  </div>
+  </div>`}
   ${i.rate!=null&&(i.an==null||i.an==='')?`<div class="meta">출석 파일에서 받은 출석률 ${fmt(+i.rate)}%가 들어가요. 횟수를 적으면 횟수로 바뀌어요.</div>`:''}
   <label class="check sbcheck"><input type="checkbox" id="eSB" ${sb?'checked':''}> 선범단이에요</label>
 
@@ -840,6 +891,7 @@ function renderEditor(){
   </div>
   <div class="sec"><h3><label for="eCm">사범님 한마디</label><em>ㅇㅇ 자리에 ${esc(callName(k.name))} 들어가요</em></h3>
     <textarea id="eCm" rows="4" placeholder="아래에서 고르거나 직접 써주세요">${esc(i.cm)}</textarea>
+    ${!String(i.cm||'').trim()&&i.cmDraft? `<div class="draft"><b>✍ 초안</b> <span>${esc(fillName(i.cmDraft,k.name))}</span><div class="draft-b"><button class="btn sm primary" type="button" id="cmUse">이대로 쓰기</button><button class="btn sm" type="button" id="cmAgain">다른 문장</button></div></div>` : ''}
     <div class="bank">
       <div class="bank-head">
         <label class="sr" for="bq">한마디 검색</label><input class="search" id="bq" type="search" placeholder="한마디 검색" value="${esc(bankQ)}">
@@ -855,12 +907,14 @@ function renderEditor(){
   const num = v => v===''? null : Math.max(0,+v);
   $('eBelt').onchange=e=>{setBelt(k,e.target.value);changed(true);};
   $('eSt').onchange=e=>{settings.status=settings.status||{}; if(e.target.value===String(k.status||'재원')) delete settings.status[kidId(k)]; else settings.status[kidId(k)]=e.target.value; save(); renderList(); renderEditor(); renderPreview(); toast(`${k.name} · ${e.target.value}(으)로 바꿨어요`);};
-  $('eAn').oninput=e=>{i.an=num(e.target.value);changed(true);};
-  $('eAt').oninput=e=>{i.at=num(e.target.value);changed(true);};
+  if($('eAn')) $('eAn').oninput=e=>{i.an=num(e.target.value);changed(true);};
+  if($('eAt')) $('eAt').oninput=e=>{i.at=num(e.target.value);changed(true);};
   if($('ePct')) $('ePct').oninput=e=>{i.beltPct=e.target.value===''?null:Math.min(100,num(e.target.value));changed();};
   $('eSB').onchange=e=>{setSB(k,e.target.checked);save();renderList();renderEditor();renderPreview();};
   ATT.forEach((a,j)=>ed.querySelectorAll(`input[name="att${j}"]`).forEach(r=>r.onchange=()=>{i.att[j]=r.value;changed(true);}));
   $('eCm').oninput=e=>{i.cm=e.target.value;changed(true);};
+  if($('cmUse')) $('cmUse').onclick=()=>{ i.cm=i.cmDraft; delete i.cmDraft; changed(true); renderEditor(); };
+  if($('cmAgain')) $('cmAgain').onclick=()=>{ const p=cmPick(k,i.cmDraft); if(p){ i.cmDraft=p.text; changed(true); renderEditor(); } };
   $('bq').oninput=e=>{bankQ=e.target.value;renderBank();};
   if($('bc')) $('bc').onclick=e=>{const b=e.target.closest('.chip'); if(!b) return; bankCat=b.dataset.c; $('bc').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderBank();};
 }
@@ -898,7 +952,7 @@ function renderSettings(){
   $('sQuarter').textContent = `${m<=3?y-1:y}년 ${qLabel(ev)} ${ev.name}`;
   $('srcLine').textContent = `${DATA.file} · ${DATA.students.length}명`;
 }
-$('sMonth').onchange=e=>{ if(!e.target.value) return; const was=periodKey(); settings.month=e.target.value; save(); renderSettings(); renderList(); if(view==='detail'){renderEditor();renderPreview();} if(periodKey()!==was) toast(`${reportMonth().m}월 결과지 입력으로 바뀌었어요 · ${qLabel(curEv())} 기록`);};
+$('sMonth').onchange=e=>{ if(!e.target.value) return; const was=periodKey(); settings.month=e.target.value; ATTQ=null; attUi(); setTimeout(loadAttQ,0); save(); renderSettings(); renderList(); if(view==='detail'){renderEditor();renderPreview();} if(periodKey()!==was) toast(`${reportMonth().m}월 결과지 입력으로 바뀌었어요 · ${qLabel(curEv())} 기록`);};
 ['sExHi','sExMid'].forEach((id,n)=>$(id).oninput=e=>{settings.examTh=Object.assign({hi:4.5,mid:3.5},settings.examTh||{}); settings.examTh[n?'mid':'hi']=e.target.value===''?(n?3.5:4.5):+e.target.value; changed(true); if(view==='detail') renderEditor();});
 ['sThHi','sThMid'].forEach((id,n)=>$(id).oninput=e=>{settings.attTh=Object.assign({hi:90,mid:75},settings.attTh||{}); settings.attTh[n?'mid':'hi']=e.target.value===''?(n?75:90):+e.target.value; changed(true); if(view==='detail') renderEditor();});
 $('sHol').oninput=e=>{settings.holidays=e.target.value;save();};
@@ -1147,7 +1201,7 @@ $('fBk').onchange=async e=>{
     toast('불러왔어요. 다시 여는 중이에요'); setTimeout(()=>location.reload(),900);
   }catch(err){ setSync(''); toast('불러오지 못했어요. '+(err.message||'')); }
 };
-load(); renderAll(); dbInit().then(()=>{ if(db){ loadAttStatus(); loadExam(); } });
+load(); renderAll(); dbInit().then(()=>{ if(db){ loadAttStatus(); loadExam(); loadAttQ(); } });
 </script>
 
 </body></html>

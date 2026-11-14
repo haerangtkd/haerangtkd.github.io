@@ -427,6 +427,22 @@ async function route(path, req, env, ctx) {
     await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', gp, d, Date.now(), me.id);
     return json({ ok: true });
   }
+  if (path === '/api/att-quarter') { // 📈 성장: 그 달이 든 분기의 출석(그 달까지) — 출석부 휴관일 + 알림 관리 일정표 '휴관'은 빼고 셈 (2026-11-14: 출석 횟수·출석 파일·휴무일 입력 없앰)
+    const month = str(b.month, 7); if (!/^\d{4}-\d{2}$/.test(month)) return json({ ok: false, error: '잘못된 달이에요' });
+    const y = +month.slice(0, 4), q0 = Math.floor((+month.slice(5) - 1) / 3) * 3 + 1, months = []; for (let m = q0; m <= +month.slice(5); m++) months.push(y + '-' + String(m).padStart(2, '0'));
+    const from = months[0] + '-01', to = months[months.length - 1] + '-31', sc = await noticeSync(env, '/sync/schedule', { from, to }), closed = [];
+    (sc.ok ? sc.items : []).filter(x => x.kind === '휴관').forEach(x => { let d = x.date; const e = x.end && x.end > d ? x.end : d; for (let n = 0; d <= e && n < 62; n++) { if (d >= from && d <= to) closed.push(d); d = new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10); } });
+    const r = await attSync(env, '/sync/month-stats', { months, closed }); if (!r.ok) return json({ ok: false, error: r.error || '출석부를 불러오지 못했어요' });
+    return json({ ok: true, months, closed: r.closed || [], schedOk: !!sc.ok, kids: r.students.map(x => ({ id: x.id, name: x.name, m: x.m })) });
+  }
+  if (path === '/api/grow-notify') { // 📈 성장: 결과지를 마친 제자의 보호자에게 '3개월 성장 리포트가 도착했어요' (6명씩, 화면이 next 로 이어서 부름)
+    const pk = str(b.period, 10), names = (Array.isArray(b.names) ? b.names : []).map(x => str(x, 20)).filter(Boolean).slice(0, 200);
+    if (!/^P\d{4}-\d{2}$/.test(pk) || !names.length) return json({ ok: false, error: '보낼 제자가 없어요' });
+    const r = await noticeSync(env, '/sync/broadcast', { title: '📈 ' + (+pk.slice(6)) + '월 성장 리포트가 도착했어요', body: '성장 측정 기록과 사범님 한마디를 학부모 앱 성장 리포트에서 볼 수 있어요', children: names, offset: b.offset | 0, view: 'grow', kind: '성장' });
+    if (r.ok && !r.next) { await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'grownotify:' + pk, JSON.stringify({ at: Date.now(), by: me.name, n: names.length })); await addLog(env, me.id, 'grow', pk.slice(6).replace(/^0/, '') + '월 성장 리포트 알림을 보냈어요 · ' + names.length + '명', pk).catch(() => {}); }
+    return json(r);
+  }
+  if (path === '/api/grow-notified') { const v = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'grownotify:' + str(b.period, 10)) || {}).v, null); return json({ ok: true, sent: v }); }
   if (path === '/api/exam-closed') { // 📈 성장 화면: 마감한 심사 점수 (02·04·05 자동 채우기용, 점수만)
     const ex = await examClosed(env), out = {}; Object.keys(ex).forEach(m => { out[m] = ex[m].rows.map(r => ({ sid: r.sid, name: r.name, sc: r.d.sc || {}, absent: !!r.d.absent })); });
     return json({ ok: true, ex: out });
