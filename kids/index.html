@@ -119,16 +119,27 @@
   .exr{background:#FFF7E6;border-radius:14px;padding:10px 12px;font-weight:800;font-size:15px}
   .tag{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11.5px;font-weight:900;margin-right:4px;vertical-align:1px}.tag.w{background:#E5F0FF;color:#1D63B0}.tag.s{background:#E4F4ED;color:#2F6B55}.tag.g{background:#FFF0C2;color:#8A5B00}
   /* 선범단 카드 */
-  .sbc{perspective:1000px;margin-top:6px}.sbc .in{position:relative;height:220px;transition:transform .6s;transform-style:preserve-3d;cursor:pointer}.sbc.flip .in{transform:rotateY(180deg)}
-  .sbc .f,.sbc .b{position:absolute;inset:0;border-radius:22px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:16px 18px;color:#fff;background:linear-gradient(135deg,#7A0B10,#A40F16 55%,#C8102E);box-shadow:0 8px 20px rgba(164,15,22,.25);overflow:hidden}
-  .sbc.warn .f,.sbc.warn .b{background:linear-gradient(135deg,#C99A00,#F2B705 60%,#FFD54A);color:#3A2A00}
+  /* 선범단 카드 (2026-11-15 사용자 요청: 품 증서 카드처럼 — 빨간 표지 + 흰 신분 카드 + 아래 남색 띠) */
+  .sbc{margin-top:6px;border-radius:18px;padding:18px 16px 0;background:repeating-conic-gradient(from 0deg at 50% 18%,#B3121B 0 6deg,#A40F16 6deg 12deg);box-shadow:0 10px 24px rgba(120,10,16,.3),inset 0 0 0 3px #D9B45A,inset 0 0 0 6px #A40F16,inset 0 0 0 7px #E9CF86;overflow:hidden;user-select:none;-webkit-user-select:none}
+  .sbc.warn{background:repeating-conic-gradient(from 0deg at 50% 18%,#E0A800 0 6deg,#F2B705 6deg 12deg)}
+  .sbc .in{position:relative;height:214px;perspective:1000px;cursor:pointer}
+  .sbc .fl{position:absolute;inset:0;transition:transform .6s;transform-style:preserve-3d}.sbc.flip .fl{transform:rotateY(180deg)}
+  .sbc .f,.sbc .b{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:10px 12px;color:#1C1A19;background:#FBFAF7 radial-gradient(circle at 30% 60%,rgba(164,15,22,.05) 0 40%,transparent 41%);box-shadow:0 0 0 4px #C9A24B,0 0 0 6px #1C2A4A,0 6px 14px rgba(0,0,0,.35);overflow:hidden;font-family:'Pretendard Variable',sans-serif}
   .sbc .b{transform:rotateY(180deg)}
-  .sbc .f:before{content:'⭐';position:absolute;right:14px;bottom:-14px;font-size:120px;opacity:.12}
-  .sbc .t{font-size:12px;font-weight:900;letter-spacing:2px;opacity:.85}.sbc h3{margin:2px 0 0;font-size:20px}
-  .sbc .ph{position:absolute;left:18px;top:62px;width:96px;height:120px;border-radius:12px;background:rgba(255,255,255,.18) center/cover;display:grid;place-items:center;font-size:44px;pointer-events:none;user-select:none;-webkit-user-select:none}
-  .sbc .dt{position:absolute;left:130px;top:66px;right:14px;font-size:14px;line-height:1.75}.sbc .dt b{font-size:22px;display:block;line-height:1.2}
-  .sbc .wn{position:absolute;right:14px;top:14px;background:#3A2A00;color:#FFD54A;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:900}
-  .sbc .b p{white-space:pre-wrap;line-height:1.7;font-size:15px;margin:8px 0 0}
+  .sbc .no{font-size:11px;font-weight:800;letter-spacing:.5px}
+  .sbc .rb{position:absolute;right:12px;top:8px;background:#1F3B8C;color:#fff;font-weight:900;font-size:18px;padding:3px 14px 3px;clip-path:polygon(0 0,100% 0,92% 50%,100% 100%,0 100%,8% 50%);font-family:serif;letter-spacing:2px}
+  .sbc .nm{margin-top:5px;font-size:16px;font-weight:900;white-space:nowrap}.sbc .nm i{font-style:normal;font-weight:600;font-size:12.5px;letter-spacing:.5px;margin-left:6px}
+  .sbc .ln{font-size:10.5px;line-height:1.5;font-weight:600;color:#33302D}
+  .sbc .ct{font-size:11.5px;font-weight:900;margin-top:3px}.sbc .en{font-size:8.5px;line-height:1.3;color:#6E6862;font-style:italic;margin-top:1px;max-width:200px}
+  .sbc .cdd{position:absolute;left:12px;bottom:40px;font-size:11.5px;font-weight:800}
+  .sbc .csg{position:absolute;left:12px;bottom:9px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:6px}
+  .sbc .cseal{width:30px;height:30px;border:2px solid #C8102E;border-radius:4px;color:#C8102E;font:900 9.5px/1.05 serif;display:grid;place-items:center;text-align:center;transform:rotate(-6deg);opacity:.9}
+  .sbc .ph{position:absolute;right:12px;top:42px;width:78px;height:100px;border-radius:4px;background:#E9E4DD center/cover;display:grid;place-items:center;font-size:38px;pointer-events:none}
+  .sbc .rbw{position:absolute;right:12px;top:145px;width:78px;height:4px;background:linear-gradient(90deg,#E4342B,#F2A93B,#F6D32D,#3BA55C,#2F6FDB,#7E4BC4)}
+  .sbc .wn{position:absolute;right:12px;bottom:10px;background:#3A2A00;color:#FFD54A;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:900}
+  .sbc .b h4{margin:2px 0 0;font-size:15px}.sbc .b p{white-space:pre-wrap;line-height:1.7;font-size:14px;margin:8px 0 0}
+  .sbc .band{margin:18px -16px 0;padding:10px 0 12px;background:#14214A;border-top:3px solid #D9B45A;text-align:center;color:#E9CF86;font-weight:900;letter-spacing:2px;font-size:15px}.sbc .band small{display:block;font-size:9.5px;letter-spacing:3px;opacity:.85;font-weight:700}
+  .sbc.warn .band{background:#3A2A00}
   .flipn{text-align:center;color:var(--muted);font-size:12.5px;margin-top:6px}
   .stp{display:flex;flex-wrap:wrap;gap:5px}.st{width:30px;height:30px;border-radius:50%;border:2px dashed #D9B9B9;display:flex;align-items:center;justify-content:center;font-size:16px}.st.on{border:2px solid #C0392B;background:#FFEDEA;transform:rotate(-8deg)}
   .stl{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed var(--line)}.stl:first-of-type{border-top:0}.stl b{flex:none;width:64px;font-size:14.5px}.stl.me b{color:var(--brand)}
@@ -200,6 +211,11 @@
     return { cur, goal, total: path.length - 1, at, left: path.length - 1 - at };
   }
   // ── 로그인 ──
+  // 이름 로마자 (선범단 카드, 국어의 로마자 표기법 + 흔한 성씨 표기)
+  const SURN = { 김: 'KIM', 이: 'LEE', 박: 'PARK', 최: 'CHOI', 정: 'JUNG', 강: 'KANG', 조: 'CHO', 윤: 'YOON', 장: 'JANG', 임: 'LIM', 한: 'HAN', 오: 'OH', 서: 'SEO', 신: 'SHIN', 권: 'KWON', 황: 'HWANG', 안: 'AHN', 송: 'SONG', 류: 'RYU', 유: 'YOO', 전: 'JEON', 홍: 'HONG', 고: 'KO', 문: 'MOON', 양: 'YANG', 손: 'SON', 배: 'BAE', 백: 'BAEK', 허: 'HEO', 남: 'NAM', 심: 'SHIM', 노: 'NOH', 하: 'HA', 곽: 'KWAK', 성: 'SUNG', 차: 'CHA', 주: 'JOO', 우: 'WOO', 구: 'KOO', 민: 'MIN', 진: 'JIN', 나: 'NA', 지: 'JI', 엄: 'EOM', 채: 'CHAE', 원: 'WON', 천: 'CHEON', 방: 'BANG', 공: 'KONG', 현: 'HYUN', 변: 'BYUN', 염: 'YEOM', 여: 'YEO', 추: 'CHOO', 도: 'DO', 석: 'SEOK', 선: 'SUN', 설: 'SEOL', 마: 'MA', 길: 'GIL', 연: 'YEON', 표: 'PYO', 명: 'MYUNG', 기: 'KI', 금: 'KEUM', 옥: 'OK', 육: 'YUK', 인: 'IN', 맹: 'MAENG', 제: 'JE', 탁: 'TAK', 국: 'KOOK', 은: 'EUN', 용: 'YONG', 예: 'YE', 경: 'KYUNG', 봉: 'BONG', 함: 'HAM', 남궁: 'NAMGOONG', 황보: 'HWANGBO', 선우: 'SUNWOO', 제갈: 'JEGAL', 독고: 'DOKGO' };
+  const RI = ['g', 'kk', 'n', 'd', 'tt', 'r', 'm', 'b', 'pp', 's', 'ss', '', 'j', 'jj', 'ch', 'k', 't', 'p', 'h'], RM = ['a', 'ae', 'ya', 'yae', 'eo', 'e', 'yeo', 'ye', 'o', 'wa', 'wae', 'oe', 'yo', 'u', 'wo', 'we', 'wi', 'yu', 'eu', 'ui', 'i'], RF = ['', 'k', 'k', 'k', 'n', 'n', 'n', 't', 'l', 'k', 'm', 'l', 'l', 'l', 'p', 'l', 'm', 'p', 'p', 't', 't', 'ng', 't', 't', 'k', 't', 'p', 't'];
+  const romSyl = ch => { const c = ch.charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return ch; return RI[Math.floor(c / 588)] + RM[Math.floor(c % 588 / 28)] + RF[c % 28]; };
+  function romName(n) { n = String(n || '').replace(/\s/g, ''); if (!/^[가-힣]+$/.test(n)) return ''; const two = n.length >= 4 && SURN[n.slice(0, 2)] ? 2 : 1, sn = n.slice(0, two); return [(SURN[sn] || [...sn].map(romSyl).join('')).toUpperCase(), ...[...n.slice(two)].map(x => romSyl(x).toUpperCase())].join(' '); }
   // ── 앱 설치 · 알림 (2026-11-15) ──
   const ua = navigator.userAgent, isIOS = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1), standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -342,9 +358,16 @@
     const me = D.name, c = D.sbCard, sun = D.sun || [], mon = +D.today.slice(5, 7), sm = (D.prep || {}).sunMe || null, warn = Math.max((c && c.warn) || 0, sm && sm.warn || 0);
     let h = '<div class="hi"><span class="av" style="background:var(--gold)">⭐</span><div><b>선범단</b><small>다른 친구에게 모범이 되고 도와주는 제자</small></div></div>';
     if (D.sb && c) {
-      h += '<div class="sbc' + (warn ? ' warn' : '') + '" id="sbc"><div class="in"><div class="f"><div class="t">HAERANG KYUNGHEE</div><h3>⭐ 해랑경희 선범단</h3>' + (warn ? '<span class="wn">⚠ 경고 ' + warn + '</span>' : '') +
-        '<div class="ph"' + (c.photo ? ' style="background-image:url(' + c.photo + ')"' : '') + '>' + (c.photo ? '' : esc(profAv().e)) + '</div><div class="dt"><b>' + esc(me) + '</b>' + (c.no ? '선범단 No. ' + esc(c.no) + '<br>' : '') + (c.date ? '임명 ' + esc(c.date.replace(/-/g, '.')) + '<br>' : '') + esc(D.belt || '') + '</div></div>' +
-        '<div class="b"><div class="t">MY PROMISE</div><h3>선범단 다짐</h3><p>' + esc(c.pledge || '나는 도장의 모범이 되고, 친구를 도와주며, 배운 것을 나누겠습니다.') + '</p></div></div></div><div class="flipn">카드를 누르면 뒤집혀요 · 나만 보는 카드예요</div>';
+      const dt = c.date ? c.date.replace(/-/g, '.') : '', dk = c.date ? (+c.date.slice(0, 4)) + '년 ' + (+c.date.slice(5, 7)) + '월 ' + (+c.date.slice(8, 10)) + '일' : '';
+      h += '<div class="sbc' + (warn ? ' warn' : '') + '" id="sbc"><div class="in"><div class="fl"><div class="f">' +
+        '<div class="no">No_' + esc(c.no || '-') + '</div><div class="rb">先範</div>' +
+        '<div class="nm">' + esc(me) + '<i>' + esc(romName(me)) + '</i></div>' +
+        '<div class="ln">' + (dt ? '임명일(Date of Appointment)_' + esc(dt) + '<br>' : '') + '해랑경희 태권도장' + (D.belt ? ' · ' + esc(D.belt) : '') + '</div>' +
+        '<div class="ct">위 사람은 해랑경희 선범단원임을 증명함.</div><div class="en">This is to certify that the above named person is a member of the Haerang Kyunghee Seonbeomdan.</div>' +
+        (dk ? '<div class="cdd">' + dk + '</div>' : '') + '<div class="csg">해랑경희 태권도장<span class="cseal">해랑<br>경희</span></div>' +
+        '<div class="ph"' + (c.photo ? ' style="background-image:url(' + c.photo + ')"' : '') + '>' + (c.photo ? '' : esc(profAv().e)) + '</div><div class="rbw"></div>' + (warn ? '<span class="wn">⚠ 경고 ' + warn + '</span>' : '') + '</div>' +
+        '<div class="b"><div class="no">MY PROMISE</div><h4>⭐ 선범단 다짐</h4><p>' + esc(c.pledge || '나는 도장의 모범이 되고, 친구를 도와주며, 배운 것을 나누겠습니다.') + '</p></div></div></div>' +
+        '<div class="band">HAERANG KYUNGHEE<small>先 範 團 · SEONBEOMDAN</small></div></div><div class="flipn">카드를 누르면 뒤집혀요 · 나만 보는 카드예요</div>';
       const sbHw = (D.hw || []).filter(x => x.sb && (x.kids || []).includes(me));
       if (sbHw.length) h += '<section class="card"><h2>⭐ 선범단 미션</h2>' + sbHw.map(x => '<div class="hw"><div class="t"><b>' + esc(x.title) + '</b><small>' + esc(x.body || '') + '</small></div></div>').join('') + '<p class="sub">체크는 🏠 나의 수련 → 미션에서 해요</p></section>';
     } else h += '<section class="card"><h2>💪 선범단이 되려면</h2><p class="sub" style="font-size:15px;margin:0">실력보다 <b>다른 친구에게 모범이 되고, 가르쳐 주는 제자</b>가 뽑혀요. 동생을 도와주고, 인사를 잘하고, 수련을 성실하게 하면 사범님이 지켜보고 있어요 👀</p></section>';
