@@ -100,6 +100,7 @@
   .docs button small{display:block;font-size:14px;color:var(--muted);font-weight:500;margin-top:4px}
   .viewer{position:fixed;inset:0;background:#1C1A19;display:flex;align-items:center;justify-content:center;z-index:30;padding-right:96px}
   .viewer img{max-width:100%;max-height:100%;object-fit:contain;background:#fff}
+  .viewer iframe{width:100%;height:100%;border:0;background:#111}
   .viewer .nav{position:fixed;bottom:20px;left:calc(50% - 48px);transform:translateX(-50%);display:flex;gap:12px;align-items:center;color:#fff;font-weight:700}
   .viewer .nav button{border:0;border-radius:14px;padding:12px 22px;font:inherit;font-size:18px;font-weight:800;background:rgba(255,255,255,.18);color:#fff}
   .exit{position:fixed;top:0;right:0;bottom:0;width:88px;border:0;background:var(--brand);color:#fff;font:inherit;font-size:20px;font-weight:900;writing-mode:vertical-rl;letter-spacing:.2em;cursor:pointer;z-index:40}
@@ -221,7 +222,7 @@
 <div class="net" id="net"></div>
 <div id="cf" hidden><div class="top"><b id="cfT">등록 서류</b><small id="cfK"></small><button id="cfX">그만두기</button></div><div class="steps" id="cfS"></div><div id="cfB"></div><div class="foot"><button id="cfPrev">‹ 앞으로</button><button class="go" id="cfNext">다음 ›</button></div></div>
 <div class="ovl" id="adm" hidden><div class="box" id="admBox"></div></div>
-<div class="viewer" id="viewer" hidden><img id="vImg" alt=""><div class="nav"><button id="vPrev">‹ 앞</button><span id="vNo"></span><button id="vNext">다음 ›</button></div><button class="exit" id="vExit">닫기</button></div>
+<div class="viewer" id="viewer" hidden><img id="vImg" alt=""><iframe id="vFrm" hidden title="상담 자료"></iframe><div class="nav"><button id="vPrev">‹ 앞</button><span id="vNo"></span><button id="vNext">다음 ›</button></div><button class="exit" id="vExit">닫기</button></div>
 
 <script src="config.js"></script>
 <script src="contract-forms.js"></script>
@@ -435,14 +436,16 @@
   async function toConsult() {
     clearTimeout(idle); show('s-consult');
     try { docs = await fetch('consult/list.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : []); } catch (_) { docs = []; }
-    $('docs').innerHTML = '<button class="new" data-new="1">📝 등록 서류 작성<small>기본정보 + 제자희망서 서명</small></button>' + (docs.length ? docs.map((d, i) => '<button data-d="' + i + '">' + esc(d.title) + '<small>' + (d.pages || []).length + '쪽' + (d.desc ? ' · ' + esc(d.desc) : '') + '</small></button>').join('') : '');
+    $('docs').innerHTML = '<button class="new" data-new="1">📝 등록 서류 작성<small>기본정보 + 제자희망서 서명</small></button>' + (docs.length ? docs.map((d, i) => '<button data-d="' + i + '">' + esc(d.title) + '<small>' + (d.html ? '슬라이드' : (d.pages || []).length + '쪽') + (d.desc ? ' · ' + esc(d.desc) : '') + '</small></button>').join('') : '');
   }
   $('docs').onclick = e => { if (e.target.closest('[data-new]')) return cfOpen(); const b = e.target.closest('[data-d]'); if (!b) return; cur = docs[+b.dataset.d]; page = 0; drawPage(); $('viewer').hidden = false; };
-  function drawPage() { const ps = cur.pages || []; $('vImg').src = 'consult/' + ps[page]; $('vNo').textContent = (page + 1) + ' / ' + ps.length; $('vPrev').disabled = page === 0; $('vNext').disabled = page >= ps.length - 1; }
+  function drawPage() { const fr = $('vFrm'), nav = document.querySelector('.viewer .nav'); if (cur.html) { $('vImg').hidden = true; nav.hidden = true; fr.hidden = false; fr.src = 'consult/' + cur.html; return; } fr.hidden = true; fr.removeAttribute('src'); $('vImg').hidden = false; nav.hidden = false; const ps = cur.pages || []; $('vImg').src = 'consult/' + ps[page]; $('vNo').textContent = (page + 1) + ' / ' + ps.length; $('vPrev').disabled = page === 0; $('vNext').disabled = page >= ps.length - 1; }
   $('vPrev').onclick = () => { if (page > 0) { page--; drawPage(); } };
   $('vNext').onclick = () => { if (page < (cur.pages || []).length - 1) { page++; drawPage(); } };
-  $('vExit').onclick = () => { $('viewer').hidden = true; };
-  $('cExit').onclick = () => { $('viewer').hidden = true; toMode(); };
+  function vClose() { $('viewer').hidden = true; $('vFrm').removeAttribute('src'); }
+  $('vExit').onclick = vClose;
+  addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.haerang === 'consult-contract') { vClose(); cfOpen(); } });
+  $('cExit').onclick = () => { vClose(); toMode(); };
 
   // ── 등록 서류: 직원 준비(종류·비용) → 기본정보 → 제자희망서 조마다 '네, 알겠습니다' → 비용 확인 + 서명 → 업무 앱으로 ──
   const F = window.HAERANG_FORMS;
