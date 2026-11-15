@@ -156,7 +156,7 @@ async function route(path, req, env) {
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
         mile: t.ok && t.mile != null ? t.mile : null, // 💰 마일리지 (상점 1개 = 100원, 2026-11-15)
         kids: viaP || null, kinder: !!(t.ok && t.kinder), goal: t.ok ? t.goal || '' : '', exams: t.ok ? t.exams || [] : [], prep: t.ok ? t.prep : null, sun: t.ok ? t.sun || [] : [],
-        prof: (await kvj(env, 'kprof:' + name)) || {}, qr: await kidQr(env, name), sbCard: t.ok && t.sb ? await sbCard(env, name) : null,
+        prof: (await kvj(env, 'kprof:' + name)) || {}, qr: await kidQr(env, name), dc: (await kvj(env, 'kday:' + name)) || {}, // 매일 체크 (집에서 연습 p · 바른 생활 m, 2026-11-15) sbCard: t.ok && t.sb ? await sbCard(env, name) : null,
         evs: (await all(env, "SELECT title, kind, date FROM posts WHERE type = 'schedule' AND kind IN ('행사', '대회', '심사') AND date >= ? AND date <= ? ORDER BY date LIMIT 5", today, kstAdd(today, 30))),
         // 🎉 이벤트 탭 (2026-11-15): 도장 일정 (지난 60일 ~ 앞으로 180일) + 지금 신청 받는 행사 (신청은 학부모 앱에서)
         sched: (await all(env, "SELECT title, kind, date, dend, body FROM posts WHERE type = 'schedule' AND date >= ? AND date <= ? ORDER BY date LIMIT 80", kstAdd(today, -60), kstAdd(today, 180))).map(x => ({ title: x.title, kind: x.kind || '', date: x.date, dend: x.dend || '', body: String(x.body || '').slice(0, 300) })),
@@ -169,6 +169,14 @@ async function route(path, req, env) {
         pledge: T(b.pledge ?? old.pledge, 200).trim(), mygoal: T(b.mygoal ?? old.mygoal, 100).trim(), // 선범단 다짐 · 내 목표 = 제자가 직접 (2026-11-15 사용자 결정)
         pins: (Array.isArray(b.pins) ? b.pins : old.pins || []).map(x => T(x, 20)).slice(0, 3), seen: Array.isArray(b.seen) ? b.seen.map(x => T(x, 20)).slice(0, 150) : old.seen }; // seen 이 없으면 '처음' (뱃지 축하 없이 기억만)
       await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kprof:' + name, JSON.stringify(v)); return json({ ok: true, prof: v });
+    }
+    if (path === '/k/day') { // 매일 수련 체크 — 제자가 직접 (오늘·어제만 고칠 수 있음, 400일 보관)
+      const today = kstDay(new Date()), day = String(b.day || ''), k = String(b.k || '');
+      if (![today, kstAdd(today, -1)].includes(day) || !['p', 'm'].includes(k)) return json({ ok: false, error: '오늘과 어제만 체크할 수 있어요' });
+      const d = (await kvj(env, 'kday:' + name)) || {}, x = Object.assign({}, d[day] || {}); if (b.on) x[k] = 1; else delete x[k];
+      if (Object.keys(x).length) d[day] = x; else delete d[day];
+      const keep = kstAdd(today, -400); Object.keys(d).forEach(z => { if (z < keep) delete d[z]; });
+      await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kday:' + name, JSON.stringify(d)); return json({ ok: true, dc: d });
     }
     if (path === '/k/mile') return json(await teamSync(env, '/sync/mile-list', { name })); // 💰 나의 마일리지 (2026-11-15)
     if (path === '/k/hw-check') return json(await teamSync(env, '/sync/hw-check', { kids: [name], kid: name, hw: b.hw, day: b.day, on: !!b.on, rel: '본인' }));
@@ -932,6 +940,7 @@ async function renameKid(env, from, to) {
     q(env, 'UPDATE kids SET name = ? WHERE name = ?', to, from),
     q(env, 'UPDATE att SET name = ? WHERE name = ?', to, from),
     q(env, 'UPDATE fees SET name = ? WHERE name = ?', to, from),
+    ...['kday:', 'kprof:', 'kqr:', 'ksbph:'].map(p => q(env, 'UPDATE OR IGNORE kv SET k = ? WHERE k = ?', p + to, p + from)), // 제자 앱 기록도 같이 (2026-11-15)
   ]);
   const swap = a => [...new Set(a.map(k => (k === from ? to : k)))];
   for (const p of await all(env, 'SELECT id, kids FROM parents')) { const ks = J(p.kids, []); if (ks.includes(from)) await run(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify(swap(ks)), p.id); }
@@ -977,7 +986,7 @@ async function kidRemove(env, name, dry) {
   for (const p of ps) st.push(only(p) ? q(env, 'DELETE FROM parents WHERE id = ?', p.id) : q(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify(J(p.kids, []).filter(k => k !== name)), p.id));
   for (const i of ivs) st.push(only(i) ? q(env, 'DELETE FROM invites WHERE code = ?', i.code) : q(env, 'UPDATE invites SET kids = ? WHERE code = ?', JSON.stringify(J(i.kids, []).filter(k => k !== name)), i.code));
   for (const t of ['kids', 'att', 'kcodes', 'ksess']) st.push(q(env, 'DELETE FROM ' + t + ' WHERE name = ?', name));
-  st.push(q(env, 'DELETE FROM kv WHERE k IN (?, ?, ?)', 'kqr:' + name, 'kprof:' + name, 'ksbph:' + name), q(env, "DELETE FROM kv WHERE k = 'kidStatus'"));
+  st.push(q(env, 'DELETE FROM kv WHERE k IN (?, ?, ?, ?)', 'kqr:' + name, 'kprof:' + name, 'ksbph:' + name, 'kday:' + name), q(env, "DELETE FROM kv WHERE k = 'kidStatus'"));
   await env.DB.batch(st);
   return out;
 }
