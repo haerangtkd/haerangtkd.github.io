@@ -222,6 +222,12 @@
   .pg2{display:block;width:60px;height:4px;border-radius:9px;background:#2E2E32;overflow:hidden}.pg2 em{display:block;height:100%;background:#9BE15D}
   .b1{text-align:center;padding:30px 10px}.b1 .ic{width:min(62vw,240px);height:min(62vw,240px);margin:0 auto;border-radius:50%;display:grid;place-items:center;font-size:110px;background:radial-gradient(circle at 30% 25%,#FFF2C2,#E3B341 60%,#A87A12);box-shadow:0 10px 0 #6B4D0A,0 20px 40px rgba(0,0,0,.6);overflow:hidden;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}.b1 .ic .pimg{width:100%;height:100%}
   .b1.off .ic{background:#1E1E21;box-shadow:inset 0 0 0 4px #3A3A3E;filter:grayscale(1)}.b1.off .ic>*{opacity:.35}
+  .flip3{width:min(62vw,240px);height:min(62vw,240px);margin:0 auto;perspective:1000px;cursor:pointer}.in3{position:relative;width:100%;height:100%;transition:transform .7s cubic-bezier(.3,1.3,.5,1);transform-style:preserve-3d}.flip3.on .in3{transform:rotateY(180deg)}
+  .flip3 .bf,.flip3 .bk{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}.flip3 .bf .ic{width:100%;height:100%;margin:0}
+  .flip3 .bk{transform:rotateY(180deg);border-radius:50%;background:radial-gradient(circle at 30% 25%,#3A3A3E,#1C1C1F);box-shadow:inset 0 0 0 4px #C0A355,0 20px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18%;text-align:center}
+  .b1.off .flip3 .bk{box-shadow:inset 0 0 0 4px #3A3A3E}.flip3 .bk .ic.sm{width:44px;height:44px;font-size:24px;box-shadow:none;animation:none;margin:0 0 6px}.flip3 .bk .ic.sm .pimg{width:44px;height:44px}
+  .flip3 .bk b{font-size:16px;margin:0}.flip3 .bk small{color:var(--muted);font-size:11.5px;margin-top:8px}.flip3 .bk em{font-style:normal;color:var(--gold);font-weight:900;font-size:16px}.flip3 .bk p{margin:8px 0 0;font-size:11.5px;color:var(--muted);line-height:1.4}
+  .b1 .tip{display:block;margin-top:14px;font-size:12px;color:#66666B}
   .b1>b{display:block;font-size:24px;margin-top:26px}.b1 p{color:var(--muted);line-height:1.6;margin:8px 0 14px}.b1 em{font-style:normal;font-weight:900;color:var(--gold);font-size:17px}.b1 em.no{color:var(--muted)}.b1 .pb{max-width:220px;margin:0 auto}.b1 small{display:block;color:var(--muted);margin-top:6px}
   .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 8px;margin-top:10px;text-align:center}.mgrid b{display:block;font-size:12.5px;margin-top:4px}.mgrid small{color:var(--muted);font-size:11px}.mgrid .off b{color:#8A8580}
   .mlc{border:1.5px solid rgba(229,72,77,.55);border-radius:18px;padding:14px 16px;background:linear-gradient(150deg,#2A2A2D,#141416 60%,#1E1E21);margin-top:6px}
@@ -461,9 +467,14 @@
     const mm = (D.att || {}).months || {};
     page('월간 도전 목표', '<div class="mgrid">' + monthsBack(12).map(k => { const on = (mm[k] || 0) >= MONTH_NEED; return '<div class="' + (on ? '' : 'off') + '">' + hexB(+k.slice(5), on, 84) + '<b>' + (+k.slice(5)) + '월 도전 목표</b><small>' + k.slice(0, 4) + '년 · 출석 ' + (mm[k] || 0) + '일</small></div>'; }).join('') + '</div><p class="sub" style="text-align:center">한 달에 ' + MONTH_NEED + '일 출석하면 그 달의 도전 목표 뱃지를 받아요</p>');
   }
+  const kd = d => d ? (+d.slice(0, 4)) + '년 ' + (+d.slice(5, 7)) + '월 ' + (+d.slice(8, 10)) + '일' : '';
   function badgeOne(k) {
-    const b = badges().find(x => x.k === k); if (!b) return;
-    page(b.cat, '<div class="b1' + (b.on ? '' : ' off') + '"><span class="ic">' + bIc(b) + '</span><b>' + esc(b.t) + '</b><p>' + esc(b.how) + (b.on ? '' : ' 받을 수 있어요') + '</p>' + (b.on ? '<em>🎉 받았어요!</em>' : b.tgt ? '<div class="pb"><b style="width:' + Math.min(100, Math.round(b.cur / b.tgt * 100)) + '%"></b></div><small>지금 ' + Math.min(b.cur, b.tgt) + ' / ' + b.tgt + '</small>' : '<em class="no">아직이에요 · 도전해 봐요!</em>') + '</div>');
+    const b = badges().find(x => x.k === k); if (!b) return; const got = (D.prof.got || {})[k];
+    const front = '<div class="bf"><span class="ic">' + bIc(b) + '</span></div>';
+    const back = '<div class="bk"><span class="ic sm">' + bIc(b) + '</span><b>' + esc(b.t) + '</b>' + (b.on ? '<small>받은 날</small><em>' + (got ? kd(got) : '앱 기록 전에 받았어요') + '</em>' : '<small>아직이에요</small>') + '<p>' + esc(b.how) + (b.on ? '' : ' 받을 수 있어요') + '</p></div>';
+    page(b.cat, '<div class="b1' + (b.on ? '' : ' off') + '"><div class="flip3" id="fl3"><div class="in3">' + front + back + '</div></div><b>' + esc(b.t) + '</b><p>' + esc(b.how) + (b.on ? '' : ' 받을 수 있어요') + '</p>' +
+      (b.on ? '<em>🎉 받았어요!' + (got ? ' · ' + kd(got) : '') + '</em>' : b.tgt ? '<div class="pb"><b style="width:' + Math.min(100, Math.round(b.cur / b.tgt * 100)) + '%"></b></div><small>지금 ' + Math.min(b.cur, b.tgt) + ' / ' + b.tgt + '</small>' : '<em class="no">아직이에요 · 도전해 봐요!</em>') + '<small class="tip">뱃지를 누르면 뒤집혀요</small></div>',
+      (e, el) => { if (e.target.closest('#fl3')) el.querySelector('#fl3').classList.toggle('on'); });
     if (b.on) fx(1400);
   }
   // ── 💰 나의 마일리지 (2026-11-15: 잔액 · 누적 · 획득/사용 방법 · 상세 조회) ──
@@ -583,7 +594,14 @@
   };
   document.addEventListener('contextmenu', e => { if (e.target.closest('.sbc')) e.preventDefault(); }); // 선범단 카드 사진 길게 눌러 저장·확대 막기
   // ── 🏅 새 뱃지 축하 (처음 받은 뱃지가 있으면 한 번) ──
+  // 뱃지 받은 날 (2026-11-15 사용자: 피트니스 앱처럼 뒤집으면 언제 받았는지) — 출석 뱃지는 n번째 출석한 날, 새로 받으면 오늘, 예전에 받은 건 '기록 전'
+  function gotDates(first) {
+    const got = D.prof.got || {}, nth = (D.att || {}).nth || {}, add = {}, AT = { att1: 1, att10: 10, att30: 30, att50: 50, att100: 100, att200: 200 };
+    myBadges().forEach(b => { if (got[b.k]) return; const d = AT[b.k] ? nth[AT[b.k]] : first ? '' : D.today; if (d !== undefined && (d || first)) add[b.k] = d || ''; });
+    if (!Object.keys(add).length) return; D.prof.got = Object.assign({}, add, got); post('/k/prof', { got: add });
+  }
   async function newBadgeCheck() {
+    gotDates(!D.prof.got); // 처음 적을 때 이미 받은 뱃지는 '앱 기록 전'
     const seen = D.prof.seen, have = myBadges().map(b => b.k);
     if (!Array.isArray(seen)) { D.prof.seen = have; return post('/k/prof', { seen: have }); } // 처음 열 때는 축하 없이 기억만
     const nw = myBadges().filter(b => !seen.includes(b.k)); if (!nw.length) return;

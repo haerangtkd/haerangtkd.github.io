@@ -150,7 +150,7 @@ async function route(path, req, env) {
       while (weeks.has(w) && streak < 520) { streak++; const x = new Date(w + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - 7); w = x.toISOString().slice(0, 10); }
       const info = await attSync(env, '/sync/kid-info', { names: [name] }).catch(() => null), kid = info && info.ok ? (info.kids || [])[0] : null, birth = kid ? String(kid.bday || kid.birth || '') : ''; // 생년월일(양력)이 있으면 생일 축하 (2026-11-14)
       const hw = await teamSync(env, '/sync/hw', { kids: [name] });
-      return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [] }, // 월간 도전·수련 로그 (2026-11-15)
+      return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [], nth: Object.fromEntries([1, 10, 30, 50, 100, 200].filter(n => days.length >= n).map(n => [n, days[n - 1]])) }, // 월간 도전·수련 로그 (2026-11-15)
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
         hw: hw.ok ? (hw.hw || []) : [], best: (km.best || []).slice(-4), comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
@@ -162,6 +162,7 @@ async function route(path, req, env) {
     if (path === '/k/prof') { // 프로필 꾸미기 · 대표 뱃지 3개 · 본 뱃지 (사진 대신 정해진 것 중에서 고르기)
       const old = (await kvj(env, 'kprof:' + name)) || {}, T = (v, n) => String(v == null ? '' : v).slice(0, n);
       const v = { av: T(b.av ?? old.av, 8), bg: /^#[0-9A-Fa-f]{6}$/.test(b.bg || '') ? b.bg : old.bg || '', fr: T(b.fr ?? old.fr, 12),
+        got: Object.assign({}, b.got && typeof b.got === 'object' ? Object.fromEntries(Object.entries(b.got).slice(0, 80).map(([k, d]) => [T(k, 20), /^\d{4}-\d{2}-\d{2}$/.test(String(d)) ? String(d) : '']).filter(x => x[0])) : {}, old.got || {}), // 뱃지 받은 날 (2026-11-15, 뒤집으면 보임) — 예전 날짜가 이김
         pledge: T(b.pledge ?? old.pledge, 200).trim(), mygoal: T(b.mygoal ?? old.mygoal, 100).trim(), // 선범단 다짐 · 내 목표 = 제자가 직접 (2026-11-15 사용자 결정)
         pins: (Array.isArray(b.pins) ? b.pins : old.pins || []).map(x => T(x, 20)).slice(0, 3), seen: Array.isArray(b.seen) ? b.seen.map(x => T(x, 20)).slice(0, 80) : old.seen }; // seen 이 없으면 '처음' (뱃지 축하 없이 기억만)
       await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kprof:' + name, JSON.stringify(v)); return json({ ok: true, prof: v });
