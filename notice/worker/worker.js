@@ -152,7 +152,7 @@ async function route(path, req, env) {
       const hw = await teamSync(env, '/sync/hw', { kids: [name] });
       return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [], dl: days.filter(d => d >= kstAdd(today, -400)), nth: Object.fromEntries([1, 10, 30, 50, 100, 200, 300, 500].filter(n => days.length >= n).map(n => [n, days[n - 1]])) }, // 월간 도전·수련 로그 (2026-11-15)
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
-        hw: hw.ok ? (hw.hw || []) : [], best: (km.best || []).slice().sort((a, c) => bestKey(a.q).localeCompare(bestKey(c.q))).slice(-36), bestProf: await bestProfiles(env, km.best || []), // 최우수 수련생 매달 + 프로필 (2026-11-15) comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
+        hw: hw.ok ? (hw.hw || []) : [], best: mergeBest(t.ok ? t.gbest : [], km.best).slice(-36), bestProf: await bestProfiles(env, mergeBest(t.ok ? t.gbest : [], km.best)), // 최우수 수련생 매달 + 프로필 (2026-11-15) comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
         mile: t.ok && t.mile != null ? t.mile : null, // 💰 마일리지 (상점 1개 = 100원, 2026-11-15)
         kids: viaP || null, kinder: !!(t.ok && t.kinder), goal: t.ok ? t.goal || '' : '', exams: t.ok ? t.exams || [] : [], prep: t.ok ? t.prep : null, sun: t.ok ? t.sun || [] : [],
@@ -890,8 +890,13 @@ async function kidQr(env, name) { // 제자마다 내 출석 QR (2026-11-14) —
   q = 'HRK1-' + rid(6).toUpperCase(); await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'kqr:' + name, JSON.stringify(q)); return (await kvj(env, 'kqr:' + name)) || q;
 }
 const bestKey = q => /^\d{4}-[1-4]$/.test(q) ? q.slice(0, 5) + String(+q.slice(5) * 3).padStart(2, '0') + 'q' : q; // 예전 분기 = 그 분기 마지막 달 뒤에
+function mergeBest(auto, manual) { // 기네스 1등(자동) + 알림 관리에서 직접 넣은 이름(그 부는 직접 넣은 게 먼저)
+  const M = new Map(); (auto || []).forEach(x => M.set(x.q, Object.assign({}, x, { g: Object.assign({}, x.g) })));
+  (manual || []).forEach(x => { const o = M.get(x.q) || { q: x.q, g: {} }; Object.entries(x.g || {}).forEach(([k, n]) => { if (n) { o.g[k] = [].concat(n); if (o.v) delete o.v[k]; } }); M.set(x.q, o); });
+  return [...M.values()].filter(x => Object.keys(x.g || {}).length).sort((a, c) => bestKey(a.q).localeCompare(bestKey(c.q)));
+}
 async function bestProfiles(env, best) { // 최우수 수련생 프로필 (꾸민 캐릭터·배경색·띠)
-  const names = [...new Set(best.slice(-36).flatMap(x => Object.values(x.g || {})))].slice(0, 120); if (!names.length) return {};
+  const names = [...new Set(best.slice(-36).flatMap(x => Object.values(x.g || {}).flat()))].slice(0, 120); if (!names.length) return {};
   const pr = await all(env, 'SELECT k, v FROM kv WHERE k IN (' + names.map(() => '?').join(',') + ')', ...names.map(n => 'kprof:' + n));
   const r = await attSync(env, '/sync/roster', { all: true }).catch(() => null), belt = Object.fromEntries(((r && r.students) || []).map(s => [s.name, s.belt || '']));
   return Object.fromEntries(names.map(n => { const p = J((pr.find(x => x.k === 'kprof:' + n) || {}).v, {}) || {}; return [n, { av: p.av || '', bg: p.bg || '', belt: belt[n] || '' }]; }));

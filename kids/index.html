@@ -278,6 +278,7 @@
   .bst2 .crown{position:absolute;top:6px;left:50%;transform:translateX(-50%) translateY(-60%);font-size:22px}
   .bst2 .av{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:30px;font-weight:900;color:#fff;overflow:hidden;box-shadow:0 0 0 3px #E3B341,0 6px 16px rgba(0,0,0,.5);margin-bottom:6px}
   .bst2 small{color:var(--gold);font-weight:800;font-size:12px}.bst2 b{font-size:17px}.bst2 em{font-style:normal;font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:5px}.bst2 em i{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .bst2 .rv{margin-top:4px;font-size:12px;color:#C9C6C2;background:#1F1F22;border-radius:999px;padding:3px 10px}.bst2 .rv b{font-size:13px;color:#fff}
   .bst2.me{border-color:#E3B341;box-shadow:0 0 0 2px rgba(227,179,65,.4)}
 </style>
 </head>
@@ -405,7 +406,7 @@
       '<rect x="38" y="31" width="24" height="32" rx="5" fill="' + m + '"' + w + '/>' + (st ? '<rect x="38" y="44" width="24" height="7" fill="' + st + '"/>' : '') + (b === '1품' ? '<rect x="38" y="47" width="24" height="16" rx="5" fill="' + lo + '"/>' : '') + '</svg>';
   }
   function badges() {
-    const a = D.att || {}, mine = (D.comps || []).flatMap(c => (c.rows || []).filter(r => r.name === D.name)), bestMe = (D.best || []).some(q => Object.values(q.g || {}).includes(D.name));
+    const a = D.att || {}, mine = (D.comps || []).flatMap(c => (c.rows || []).filter(r => r.name === D.name)), bestMe = (D.best || []).some(q => Object.values(q.g || {}).flat().includes(D.name));
     const ups = (D.events || []).reduce((n, e) => { const s = evStat(e, D.rec); return n + (s ? s.ups : 0); }, 0);
     const hwN = (D.hw || []).reduce((n, h) => n + (h.chk || []).filter(c => c.kid === D.name).length, 0), ex = (D.exams || []).filter(x => !x.absent);
     const pass = ex.filter(x => x.pass).length, nbN = ex.filter(x => x.nb).length, good = ex.reduce((n, x) => n + (x.items || []).filter(y => y.good).length + (x.subj || []).filter(y => +y.v === 5).length, 0);
@@ -429,7 +430,7 @@
     tier('대회', 'comp', mine.length, [1, 3, 5], ['🥋', '🎽', '🏟️'], n => n === 1 ? '대회 출전' : '대회 ' + n + '번 출전', n => '대회에 ' + n + '번 나가면');
     tier('대회', 'med', med, [1, 3, 5], ['🥉', '🥈', '🏆'], n => n === 1 ? '첫 입상' : '입상 ' + n + '번', n => '대회에서 ' + n + '번 메달을 받으면');
     tier('대회', 'gold', gold, [1, 3], ['🥇', '👑'], n => n === 1 ? '금메달' : '금메달 ' + n + '개', n => '대회 금메달을 ' + n + '개 받으면');
-    const bestN = (D.best || []).filter(q => Object.values(q.g || {}).includes(D.name)).length;
+    const bestN = (D.best || []).filter(q => Object.values(q.g || {}).flat().includes(D.name)).length;
     L.push({ k: 'best', ic: '🏆', t: '최우수 수련생', on: bestMe, how: '이달의 최우수 수련생으로 뽑히면', cat: '대회' });
     tier('대회', 'bs', bestN, [3, 6], ['👑', '🌟'], n => '최우수 수련생 ' + n + '번', n => '최우수 수련생으로 ' + n + '번 뽑히면');
     L.push({ k: 'sb', ic: '⭐', t: '선범단', on: !!D.sb, how: '선범단이 되면', cat: '선범단' });
@@ -458,7 +459,7 @@
     (D.evs || []).forEach(e => L.push('📣 ' + md(e.date) + ' ' + e.title + (e.kind === '심사' ? ' · 연습 열심히!' : '')));
     myBadges().filter(b => !(D.prof.seen || []).includes(b.k) && (D.prof.seen || []).length).forEach(b => L.push('🏅 새 뱃지를 받았어요: ' + (b.img || b.belt ? '🎖️' : b.ic) + ' ' + b.t));
     (D.events || []).forEach(e => { const s = evStat(e, D.rec); if (s && s.isBest && s.last && s.last.m === s.sc[s.sc.length - 1].m) L.push('📈 ' + e.name + ' 내 최고 기록을 갱신했어요!'); });
-    const lb = (D.best || [])[(D.best || []).length - 1]; if (lb && lb.q === t.slice(0, 7)) L.unshift('👑 ' + (+lb.q.slice(5)) + '월 최우수 수련생 발표! ' + (Object.values(lb.g || {}).includes(D.name) ? firstName(D.name) + ', 축하해! 🎉' : '명예의 전당에서 확인해요'));
+    const lb = (D.best || [])[(D.best || []).length - 1]; if (lb && lb.q === t.slice(0, 7)) L.unshift('👑 ' + (+lb.q.slice(5)) + '월 최우수 수련생 발표! ' + (Object.values(lb.g || {}).flat().includes(D.name) ? firstName(D.name) + ', 축하해! 🎉' : '명예의 전당에서 확인해요'));
     if (isBday()) L.unshift('🎂 오늘은 ' + firstName(D.name) + '의 생일! 생일 축하해!');
     return L;
   }
@@ -604,9 +605,9 @@
   function bestCard() {
     const B = D.best || [], me = D.name; if (!B.length) return '<section class="card"><h2>🏆 이달의 최우수 수련생</h2><div class="empty">곧 발표돼요! 누가 될까요? 👀</div></section>';
     if (bestI == null || bestI >= B.length) bestI = B.length - 1; const q = B[bestI], P = D.bestProf || {};
-    const cards = BG5.filter(k => (q.g || {})[k]).map(k => { const n = q.g[k], p = P[n] || {}, e = p.av || firstName(n).slice(0, 1);
-      return '<div class="bst2' + (n === me ? ' me' : '') + '"><span class="crown">👑</span><span class="av" style="background:' + esc(p.bg || 'var(--brand)') + '">' + avHtml(e) + '</span><small>' + esc(k) + '</small><b>' + esc(n) + (n === me ? ' 🎉' : '') + '</b>' + (p.belt ? '<em>' + beltDot(p.belt) + esc(p.belt) + '</em>' : '') + '</div>'; }).join('');
-    return '<section class="card"><div class="bnav"><button data-bi="-1"' + (bestI <= 0 ? ' disabled' : '') + '>‹</button><div><small>🏆 최우수 수련생</small><b>' + bestLabel(q.q) + '</b></div><button data-bi="1"' + (bestI >= B.length - 1 ? ' disabled' : '') + '>›</button></div><div class="bgr2">' + cards + '</div>' +
+    const f1b = v => (Math.round(+v * 10) / 10).toString(), cards = BG5.filter(k => (q.g || {})[k]).flatMap(k => [].concat(q.g[k]).map(n => { const p = P[n] || {}, e = p.av || firstName(n).slice(0, 1), vv = (q.v || {})[k];
+      return '<div class="bst2' + (n === me ? ' me' : '') + '"><span class="crown">👑</span><span class="av" style="background:' + esc(p.bg || 'var(--brand)') + '">' + avHtml(e) + '</span><small>' + esc(k) + '</small><b>' + esc(n) + (n === me ? ' 🎉' : '') + '</b>' + (p.belt ? '<em>' + beltDot(p.belt) + esc(p.belt) + '</em>' : '') + (vv != null && q.ev ? '<span class="rv">' + esc(q.ev) + ' <b>' + f1b(vv) + '</b>' + esc(q.unit || '') + '</span>' : '') + '</div>'; })).join('');
+    return '<section class="card"><div class="bnav"><button data-bi="-1"' + (bestI <= 0 ? ' disabled' : '') + '>‹</button><div><small>🏆 최우수 수련생</small><b>' + bestLabel(q.q) + '</b>' + (q.ev ? '<small style="color:var(--muted);font-weight:600">기네스 ' + esc(q.ev) + ' 1등</small>' : '') + '</div><button data-bi="1"' + (bestI >= B.length - 1 ? ' disabled' : '') + '>›</button></div><div class="bgr2">' + cards + '</div>' +
       (B.length > 1 ? '<p class="sub" style="text-align:center;margin:10px 0 0">‹ › 로 지난달 최우수 수련생도 볼 수 있어요</p>' : '') + '</section>';
   }
   function fame() {
