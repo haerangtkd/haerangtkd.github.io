@@ -72,7 +72,7 @@ async function route(path, req, env) {
     if (path === '/sync/roster') {
       const list = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) }))
         .filter(s => s.name && (b.all || s.status !== '퇴관')) // all: 퇴관까지 (알림 앱 알림 멈춤·기네스 회원 상태용)
-        .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', belt: s.belt || '', ...(b.phones ? { phones: [s.phone, s.phone2].map(v => String(v || '').replace(/\D/g, '')).filter(Boolean) } : {}), ...(b.fam ? { famId: s.famId || '' } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
+        .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', belt: s.belt || '', sb: !!s.sb, ...(b.phones ? { phones: [s.phone, s.phone2].map(v => String(v || '').replace(/\D/g, '')).filter(Boolean) } : {}), ...(b.fam ? { famId: s.famId || '' } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
       return json({ ok: true, students: list });
     }
     if (path === '/sync/kid-info') { // 학부모 앱 '정보 확인': 이름으로 출생연도·수련 요일·임시변경(오늘 이후) (2026-11-13)
@@ -184,6 +184,12 @@ async function route(path, req, env) {
       return json({ ok: true, added: out });
     }
     if (path === '/sync/student-delete') return json(await studentDelete(env, str(b.sid, 60), !!b.dry)); // 업무 앱 '원생 삭제'(관리자만, 업무 서버가 확인) — dry: 무엇이 지워지는지만
+    if (path === '/sync/sb-init') { // 한 번만: 예전 📈 성장 선범단 → 원생 정보 (2026-11-15)
+      const ids = (Array.isArray(b.sids) ? b.sids : []).map(x => str(x, 60)).filter(Boolean).slice(0, 300), stmts = [], upd = Date.now(); let n = 0;
+      for (const sid of ids) { const r = await one(env, 'SELECT data FROM students WHERE id = ?', sid); if (!r) continue; const d = J(r.data, {}); if (d.sb) continue; d.sb = true; n++; stmts.push(q(env, 'UPDATE students SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), upd, sid)); }
+      for (let i = 0; i < stmts.length; i += 50) await env.DB.batch(stmts.slice(i, i + 50));
+      return json({ ok: true, n });
+    }
     if (path === '/sync/belt-set') { // 띠 바꾸기 (2026-11-15): 업무 앱 심사 마감·마감 풀기, 예전 📈 성장 띠 옮기기(onlyEmpty)
       const L = (Array.isArray(b.items) ? b.items : []).slice(0, 300), stmts = [], upd = Date.now(); let n = 0;
       for (const it of L) { const sid = str(it && it.sid, 60), nb = BELTS.includes(it && it.belt) ? it.belt : ''; if (!sid) continue;
@@ -547,7 +553,7 @@ async function saveStudentRow(env, b, who) {
     const dup = (await all(env, 'SELECT id, data FROM students WHERE id <> ?', id)).map(r => J(r.data, {})).find(x => nm(x.name) === nm(s.name));
     if (dup) return { ok: false, dupName: true, error: '같은 이름(' + s.name + ') 제자가 이미 있어요' + (dup.status === '퇴관' ? ' (퇴관한 제자)' : '') + '. 이름 뒤에 구분 글자를 붙여 주세요 (예: ' + s.name + 'B)' };
   }
-  if (cur && !(b.student && 'belt' in b.student)) s.belt = J(cur.data, {}).belt || ''; // 띠를 모르는 화면(출석부 원생 수정)에서 저장해도 띠는 그대로
+  if (cur) { const o = J(cur.data, {}); if (!(b.student && 'belt' in b.student)) s.belt = o.belt || ''; if (!(b.student && 'sb' in b.student)) s.sb = !!o.sb; } // 띠를 모르는 화면(출석부 원생 수정)에서 저장해도 띠는 그대로
   const st = [q(env, 'INSERT INTO students (id, data, upd) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', id, JSON.stringify(s), upd)];
   for (const t of (Array.isArray(b.history) ? b.history : []).slice(0, 20)) st.push(q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), id, str(b.tid, 60), upd, str(t, 200), who));
   await env.DB.batch(st);
@@ -567,6 +573,7 @@ function cleanStudent(s) {
     joined: okDay(s.joined),
     gender: ['남', '여'].includes(s.gender) ? s.gender : '',
     // 원생 정보 칸 (2026-11-14 사용자 결정: 이름·성별·생년월일·주소·학교·반·번호·연락처) — 등록 서류를 연결하면 빈 칸만 채움
+    sb: !!s.sb, // 선범단 (2026-11-15: 📈 성장 측정지 없애면서 원생 정보로)
     belt: BELTS.includes(s.belt) ? s.belt : '', // 띠 (2026-11-15 사용자 결정: 띠는 원생 정보 한 곳 — 계약서 신규=흰띠/경험 있음=그때 띠, 도장이 고침, 심사 합격하면 바로 올라감)
     bday: okDay(s.bday), lunar: !!s.lunar, addr: str(s.addr, 80).trim(), cls: str(s.cls, 10).trim(), sno: str(s.sno, 3).replace(/\D/g, ''),
     memo: str(s.memo, 500),
