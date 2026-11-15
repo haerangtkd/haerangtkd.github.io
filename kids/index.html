@@ -131,7 +131,7 @@
   .sbc .fl{position:absolute;inset:0;transition:transform .6s;transform-style:preserve-3d}.sbc.flip .fl{transform:rotateY(180deg)}
   .sbc .f,.sbc .b{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;box-shadow:0 10px 24px rgba(9,49,111,.28)}
   .sbc .f{background:#fff;color:#1C1A19}
-  .sbc .hd{height:27%;background:#09316F url(sb-bg.jpg) center 40%/cover;display:flex;align-items:center;gap:10px;padding:0 14px;color:#fff}
+  .sbc .hd{height:27%;background:linear-gradient(105deg,#A30C15 0 24%,#09316F 24% 76%,#C0A355 76% 100%);display:flex;align-items:center;gap:10px;padding:0 14px;color:#fff}
   .sbc .hd img{width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
   .sbc .hd b{font-size:16px;font-weight:900;letter-spacing:.5px;text-shadow:0 1px 3px rgba(0,0,0,.45)}.sbc .hd small{display:block;font-size:10px;font-weight:800;letter-spacing:2px;opacity:.95;text-shadow:0 1px 3px rgba(0,0,0,.45)}
   .sbc .bdy{display:flex;gap:14px;padding:10px 14px 0}
@@ -385,7 +385,7 @@
       const pled = (D.prof && D.prof.pledge) || c.pledge || '나는 도장의 모범이 되고, 친구를 도와주며, 배운 것을 나누겠습니다.';
       const av = profAv();
       h += '<div class="sbc' + (warn ? ' warn' : '') + '" id="sbc"><div class="in"><div class="fl"><div class="f">' +
-        '<div class="hd"><img src="../img/lion-white.png" alt=""><div><b>해랑경희 태권도장</b><small>先範團 · 선범단 학생증</small></div></div>' + (warn ? '<span class="wn">⚠ 경고 ' + warn + '</span>' : '') +
+        '<div class="hd"><div><b>해랑경희 태권도장</b><small>先範團 · 선범단 학생증</small></div></div>' + (warn ? '<span class="wn">⚠ 경고 ' + warn + '</span>' : '') +
         '<div class="bdy"><div class="ph"' + (c.photo ? ' style="background-image:url(' + c.photo + ')"' : ' style="background:' + esc(av.bg) + ';color:#fff"') + '>' + (c.photo ? '' : avHtml(av.e)) + '</div>' +
         '<div class="rows"><div class="nm">' + esc(me) + '</div><div class="rn">' + esc(romName(me)) + '</div>' +
         '<div class="rw"><span>띠</span><b>' + esc(D.belt || '-') + '</b></div>' + (dk ? '<div class="rw"><span>임명일</span><b>' + dk + '</b></div>' : '') + '<div class="rw"><span>소속</span><b>해랑경희 선범단</b></div></div></div>' +
