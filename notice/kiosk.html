@@ -124,7 +124,7 @@
   #cfB .sec{font-size:15px;font-weight:900;color:var(--cfc,#A40F16);margin:18px 2px 4px}
   #cfB label.q{display:block;font-size:16px;font-weight:800;margin:14px 0 7px}
   #cfB label.q em{color:var(--brand);font-style:normal}
-  #cfB input[type=text],#cfB input[type=tel],#cfB input[type=date]{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;font-size:17px;background:#fff;-webkit-user-select:text;user-select:text}
+  #cfB input[type=text],#cfB input[type=tel],#cfB input[type=date],#cfB select{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;font-size:17px;background:#fff;-webkit-user-select:text;user-select:text}
   #cfB .row{display:flex;gap:10px;flex-wrap:wrap}#cfB .row>*{flex:1;min-width:140px}
   #cfB .ch{display:flex;flex-wrap:wrap;gap:8px}
   #cfB .ch button{border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 16px;font:inherit;font-size:16px;font-weight:700;color:var(--ink)}
@@ -489,7 +489,7 @@
   function fieldHTML(f) {
     const v = st.v, esc2 = F.esc, need = f.need ? ' <em>*</em>' : '';
     let h = f.sec ? '<div class="sec">' + esc2(f.sec) + '</div>' : '';
-    const more = (f.more || []).map(m => '<input type="text" data-k="' + m.id + '" placeholder="' + esc2(m.label) + '" value="' + esc2(v[m.id] || '') + '">').join('');
+    const more = (f.more || []).map(m => m.opts ? '<select data-k="' + m.id + '"><option value="">' + esc2(m.label) + ' (고르기)</option>' + m.opts.map(o => '<option' + (v[m.id] === o ? ' selected' : '') + '>' + esc2(o) + '</option>').join('') + '</select>' : '<input type="text" data-k="' + m.id + '" placeholder="' + esc2(m.label) + '" value="' + esc2(v[m.id] || '') + '">').join(''); // m.opts = 고르기 칸 (띠, 2026-11-15)
     if (f.type === 'hidden') return h;
     if (f.type === 'lunar') return h + '<label class="lun"><input type="checkbox" id="cfLunar"' + (v.lunar === '음력' ? ' checked' : '') + '> 음력이에요 <small>(안 누르면 양력)</small></label>';
     if (f.type === 'receipt') return h + '<label class="q">' + esc2(f.label) + '</label><div class="ch" data-pk="receipt" data-m="0">' + f.opts.map(o => '<button data-v="' + o + '" class="' + (v.receipt === o ? 'on' : '') + '">' + o + '</button>').join('') + '</div><div id="cfRc"></div>';
