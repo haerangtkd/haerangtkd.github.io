@@ -323,6 +323,7 @@
   .kidbar .avatar{width:42px;height:42px;font-size:17px;box-shadow:none}
   .kidbar .who b{font-size:24px;font-weight:800;letter-spacing:-.03em}
   .kidbar .who svg{width:20px;height:20px}
+  .kidbar .who{white-space:nowrap}.kidbar .who .hn{font-size:17px;font-weight:700;margin-left:6px;letter-spacing:-.02em}
   .today-d{margin-left:auto;font-size:13px;color:var(--muted);font-weight:600;background:#fff;border:1px solid var(--line);border-radius:99px;padding:5px 11px;white-space:nowrap}
   .hello .sub{font-size:14.5px;color:var(--muted);margin:8px 2px 0}
   .banner{border-radius:14px}
@@ -1062,8 +1063,8 @@
     const s = me() || {}, k = curKid();
     const t = (home && home.today && home.today[k]) || {};
     const many = (s.children || []).length > 1;
-    let h = '<div class="hello"><div class="kidbar"><span class="avatar">' + esc(initial(k)) + '</span><button class="who" id="hWho"><b>' + esc(k) + '</b>' + (many ? IC.down : '') + '</button>' +
-      '<span class="today-d">' + longDate() + '</span></div>' + (s.relation ? '<p class="sub">' + esc(k) + ' ' + esc(s.relation) + '님, 안녕하세요</p>' : '') + '</div>';
+    let h = '<div class="hello"><div class="kidbar"><span class="avatar">' + esc(initial(k)) + '</span><button class="who" id="hWho"><b>' + esc(k) + '</b><span class="hn">보호자님</span>' + (many ? IC.down : '') + '</button>' +
+      '<span class="today-d">' + longDate() + '</span></div></div>'; // 2026-11-15: 첫 화면 'ㅇㅇㅇ 보호자님' (사용자 요청)
     if (home && !s.approved) h += '<div class="banner">' + ICON_CLOCK + '<span>도장에서 확인 중이에요. 확인이 끝나면 알림장·앨범·출석 기록을 볼 수 있어요.</span></div>';
     if (home && canPush && !(s.push && Notification.permission === 'granted')) h += '<div class="banner">' + IC.bell + '<span>알림이 꺼져 있어요. 등원·하원 알림을 받으려면 켜 주세요.</span><button id="hPushOn">알림 켜기</button></div>';
     const asks = (home && home.asks) || [];
