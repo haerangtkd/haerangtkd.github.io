@@ -911,10 +911,11 @@
   }
   function contactSection(k) {
     if (!contact) return '';
-    const L = (contact.msgs || []).filter(x => x.kid === k).slice(0, 3);
-    return '<section class="sec" id="secCt"><h2>사범님께 연락</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기</button></div>' +
-      L.map(x => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + esc(x.short ? (x.day !== dayOfMs(x.at) ? dShort(x.day) + ' ' : '') + x.short : x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘은? /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>').join('') + '</section>';
+    const L = (contact.msgs || []).filter(x => x.kid === k && dayOfMs(x.at) === todayK()), more = (contact.msgs || []).filter(x => x.kid === k).length - L.length; // 2026-11-16: 홈엔 오늘 것만, 나머지는 소식 → 사범님 연락
+    return '<section class="sec" id="secCt"><h2>사범님께 연락' + (more > 0 ? '<button data-news="사범님 연락">지난 연락 ' + more + '건</button>' : '') + '</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기</button></div>' +
+      L.map(cmsgRow).join('') + '</section>';
   }
+  const cmsgRow = x => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + esc(x.short ? (x.day !== dayOfMs(x.at) ? dShort(x.day) + ' ' : '') + x.short : x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘은? /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>';
   const dayOfMs = ms => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
   const todayK = () => dayOfMs(Date.now());
   // 도장에 가족 추가 요청 (보안: 주소를 아무에게나 보내지 않고 도장이 확인)
@@ -1084,7 +1085,7 @@
       h += '<button class="status' + (t.out ? ' out' : t.in ? ' in' : '') + '" data-go-tab="kid"><span class="si">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span class="st"><b>' +
         (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</b><small>' +
         (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>';
-      h += envSection(k) + homeTiles(k) + contactSection(k) + evSection(k); // 2026-11-15: 홈 미션 칸 뺌 (미션은 타일 → 새 창에서)
+      h += homeTiles(k) + envSection(k) + contactSection(k) + evSection(k); // 2026-11-16: 봉투는 아이콘 밑 // 2026-11-15: 홈 미션 칸 뺌 (미션은 타일 → 새 창에서)
     }
     const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장'], ['album', '새 사진이 올라왔어요', '앨범']].filter(([x]) => fresh(x));
     const askRows = asks.filter(x => !x.urgent).map(x => '<button class="li" data-news="' + (x.type === 'journal' ? '알림장' : '공지') + '"><span class="lic i-ask">' + ICON.check + '</span><span class="lt"><b>' + esc(x.title) + '</b><small>읽고 \'확인했어요\'를 눌러 주세요</small></span><i class="new"></i>' + ICON.right + '</button>').join('');
@@ -1171,10 +1172,11 @@
     const top = x => x.t === 'notice' && (x.pin || (x.urgent && !x.acked));
     const pinned = list.filter(top).sort((p, q) => (q.urgent - p.urgent) || (q.at - p.at));
     list = list.filter(x => !top(x)).sort((p, q) => q.at - p.at);
-    markSeen(t ? [t] : ['notice', 'journal', 'album']);
-    const chips = '<div class="chips sticky">' + ['전체', '공지', '알림장', '앨범'].map(k => '<button class="' + (k === newsF ? 'on' : '') + '">' + k + '</button>').join('') + '</div>';
+    if (newsF !== '사범님 연락') markSeen(t ? [t] : ['notice', 'journal', 'album']);
+    const chips = '<div class="chips sticky">' + ['전체', '공지', '알림장', '앨범', '사범님 연락'].map(k => '<button class="' + (k === newsF ? 'on' : '') + '">' + k + '</button>').join('') + '</div>';
     const card = feedRow; // 2026-11-13: 소식은 '○○이 올라왔어요' 한 줄 목록, 누르면 자세히
     let h = chips;
+    if (newsF === '사범님 연락') { const M = ((contact && contact.msgs) || []).filter(x => x.kid === curKid()); h += M.length ? '<div class="msec">' + esc(curKid()) + ' · 사범님께 보낸 연락</div><div class="sec">' + M.map(cmsgRow).join('') + '</div>' : '<div class="empty">보낸 연락이 없어요</div>'; tbody(h); $('tBody').onclick = e => { const c = e.target.closest('.chips button'); if (c) { newsF = c.textContent; paintNews(); scrollTo(0, 0); } }; return; }
     if (!s.approved && (t === 'journal' || t === 'album')) h += '<div class="empty">도장에서 확인이 끝나면 볼 수 있어요</div>';
     else if (!pinned.length && !list.length) h += '<div class="empty">아직 ' + (t ? newsF : '소식') + '이 없어요</div>';
     else h += (pinned.length ? '<div class="msec">꼭 읽어 주세요</div>' + pinned.map(card).join('') : '') + grouped(list, card);
@@ -1330,6 +1332,8 @@
       else if (!nt || !nt.ok) h += '<div class="empty">공지를 불러오지 못했어요</div>';
       else {
         const L = news.notice.slice().sort((p, q) => (q.urgent && !q.acked) - (p.urgent && !p.acked) || q.at - p.at), show = f === '전체' ? L.slice(0, 3) : L;
+        const MN = f === '공지' ? (((((site.monthly || {}).months) || []).find(x => x.month === month) || {}).notices || []) : []; // 2026-11-16: 일정 밑 '이달의 공지'도 공지에서 따로
+        if (MN.length) h += '<div class="msec">' + mLabel(month) + '의 공지사항</div><div class="list">' + MN.map(t => '<div class="li"><span class="lt"><b style="font-weight:600;white-space:normal">' + esc(t) + '</b></span></div>').join('') + '</div><div class="msec">도장 공지</div>';
         h += (f === '전체' ? '<div class="msec">공지' + (L.length > 3 ? '<button class="mlink" data-pf="공지">모두 보기 ›</button>' : '') + '</div>' : '') +
           (show.length ? (f === '전체' ? show.map(feedRow).join('') : grouped(show, feedRow)) : '<div class="calm" style="margin-top:12px"><span>아직 공지가 없어요</span></div>');
         if (f === '공지') markSeen(['notice']);
@@ -1602,15 +1606,15 @@
     const factors = () => {
       if (!per) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>'; // 2026-11-15: 성장 측정지 없앰 → 서버가 달마다 자동으로 만듦
       const ev = evAt(per.month), b = gBody(ev, ev ? gEvStat(ev, REC) : null), sc = perSc(per, b.lv), vals = sc.map(lvS), labels = sc.map(v => v == null ? '측정 전' : v + '점 · ' + GLB[lvS(v) - 1].replace('이에요', ''));
-      return totCard() + '<section class="gcard"><div class="gch"><b>성장에 영향을 주는 5가지 요소</b>' + (P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>') + '</div>' +
+      return totCard() + '<section class="gcard"><div class="gch"><b>성장에 영향을 주는 5가지 요소</b>' + (P.length > 0 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>') + '</div>' +
         gRadar(vals, labels, sc) + '<div class="glv">' + G5.map((t, i) => '<div><span>' + t + '</span><b class="l' + vals[i] + '">' + esc(labels[i]) + '</b></div>').join('') + '</div>' +
         '<p class="note" style="margin:8px 2px 0">5가지 요소는 기록·출석·심사로 저절로 점수가 정해져요 (90점 이상 아주 잘해요 · 70점 이상 잘해요). <a data-gf="성장 측정" style="color:var(--brand);font-weight:800">어디서 정했는지 보기 ›</a></p>' +
-        '<div class="gcm"><b>사범님 한마디</b><p>' + esc(per.cm) + '</p></div></section>';
+        '</section>'; // 2026-11-16: 사범님 한마디 없앰 (사용자 결정)
     };
     const gRows = () => { // 인바디 '상세'와 '변화'처럼 (2026-11-15 사용자 영상): 요소마다 큰 값 · 지난달보다 · 3칸 막대 + 달마다 꺾은선, 맨 아래 결과지
       if (!per) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>';
       const L = P.slice(Math.max(0, pi - 1), pi + 1).map(q => { const ev = evAt(q.month), st = ev ? gEvStat(ev, REC) : null, b = gBody(ev, st), sc = perSc(q, b.lv); return { m: +q.month.slice(5), ym: q.month, sc, v: sc.map(lvS), t: [b.t, ...q.att], s: [b.src, ...(q.src || [])], ev, st }; });
-      const cur = L[L.length - 1], prev = L[L.length - 2] || null, nav = P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>';
+      const cur = L[L.length - 1], prev = L[L.length - 2] || null, nav = P.length > 0 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>';
       const big = i => { const v = cur.sc[i]; if (v == null) return '<b class="pre">측정 전</b>'; return '<b>' + v + '</b><i>점</i>' + (i === 0 && cur.st && cur.st.best ? '<small>최고 ' + gFmt(cur.st.best.v) + esc(cur.ev.unit) + (cur.st.d > 0 ? ' (' + (cur.ev.lower ? '−' : '+') + gFmt(cur.st.d) + ')' : '') + '</small>' : ''); };
       const diff = i => { if (!prev || cur.sc[i] == null || prev.sc[i] == null) return ''; const d = cur.sc[i] - prev.sc[i]; return '<span class="ibd ' + (d > 0 ? 'up' : d < 0 ? 'dn' : '') + '">' + (d > 0 ? '▲ ' + d + '점' : d < 0 ? '▼ ' + -d + '점' : '지난달과 같아요') + '</span>'; };
       const bar = v => { const lv = lvS(v); return '<div class="ibbar"><div class="trk">' + (v != null ? '<i style="width:' + gPos(v).toFixed(1) + '%"></i>' : '') + '<em class="m" style="left:30%"></em><em class="m" style="left:70%"></em></div><div class="lab"><span style="flex:30"' + (v != null && lv === 1 ? ' class="on"' : '') + '>성장 중</span><span style="flex:40"' + (v != null && lv === 2 ? ' class="on"' : '') + '>잘해요</span><span style="flex:30"' + (v != null && lv === 3 ? ' class="on"' : '') + '>아주 잘해요</span></div></div>'; };
@@ -1648,7 +1652,6 @@
       (evL.length ? evL : [null]).slice(0, 4).forEach(x => { if (!x) { T('아직 잰 기록이 없어요 · 매달 첫째 주 금요일에 재요', 56, y, 14, '#5C5C5C'); y += 26; return; }
         T(x.e.name + (x.e.lower ? ' (짧을수록 좋아요)' : ''), 56, y, 14, '#1E1E1E', 700); T(x.st.first ? gFmt(x.st.first.v) + x.e.unit : '-', 520, y, 14, '#1E1E1E', 400, 'right'); T(x.st.best ? gFmt(x.st.best.v) + x.e.unit : '-', 640, y, 14, N, 800, 'right');
         T(x.st.d > 0 ? (x.e.lower ? '−' : '+') + gFmt(x.st.d) + x.e.unit + ' ▲' : x.st.best ? '기록 유지' : x.st.ms.length + '번 도전', W - 56, y, 14, x.st.d > 0 ? A : '#5C5C5C', 800, 'right'); y += 26; });
-      y += 10; rr(48, y, W - 96, 120, 12, '#F2EADD'); T('사범님 한마디', 66, y + 28, 14, A, 700); wrap(per.cm || '', 66, y + 56, W - 132, 14, '#1E1E1E', 23); y += 134;
       const nx = (() => { const m = +per.month.slice(5), e = evs.find(z => z.months[0] > m) || evs[0]; return e; })();
       if (nx) { rr(48, y, W - 96, 52, 12, null, N); rr(64, y + 13, 84, 26, 6, N); T('다음 도전', 106, y + 31, 13, '#fff', 900, 'center'); T(nx.months[0] + '~' + nx.months[nx.months.length - 1] + '월 종목 · ' + nx.name, 166, y + 32, 15, '#1E1E1E', 700); y += 64; }
       g.fillStyle = '#E6E1DA'; g.fillRect(48, H - 64, W - 96, 1); T('해랑경희 태권도장', 48, H - 34, 15, A, 900); T('기록은 비교가 아니라 성장을 보기 위한 것이에요', W - 48, H - 34, 12, '#5C5C5C', 400, 'right');
@@ -1672,7 +1675,7 @@
       return o;
     };
     const exam = !X.length ? '<section class="gcard gexam"><div class="gch"><b>승급 심사</b></div><div class="gwait"><div class="gico">🥋</div><b>아직 나온 심사 결과가 없어요</b><p>매달 심사가 끝나면 과목마다 결과가 여기에 쌓여요.</p></div></section>'
-      : '<section class="gcard"><div class="gch"><b>' + (+x.month.slice(5)) + '월 승급 심사' + (x.grp ? ' <small>' + esc(x.grp) + '</small>' : '') + '</b>' + (X.length > 1 ? '<span class="gnav"><button data-gx="-1"' + (xi <= 0 ? ' disabled' : '') + '>‹</button>' + (+x.month.slice(5)) + '월<button data-gx="1"' + (xi >= X.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (x.date ? (+x.date.slice(5, 7)) + '/' + (+x.date.slice(8)) : '') + '</small>') + '</div>' +
+      : '<section class="gcard"><div class="gch"><b>' + (+x.month.slice(5)) + '월 승급 심사' + (x.grp ? ' <small>' + esc(x.grp) + '</small>' : '') + '</b>' + (X.length > 0 ? '<span class="gnav"><button data-gx="-1"' + (xi <= 0 ? ' disabled' : '') + '>‹</button>' + (+x.month.slice(5)) + '월<button data-gx="1"' + (xi >= X.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (x.date ? (+x.date.slice(5, 7)) + '/' + (+x.date.slice(8)) : '') + '</small>') + '</div>' +
         (x.absent ? '<div class="gres rest">이번 달 심사는 쉬었어요</div>' : x.nb ? '<div class="gres">🎉 합격 · ' + esc(x.nb) + '로 올라가요</div>' : x.pass ? '<div class="gres">합격' + (x.cur ? ' · ' + esc(x.cur) : '') + '</div>' : '<div class="gres again">다음 심사에서 다시 도전해요 💪</div>') +
         (x.absent ? '' : '<div class="gx">' + examRows() + '</div>') + '</section>' +
         '<p class="note" style="margin:10px 4px 0">' + (x.v === 2 ? '과목마다 훌륭해요 / 연습이 필요해요로 평가해요. ' : '점수는 5점 만점이에요. ') + '심사 결과는 5가지 요소의 집중과 자기조절(품새·서기동작·기본동작), 자신감과 표현력(웅변·영어·특기), 배려와 리더십(인사)에 쓰여요.</p>';
