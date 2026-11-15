@@ -118,10 +118,10 @@ function draw() {
   $('#mP').onclick = () => { S.mo = S.mo === 1 ? 12 : S.mo - 1; draw(); }; $('#mN').onclick = () => { S.mo = S.mo === 12 ? 1 : S.mo + 1; draw(); };
   if (S.tab === 'in' && ev) bindIn(ev);
 }
-const groupOf = k => !k.gender ? '' : k.kinder ? '유치 ' + k.gender : k.gender;
+const groupOf = k => /^(중|고|성인)/.test(k.grade || '') ? '중고등' : !k.gender ? '' : k.kinder ? '유치 ' + k.gender : '초등 ' + k.gender; // 중고등부는 남녀 하나, 초등·유치는 남녀 따로 (2026-11-16)
 function drawIn(ev) {
   const L = S.kids.filter(k => k.status === '재원'), cnt = f => L.filter(f).length, none = k => valOf(k, ev, S.mo) == null;
-  const F = [['all', '전체', () => true], ['남', '남', k => groupOf(k) === '남'], ['여', '여', k => groupOf(k) === '여'], ['유치 남', '유치 남', k => groupOf(k) === '유치 남'], ['유치 여', '유치 여', k => groupOf(k) === '유치 여'], ['none', '미측정', none]];
+  const F = [['all', '전체', () => true], ['중고등', '중고등', k => groupOf(k) === '중고등'], ['초등 남', '초등 남', k => groupOf(k) === '초등 남'], ['초등 여', '초등 여', k => groupOf(k) === '초등 여'], ['유치 남', '유치 남', k => groupOf(k) === '유치 남'], ['유치 여', '유치 여', k => groupOf(k) === '유치 여'], ['none', '미측정', none]];
   const fl = (F.find(x => x[0] === S.f) || F[0])[2], q = S.q.trim(), V = L.filter(k => fl(k) && (!q || k.name.includes(q)));
   const noG = cnt(k => !k.gender);
   return '<input class="inp" id="q" style="margin-top:12px" placeholder="이름 검색" autocomplete="off" value="' + esc(S.q) + '">' +
@@ -159,10 +159,10 @@ async function saveVal(k, ev, v, row, redraw) {
   if (redraw) { const y = scrollY; draw(); scrollTo(0, y); }
 }
 function setSt(row, st) { const el = row && row.querySelector('.st'); if (!el) return; el.className = 'st ' + (st === '✓' ? 'ok' : st === '!' ? 'err' : ''); el.textContent = st === '✓' ? '저장됨' : st === '…' ? '저장 중' : '다시'; }
-/* 순위: 이번 분기에서 고른 달까지의 가장 좋은 기록(실패·미측정 빼고) · 남자부·여자부·유치부 남·유치부 여 따로 · 같은 기록은 같은 순위 */
+/* 순위: 이번 분기에서 고른 달까지의 가장 좋은 기록(실패·미측정 빼고) · 중고등부(남녀 하나)·초등부 남·여·유치부 남·여 따로 · 같은 기록은 같은 순위 */
 function bestOf(k, ev) { let best = null; ev.months.filter(m => m <= S.mo || ev.months.indexOf(S.mo) < 0).forEach(m => { const v = valOf(k, ev, m); if (v == null || isFail(v)) return; if (best == null || (ev.lower ? v < best : v > best)) best = +v; }); return best; }
 function drawRank(ev) {
-  const G = [['남', '남자부'], ['여', '여자부'], ['유치 남', '유치부 남자'], ['유치 여', '유치부 여자']];
+  const G = [['중고등', '중고등부'], ['초등 남', '초등부 남자'], ['초등 여', '초등부 여자'], ['유치 남', '유치부 남자'], ['유치 여', '유치부 여자']];
   const upto = ev.months.slice(0, ev.months.indexOf(S.mo) + 1).map(m => m + '월').join('·');
   let h = '<p class="help" style="margin-top:10px">' + upto + ' 가운데 가장 좋은 기록으로 순위를 매겨요. 같은 기록은 같은 순위예요.' + (ev.pf ? ' 실패한 달은 빼요.' : '') + '</p>';
   G.forEach(([g, t]) => {
