@@ -194,15 +194,15 @@ textarea{resize:vertical;line-height:1.65}
     </div>
     <div class="top-actions">
       <a class="btn" href="./" id="toTeam">‹ 업무</a>
-      <label class="btn" for="fRec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>기록 파일 올리기</label>
+      <label class="btn" for="fRec" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>기록 파일 올리기</label>
       <input class="sr" type="file" id="fRec" accept=".xlsx,.xls,.csv">
       <label class="btn" for="fCm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>한마디 파일 올리기</label>
       <input class="sr" type="file" id="fCm" accept=".xlsx,.xls,.csv,.txt">
-      <label class="btn" for="fAtt" id="fAttBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 15l2 2 4-4"/></svg>출석 파일 올리기</label>
+      <label class="btn" for="fAtt" id="fAttBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 15l2 2 4-4"/></svg>출석 파일 올리기</label>
       <input class="sr" type="file" id="fAtt" accept=".xlsx,.xls,.csv">
       <button class="btn" id="admBtn" type="button" hidden>🔒 예전 기능</button>
-      <button class="btn adm" id="bkOut" type="button">백업 내려받기</button>
-      <label class="btn adm" for="fBk">백업 불러오기</label>
+      <button class="btn" id="bkOut" type="button" hidden>백업 내려받기</button>
+      <label class="btn" for="fBk" id="fBkBtn" hidden>백업 불러오기</label>
       <input class="sr" type="file" id="fBk" accept=".json,application/json">
     </div>
   </div>
@@ -212,7 +212,7 @@ textarea{resize:vertical;line-height:1.65}
   <section class="settings" aria-label="공통 설정">
     <label class="field"><span>결과지 보내는 달</span><input type="month" id="sMonth"></label>
     <div class="field"><span>들어가는 기록</span><div class="qinfo" id="sQuarter"></div></div>
-    <label class="field" id="sHolF"><span>휴무일 (출석 계산에서 빼요)</span><input type="text" id="sHol" placeholder="예: 9/24, 9/25"></label>
+    <label class="field" id="sHolF" hidden><span>휴무일 (출석 계산에서 빼요)</span><input type="text" id="sHol" placeholder="예: 9/24, 9/25"></label>
     <div class="field"><span>끈기와 꾸준함 기준 (출석률 %)</span><div class="two" style="gap:6px"><label><span class="sr">아주 잘해요 기준</span><input type="number" id="sThHi" min="0" max="100" placeholder="아주 잘해요 90"></label><label><span class="sr">잘해요 기준</span><input type="number" id="sThMid" min="0" max="100" placeholder="잘해요 75"></label></div></div>
     <div class="field"><span>집중·자신감·배려 기준 (심사 평균 점수, 5점 만점)</span><div class="two" style="gap:6px"><label><span class="sr">아주 잘해요 기준</span><input type="number" id="sExHi" min="1" max="5" step="0.1" placeholder="아주 잘해요 4.5"></label><label><span class="sr">잘해요 기준</span><input type="number" id="sExMid" min="1" max="5" step="0.1" placeholder="잘해요 3.5"></label></div></div>
     <label class="field"><span>현재 선범단 인원</span><input type="number" id="sSbN" min="1" step="1" inputmode="numeric"></label>
@@ -528,7 +528,7 @@ async function loadAttQ(){
     if(ch) save(); attUi(); renderList(); if(view==='detail'){renderEditor();renderPreview();}
   }catch(e){ ATTQ=null; attUi(); }
 }
-function attUi(){ const on=!!ATTQ; const b=$('fAttBtn'), h=$('sHolF'); if(b) b.hidden=on; if(h) h.hidden=on; }
+function attUi(){} /* 2026-11-15 사용자 결정: 출석은 출석부에서만 자동 — 출석 파일·휴무일·출석 입력칸 다시 안 보임 */
 /* 사범님 한마디 초안 (2026-11-14): 기록·심사·출석을 보고 문장 묶음에서 고름(전에 그 제자에게 쓴 문장은 빼고) → 사범님은 고칠 제자만 고치고 '이대로 쓰기' */
 function cmCat(k){
   const i=peek(k)||{}, ev=curEv(), st=ev? stats(k,ev) : null, ea=effAtt(i,k), g=String(k.grade||'');
@@ -861,7 +861,7 @@ function renderList(){
 /* ---------- editor ---------- */
 function renderEditor(){
   const ed = $('editor');
-  if(!sel){ed.innerHTML='<div class="empty">기록 파일을 올리면 원생 목록이 나와요</div>';return;}
+  if(!sel){ed.innerHTML='<div class="empty">출석부 원생이 들어오면 목록이 나와요</div>';return;}
   const k=sel, i=inp(k), ev=curEv(), any=hasAny(k), sb=isSB(k);
   const rec = qVals(k,ev).map(x=>`${x.m}월 ${vtxt(x.v,ev)}`).join(' · ');
   const cats = [...new Set(comments.map(c=>c.cat).filter(Boolean))];
@@ -877,11 +877,7 @@ function renderEditor(){
     <label class="field"><span>띠</span><select id="eBelt"><option value="">선택 안 함</option>${beltOptions(k).map(b=>`<option ${b===beltOf(k)?'selected':''}>${b}</option>`).join('')}</select></label>
     <label class="field"><span>회원 상태${attStatusOf(k)?' · 출석부 기준':''}</span><select id="eSt" ${attStatusOf(k)?'disabled title="회원 상태는 출석부 원생 관리에서 바꿔요"':''}>${STATUSES.map(s=>`<option ${s===statusOf(k)?'selected':''}>${s}</option>`).join('')}</select></label>
   </div>
-  ${i.attSrc==='출석부'&&ATTQ? `<div class="meta">출석 ${i.an} / ${i.at}회 · 출석부에서 자동 (${ATTQ.months.map(m=>+m.slice(5)+'월').join('·')}, 휴관일 빼고)</div>` : `<div class="two">
-    <label class="field"><span>출석 (회)</span><input type="number" id="eAn" min="0" step="1" inputmode="numeric" value="${i.an!=null?esc(i.an):''}" placeholder="예: 20"></label>
-    <label class="field"><span>전체 수업 (회)</span><input type="number" id="eAt" min="0" step="1" inputmode="numeric" value="${i.at!=null?esc(i.at):''}" placeholder="예: 22"></label>
-  </div>`}
-  ${i.rate!=null&&(i.an==null||i.an==='')?`<div class="meta">출석 파일에서 받은 출석률 ${fmt(+i.rate)}%가 들어가요. 횟수를 적으면 횟수로 바뀌어요.</div>`:''}
+  ${i.attSrc==='출석부'? `<div class="meta">출석 ${i.an} / ${i.at}회 · 출석부에서 자동${ATTQ? ' ('+ATTQ.months.map(m=>+m.slice(5)+'월').join('·')+', 휴관일 빼고)' : ''}</div>` : `<div class="meta">출석은 출석부 기록으로 자동으로 들어가요${ATTQ? ' (이 친구는 이번 분기 출석부 기록이 아직 없어요)' : ' (출석부를 불러오는 중이에요)'}</div>`}
   <label class="check sbcheck"><input type="checkbox" id="eSB" ${sb?'checked':''}> 선범단이에요</label>
 
   <div class="sec"><h3>5가지 성장 <em>02~05 사범님 관찰</em></h3>
@@ -1204,8 +1200,8 @@ $('fBk').onchange=async e=>{
     toast('불러왔어요. 다시 여는 중이에요'); setTimeout(()=>location.reload(),900);
   }catch(err){ setSync(''); toast('불러오지 못했어요. '+(err.message||'')); }
 };
-load(); renderAll(); dbInit().then(()=>{ if(db){ loadAttStatus(); loadExam(); loadAttQ(); tcall('/api/whoami',{}).then(j=>{ if(j.boss) $('admBtn').hidden=false; }).catch(()=>{}); } });
-$('admBtn').onclick=()=>{ const on=document.body.classList.toggle('showadm'); $('admBtn').textContent=on? '🔓 예전 기능 닫기' : '🔒 예전 기능'; if(on) toast('결과지 사진 저장·백업은 평소엔 쓸 일이 없어요. 학부모 앱으로 바로 가고, 백업은 업무 앱 📦 백업에 들어 있어요.'); };
+load(); renderAll(); dbInit().then(()=>{ if(db){ loadAttStatus(); loadExam(); loadAttQ(); tcall('/api/whoami',{}).then(j=>{ if(j.boss){ $('admBtn').hidden=false; $('bkOut').hidden=false; $('fBkBtn').hidden=false; } }).catch(()=>{}); } });
+$('admBtn').onclick=()=>{ const on=document.body.classList.toggle('showadm'); $('admBtn').textContent=on? '🔓 예전 기능 닫기' : '🔒 예전 기능'; if(on) toast('결과지 사진 저장은 평소엔 쓸 일이 없어요. 학부모 앱 성장 리포트로 바로 가요.'); };
 </script>
 
 </body></html>
