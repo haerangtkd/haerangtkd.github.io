@@ -563,16 +563,18 @@ async function route(path, req, env, ctx) {
       return json(out);
     }
     if (path === '/api/exam-notify') { // 마감한 심사 → 그 달 심사를 본 제자의 보호자에게 '심사 결과가 나왔어요' (6명씩, 화면이 next 로 이어서 부름)
-      if (!meta.closed) return json({ ok: false, error: '마감한 뒤에 보낼 수 있어요' });
-      const kidsN = (await all(env, 'SELECT name, data FROM exam WHERE month = ?', month)).filter(r => !J(r.data, {}).absent).map(r => r.name).filter(Boolean);
+      const only = Array.isArray(b.sids) ? b.sids.map(x => str(x, 40)) : null; // 오늘만 마감한 제자만 (2026-11-16)
+      if (!meta.closed && !only) return json({ ok: false, error: '마감한 뒤에 보낼 수 있어요' });
+      const kidsN = (await all(env, 'SELECT sid, name, data FROM exam WHERE month = ?', month)).filter(r => { const d = J(r.data, {}); const sent = (meta.parts || []).filter(x => x.notified).flatMap(x => x.sids || []); return !d.absent && (only ? d.fin && only.includes(r.sid) : !sent.includes(r.sid)); }).map(r => r.name).filter(Boolean);
       if (!kidsN.length) return json({ ok: true, sent: 0, next: null });
       const r = await noticeSync(env, '/sync/broadcast', { title: '🏅 ' + (+month.slice(5)) + '월 심사 결과가 나왔어요', body: '성장 리포트 → 심사에서 과목마다 결과를 볼 수 있어요', children: kidsN, offset: b.offset | 0, view: 'grow', kind: '심사' });
-      if (r.ok && !r.next) { meta.closed.notified = Date.now(); await ks(mk, meta); }
+      if (r.ok && !r.next) { if (only) { const pt = (meta.parts || []).find(x => x.sids && only.every(z => x.sids.includes(z))); if (pt) pt.notified = Date.now(); } else meta.closed.notified = Date.now(); await ks(mk, meta); }
       return json(r);
     }
     if (path === '/api/exam-set') {
       if (meta.closed) return json({ ok: false, error: '마감한 심사예요. 고치려면 마감을 풀어 주세요' });
       const sid = str(b.sid, 40); if (!sid) return json({ ok: false, error: '잘못된 요청' });
+      const old = await one(env, 'SELECT data FROM exam WHERE month = ? AND sid = ?', month, sid); if (old && J(old.data, {}).fin) return json({ ok: false, error: '결과를 확정(오늘 마감)한 제자예요. 고치려면 마감을 풀어 주세요' }); // 오늘만 마감 (2026-11-16)
       const d = b.data || {}, sc = {}, tx = {}; EXAM_KEYS.forEach(k => { const v = +((d.sc || {})[k]); if (v === 1 || v === 2) sc[k] = v; }); // 2 = 훌륭해요, 1 = 연습이 필요해요
       EXAM_TX.forEach(k => { const t = str((d.tx || {})[k], 200).trim(); if (t) tx[k] = t; });
       const clean = { v: 2, grp: EXAM2[d.grp] ? d.grp : 'elem', sc, tx, pass: d.pass !== false, nb: str(d.nb, 10), cur: str(d.cur, 10), absent: !!d.absent, memo: str(d.memo, 300), by: me.name };
@@ -596,24 +598,35 @@ async function route(path, req, env, ctx) {
       const ym = (+month.slice(5)) + '월';
       if (path === '/api/exam-close') {
         if (meta.closed) return json({ ok: false, error: '이미 마감했어요' });
-        const rows = await all(env, 'SELECT sid, name, data FROM exam WHERE month = ?', month), applied = [], miss = [];
+        const today = !!b.today, td = kstDay(); // 오늘만 마감 (2026-11-16 사용자 결정): 오늘 채점한 제자만 결과 확정(띠·알림), 나머지는 그 달 안에 계속 채점
+        let rows = await all(env, 'SELECT sid, name, data, upd FROM exam WHERE month = ?', month); const applied = [], miss = [];
+        if (today) { rows = rows.filter(r => { const d = J(r.data, {}); return !d.fin && !d.absent && Object.keys(d.sc || {}).length && kstDay(new Date(r.upd)) === td; }); if (!rows.length) return json({ ok: false, error: '오늘 채점한 제자가 없어요' }); }
+        else rows = rows.filter(r => !J(r.data, {}).fin); // 이미 확정한 제자는 띠·알림을 다시 하지 않음
         rows.forEach(r => { const d = J(r.data, {}); if (d.absent || d.pass === false || !d.nb) return; const k = bySid[r.sid], id = k ? k.name + '|' + k.birth : '';
           const prev = (r.sid && AB[r.sid]) || (id && st.belts[id]) || ''; if (prev === d.nb) return; if (id) st.belts[id] = d.nb; else if (!r.sid || !(r.sid in AB)) { miss.push(r.name); return; }
           applied.push([id, prev, d.nb, r.name, r.sid || '']); });
         const bs = await attSync(env, '/sync/belt-set', { items: applied.filter(a => a[4]).map(a => ({ sid: a[4], belt: a[2], why: ym + ' 심사 합격' })), who: me.name });
         if (!bs.ok) return json({ ok: false, error: '출석부에 띠를 넣지 못했어요. 잠시 후 다시 마감해 주세요' });
         await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', 'app/settings', JSON.stringify(sd), Date.now(), me.id);
-        meta.closed = { at: Date.now(), by: me.name, applied, miss }; meta.topicAt = topicOf(cfg, month, meta); await ks(mk, meta);
-        await addLog(env, me.id, 'exam', ym + ' 승급 심사를 마감했어요 · 띠 바뀐 제자 ' + applied.length + '명', month).catch(() => {});
+        if (today) { const now = Date.now();
+          await env.DB.batch(rows.map(r => { const d = J(r.data, {}); d.fin = now; return q(env, 'UPDATE exam SET data = ? WHERE month = ? AND sid = ?', JSON.stringify(d), month, r.sid); }));
+          (meta.parts = meta.parts || []).push({ at: now, by: me.name, applied, miss, sids: rows.map(r => r.sid) }); meta.topicAt = topicOf(cfg, month, meta); await ks(mk, meta);
+          await addLog(env, me.id, 'exam', ym + ' 승급 심사 · 오늘 본 제자 ' + rows.length + '명 결과 확정 · 띠 바뀐 제자 ' + applied.length + '명', month).catch(() => {}); }
+        else { const PA = (meta.parts || []).flatMap(x => x.applied || []);
+          meta.closed = { at: Date.now(), by: me.name, applied: PA.concat(applied), miss: (meta.parts || []).flatMap(x => x.miss || []).concat(miss) }; meta.topicAt = topicOf(cfg, month, meta); await ks(mk, meta);
+          await addLog(env, me.id, 'exam', ym + ' 승급 심사를 마감했어요 · 띠 바뀐 제자 ' + applied.length + '명', month).catch(() => {}); }
         ctx.waitUntil(kidPushMany(env, rows.map(r => { const d = J(r.data, {}); if (d.absent) return null; const nb = d.pass !== false && d.nb && d.nb !== d.cur ? d.nb : '';
           return { name: r.name, title: nb ? '🎉 ' + nb + ' 축하축하!' : d.pass === false ? '💪 ' + ym + ' 심사 결과가 나왔어요' : '🏅 ' + ym + ' 심사 합격!', body: nb ? ym + ' 승급 심사 합격 · 제자 앱에서 결과를 확인해 봐요' : d.pass === false ? '다음 심사에서 다시 도전해요 · 제자 앱에서 결과를 확인해 봐요' : '제자 앱에서 과목마다 결과를 확인해 봐요' }; }).filter(Boolean)).catch(() => {})); // 🥋 제자 앱에도
-        return json({ ok: true, meta, n: applied.length, miss });
+        return json({ ok: true, meta, n: applied.length, miss, sids: rows.map(r => r.sid), cnt: rows.length });
       }
-      if (!meta.closed) return json({ ok: false, error: '마감하지 않은 심사예요' });
+      if (!meta.closed && !(meta.parts || []).length) return json({ ok: false, error: '마감하지 않은 심사예요' });
+      if (!meta.closed) meta.closed = { applied: meta.parts.flatMap(x => x.applied || []) }; // 오늘만 마감한 것만 있을 때도 풀기
       let back = 0; const AP = meta.closed.applied || []; AP.forEach(([id, prev, nb, nm, sid]) => { if (!id || st.belts[id] !== nb) return; if (prev) st.belts[id] = prev; else delete st.belts[id]; if (!sid) back++; });
       const rb = await attSync(env, '/sync/belt-set', { items: AP.filter(a => a[4]).map(a => ({ sid: a[4], belt: a[1] || '', ifBelt: a[2], why: ym + ' 심사 마감 풀기' })), who: me.name }); back += (rb && rb.n) || 0; // 그 뒤 손으로 바꾼 띠는 그대로
       await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', 'app/settings', JSON.stringify(sd), Date.now(), me.id);
-      delete meta.closed; await ks(mk, meta);
+      delete meta.closed; delete meta.parts; await ks(mk, meta);
+      const fr = (await all(env, 'SELECT sid, data FROM exam WHERE month = ?', month)).filter(r => J(r.data, {}).fin); // 오늘만 마감한 확정도 풀기
+      if (fr.length) await env.DB.batch(fr.map(r => { const d = J(r.data, {}); delete d.fin; return q(env, 'UPDATE exam SET data = ? WHERE month = ? AND sid = ?', JSON.stringify(d), month, r.sid); }));
       await addLog(env, me.id, 'exam', ym + ' 승급 심사 마감을 풀었어요 · 띠 ' + back + '명 되돌림', month).catch(() => {});
       return json({ ok: true, meta, n: back });
     }
@@ -1320,10 +1333,10 @@ function fixMsg(m) { return { ...m, refs: J(m.refs, []), reply: J(m.reply, null)
 // 그 달이 든 분기 안에서 그 달까지 마감한 심사의 '훌륭해요' 비율 → 80% 이상 아주 잘해요, 40% 이상 잘해요, 그 아래 성장 중이에요
 const examTh = st => { const t = (st && st.examTh) || {}; return { hi: +(t.hi ?? 4.5), mid: +(t.mid ?? 3.5) }; }; // 예전 1~5점 기준 (📈 성장 화면용, 지금은 안 씀)
 async function examClosed(env) { // 마감한 달만: { 'YYYY-MM': { meta, rows:[{sid, name, d}] } }
-  const ms = (await all(env, "SELECT k, v FROM kv WHERE k LIKE 'exam:%'")).map(r => ({ m: r.k.slice(5), meta: J(r.v, {}) })).filter(x => x.meta.closed && /^\d{4}-\d{2}$/.test(x.m));
+  const ms = (await all(env, "SELECT k, v FROM kv WHERE k LIKE 'exam:%'")).map(r => ({ m: r.k.slice(5), meta: J(r.v, {}) })).filter(x => (x.meta.closed || (x.meta.parts || []).length) && /^\d{4}-\d{2}$/.test(x.m)); // 오늘만 마감한 달은 확정한 제자만 (2026-11-16)
   const out = {}; if (!ms.length) return out; ms.forEach(x => { out[x.m] = { meta: x.meta, rows: [] }; });
   const rs = await all(env, 'SELECT month, sid, name, data FROM exam WHERE month IN (' + ms.map(() => '?').join(',') + ')', ...ms.map(x => x.m));
-  rs.forEach(r => { out[r.month].rows.push({ sid: r.sid, name: r.name, d: J(r.data, {}) }); }); return out;
+  rs.forEach(r => { const d = J(r.data, {}); if (!out[r.month].meta.closed && !d.fin) return; out[r.month].rows.push({ sid: r.sid, name: r.name, d }); }); return out;
 }
 const examRowOf = (m, who) => m.rows.find(r => who.sid && r.sid === who.sid) || (!who.sid || !m.rows.some(r => r.sid === who.sid) ? m.rows.find(r => r.name === who.name) : null);
 // 새 평가표 (2026-11-15 사용자 정리): 부마다 과목, 웅변·발차기는 나눠서 평가, 영어·품새·특기는 무엇을 했는지 적음
