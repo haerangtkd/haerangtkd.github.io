@@ -164,6 +164,8 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 .others{display:flex;flex-direction:column;gap:30px}
 .others div{border-top:1px solid #4A4A4A;padding-top:22px}
 .others h5{font-size:30px;font-weight:800}.others h5 small{font-size:20px;color:var(--hi);font-weight:700;margin-right:12px}
+.duty{display:inline-block;font-size:18px;font-weight:700;color:#1A1A1A;background:var(--hi);padding:4px 12px;margin-top:8px;border-radius:3px}
+.mcar .duty{margin:0 0 18px}
 .others p{font-size:19px;color:#BDBDBD;line-height:1.55;margin-top:8px}
 .kta{position:absolute;left:110px;bottom:70px;font-size:20px;color:#9C9C9C}
 
@@ -377,15 +379,16 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
   <div class="mphoto" data-a="l" style="--d:200"><img id="mImg" src="../../../photos/master-2.jpg" alt=""></div>
   <div class="mcar" data-a style="--d:400">
     <h3>안녕하십니까!</h3>
-    <h4 id="mName">대표 이아빈 사범</h4>
+    <h4 id="mName" style="margin-bottom:10px">대표 이아빈 사범</h4>
+    <span class="duty">모든 수업 · 등하원 · 상담 · 인성교육</span>
     <ul id="mCar">
       <li>경희대학교 태권도학과 학사</li><li>태권도 공인 6단</li><li>세계 태권도 평화 봉사 재단 해외 파견 단원 (교수법 발표회 1위)</li><li>서울특별시 대표 태권도 시범단 단원</li><li>세계 태권도 전문 트레이너 협회(WTPTA) 이사</li><li>대한 태권도 협회 격파 심판 자격</li><li>국제 태권도 사범 자격</li><li>전문·생활 스포츠 지도사 자격</li><li>헌병 특수임무대 태권도 조교</li>
     </ul>
   </div>
   <div class="others" id="others">
-    <div data-a="r" style="--d:600"><h5><small>지도 사범</small>김병수</h5><p>계명대학교 태권도학과 학사 · 태권도 공인 5단 · 경상북도 대표 태권도단 (전국체전 금메달) · 생활 스포츠 지도사 자격</p></div>
-    <div data-a="r" style="--d:750"><h5><small>코치</small>한채원</h5><p>경희대학교 체육대학 스포츠 코칭 아카데미 수료 · 생활스포츠지도사 자격 · NASM CPT · NASM CES 자격</p></div>
-    <div data-a="r" style="--d:900"><h5><small>지도 선생님</small>박성남</h5><p>라이프가드 안전요원 경력 · 유아교육, 웅변(스피치)교육 지도경력</p></div>
+    <div data-a="r" style="--d:600"><h5><small>지도 사범</small>김병수</h5><span class="duty">모든 수업 · 등하원 · 상담 · 인성교육</span><p>계명대학교 태권도학과 학사 · 태권도 공인 5단 · 경상북도 대표 태권도단 (전국체전 금메달) · 생활 스포츠 지도사 자격</p></div>
+    <div data-a="r" style="--d:750"><h5><small>코치</small>한채원</h5><span class="duty">근육통·운동 부상 관리 · 등하원 · 입시부 트레이닝·컨디셔닝</span><p>경희대학교 체육대학 스포츠 코칭 아카데미 수료 · 생활스포츠지도사 자격 · NASM CPT · NASM CES 자격</p></div>
+    <div data-a="r" style="--d:900"><h5><small>지도 선생님</small>박성남</h5><span class="duty">모든 수업 · 등하원 · 상담 · 인성교육</span><p>라이프가드 안전요원 경력 · 유아교육, 웅변(스피치)교육 지도경력</p></div>
   </div>
   <p class="kta" data-a style="--d:1000">본 도장은 대한태권도협회 등록 도장입니다.</p>
 </section>
@@ -547,13 +550,14 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 
   // 홈페이지(data.json)의 지도진 · 교육비를 그대로 씀 → 홈페이지를 고치면 여기도 바뀜
   const ROOT = '../../../';
+  const DUTY = r => /코치/.test(r || '') ? '근육통·운동 부상 관리 · 등하원 · 입시부 트레이닝·컨디셔닝' : '모든 수업 · 등하원 · 상담 · 인성교육';
   function staff(sf) {
     const ms = (sf && sf.members) || []; if (!ms.length) return;
     const L = ms[0];
     if (L.photo) document.getElementById('mImg').src = ROOT + L.photo;
     document.getElementById('mName').textContent = (L.role || '대표 사범').replace(' 사범', '') + ' ' + L.name + ' 사범';
     if (L.career && L.career.length) document.getElementById('mCar').innerHTML = L.career.map(c => '<li>' + esc(c) + '</li>').join('');
-    if (ms.length > 1) document.getElementById('others').innerHTML = ms.slice(1).map((m, k) => '<div data-a="r" style="--d:' + (600 + k * 150) + '"><h5><small>' + esc(m.role) + '</small>' + esc(m.name) + '</h5><p>' + (m.career || []).slice(0, 4).map(esc).join(' · ') + '</p></div>').join('');
+    if (ms.length > 1) document.getElementById('others').innerHTML = ms.slice(1).map((m, k) => '<div data-a="r" style="--d:' + (600 + k * 150) + '"><h5><small>' + esc(m.role) + '</small>' + esc(m.name) + '</h5><span class="duty">' + DUTY(m.role) + '</span><p>' + (m.career || []).slice(0, 3).map(esc).join(' · ') + '</p></div>').join('');
   }
   function leaders(l) {
     if (!l || !l.groups) return;
