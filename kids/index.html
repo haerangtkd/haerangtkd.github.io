@@ -178,13 +178,13 @@
   const STRIPE = ['노란줄띠', '초록줄띠', '초록검은띠', '보라검은띠', '파란검은띠', '주황검은띠'];
   const BC = { 흰: '#FFFFFF', 노란: '#F6C21C', 초록: '#2E9E4F', 보라: '#7B4FB8', 파란: '#2F6FDE', 주황: '#F08A24', 분홍: '#F07AA8', 밤: '#6B3E26', 빨간: '#D92D20' };
   function beltStyle(b) {
-    b = String(b || ''); if (/품/.test(b)) return { bg: 'linear-gradient(180deg,#D92D20 50%,#1C1A19 50%)', st: '' };
+    b = String(b || ''); if (/품/.test(b)) return { bg: b === '1품' ? 'linear-gradient(180deg,#1C1A19 50%,#D92D20 50%)' : '#1C1A19', st: '' }; // 1품 = 위 검정·아래 빨강, 2품부터 검은띠 (2026-11-15)
     const k = Object.keys(BC).find(x => b.startsWith(x)); const base = k ? BC[k] : '#EEE';
     if (/줄띠/.test(b)) return { bg: '#FFFFFF', st: base }; if (/검은띠/.test(b)) return { bg: base, st: '#1C1A19' }; return { bg: base, st: '' };
   }
   const beltDot = b => { const s = beltStyle(b); return '<i style="background:' + (s.st ? 'linear-gradient(180deg,' + s.bg + ' 35%,' + s.st + ' 35% 65%,' + s.bg + ' 65%)' : s.bg) + (s.bg === '#FFFFFF' ? ';outline:1px solid #DDD' : '') + '"></i>'; };
   function cardBg(b) { // 내 띠 카드 색 = 지금 띠 색
-    b = String(b || ''); if (/품/.test(b)) return { bg: 'linear-gradient(135deg,#1C1A19 0%,#1C1A19 45%,#D92D20 45%,#B3161B 100%)', light: false };
+    b = String(b || ''); if (/품/.test(b)) return { bg: b === '1품' ? 'linear-gradient(160deg,#1C1A19 0 50%,#D92D20 50%,#B3161B 100%)' : 'linear-gradient(135deg,#1C1A19,#3A3634)', light: false };
     const k = Object.keys(BC).find(x => b.startsWith(x)), c = k ? BC[k] : '#C9C2BA';
     if (!k || k === '흰') return { bg: 'linear-gradient(135deg,#FFFFFF,#F3ECE3)', light: true };
     if (/줄띠/.test(b)) return { bg: 'linear-gradient(160deg,#FFFFFF 0 38%,' + c + ' 38% 62%,#FFFFFF 62%)', light: true };

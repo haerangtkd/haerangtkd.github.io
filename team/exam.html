@@ -111,7 +111,7 @@ function toast(t) { const d = document.createElement('div'); d.className = 'toas
 const BELTS = ['흰띠','노란줄띠','노란띠','초록줄띠','초록띠','초록검은띠','보라띠','보라검은띠','파란띠','파란검은띠','주황띠','주황검은띠','분홍띠','밤띠','빨간띠','1품','2품','3품','4품','5품','6품'];
 const STRIPE = ['노란줄띠','초록줄띠','초록검은띠','보라검은띠','파란검은띠','주황검은띠'];
 const BCOL = { 흰: '#fff', 노란: '#F6D32D', 초록: '#3BA55C', 보라: '#7E4BC4', 파란: '#2F6FDB', 주황: '#F08A24', 분홍: '#F28AB8', 밤: '#6B3E26', 빨간: '#D62828' };
-const beltColor = b => /품$/.test(b) ? 'linear-gradient(90deg,#D62828 50%,#111 50%)' : /검은띠$/.test(b) ? 'linear-gradient(90deg,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 60%,#111 60%)' : /줄띠$/.test(b) ? 'linear-gradient(180deg,#fff 35%,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 35%,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 65%,#fff 65%)' : (BCOL[b.replace(/띠$/, '')] || '#ddd');
+const beltColor = b => /품$/.test(b) ? (b === '1품' ? 'linear-gradient(180deg,#111 50%,#D62828 50%)' : '#111') : /검은띠$/.test(b) ? 'linear-gradient(90deg,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 60%,#111 60%)' : /줄띠$/.test(b) ? 'linear-gradient(180deg,#fff 35%,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 35%,' + (BCOL[b.slice(0, 2)] || '#ccc') + ' 65%,#fff 65%)' : (BCOL[b.replace(/띠$/, '')] || '#ddd');
 const beltTag = b => b ? '<span class="belt"><i style="background:' + beltColor(b) + '"></i>' + esc(b) + '</span>' : '<span class="belt" style="color:var(--muted)">띠 모름</span>';
 function nextBelt(cur, kinder) {
   if (!cur) return ''; const i = BELTS.indexOf(cur); if (i < 0 || cur === '빨간띠' || /품$/.test(cur)) return cur;
