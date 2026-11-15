@@ -727,7 +727,7 @@ function whyBlock(d){
   const gp = d.guinnessPage || {}, gr = d.growth || {};
   const mixed = list(d.columns).find(c => /함께\s*수업|혼합\s*연령/.test(c.title || '') && c.url);
   const items = [
-    {step:'함께 배우고', href: mixed ? mixed.url : go('program'), k:'혼합연령수업', t:'형·동생이 함께하는 수업', p:'나이가 다른 친구들이 한 공간에서 어울리며 비교가 아닌 존중을, 경쟁이 아닌 협력을 배웁니다.'},
+    {step:'함께 배우고', href: mixed ? mixed.url : go('program'), k:'혼합연령수업[함께수업]', t:'형·동생이 함께하는 수업', p:'나이가 다른 친구들이 한 공간에서 어울리며 비교가 아닌 존중을, 경쟁이 아닌 협력을 배웁니다.'},
     S.leaders && {step:'서로 가르치고', href: go('leaders'), k:'먼저 선 · 모범 범 · 모일 단', t:'선범단(先範團)', p:'실력과 생활 태도를 지도진 모두에게 인정받은 수련생이 동생들을 가르치며 책임감과 배려를 경험합니다.'},
     S.character && {step:'바르게 자라고', href: go('character'), k:'매주 월요일', t:'인성 교육 · 태권웅변', p:'인성 활동지와 웅변으로 인사, 감사 표현, 자기 생각 말하기를 연습합니다.'},
     S.guinness && {step:'기록하고', href: go('guinness'), k:'매달 첫째 주 금요일', t: gp.title || '해랑 기네스', p:'석 달마다 종목을 하나 정해 매달 기록을 재고, 지난달 기록과 비교합니다.'},
@@ -940,7 +940,7 @@ function beltsPage(bt){
       <div class="bt-h"><b>${esc(s.t)}</b>${s.period ? `<span>${esc(s.period)}</span>` : ''}</div>
       ${s.motto ? `<p class="bt-motto">“${esc(s.motto)}”</p>` : ''}
       ${s.desc ? `<p class="bt-desc">${esc(s.desc)}</p>` : ''}
-      ${s.belt ? `<p class="bt-belt"><i style="background:${s.c ? `linear-gradient(180deg,${s.c} 0 50%,#1C1A19 50%)` : '#1C1A19'}"></i>${s.patch ? `<em style="background:${s.patch}"></em>` : ''}${esc(s.belt)}</p>` : ''}
+      ${s.belt ? `<p class="bt-belt"><i style="background:${s.c ? `linear-gradient(180deg,#1C1A19 0 50%,${s.c} 50%)` : '#1C1A19'}"></i>${s.patch ? `<em style="background:${s.patch}"></em>` : ''}${esc(s.belt)}</p>` : ''}
     </div>`).join('')}
     ${bt.closing ? `<p class="bt-foot">${esc(bt.closing)}</p>` : ''}
     ${certHtml}`;
