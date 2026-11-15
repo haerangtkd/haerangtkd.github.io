@@ -238,6 +238,8 @@
   .sheet h3{font-size:16px;font-weight:900;margin:2px 4px 10px}
   .sheet button.k{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:12px 6px;font-size:17px;font-weight:700;border-radius:12px}
   .sheet button.k.on{background:var(--brand-soft);color:var(--brand)}
+  .sheet .dsi{padding:12px 6px;border-top:1px solid var(--line)}.sheet .dsi:first-of-type{border-top:0}.sheet .dsi b{display:block;font-size:16px;margin-top:6px}.sheet .dsi small{color:var(--muted);font-size:13px}.sheet .dsi p{margin:6px 0 0;font-size:14.5px;color:#3a3532;white-space:pre-wrap}
+  .sheet .dsx{width:100%;margin-top:12px;border:0;border-radius:14px;padding:14px;background:var(--brand);color:#fff;font-size:16px;font-weight:800}
   .sheet .avatar{width:40px;height:40px;font-size:16px;box-shadow:none}
 
   /* ═════════ 2026-11 새 디자인 (위 기본 모양을 덮어씀) ═════════ */
@@ -1281,6 +1283,7 @@
           const key = month + '-' + String(d).padStart(2, '0'), ev = by[key] || [];
           cells += '<div class="c' + (key === today() ? ' t' : '') + (ev.length ? ' has' : '') + '"' + (ev.length ? ' data-day="' + key + '"' : '') + '><span class="n">' + d + '</span>' + (ev.length ? '<span class="evs">' + ev.slice(0, 3).map(x => '<i class="k-' + esc(x.kind || '기타') + '"></i>').join('') + '</span>' : '') + '</div>';
         }
+        planItems = items; // 날짜를 누르면 그날 일정 창 (2026-11-15 사용자: 예전처럼 창이 떠야 함)
         const rng = x => { const d = md(x.date); if (!x.end || x.end === x.date) return { top: d.w, big: d.d }; const e = md(x.end); return { top: d.m === e.m ? d.d + '~' + e.d : '', big: d.d, sub: '~' + (d.m === e.m ? '' : e.m + '/') + e.d }; };
         h += (f === '전체' ? '<div class="msec">' + mLabel(month) + ' 일정</div>' : '') + '<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
           planGrid(month, items, (site.monthly || {}).weekday, '', { today: today(), notices: ((((site.monthly || {}).months) || []).find(x => x.month === month) || {}).notices }) +
@@ -1326,8 +1329,19 @@
       const hc = e.target.closest('[data-hwc]'); if (hc) { hwToggle(hc.dataset.hwc); return drawPlan(month, inPage); }
       const hw = e.target.closest('[data-hw]'); if (hw) return hwSheet(hw.dataset.hw);
       const ad = e.target.closest('[data-ad]'); if (ad) { attSel = ad.dataset.ad; return drawPlan(month, inPage); }
-      const c = e.target.closest('[data-day]'); if (c) { const all = [...box.querySelectorAll('.list.sch .li, .ftb .r')].sort((p, q) => p.dataset.d.localeCompare(q.dataset.d)), el = all.find(li => li.dataset.d === c.dataset.day) || all.reverse().find(li => li.dataset.d <= c.dataset.day && c.dataset.day <= (li.dataset.e || li.dataset.d)) || all.find(li => li.dataset.d <= c.dataset.day); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); } }
+      const c = e.target.closest('[data-day]'); if (c && daySheet(c.dataset.day)) return; if (c) { const all = [...box.querySelectorAll('.list.sch .li, .ftb .r')].sort((p, q) => p.dataset.d.localeCompare(q.dataset.d)), el = all.find(li => li.dataset.d === c.dataset.day) || all.reverse().find(li => li.dataset.d <= c.dataset.day && c.dataset.day <= (li.dataset.e || li.dataset.d)) || all.find(li => li.dataset.d <= c.dataset.day); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); } }
     };
+  }
+
+  // 달력 날짜를 누르면 그날 일정 창 (수련 주제·행사·휴관, 2026-11-15)
+  let planItems = [];
+  function daySheet(day) {
+    const L = (planItems || []).filter(x => x.date <= day && day <= (x.end && x.end > x.date ? x.end : x.date)); if (!L.length) return false;
+    const d = md(day), sh = document.createElement('div'); sh.className = 'sheet';
+    sh.innerHTML = '<div class="in"><h3>' + d.m + '월 ' + d.d + '일 (' + d.w + ')</h3>' + L.map(x => '<div class="dsi"><span class="tag k-' + esc(x.kind || '기타') + '">' + esc(x.kind === '수련' ? '수련 주제' : x.kind || '일정') + '</span><b>' + esc(x.title) + '</b>' +
+      (x.end && x.end > x.date ? '<small>' + md(x.date).m + '/' + md(x.date).d + ' ~ ' + md(x.end).m + '/' + md(x.end).d + '</small>' : '') + (x.body ? '<p class="pre">' + esc(x.body) + '</p>' : '') + '</div>').join('') +
+      '<button class="dsx">닫기</button></div>';
+    sh.onclick = e => { if (e.target === sh || e.target.closest('.dsx')) sh.remove(); }; document.body.appendChild(sh); return true;
   }
 
   // ── 우리 아이: 출석 기록 + 정보 · 설정 ──

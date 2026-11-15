@@ -585,6 +585,7 @@ function cleanStudent(s) {
     inst: str(s.inst, 20),
     leavePeriods: (Array.isArray(s.leavePeriods) ? s.leavePeriods : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end) })).filter(p => p.start || p.end),
     temporarySchedules: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end), days: days(p.days) })).filter(p => p.start),
+    noInfo: !!s.noInfo, // 정보 입력이 필요 없는 제자 (2026-11-15 사용자 요청: 출석번호·학부모 연락처가 없어도 '없는 원생' 알림에서 빠짐)
     noAsk: !!s.noAsk, // 태블릿을 안 눌러도 '등원 알림 보낼까요?'를 묻지 않음 (보호자가 데려다주는 제자)
     notes: cleanNotes(s.notes), // 중요사항 (오늘 출석 이름 밑, 2026-11-13)
     // 회원 상태 바뀐 기록 (날짜·사유) — 업무 앱 원생 메뉴와 출석부가 같이 씀

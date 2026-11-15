@@ -236,7 +236,7 @@ function drawCard() {
     if (x.k === 'eng') h += '<div class="note">' + esc(engGuide(cur)) + (notes.eng ? ' · 이번 달: ' + esc(notes.eng) : '') + '</div><input class="inp tx" data-t="eng" maxlength="200" placeholder="무엇을 말했나요? (예: apple, banana)" value="' + esc(d.tx.eng || '') + '"' + dis + '>';
     else if (x.k === 'poom') { const yu = pumOf(cur) > 0; h += '<div class="note">' + (yu ? '유품자 · 필수 품새 + 랜덤 품새 1개' : '유급자 · 품새 1개') + ' · ' + GUIDE.poom + (notes.poom ? '<br>이번 달: ' + esc(notes.poom) : '') + '</div>' +
       '<div style="display:flex;gap:6px"><input class="inp tx" data-t="poom" maxlength="200" placeholder="' + (yu ? '필수 품새' : '무슨 품새를 했나요?') + '" value="' + esc(d.tx.poom || '') + '"' + dis + '>' + (yu ? '<input class="inp tx" data-t="poom2" maxlength="200" placeholder="랜덤 품새" value="' + esc(d.tx.poom2 || '') + '"' + dis + '>' : '') + '</div>'; }
-    else if (x.k === 'talent') h += '<input class="inp tx" data-t="talent" maxlength="200" placeholder="무슨 특기를 했나요?" value="' + esc(d.tx.talent || '') + '"' + dis + '>';
+    else if (x.k === 'talent') h += '<div class="note">특기 = 태권도 기술 (예: 540도 뒤후리기 · 하우스턴 · 텀블링 발차기)</div><input class="inp tx" data-t="talent" maxlength="200" placeholder="어떤 태권도 기술을 했나요? (예: 540도, 하우스턴)" value="' + esc(d.tx.talent || '') + '"' + dis + '>';
     else if (GUIDE[x.k]) h += '<div class="note">' + GUIDE[x.k] + '</div>';
     h += '<div class="sc2" data-s="' + x.k + '"><button data-v="2" class="g' + (v === GOOD ? ' on' : '') + '"' + dis + '>👍 훌륭해요</button><button data-v="1" class="m' + (v === MORE ? ' on' : '') + '"' + dis + '>💪 연습이 필요해요</button></div></div>';
   });

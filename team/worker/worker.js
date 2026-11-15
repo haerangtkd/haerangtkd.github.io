@@ -16,6 +16,7 @@ const SESSION_DAYS = 180;
 const TYPES = ['todo', 'sched', 'event', 'buy'];
 const TYPE_KO = { todo: '할 일', sched: '일정', event: '행사표', buy: '구매표' };
 
+const MILE_PER = 100; // 상점(스티커) 1개 = 마일리지 100원 (2026-11-15 사용자 결정)
 const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)',
   'CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, name TEXT, salt TEXT, pin TEXT, created INTEGER)',
@@ -36,6 +37,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, mid TEXT, kind TEXT, text TEXT, ref TEXT, at INTEGER)',
   'CREATE INDEX IF NOT EXISTS logs_at ON logs (at)',
   'CREATE TABLE IF NOT EXISTS gdocs (path TEXT PRIMARY KEY, data TEXT, upd INTEGER, mid TEXT)', // 기네스 결과지 (guinness.html)
+  'CREATE TABLE IF NOT EXISTS mile (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, sid TEXT, kind TEXT, n INTEGER, amt INTEGER, memo TEXT, by TEXT, at INTEGER)', // 💰 마일리지 (2026-11-15): 상점(스티커) 1개 = 100원, 업무 앱에서 제자 QR 찍고 적립·사용
   'CREATE TABLE IF NOT EXISTS exam (month TEXT, sid TEXT, name TEXT, data TEXT, upd INTEGER, mid TEXT, PRIMARY KEY (month, sid))', // 승급 심사 채점 (team/exam.html, 2026-11-14) — 제자(출석부 원생 id)마다 한 줄
   // 학부모 앱에서 들어온 행사 신청 (ev: 행사표 id, kid: 제자 이름) — state '' 새로 들어옴(행사표에 아직 안 넣음) / 'in' 행사표에 넣음
   'CREATE TABLE IF NOT EXISTS esign (ev TEXT, kid TEXT, data TEXT, rel TEXT, cancel INTEGER DEFAULT 0, state TEXT DEFAULT \'\', at INTEGER, upd INTEGER, PRIMARY KEY (ev, kid))',
@@ -278,7 +280,9 @@ async function route(path, req, env, ctx) {
       const L = data && Array.isArray(data.students) ? data.students.filter(k => k && k.name) : [], id = k => k.name + '|' + k.birth;
       L.forEach(k => { belts[id(k)] = (k.sid && AB[k.sid]) || (st.belts || {})[id(k)] || ''; }); // 띠 = 출석부 원생 정보 (없으면 예전 📈 성장 띠)
       const RL = AB.list, meR = RL ? RL.find(s => s.name === name) : null; // 선범단 = 출석부 원생 정보 (2026-11-15)
-      const me = L.find(k => k.name === name), mid = me ? id(me) : '';
+      // 내 기록 안 보이던 것 (2026-11-15): 이름만으로 찾으면 sid 없는 예전 줄을 먼저 잡을 수 있음 → 출석부 원생 번호로 먼저 찾고, 같은 제자 줄의 기록은 합침
+      const cands = L.filter(k => (meR && meR.id && k.sid === meR.id) || k.name === name), me = cands.find(k => meR && meR.id && k.sid === meR.id) || cands[0], mid = me ? id(me) : '';
+      const recAll = {}; cands.forEach(k => { Object.entries(k.rec || {}).forEach(([ev, ms]) => { recAll[ev] = Object.assign({}, ms || {}, recAll[ev] || {}); }); }); if (me) Object.entries(me.rec || {}).forEach(([ev, ms]) => { recAll[ev] = Object.assign(recAll[ev] || {}, ms || {}); });
       let pct = null; if (me) { const per = await all(env, "SELECT path, data FROM gdocs WHERE path LIKE 'inputs/P%' ORDER BY path DESC"); for (const r of per) { const x = ((J(r.data, {}) || {}).kids || {})[mid]; if (x && x.beltPct != null && x.beltPct !== '') { pct = Math.max(0, Math.min(100, +x.beltPct)); break; } } }
       // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번): 유치부 여부 · 목표 띠(업무 앱 원생 상세) · 심사 결과 · 이번 달 심사 준비 · 선 모으기(모두 봄)
       const kv = async k => J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, null), mon = kstDay().slice(0, 7);
@@ -289,10 +293,11 @@ async function route(path, req, env, ctx) {
       const prep = { month: mon, date: em.date || '', closed: !!em.closed, topic, notes: Object.assign({}, em.notes || {}, tt && tt.text ? { speech: tt.text } : {}), vid: vids[myBelt] || '' };
       const sun = ((await kv('sun:' + mon)) || []).map(x => ({ name: x.name, cat: x.cat || '', text: x.text || '', at: x.at }));
       try { const st = (await sunStatus(env))[name]; if (st) prep.sunMe = Object.assign({ need: SUN_NEED }, st); } catch (_) {} // 내 도장 · 경고 (prep에 실어 보냄 — 알림 서버를 안 고치려고)
-      return json({ ok: true, sid: me ? me.sid || '' : '', kinder: !!(me && String(me.grade || '').includes('유치')), goal, exams, prep, sun,
+      const mile = +((await one(env, 'SELECT COALESCE(SUM(amt), 0) AS t FROM mile WHERE name = ?', name)) || {}).t || 0; // 💰 마일리지
+      return json({ ok: true, mile, sid: me ? me.sid || '' : '', kinder: !!(me && String(me.grade || '').includes('유치')), goal, exams, prep, sun,
         belt: me ? (belts[mid] || me.belt0 || '') : (AB['n:' + name] || ''), beltPct: pct, sb: RL ? !!(meR && meR.sb) : !!(me && sb[mid]),
         sbList: RL ? RL.filter(s => s.sb && s.status !== '퇴관').map(s => ({ name: s.name, belt: s.belt || '' })) : L.filter(k => sb[id(k)] && status[id(k)] !== '퇴관').map(k => ({ name: k.name, belt: belts[id(k)] || k.belt0 || '' })),
-        events: data ? (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })) : [], rec: me ? (me.rec || {}) : {} });
+        events: data ? (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })) : [], rec: recAll });
     }
     if (path === '/sync/grow') { // 학부모 앱 '성장' (2026-11-15 사용자 결정: 성장 측정지 없앰 → 측정하면 바로 채워지는 인바디 리포트)
       // 달마다 5가지 요소 = 몸의 기초(🏆 기네스 기록) · 끈기(출석부 출석률) · 집중·자신감·배려(🏅 심사 평균) — 데이터가 없으면 '잘해요'. 사범님 한마디는 기록·출석·심사를 보고 문장 묶음에서 자동(예전에 손으로 쓴 한마디는 그대로)
@@ -800,6 +805,26 @@ async function route(path, req, env, ctx) {
     await run(env, "INSERT INTO kv (k, v) VALUES ('kgoal', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(g));
     await addLog(env, me.id, 'member', '🎯 ' + str(b.name, 20) + ' 제자 모드 목표 띠: ' + (belt || '기본'), '');
     return json({ ok: true });
+  }
+  if (path.startsWith('/api/mile-')) { // 💰 마일리지 (2026-11-15 사용자 결정: 직원이 상점 개수를 넣으면 ×100원, 쓸 때도 제자 QR 찍고 금액 빼기)
+    let name = str(b.name, 20);
+    if (path === '/api/mile-who') { const r = await noticeSync(env, '/sync/kqr-who', { qr: str(b.qr, 40) }).catch(() => ({ ok: false, error: '학부모 앱 서버에 닿지 않아요' })); if (!r.ok) return json(r); name = r.name; }
+    if (!name) return json({ ok: false, error: '제자를 골라 주세요' });
+    const bal = async () => +((await one(env, 'SELECT COALESCE(SUM(amt), 0) AS t FROM mile WHERE name = ?', name)) || {}).t || 0;
+    if (path === '/api/mile-add') { const n = Math.floor(+b.n); if (!(n >= 1 && n <= 100)) return json({ ok: false, error: '상점 개수를 1~100으로 넣어 주세요' });
+      await run(env, 'INSERT INTO mile (name, sid, kind, n, amt, memo, by, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', name, str(b.sid, 40), 'earn', n, n * MILE_PER, str(b.memo, 60), me.name, Date.now());
+      const t = await bal(); await addLog(env, me.id, 'mile', '💰 ' + name + ' 상점 ' + n + '개 → +' + (n * MILE_PER).toLocaleString() + '원 (잔액 ' + t.toLocaleString() + '원)', '');
+      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name, title: '💰 마일리지가 쌓였어요!', body: '상점 ' + n + '개 → +' + (n * MILE_PER).toLocaleString() + '원 · 지금 ' + t.toLocaleString() + '원' }).catch(() => {})); }
+    if (path === '/api/mile-use') { const amt = Math.floor(+b.amt); if (!(amt >= 100 && amt <= 1000000)) return json({ ok: false, error: '쓸 금액을 100원 이상으로 넣어 주세요' });
+      if (amt > await bal()) return json({ ok: false, error: '마일리지가 모자라요' });
+      await run(env, 'INSERT INTO mile (name, sid, kind, n, amt, memo, by, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', name, str(b.sid, 40), 'use', 0, -amt, str(b.memo, 60), me.name, Date.now());
+      const t = await bal(); await addLog(env, me.id, 'mile', '💰 ' + name + ' 마일리지 ' + amt.toLocaleString() + '원 사용' + (b.memo ? ' (' + str(b.memo, 60) + ')' : '') + ' · 잔액 ' + t.toLocaleString() + '원', '');
+      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name, title: '💰 마일리지를 썼어요', body: amt.toLocaleString() + '원 사용 · 남은 마일리지 ' + t.toLocaleString() + '원' }).catch(() => {})); }
+    if (path === '/api/mile-del') { const x = await one(env, 'SELECT * FROM mile WHERE id = ? AND name = ?', +b.id || 0, name); if (!x) return json({ ok: false, error: '이미 지워졌어요' });
+      if (x.by !== me.name && !me.boss) return json({ ok: false, error: '넣은 사람이나 관리자만 지울 수 있어요' });
+      if (x.amt > 0 && (await bal()) - x.amt < 0) return json({ ok: false, error: '이미 쓴 마일리지라 지울 수 없어요' });
+      await run(env, 'DELETE FROM mile WHERE id = ?', x.id); await addLog(env, me.id, 'mile', '💰 ' + name + ' 마일리지 기록 지움 (' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '원)', ''); }
+    return json({ ok: true, name, bal: await bal(), per: MILE_PER, list: await all(env, 'SELECT id, kind, n, amt, memo, by, at FROM mile WHERE name = ? ORDER BY id DESC LIMIT 30', name) });
   }
   if (path === '/api/sun-list' || path === '/api/sun-add' || path === '/api/sun-del') { // ⭐ 선범단 도장 찍기 (2026-11-14 선 모으기 → 2026-11-15 도장): 사범님이 넣고, 제자 모드에서 모든 제자가 봄
     const mon = /^\d{4}-\d{2}$/.test(str(b.month, 7)) ? str(b.month, 7) : kstDay().slice(0, 7), k = 'sun:' + mon;

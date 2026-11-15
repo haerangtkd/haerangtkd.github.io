@@ -154,6 +154,7 @@ async function route(path, req, env) {
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
         hw: hw.ok ? (hw.hw || []) : [], best: (km.best || []).slice(-4), comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
+        mile: t.ok && t.mile != null ? t.mile : null, // 💰 마일리지 (상점 1개 = 100원, 2026-11-15)
         kids: viaP || null, kinder: !!(t.ok && t.kinder), goal: t.ok ? t.goal || '' : '', exams: t.ok ? t.exams || [] : [], prep: t.ok ? t.prep : null, sun: t.ok ? t.sun || [] : [],
         prof: (await kvj(env, 'kprof:' + name)) || {}, qr: await kidQr(env, name), sbCard: t.ok && t.sb ? await sbCard(env, name) : null,
         evs: (await all(env, "SELECT title, kind, date FROM posts WHERE type = 'schedule' AND kind IN ('행사', '대회', '심사') AND date >= ? AND date <= ? ORDER BY date LIMIT 5", today, kstAdd(today, 30))) });
@@ -161,6 +162,7 @@ async function route(path, req, env) {
     if (path === '/k/prof') { // 프로필 꾸미기 · 대표 뱃지 3개 · 본 뱃지 (사진 대신 정해진 것 중에서 고르기)
       const old = (await kvj(env, 'kprof:' + name)) || {}, T = (v, n) => String(v == null ? '' : v).slice(0, n);
       const v = { av: T(b.av ?? old.av, 8), bg: /^#[0-9A-Fa-f]{6}$/.test(b.bg || '') ? b.bg : old.bg || '', fr: T(b.fr ?? old.fr, 12),
+        pledge: T(b.pledge ?? old.pledge, 200).trim(), mygoal: T(b.mygoal ?? old.mygoal, 100).trim(), // 선범단 다짐 · 내 목표 = 제자가 직접 (2026-11-15 사용자 결정)
         pins: (Array.isArray(b.pins) ? b.pins : old.pins || []).map(x => T(x, 20)).slice(0, 3), seen: Array.isArray(b.seen) ? b.seen.map(x => T(x, 20)).slice(0, 80) : old.seen }; // seen 이 없으면 '처음' (뱃지 축하 없이 기억만)
       await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kprof:' + name, JSON.stringify(v)); return json({ ok: true, prof: v });
     }
@@ -348,9 +350,10 @@ async function route(path, req, env) {
     const tok = String(b.token || '');
     if (!tok || !(await one(env, 'SELECT tok FROM kiosks WHERE tok = ?', tok))) return json({ ok: false, error: '출결 태블릿 등록이 풀렸습니다. 공용 PIN으로 다시 등록해 주세요', relogin: true }, 401);
     if (path === '/kiosk/lookup') {
-      const code = String(b.code || '').replace(/\D/g, '');
+      const code = String(b.code || '').replace(/\D/g, ''), qn = b.qr ? await qrName(env, b.qr) : null; // 제자 QR로 출석 (2026-11-15) — 제자 앱의 내 출석 QR을 전면 카메라로
+      if (b.qr && !qn) return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: [] });
       const today = kstDay(new Date());
-      const kst8 = await kidStatus(env), kids = (await all(env, 'SELECT name, codes FROM kids')).filter(k => J(k.codes, []).includes(code) && kst8[k.name] !== '퇴관').map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko'));
+      const kst8 = await kidStatus(env), kids = (await all(env, 'SELECT name, codes FROM kids')).filter(k => (qn ? k.name === qn : J(k.codes, []).includes(code)) && kst8[k.name] !== '퇴관').map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko'));
       const att = await all(env, 'SELECT name, tin, tout, tin_at FROM att WHERE day = ?', today);
       return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: kids.map(n => { const a = att.find(x => x.name === n) || {}; return { name: n, in: a.tin || null, out: a.tout || null, inAt: a.tin_at || null, outFrom: a.tin_at ? kstTime(new Date(a.tin_at + MIN_STAY)) : null }; }) });
     }
@@ -375,6 +378,7 @@ async function route(path, req, env) {
   }
 
   // ═════════ 출석부 서버에서 부름 (서비스 바인딩, SYNC_KEY 확인) ═════════
+  if (path === '/sync/kqr-who') { const name = await qrName(env, b.qr); return json(name ? { ok: true, name } : { ok: false, error: '해랑경희 제자 QR이 아니에요' }); } // 업무 앱 마일리지에서 QR 찍기 (2026-11-15)
   if (path === '/sync/kid-push') { // 🥋 제자 앱 기기에만 알림 (2026-11-15: 선범단 도장 → 그 제자만)
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     return json(await kidPush(env, String(b.name || ''), String(b.title || '').slice(0, 60), String(b.body || '').slice(0, 200)));
@@ -867,6 +871,7 @@ async function checkIn(env, name, act, kiosk) {
 // ─────────── 출석부 서버 연동 (서비스 바인딩 ATT) ───────────
 const kvj = async (env, k) => { const r = await one(env, 'SELECT v FROM kv WHERE k = ?', k); return r ? J(r.v, null) : null; };
 const kstAdd = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+async function qrName(env, qr) { qr = String(qr || '').trim().toUpperCase(); if (!/^HRK1-[A-Z0-9]{6,20}$/.test(qr)) return null; const r = await one(env, "SELECT k FROM kv WHERE k LIKE 'kqr:%' AND v = ?", JSON.stringify(qr)); return r ? r.k.slice(4) : null; }
 async function kidQr(env, name) { // 제자마다 내 출석 QR (2026-11-14) — 나중에 출결 태블릿 전면 카메라가 읽음. 코드·이름과 다른 값
   let q = await kvj(env, 'kqr:' + name); if (q) return q;
   q = 'HRK1-' + rid(6).toUpperCase(); await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'kqr:' + name, JSON.stringify(q)); return (await kvj(env, 'kqr:' + name)) || q;

@@ -71,6 +71,11 @@
   .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .bd{text-align:center;font-size:11.5px;font-weight:800;color:var(--ink);line-height:1.3}
   .bd .ic{width:58px;height:58px;margin:0 auto 4px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:radial-gradient(circle at 30% 30%,#FFF6D6,#F7D774);box-shadow:0 3px 0 #D9A80B}
+  .pimg{width:100%;height:100%;object-fit:contain;display:block}.bd .ic .pimg{width:58px;height:58px}.pins .pimg{width:30px;height:30px;margin:0 auto}.av .pimg{border-radius:50%}
+  .goal{display:flex;align-items:center;gap:12px}.goal b{flex:1;font-size:18px;line-height:1.4}.goal button{border:0;border-radius:12px;background:#F3ECE3;padding:8px 12px;font-weight:900;font-size:13.5px}
+  .rl{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px dashed var(--line)}.rl:first-of-type{border-top:0}.rl b{flex:1;font-size:15px}.rl .v{font-size:20px;font-weight:900}.rl .v small{font-size:12px;color:var(--muted);margin-left:2px}
+  .qrm{margin-left:auto;border:0;background:#fff;border-radius:12px;padding:5px;width:64px;height:64px;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.15)}.qrm svg{width:54px;height:54px}
+  .allb{border:0;background:none;color:var(--brand);font-weight:900;font-size:13.5px;margin-left:auto}
   .bd.off{color:#B5ADA5}.bd.off .ic{background:#EFE9E2;box-shadow:none;filter:grayscale(1);opacity:.55}
   /* 명예의 전당 */
   .bestg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bestg div{background:#FFF7E6;border-radius:16px;padding:10px 12px}.bestg small{display:block;color:#9A6A12;font-size:12px;font-weight:800}.bestg b{font-size:17px}
@@ -120,26 +125,29 @@
   .tag{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11.5px;font-weight:900;margin-right:4px;vertical-align:1px}.tag.w{background:#E5F0FF;color:#1D63B0}.tag.s{background:#E4F4ED;color:#2F6B55}.tag.g{background:#FFF0C2;color:#8A5B00}
   /* 선범단 카드 */
   /* 선범단 카드 (2026-11-15 사용자 요청: 품 증서 카드처럼 — 빨간 표지 + 흰 신분 카드 + 아래 남색 띠) */
-  .sbc{margin-top:6px;border-radius:18px;padding:18px 16px 0;background:repeating-conic-gradient(from 0deg at 50% 18%,#B3121B 0 6deg,#A40F16 6deg 12deg);box-shadow:0 10px 24px rgba(120,10,16,.3),inset 0 0 0 3px #D9B45A,inset 0 0 0 6px #A40F16,inset 0 0 0 7px #E9CF86;overflow:hidden;user-select:none;-webkit-user-select:none}
-  .sbc.warn{background:repeating-conic-gradient(from 0deg at 50% 18%,#E0A800 0 6deg,#F2B705 6deg 12deg)}
-  .sbc .in{position:relative;height:214px;perspective:1000px;cursor:pointer}
+  /* 선범단 학생증 (2026-11-15 사용자: 임명장 내용만 참고, 학생카드처럼 · 번호 빼고 날짜만) */
+  .sbc{margin-top:6px;user-select:none;-webkit-user-select:none;position:relative}
+  .sbc .in{position:relative;aspect-ratio:1.586;perspective:1000px;cursor:pointer}
   .sbc .fl{position:absolute;inset:0;transition:transform .6s;transform-style:preserve-3d}.sbc.flip .fl{transform:rotateY(180deg)}
-  .sbc .f,.sbc .b{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:10px 12px;color:#1C1A19;background:#FBFAF7 radial-gradient(circle at 30% 60%,rgba(164,15,22,.05) 0 40%,transparent 41%);box-shadow:0 0 0 4px #C9A24B,0 0 0 6px #1C2A4A,0 6px 14px rgba(0,0,0,.35);overflow:hidden;font-family:'Pretendard Variable',sans-serif}
-  .sbc .b{transform:rotateY(180deg)}
-  .sbc .no{font-size:11px;font-weight:800;letter-spacing:.5px}
-  .sbc .rb{position:absolute;right:12px;top:8px;background:#1F3B8C;color:#fff;font-weight:900;font-size:18px;padding:3px 14px 3px;clip-path:polygon(0 0,100% 0,92% 50%,100% 100%,0 100%,8% 50%);font-family:serif;letter-spacing:2px}
-  .sbc .nm{margin-top:5px;font-size:16px;font-weight:900;white-space:nowrap}.sbc .nm i{font-style:normal;font-weight:600;font-size:12.5px;letter-spacing:.5px;margin-left:6px}
-  .sbc .ln{font-size:10.5px;line-height:1.5;font-weight:600;color:#33302D}
-  .sbc .ct{font-size:11.5px;font-weight:900;margin-top:3px}.sbc .en{font-size:8.5px;line-height:1.3;color:#6E6862;font-style:italic;margin-top:1px;max-width:200px}
-  .sbc .cdd{position:absolute;left:12px;bottom:40px;font-size:11.5px;font-weight:800}
-  .sbc .csg{position:absolute;left:12px;bottom:9px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:6px}
-  .sbc .cseal{width:30px;height:30px;border:2px solid #C8102E;border-radius:4px;color:#C8102E;font:900 9.5px/1.05 serif;display:grid;place-items:center;text-align:center;transform:rotate(-6deg);opacity:.9}
-  .sbc .ph{position:absolute;right:12px;top:42px;width:78px;height:100px;border-radius:4px;background:#E9E4DD center/cover;display:grid;place-items:center;font-size:38px;pointer-events:none}
-  .sbc .rbw{position:absolute;right:12px;top:145px;width:78px;height:4px;background:linear-gradient(90deg,#E4342B,#F2A93B,#F6D32D,#3BA55C,#2F6FDB,#7E4BC4)}
-  .sbc .wn{position:absolute;right:12px;bottom:10px;background:#3A2A00;color:#FFD54A;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:900}
-  .sbc .b h4{margin:2px 0 0;font-size:15px}.sbc .b p{white-space:pre-wrap;line-height:1.7;font-size:14px;margin:8px 0 0}
-  .sbc .band{margin:18px -16px 0;padding:10px 0 12px;background:#14214A;border-top:3px solid #D9B45A;text-align:center;color:#E9CF86;font-weight:900;letter-spacing:2px;font-size:15px}.sbc .band small{display:block;font-size:9.5px;letter-spacing:3px;opacity:.85;font-weight:700}
-  .sbc.warn .band{background:#3A2A00}
+  .sbc .f,.sbc .b{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;box-shadow:0 10px 24px rgba(9,49,111,.28)}
+  .sbc .f{background:#fff;color:#1C1A19}
+  .sbc .hd{height:27%;background:#09316F url(sb-bg.jpg) center 40%/cover;display:flex;align-items:center;gap:10px;padding:0 14px;color:#fff}
+  .sbc .hd img{width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+  .sbc .hd b{font-size:16px;font-weight:900;letter-spacing:.5px;text-shadow:0 1px 3px rgba(0,0,0,.45)}.sbc .hd small{display:block;font-size:10px;font-weight:800;letter-spacing:2px;opacity:.95;text-shadow:0 1px 3px rgba(0,0,0,.45)}
+  .sbc .bdy{display:flex;gap:14px;padding:10px 14px 0}
+  .sbc .ph{width:22%;aspect-ratio:3/4;border-radius:8px;background:#EEE9E2 center/cover;display:grid;place-items:center;font-size:34px;flex:none;box-shadow:0 0 0 2px #C0A355;overflow:hidden;pointer-events:none}
+  .sbc .ph .pimg{border-radius:0}
+  .sbc .rows{flex:1;min-width:0}.sbc .nm{font-size:21px;font-weight:900;letter-spacing:2px;line-height:1.1}.sbc .rn{font-size:10.5px;color:#7A736E;letter-spacing:1px;margin-top:2px}
+  .sbc .rw{display:flex;font-size:12.5px;margin-top:3px;gap:8px}.sbc .rw span{color:#7A736E;width:44px;flex:none}.sbc .rw b{font-weight:800}
+  .sbc .ft{position:absolute;left:0;right:0;bottom:0;padding:7px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;border-top:2px solid #C0A355;background:#FFFBF0}
+  .sbc .ft span{flex:1;color:#5A3B00}
+  .sbc .cseal{width:26px;height:26px;border:2px solid #C8102E;border-radius:4px;color:#C8102E;font:900 8.5px/1.05 serif;display:grid;place-items:center;text-align:center;transform:rotate(-6deg);opacity:.9}
+  .sbc .wn{position:absolute;right:12px;top:10px;background:#3A2A00;color:#FFD54A;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:900}
+  .sbc .b{transform:rotateY(180deg);background:#09316F url(sb-bg.jpg) center/cover;color:#fff;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:16px 22px}
+  .sbc .b:before{content:'';position:absolute;inset:0;background:rgba(9,49,111,.72)}.sbc .b>*{position:relative}
+  .sbc .b small{font-size:11px;letter-spacing:3px;color:#E9CF86;font-weight:800}.sbc .b h4{margin:4px 0 0;font-size:17px}.sbc .b p{white-space:pre-wrap;line-height:1.6;font-size:15px;margin:8px 0 0;font-weight:700}
+  .sbc.warn .f{box-shadow:0 0 0 4px #F2B705,0 10px 24px rgba(160,120,0,.35)}
+  .pled{display:block;width:100%;margin-top:10px;border:0;border-radius:14px;padding:12px;background:#FFF6D6;color:#5A3B00;font-size:15px;font-weight:900}
   .flipn{text-align:center;color:var(--muted);font-size:12.5px;margin-top:6px}
   .stp{display:flex;flex-wrap:wrap;gap:5px}.st{width:30px;height:30px;border-radius:50%;border:2px dashed #D9B9B9;display:flex;align-items:center;justify-content:center;font-size:16px}.st.on{border:2px solid #C0392B;background:#FFEDEA;transform:rotate(-8deg)}
   .stl{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed var(--line)}.stl:first-of-type{border-top:0}.stl b{flex:none;width:64px;font-size:14.5px}.stl.me b{color:var(--brand)}
@@ -269,24 +277,33 @@
   }
   const f1 = v => (Math.round(+v * 10) / 10).toString();
   // ── 🏅 뱃지 자동 지급 (의견 정리 5번: 출석 연속 · 기네스 기록 갱신 · 심사 합격 · 미션 완료) ──
+  const BHOW = { att1: '도장에 처음 오면', att10: '도장에 10일 오면', att30: '도장에 30일 오면', att50: '도장에 50일 오면', att100: '도장에 100일 오면', att200: '도장에 200일 오면', st4: '4주 동안 매주 오면', st12: '12주 동안 매주 오면', st24: '24주 동안 매주 오면', rec1: '기네스 기록을 한 번 갱신', rec5: '기네스 기록을 5번 갱신',
+    ex1: '승급 심사 합격', exb: '심사로 새 띠를 받으면', ex5: '심사에서 \'훌륭해요\'를 받으면', hw1: '미션 1번 완료', hw10: '미션 10번 완료', comp: '대회에 나가면', gold: '대회 금메달', best: '최우수 수련생', sb: '선범단이 되면' };
   function badges() {
     const a = D.att || {}, mine = (D.comps || []).flatMap(c => (c.rows || []).filter(r => r.name === D.name)), bestMe = (D.best || []).some(q => Object.values(q.g || {}).includes(D.name));
     const ups = (D.events || []).reduce((n, e) => { const s = evStat(e, D.rec); return n + (s ? s.ups : 0); }, 0);
     const hwN = (D.hw || []).reduce((n, h) => n + (h.chk || []).filter(c => c.kid === D.name).length, 0), ex = (D.exams || []).filter(x => !x.absent);
-    return [['att1', '🌱', '첫 출석', a.total >= 1], ['att10', '🔟', '출석 10일', a.total >= 10], ['att30', '💪', '출석 30일', a.total >= 30], ['att50', '🏅', '출석 50일', a.total >= 50], ['att100', '💯', '출석 100일', a.total >= 100], ['att200', '👑', '출석 200일', a.total >= 200],
+    const pum = pumOf(D.belt);
+    return [['pum2', '🎖️', '2품 빨간 패치', pum >= 2, '2품이 되면 받아요', 'patch-2.png'], ['pum3', '🎖️', '3품 파란 패치', pum >= 3, '3품이 되면 받아요', 'patch-3.png'], ['pum4', '🎖️', '4품 금색 패치', pum >= 4, '4품이 되면 받아요', 'patch-4.png'],
+      ['att1', '🌱', '첫 출석', a.total >= 1], ['att10', '🔟', '출석 10일', a.total >= 10], ['att30', '💪', '출석 30일', a.total >= 30], ['att50', '🏅', '출석 50일', a.total >= 50], ['att100', '💯', '출석 100일', a.total >= 100], ['att200', '👑', '출석 200일', a.total >= 200],
       ['st4', '🔥', '4주 연속 출석', a.streak >= 4], ['st12', '☄️', '12주 연속 출석', a.streak >= 12], ['st24', '🌋', '24주 연속 출석', a.streak >= 24],
       ['rec1', '📈', '기록 갱신', ups >= 1], ['rec5', '🚀', '기록 갱신 5번', ups >= 5],
       ['ex1', '🎖️', '심사 합격', ex.some(x => x.pass)], ['exb', '🥋', '새 띠', ex.some(x => x.nb)], ['ex5', '🌟', '심사 훌륭해요', ex.some(x => (x.subj || []).some(y => +y.v === 5) || (x.items || []).some(y => y.good))],
       ['hw1', '✅', '미션 완료', hwN >= 1], ['hw10', '🎯', '미션 10번', hwN >= 10],
       ['comp', '🥋', '대회 출전', mine.length > 0], ['gold', '🥇', '금메달', mine.some(r => r.medal === '금')], ['best', '🏆', '최우수 수련생', bestMe], ['sb', '⭐', '선범단', !!D.sb]]
-      .map(([k, ic, t, on]) => ({ k, ic, t, on }));
+      .map(([k, ic, t, on, how, img]) => ({ k, ic, t, on: !!on, how: how || BHOW[k] || '', img: img || '' }));
   }
   const myBadges = () => badges().filter(x => x.on);
+  // 품 패치 (2026-11-15 사용자 요청: 품에 따라 주는 패치를 로고 색으로 — 2품 빨강 · 3품 파랑 · 4품 금색)
+  const pumOf = b => { const m = /^(\d)품$/.exec(b || ''); return m ? +m[1] : 0; };
+  const PATCH = { p2: 'patch-2.png', p3: 'patch-3.png', p4: 'patch-4.png' };
+  const avHtml = e => PATCH[e] ? '<img class="pimg" src="' + PATCH[e] + '" alt="">' : esc(e);
+  const bIc = b => b.img ? '<img class="pimg" src="' + b.img + '" alt="">' : b.ic;
   // ── 프로필 꾸미기 (사진 대신 고르기, 잠긴 것은 선범단·열심히 하면) ──
-  const AV = [['🐯'], ['🐶'], ['🐱'], ['🐰'], ['🦊'], ['🐼'], ['🐨'], ['🦁'], ['🐻'], ['🐧'], ['🐉', 'sb'], ['🦅', 'att30'], ['🚀', 'rec1'], ['🦄', 'st4'], ['🥷', 'ex1']];
+  const AV = [['🐯'], ['🐶'], ['🐱'], ['🐰'], ['🦊'], ['🐼'], ['🐨'], ['🦁'], ['🐻'], ['🐧'], ['🐉', 'sb'], ['🦅', 'att30'], ['🚀', 'rec1'], ['🦄', 'st4'], ['🥷', 'ex1'], ['p2', 'pum2'], ['p3', 'pum3'], ['p4', 'pum4']];
   const BG = [['#A40F16'], ['#F08A24'], ['#F2B705'], ['#2E9E4F'], ['#2F6FDE'], ['#7B4FB8'], ['#F07AA8'], ['#1C1A19'], ['#0E8C8C'], ['#C9A227', 'sb']];
   const FR = [['', ''], ['fire', '🔥', 'st4'], ['gold', '⭐', 'sb'], ['trophy', '🏆', 'rec1']];
-  const LOCK = { sb: '선범단만 쓸 수 있어요', att30: '출석 30일을 채우면 열려요', rec1: '기네스 기록을 갱신하면 열려요', st4: '4주 연속 출석하면 열려요', ex1: '심사에 합격하면 열려요' };
+  const LOCK = { sb: '선범단만 쓸 수 있어요', att30: '출석 30일을 채우면 열려요', rec1: '기네스 기록을 갱신하면 열려요', st4: '4주 연속 출석하면 열려요', ex1: '심사에 합격하면 열려요', pum2: '2품이 되면 열려요', pum3: '3품이 되면 열려요', pum4: '4품이 되면 열려요' };
   const unlocked = k => !k || badges().some(b => b.k === k && b.on);
   const profAv = () => { const p = D.prof || {}; return { e: p.av || firstName(D.name).slice(0, 1), bg: p.bg || 'var(--brand)', fr: p.fr || '' }; };
   // ── 📣 맨 위 소식 줄 (비교 대신 축하) ──
@@ -308,17 +325,22 @@
     let h = '';
     const N = newsList(); newsI = Math.min(newsI, Math.max(0, N.length - 1));
     if (N.length) h += '<div class="news">📣<span>' + esc(N[newsI]) + '</span>' + (N.length > 1 ? '<em>' + (newsI + 1) + '/' + N.length + '</em>' : '') + '</div>';
-    h += '<div class="hi"><span class="av' + (av.fr ? ' fr-' + av.fr : '') + '" style="background:' + esc(av.bg) + '">' + esc(av.e) + '</span><div><b>안녕, ' + esc(nm) + '! 👋' + (D.sb ? '<span class="sbtag">⭐ 선범단</span>' : '') + '</b><small>' + (+today.slice(5, 7)) + '월 ' + (+today.slice(8)) + '일 ' + dow + '요일 · ' + (isBday() ? '🎂 생일 축하해!' : '오늘도 기합 크게!') + '</small></div><button class="edit" id="pEdit">✏ 꾸미기</button></div>';
+    h += '<div class="hi"><span class="av' + (av.fr ? ' fr-' + av.fr : '') + '" style="background:' + esc(av.bg) + '">' + avHtml(av.e) + '</span><div><b>안녕, ' + esc(nm) + '! 👋' + (D.sb ? '<span class="sbtag">⭐ 선범단</span>' : '') + '</b><small>' + (+today.slice(5, 7)) + '월 ' + (+today.slice(8)) + '일 ' + dow + '요일 · ' + (isBday() ? '🎂 생일 축하해!' : '오늘도 기합 크게!') + '</small></div><button class="edit" id="pEdit">✏ 꾸미기</button></div>';
     // 내 띠 카드
     const cb = cardBg(D.belt), bp = D.belt ? beltPath() : null, pins = (D.prof.pins || []).map(k => myBadges().find(b => b.k === k)).filter(Boolean);
-    h += '<section class="bcard' + (cb.light ? ' light' : '') + '" style="background:' + cb.bg + '"><div class="top"><small>🥋 내 띠</small><button class="qb" id="qrB">▦ 내 출석 QR</button></div><div class="bn">' + esc(D.belt || '띠를 기다리는 중') + '</div>' +
+    h += '<section class="bcard' + (cb.light ? ' light' : '') + '" style="background:' + cb.bg + '"><div class="top"><small>🥋 내 띠</small>' + (window.qrSvg && D.qr ? '<button class="qrm" id="qrB" aria-label="출석 QR 크게 보기">' + qrSvg(D.qr, 54) + '</button>' : '') + '</div><div class="bn">' + esc(D.belt || '띠를 기다리는 중') + '</div>' +
       (!bp ? '<div class="sl">사범님이 곧 띠를 넣어 주실 거예요</div>' : bp.done ? '<div class="sl">최고의 띠예요! 멋져요 👏</div>' :
         '<div class="steps">' + Array.from({ length: bp.total }, (_, i) => '<i class="' + (i < bp.at ? 'on' : '') + '"></i>').join('') + '</div><div class="sl">' + (bp.left ? esc(bp.goal) + '까지 <b>' + bp.left + '단계</b> 남았어요' : esc(bp.goal) + ' 도착!') + '</div>') +
-      '<div class="pins">' + [0, 1, 2].map(i => pins[i] ? '<button class="has" data-pin="' + i + '">' + pins[i].ic + '<small>' + esc(pins[i].t) + '</small></button>' : '<button data-pin="' + i + '">＋</button>').join('') + '</div></section>';
+      '<div class="pins">' + [0, 1, 2].map(i => pins[i] ? '<button class="has" data-pin="' + i + '">' + bIc(pins[i]) + '<small>' + esc(pins[i].t) + '</small></button>' : '<button data-pin="' + i + '">＋</button>').join('') + '</div></section>';
+    // 🎯 내 목표 (제자가 직접, 2026-11-15)
+    h += '<section class="card"><h2>🎯 내 목표</h2><div class="goal">' + (D.prof.mygoal ? '<b>' + esc(D.prof.mygoal) + '</b><button id="goalB">✏ 고치기</button>' : '<b style="color:var(--muted);font-size:15px">이번 달 나의 목표를 정해 볼까요?</b><button id="goalB">✏ 목표 정하기</button>') + '</div></section>';
+    if (D.mile != null) h += '<section class="card"><h2>💰 내 마일리지</h2><div class="goal"><b style="font-size:30px">' + (+D.mile).toLocaleString() + '<small style="font-size:15px">원</small></b><small class="sub" style="margin:0;text-align:right">상점 1개 = 100원<br>도장에서 QR을 찍어 써요</small></div></section>';
     // 출석 · 성장
     const ev = [...(D.events || [])].reverse().find(e => evStat(e, D.rec)), st = ev ? evStat(ev, D.rec) : null;
     h += '<div class="row2 row2-wrap"><section class="card"><h2>🔥 출석</h2><div class="num">' + (a.streak || 0) + '<small>주</small> <span class="fire">' + (a.streak ? '🔥' : '🌱') + '</span></div><div class="sub">' + (a.streak ? a.streak + '주 연속으로 왔어요!' : '이번 주에 오면 불꽃이 켜져요') + '<br>이번 달 <b>' + (a.month || 0) + '일</b> · 지금까지 <b>' + (a.total || 0) + '일</b></div></section>' +
       '<section class="card"><h2>📈 내 기록</h2>' + (st && st.last ? '<div class="sub" style="margin:0 0 4px">' + esc(ev.name) + '</div><div class="num" style="font-size:38px">' + f1(st.last.v) + '<small>' + esc(ev.unit) + '</small></div><div style="margin-top:8px">' + (st.d > 0 ? '<span class="up">' + (ev.lower ? '−' : '+') + f1(st.d) + ' ▲</span>' : '') + (st.isBest ? '<span class="best">⭐ 최고 기록</span>' : '') + (!(st.d > 0) && !st.isBest ? '<span class="sub">다음엔 더 잘할 수 있어!</span>' : '') + '</div>' : '<div class="sub">매달 첫째 주 금요일에 성장 측정을 해요</div>') + '</section></div>';
+    const RL = (D.events || []).map(e => ({ e, st: evStat(e, D.rec) })).filter(x => x.st && x.st.last);
+    if (RL.length > 1 || (RL.length === 1 && RL[0].e !== ev)) h += '<section class="card"><h2>🏆 내 기네스 기록</h2>' + RL.map(({ e, st }) => '<div class="rl"><b>' + esc(e.name) + '<br><small class="sub" style="margin:0">' + st.sc.map(x => x.m + '월 ' + f1(x.v)).join(' → ') + '</small></b><span class="v">' + f1(st.best ? st.best.v : st.last.v) + '<small>' + esc(e.unit) + '</small></span>' + (st.isBest ? '<span class="best">⭐</span>' : '') + '</div>').join('') + '<p class="sub">가장 좋은 기록이에요</p></section>';
     h += prepCard();
     // 미션 (학부모와 같이 해요 / 제자 혼자 해요 / 선범단)
     const td = today, hw = (D.hw || []).filter(x => (x.kids || []).includes(D.name));
@@ -330,13 +352,13 @@
       (fc ? '<div class="focus"><small>이번 주 수련 주제</small><b>' + esc(fc.title) + '</b></div>' : '') + '</section>';
     // 받은 뱃지만 (전체 목록은 숨김)
     const B = myBadges();
-    h += '<section class="card"><h2>🏅 내 뱃지<small>' + B.length + '개 모았어요</small></h2>' + (B.length ? '<div class="badges">' + B.map(b => '<div class="bd"><div class="ic">' + b.ic + '</div>' + esc(b.t) + '</div>').join('') + '</div><p class="sub" style="text-align:center">내 띠 카드의 빈칸을 눌러 대표 뱃지 3개를 골라요</p>' : '<div class="empty">도장에 오면 첫 뱃지를 받아요! 🌱</div>') + '</section>';
+    h += '<section class="card"><h2>🏅 내 뱃지<small>' + B.length + ' / ' + badges().length + '개</small><button class="allb" id="allB">전체 뱃지 ›</button></h2>' + (B.length ? '<div class="badges">' + B.map(b => '<div class="bd"><div class="ic">' + bIc(b) + '</div>' + esc(b.t) + '</div>').join('') + '</div><p class="sub" style="text-align:center">내 띠 카드의 빈칸을 눌러 대표 뱃지 3개를 골라요</p>' : '<div class="empty">도장에 오면 첫 뱃지를 받아요! 🌱</div>') + '</section>';
     return h;
   }
   // ── 📝 이번 달 심사 준비 (웅변 원고 · 영어 문장 · 내 띠 품새 영상) ──
   function prepCard() {
     const p = D.prep, ex = (D.exams || [])[(D.exams || []).length - 1];
-    const res = ex ? '<div class="exr">🏅 ' + (+ex.month.slice(5)) + '월 심사 · ' + (ex.absent ? '쉬었어요' : ex.pass ? (ex.nb ? '합격! ' + esc(ex.nb) + '로 올라가요 🎉' : '합격! 잘했어요 👏') : '다음 심사에서 다시 도전해요 💪') + '</div>' : '';
+    const res = ex ? '<div class="exr">🏅 ' + (+ex.month.slice(5)) + '월 심사 · ' + (ex.absent ? '쉬었어요' : ex.pass ? (ex.nb ? esc(ex.nb) + ' 축하축하! 🎉' : '합격! 잘했어요 👏') : '다음 심사에서 다시 도전해요 💪') + '</div>' : '';
     if (!p || p.closed || !(p.topic || p.notes.speech || p.notes.eng || p.vid || p.date)) return res ? '<section class="card"><h2>🏅 심사</h2>' + res + '</section>' : '';
     const dd = p.date ? Math.round((new Date(p.date + 'T00:00:00Z') - new Date(D.today + 'T00:00:00Z')) / 864e5) : null;
     return '<section class="card prep"><h2>📝 이번 달 심사 준비' + (p.date && dd >= 0 ? '<small><span class="dd">' + (dd ? 'D-' + dd : '오늘!') + '</span> ' + md(p.date) + '</small>' : '') + '</h2>' +
@@ -358,16 +380,18 @@
     const me = D.name, c = D.sbCard, sun = D.sun || [], mon = +D.today.slice(5, 7), sm = (D.prep || {}).sunMe || null, warn = Math.max((c && c.warn) || 0, sm && sm.warn || 0);
     let h = '<div class="hi"><span class="av" style="background:var(--gold)">⭐</span><div><b>선범단</b><small>다른 친구에게 모범이 되고 도와주는 제자</small></div></div>';
     if (D.sb && c) {
-      const dt = c.date ? c.date.replace(/-/g, '.') : '', dk = c.date ? (+c.date.slice(0, 4)) + '년 ' + (+c.date.slice(5, 7)) + '월 ' + (+c.date.slice(8, 10)) + '일' : '';
+ const dk = c.date ? (+c.date.slice(0, 4)) + '년 ' + (+c.date.slice(5, 7)) + '월 ' + (+c.date.slice(8, 10)) + '일' : '';
+      // 임명장 모양 (2026-11-15 사용자: 미리캔버스 임명장 따라 — 바탕은 선범단 그림)
+      const pled = (D.prof && D.prof.pledge) || c.pledge || '나는 도장의 모범이 되고, 친구를 도와주며, 배운 것을 나누겠습니다.';
+      const av = profAv();
       h += '<div class="sbc' + (warn ? ' warn' : '') + '" id="sbc"><div class="in"><div class="fl"><div class="f">' +
-        '<div class="no">No_' + esc(c.no || '-') + '</div><div class="rb">先範</div>' +
-        '<div class="nm">' + esc(me) + '<i>' + esc(romName(me)) + '</i></div>' +
-        '<div class="ln">' + (dt ? '임명일(Date of Appointment)_' + esc(dt) + '<br>' : '') + '해랑경희 태권도장' + (D.belt ? ' · ' + esc(D.belt) : '') + '</div>' +
-        '<div class="ct">위 사람은 해랑경희 선범단원임을 증명함.</div><div class="en">This is to certify that the above named person is a member of the Haerang Kyunghee Seonbeomdan.</div>' +
-        (dk ? '<div class="cdd">' + dk + '</div>' : '') + '<div class="csg">해랑경희 태권도장<span class="cseal">해랑<br>경희</span></div>' +
-        '<div class="ph"' + (c.photo ? ' style="background-image:url(' + c.photo + ')"' : '') + '>' + (c.photo ? '' : esc(profAv().e)) + '</div><div class="rbw"></div>' + (warn ? '<span class="wn">⚠ 경고 ' + warn + '</span>' : '') + '</div>' +
-        '<div class="b"><div class="no">MY PROMISE</div><h4>⭐ 선범단 다짐</h4><p>' + esc(c.pledge || '나는 도장의 모범이 되고, 친구를 도와주며, 배운 것을 나누겠습니다.') + '</p></div></div></div>' +
-        '<div class="band">HAERANG KYUNGHEE<small>先 範 團 · SEONBEOMDAN</small></div></div><div class="flipn">카드를 누르면 뒤집혀요 · 나만 보는 카드예요</div>';
+        '<div class="hd"><img src="../img/lion-white.png" alt=""><div><b>해랑경희 태권도장</b><small>先範團 · 선범단 학생증</small></div></div>' + (warn ? '<span class="wn">⚠ 경고 ' + warn + '</span>' : '') +
+        '<div class="bdy"><div class="ph"' + (c.photo ? ' style="background-image:url(' + c.photo + ')"' : ' style="background:' + esc(av.bg) + ';color:#fff"') + '>' + (c.photo ? '' : avHtml(av.e)) + '</div>' +
+        '<div class="rows"><div class="nm">' + esc(me) + '</div><div class="rn">' + esc(romName(me)) + '</div>' +
+        '<div class="rw"><span>띠</span><b>' + esc(D.belt || '-') + '</b></div>' + (dk ? '<div class="rw"><span>임명일</span><b>' + dk + '</b></div>' : '') + '<div class="rw"><span>소속</span><b>해랑경희 선범단</b></div></div></div>' +
+        '<div class="ft"><span>다른 수련생에게 모범이 되는 선범단원</span>대표 이아빈<i class="cseal">해랑<br>경희</i></div></div>' +
+        '<div class="b"><small>MY PROMISE</small><h4>⭐ 나의 선범단 다짐</h4><p>' + esc(pled) + '</p>' + (D.prof.mygoal ? '<p style="font-size:13.5px;margin-top:12px;color:#E9CF86">🎯 ' + esc(D.prof.mygoal) + '</p>' : '') + '</div></div></div></div>' +
+        '<div class="flipn">카드를 누르면 뒤집혀요 · 나만 보는 카드예요</div><button class="pled" id="pledB">✏ 나의 다짐 ' + (D.prof.pledge ? '고치기' : '쓰기') + '</button>';
       const sbHw = (D.hw || []).filter(x => x.sb && (x.kids || []).includes(me));
       if (sbHw.length) h += '<section class="card"><h2>⭐ 선범단 미션</h2>' + sbHw.map(x => '<div class="hw"><div class="t"><b>' + esc(x.title) + '</b><small>' + esc(x.body || '') + '</small></div></div>').join('') + '<p class="sub">체크는 🏠 나의 수련 → 미션에서 해요</p></section>';
     } else h += '<section class="card"><h2>💪 선범단이 되려면</h2><p class="sub" style="font-size:15px;margin:0">실력보다 <b>다른 친구에게 모범이 되고, 가르쳐 주는 제자</b>가 뽑혀요. 동생을 도와주고, 인사를 잘하고, 수련을 성실하게 하면 사범님이 지켜보고 있어요 👀</p></section>';
@@ -383,10 +407,17 @@
   }
   // ── 아래에서 올라오는 창 ──
   function sheet(html, onClick) { const el = document.createElement('div'); el.className = 'sheet'; el.innerHTML = '<div class="box">' + html + '</div>'; el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el; }
-  function qrSheet() { sheet('<h3>▦ ' + esc(D.name) + ' 출석 QR</h3><div class="qrbox">' + (window.qrSvg && D.qr ? qrSvg(D.qr, 260) : '<p class="sub">QR을 만들지 못했어요</p>') + '<p class="sub">나만의 출석 QR이에요. 곧 도장 태블릿 카메라에 대면 출석돼요.<br>지금은 태블릿에서 번호를 눌러 주세요.</p></div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
+  function qrSheet() { sheet('<h3>▦ ' + esc(D.name) + ' 출석 QR</h3><div class="qrbox">' + (window.qrSvg && D.qr ? qrSvg(D.qr, Math.min(300, innerWidth - 80)) : '<p class="sub">QR을 만들지 못했어요</p>') + '<p class="sub">나만의 출석 QR이에요. 도장 태블릿 카메라에 비추면 출석돼요.<br>번호를 눌러도 돼요.</p></div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
+  function textSheet(title, key, max, ph) { // 🎯 내 목표 · ⭐ 선범단 다짐 (제자가 직접)
+    sheet('<h3>' + title + '</h3><textarea id="txI" maxlength="' + max + '" rows="4" placeholder="' + esc(ph) + '" style="width:100%;border:2px solid var(--line);border-radius:14px;padding:12px;font:inherit;font-size:17px;box-sizing:border-box">' + esc(D.prof[key] || '') + '</textarea><p class="lockt">' + max + '자까지 쓸 수 있어요</p><button class="big" id="txS" style="width:100%;max-width:none">저장</button><button class="out" data-x>닫기</button>', async (e, el) => {
+      if (e.target.id !== 'txS') return; const v = el.querySelector('#txI').value.trim(); el.remove(); D.prof[key] = v; draw(); const j = await post('/k/prof', { [key]: v }); if (j.ok) D.prof = j.prof; else alert(j.error || '저장하지 못했어요'); });
+  }
+  function allBadgeSheet() { // 전체 뱃지 (받은 것 · 아직인 것과 받는 방법)
+    const B = badges(); sheet('<h3>🏅 전체 뱃지 · ' + B.filter(b => b.on).length + ' / ' + B.length + '개</h3><div class="badges" style="max-height:60vh;overflow:auto;padding:4px 0">' + B.map(b => '<div class="bd' + (b.on ? '' : ' off') + '"><div class="ic">' + bIc(b) + '</div>' + esc(b.t) + (b.on ? '' : '<br><small style="font-weight:600">' + esc(b.how) + '</small>') + '</div>').join('') + '</div><button class="big" data-x style="width:100%;max-width:none;margin-top:12px">닫기</button>');
+  }
   function pinSheet(slot) {
     const B = myBadges(), pins = [...(D.prof.pins || [])];
-    sheet('<h3>대표 뱃지 고르기 (' + (slot + 1) + '번째 칸)</h3>' + (B.length ? '<div class="opts">' + B.map(b => '<button data-b="' + b.k + '" class="' + (pins[slot] === b.k ? 'on' : '') + '" title="' + esc(b.t) + '">' + b.ic + '</button>').join('') + '</div><p class="lockt" id="pinT">뱃지를 누르면 이 칸에 들어가요</p>' : '<div class="empty">아직 받은 뱃지가 없어요</div>') +
+    sheet('<h3>대표 뱃지 고르기 (' + (slot + 1) + '번째 칸)</h3>' + (B.length ? '<div class="opts">' + B.map(b => '<button data-b="' + b.k + '" class="' + (pins[slot] === b.k ? 'on' : '') + '" title="' + esc(b.t) + '">' + bIc(b) + '</button>').join('') + '</div><p class="lockt" id="pinT">뱃지를 누르면 이 칸에 들어가요</p>' : '<div class="empty">아직 받은 뱃지가 없어요</div>') +
       (pins[slot] ? '<button class="out" data-clr>이 칸 비우기</button>' : '') + '<button class="big" data-x style="width:100%;max-width:none">닫기</button>', async (e, el) => {
       const b = e.target.closest('[data-b]'), clr = e.target.closest('[data-clr]'); if (!b && !clr) return;
       const L = [...(D.prof.pins || [])]; while (L.length < 3) L.push(''); if (clr) L[slot] = ''; else { const i = L.indexOf(b.dataset.b); if (i >= 0) L[i] = ''; L[slot] = b.dataset.b; }
@@ -394,8 +425,8 @@
     });
   }
   function profSheet() {
-    const p = Object.assign({}, D.prof), tile = (arr, key, cls) => '<div class="opts' + (cls || '') + '">' + arr.map(([v, a, b]) => { const lk = key === 'fr' ? b : a, on = (p[key] || '') === v; return '<button data-' + key + '="' + esc(v) + '" data-lk="' + (lk || '') + '" class="' + (on ? 'on' : '') + (unlocked(lk) ? '' : ' lk') + '"' + (key === 'bg' ? ' style="background:' + v + '"' : '') + '>' + (key === 'fr' ? (v ? a : '<span style="font-size:14px;font-weight:800">없음</span>') : key === 'av' ? v : '') + '</button>'; }).join('') + '</div>';
-    const html = () => '<h3>✏ 나를 꾸미기</h3><div style="text-align:center"><span class="av' + (p.fr ? ' fr-' + p.fr : '') + '" style="display:inline-grid;width:76px;height:76px;border-radius:50%;place-items:center;font-size:40px;color:#fff;background:' + esc(p.bg || 'var(--brand)') + '">' + esc(p.av || firstName(D.name).slice(0, 1)) + '</span></div>' +
+    const p = Object.assign({}, D.prof), tile = (arr, key, cls) => '<div class="opts' + (cls || '') + '">' + arr.map(([v, a, b]) => { const lk = key === 'fr' ? b : a, on = (p[key] || '') === v; return '<button data-' + key + '="' + esc(v) + '" data-lk="' + (lk || '') + '" class="' + (on ? 'on' : '') + (unlocked(lk) ? '' : ' lk') + '"' + (key === 'bg' ? ' style="background:' + v + '"' : '') + '>' + (key === 'fr' ? (v ? a : '<span style="font-size:14px;font-weight:800">없음</span>') : key === 'av' ? avHtml(v) : '') + '</button>'; }).join('') + '</div>';
+    const html = () => '<h3>✏ 나를 꾸미기</h3><div style="text-align:center"><span class="av' + (p.fr ? ' fr-' + p.fr : '') + '" style="display:inline-grid;width:76px;height:76px;border-radius:50%;place-items:center;font-size:40px;color:#fff;background:' + esc(p.bg || 'var(--brand)') + '">' + avHtml(p.av || firstName(D.name).slice(0, 1)) + '</span></div>' +
       '<h4>캐릭터</h4>' + tile(AV, 'av') + '<h4>배경색</h4>' + tile(BG, 'bg', ' c') + '<h4>테두리</h4>' + tile(FR, 'fr') + '<p class="lockt" id="lkT">🔒 잠긴 것은 선범단이거나 열심히 하면 열려요</p><button class="big" id="pSave" style="width:100%;max-width:none">저장</button>';
     const el = sheet(html(), async (e, el) => {
       if (e.target.id === 'pSave') { el.remove(); D.prof = Object.assign(D.prof, p); draw(); const j = await post('/k/prof', { av: p.av || '', bg: p.bg || '', fr: p.fr || '' }); if (j.ok) D.prof = j.prof; else alert(j.error || '저장하지 못했어요'); return; }
@@ -407,6 +438,9 @@
   $('body').onclick = async e => {
     if (e.target.closest('#pEdit')) return profSheet();
     if (e.target.closest('#qrB')) return qrSheet();
+    if (e.target.closest('#goalB')) return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!');
+    if (e.target.closest('#pledB')) return textSheet('⭐ 나의 선범단 다짐', 'pledge', 200, '예: 동생들에게 먼저 인사하고, 모르는 친구를 도와줄게요');
+    if (e.target.closest('#allB')) return allBadgeSheet();
     const pn = e.target.closest('[data-pin]'); if (pn) return pinSheet(+pn.dataset.pin);
     if (e.target.closest('#sbc')) return $('sbc').classList.toggle('flip');
     const hb = e.target.closest('[data-hw]'); if (hb) { const id = hb.dataset.hw, x = (D.hw || []).find(y => String(y.id) === id), daily = x && x.mode === 'daily', on = !hb.classList.contains('on');
@@ -422,7 +456,7 @@
     D.prof.seen = [...new Set([...seen, ...have])]; post('/k/prof', { seen: D.prof.seen });
     if (isBday() && store.get('haerang-kid-bday') !== D.today) return; // 생일 축하가 먼저
     const el = document.createElement('div'); el.className = 'bday';
-    el.innerHTML = '<div class="box"><div>' + nw[0].ic + '</div><b>새 뱃지를 받았어요!</b><p>' + nw.map(b => b.ic + ' ' + esc(b.t)).join('<br>') + '</p><button class="big" style="margin-top:16px">좋아요!</button></div>';
+    el.innerHTML = '<div class="box"><div style="width:96px;height:96px;margin:0 auto">' + bIc(nw[0]) + '</div><b>새 뱃지를 받았어요!</b><p>' + nw.map(b => (b.img ? '🎖️' : b.ic) + ' ' + esc(b.t)).join('<br>') + '</p><button class="big" style="margin-top:16px">좋아요!</button></div>';
     el.onclick = e => { if (e.target.closest('button') || e.target === el) el.remove(); }; document.body.appendChild(el); fx(2200);
   }
   // ── 🎂 생일 축하 (생일날 열면 폭죽, 하루 한 번 창) ──
