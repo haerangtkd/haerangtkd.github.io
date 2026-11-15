@@ -1075,3 +1075,99 @@
 .pfoot .shareline span{flex:1;display:flex;flex-direction:column}
 .pfoot .shareline small{font-size:12.5px;font-weight:500;color:var(--muted);margin-top:2px}
 .pfoot .shareline i{font-style:normal;font-size:17px;color:var(--brand)}
+
+/* ---------- 2026-11-15 신규 학부모 관점 개선 ---------- */
+/* 지난 일정 · 지난 공지 */
+.ev.past{opacity:.55}
+.ev.past .what{border-left-color:#C9C0BA !important}
+em.done{font-style:normal;display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:#7A716C;background:#EEE8E3;border-radius:6px;padding:1px 6px;vertical-align:1px}
+.cu-row.past{opacity:.55}
+.past-nt{margin-top:12px}
+.past-nt summary{cursor:pointer;font-size:14px;font-weight:700;color:var(--muted);list-style:none}
+.past-nt summary::-webkit-details-marker{display:none}
+.past-nt summary::after{content:' ›'}
+.past-nt[open] summary{margin-bottom:6px}
+.past-nt li{color:var(--muted)}
+/* 해랑경희만의 수련: 교육의 흐름 */
+.dk-flow{display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none;margin:14px -16px 0;padding:2px 16px 4px}
+.dk-flow::-webkit-scrollbar{display:none}
+.dk-flow button{flex:none;font:inherit;font-size:13px;font-weight:700;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+.dk-flow button b{font-size:11px;color:#B9AEA8;margin-right:5px}
+.dk-flow button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.dk-flow button.on b{color:#F6D9DB}
+.dk-flow i{flex:none;font-style:normal;color:#C9C0BA;font-size:13px}
+@media (min-width:700px){ .dk-flow{justify-content:center;margin:16px 0 0;padding:2px 0 4px} }
+.dk-n em{font-style:normal;letter-spacing:0;margin-left:6px;color:var(--ink);font-weight:900}
+/* 수업 장면 */
+.scenes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+@media (min-width:700px){ .scenes{grid-template-columns:repeat(3,1fr)} }
+.scenes figure{margin:0;border-radius:10px;overflow:hidden;background:#F3EEE9;position:relative}
+.scenes img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;cursor:zoom-in}
+.scenes figcaption{position:absolute;left:8px;bottom:8px;font-size:12px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);border-radius:6px;padding:2px 8px}
+/* 성장 측정지 예시 */
+.gsample{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+.gs-top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;padding-bottom:10px;border-bottom:2px solid var(--ink)}
+.gs-top b{font-size:15.5px;font-weight:900}
+.gs-top span{font-size:11.5px;font-weight:700;color:var(--brand);background:var(--brand-soft);border-radius:999px;padding:2px 8px}
+.gs-f{display:grid;gap:0;margin-top:6px}
+.gs-f div{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.gs-f i{font-style:normal;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px}
+.gs-f .lv1{background:#EEE6DF;color:#5A514D}.gs-f .lv2{background:#F6D9DB;color:var(--brand-deep)}.gs-f .lv3{background:var(--brand);color:#fff}
+.gs-h{font-size:13px;font-weight:900;color:var(--muted);margin:14px 0 8px}
+.gs-bars{display:flex;align-items:flex-end;gap:14px;height:110px;padding:0 6px;border-bottom:1px solid var(--line)}
+.gs-bars div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;position:relative}
+.gs-bars .bar{width:60%;max-width:46px;background:var(--brand);border-radius:6px 6px 0 0;opacity:.85;min-height:6px;order:2}
+.gs-bars b{font-size:13px;order:1}
+.gs-bars small{position:absolute;bottom:-20px;font-size:11.5px;color:var(--muted)}
+.gs-cmp{margin-top:26px;font-size:13.5px;font-weight:700}
+.gs-cmp em{font-style:normal;color:var(--brand);margin-left:4px}
+.gs-cm p:last-child{font-size:14px;line-height:1.65;background:#FBF8F4;border-radius:10px;padding:10px 12px;word-break:keep-all}
+.gs-next{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:10px 12px;border:1px dashed #D9CFC8;border-radius:10px;font-size:13.5px}
+.gs-next span{color:var(--muted);font-weight:700}
+.gs-next b{font-weight:900;color:var(--brand)}
+/* 입시 · 진로 */
+.ipsi{display:grid;gap:14px;padding:0;overflow:hidden}
+.ipsi img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.ipsi .b{padding:0 20px 18px}
+.ipsi h4{font-size:18px;font-weight:900}
+.ipsi .tm{color:var(--brand);font-weight:700;font-size:14px;margin-top:2px}
+.ipsi ul{margin-top:8px;padding-left:18px;font-size:14.5px;line-height:1.75;word-break:keep-all}
+@media (min-width:700px){ .ipsi{grid-template-columns:1fr 1fr;align-items:center} .ipsi img{height:100%;aspect-ratio:auto} .ipsi .b{padding:18px 20px} }
+#sec-ipsi .fa{font-size:15px;line-height:1.75;margin-top:10px;word-break:keep-all}
+#sec-ipsi .closing{margin-top:10px;font-weight:700;word-break:keep-all}
+/* 처음 오시는 학부모님께 */
+.trial{margin-bottom:18px;background:var(--brand-soft);border-color:#F2D4D6}
+.trial h4{font-size:17px;font-weight:900}
+.trial .tl{font-size:14px;color:var(--muted);margin-top:2px}
+.trial ol{list-style:none;margin-top:10px}
+.trial li{display:flex;gap:12px;padding:10px 0;border-top:1px solid #F2D4D6}
+.trial li:first-child{border-top:0}
+.trial .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font-size:13px;font-weight:900;display:grid;place-items:center}
+.trial li b{font-size:15px}
+.trial li p{font-size:13.5px;color:#5A514D;line-height:1.6;word-break:keep-all;margin-top:2px}
+/* 하위 페이지 맨 아래 체험 안내 */
+.subcta{margin:40px 0 8px;padding:20px;border-radius:12px;background:#2A2524;color:#fff}
+.subcta p b{display:block;font-size:17px;font-weight:900}
+.subcta p span{display:block;font-size:13.5px;color:#CFC6C0;margin-top:3px;word-break:keep-all}
+.subcta div{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.subcta a{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 6px;border-radius:10px;text-decoration:none;font-weight:900;font-size:14.5px;color:#fff;border:1px solid rgba(255,255,255,.3)}
+.subcta a.main{background:var(--brand);border-color:var(--brand)}
+.subcta svg{width:18px;height:18px}
+/* 모바일 아래 고정 체험·상담 줄 */
+.mcta{display:none}
+@media (max-width:699px){
+  .mcta{position:fixed;left:0;right:0;bottom:0;z-index:36;display:flex;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid var(--line);transform:translateY(110%);transition:transform .25s ease}
+  body:not(.is-home) .mcta, body.is-home.past-top .mcta{transform:none}
+  .mcta a{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:11px 4px;border-radius:10px;text-decoration:none;font-weight:900;font-size:14px;color:var(--ink);background:#F3EEE9}
+  .mcta a.main{flex:1.7;background:var(--brand);color:#fff}
+  .mcta svg{width:18px;height:18px}
+  body.lock .mcta{display:none}
+  footer.foot{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .totop{bottom:76px}
+  .qp{bottom:140px}
+}
+/* 요일별 수업 테마: 좁은 화면에서 글자가 칸에 꽉 차지 않게 */
+@media (max-width:420px){
+  .wc p{font-size:12.5px;letter-spacing:-.03em;word-break:break-all}
+  .wc small{font-size:11px}
+}

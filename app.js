@@ -60,7 +60,7 @@ let D, EVENTS = [], S = {}, GROUPS = [];
 // 메뉴 그룹마다 별도 HTML 파일이 있고, 같은 화면을 그 그룹부터 보여줌
 const PAGE_FILES = {
   'about.html':    ['philosophy','staff','press','collab'],
-  'training.html': ['curriculum','program','belts','character','leaders','guinness'],
+  'training.html': ['curriculum','program','belts','character','leaders','guinness','ipsi'],
   'column.html':   ['column'],
   'contact.html':  ['contact','fee','faq','location'],
   'news.html':     ['today','schedule','notice','gallery']
@@ -153,6 +153,7 @@ function render(d){
         <div class="gf">${list(gr.factors).map((x, i) => typeof x === 'string' ? `<div class="gf-i"><b>${esc(x)}</b></div>` : `<div class="gf-i"><div class="gf-t"><span class="n">${pad2(i + 1)}</span><b>${esc(x.t)}</b>${x.how ? `<em class="how">${esc(x.how)}</em>` : ''}</div>${x.d ? `<p>${esc(x.d)}</p>` : ''}</div>`).join('')}</div>
         ${list(gr.scale).length ? `<p class="gscale"><span>사범님 관찰</span>${list(gr.scale).map((t, i) => `<i class="lv${i + 1}">${esc(t)}</i>`).join('<b>›</b>')}</p>` : ''}</div>` : ''}
       ${list(gr.contents).length ? `<div class="cu-sec"><h4>${esc(gr.contentsTitle || '측정지에 담기는 내용')}</h4><ul class="bt-list">${list(gr.contents).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${growthSample(d)}
       ${gr.closing ? `<p class="cu-close">${esc(gr.closing)}</p>` : ''}`; })()}`)};
 
   const pr = d.program || {};
@@ -189,6 +190,18 @@ function render(d){
       <p class="fempty" id="faqEmpty" hidden>찾는 질문이 없어요. 아래 상담 문의로 편하게 물어봐 주세요.</p>`)};
   }
 
+  // 입시 · 진로: 이미 있는 입시부 소개·FAQ·일정을 한곳에 모음
+  const ipCls = list(d.classes).find(c => /입시/.test(c.name || ''));
+  const ipFaq = list(d.faq).filter(f => /입시|진로|대학/.test((f.q || '') + (f.cat || '')));
+  const ipEv = EVENTS.filter(e => /입시/.test((e.title || '') + ' ' + (e.note || '')));
+  if(ipCls || ipFaq.length) S.ipsi = {label:'입시 · 진로', short:'입시·진로', icon:'grad', html: sec('ipsi', '태권도 입시 · 진로', `
+      ${ipCls ? `<div class="card ipsi">${ipCls.poster ? `<img src="${esc(ipCls.poster)}" alt="${esc(ipCls.name)} 수업 모습" loading="lazy">` : ''}<div class="b"><h4>${esc(ipCls.name)}</h4>${ipCls.time ? `<p class="tm">${esc(ipCls.time)}</p>` : ''}<ul>${list(ipCls.points).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div></div>` : ''}
+      ${ipEv.length ? `<div class="cu-sec" style="margin-top:22px"><h4>입시 관련 일정</h4>${ipEv.map(e => `<div class="cu-row${e.en < TODAY ? ' past' : ''}"><b>${rangeText(e)}</b><span>${esc(e.title)}${e.note ? ` · ${esc(e.note)}` : ''}${e.en < TODAY ? '<em class="done">종료</em>' : ''}</span></div>`).join('')}</div>` : ''}
+      ${ipFaq.map(f => `<div class="cu-sec"><h4>${esc(f.q)}</h4>${list(f.a).map(t => `<p class="fa">${esc(t)}</p>`).join('')}
+        ${list(f.points).map(x => `<div class="pt"><span class="ck">${svg('check',3)}</span><div><b>${esc(x.t)}</b>${x.d ? `<span>${esc(x.d)}</span>` : ''}</div></div>`).join('')}
+        ${f.closing ? `<p class="closing">${esc(f.closing)}</p>` : ''}</div>`).join('')}
+      <a class="btn-call" href="${go('contact')}">${svg('phone')}입시 상담 문의하기</a>`)};
+
   S.today = {label:'오늘의 운동', icon:'run', html: sec('today', '', `${workoutCard(d, false)}${focusTable(d)}`)};
   S.schedule = {label:'도장 일정', short:'일정', icon:'calendar', html: sec('schedule', '해랑경희 일정', `
       <div class="card cal" id="cal"></div>
@@ -202,7 +215,11 @@ function render(d){
 
   const ct = d.contact || {};
   const tel = (ct.phone || '').replace(/[^0-9+]/g, '');
+  const tr = d.trial || {};
+  const trSteps = list(tr.steps).filter(x => x && x.t);
   S.contact = {label:'체험 · 상담 예약', short:'체험·상담', icon:'phone', html: sec('contact', ct.title || '상담 및 문의하기', `
+      ${trSteps.length ? `<div class="card trial"><h4>${esc(tr.title || '처음 오시는 학부모님께')}</h4>${tr.lead ? `<p class="tl">${esc(tr.lead)}</p>` : ''}
+        <ol>${trSteps.map((x, i) => `<li><span class="n">${i + 1}</span><div><b>${esc(x.t)}</b>${x.d ? `<p>${esc(x.d)}</p>` : ''}</div></li>`).join('')}</ol></div>` : ''}
       ${tel ? `<a class="callbig" href="tel:${esc(tel)}">${svg('phone')}<span>${esc(ct.phone)}<small>눌러서 바로 전화 상담</small></span></a>` : ''}
       <nav class="links">${list(d.links).map(l => `
         <a class="link${l.main ? ' main' : ''}" href="${esc(l.url)}" target="_blank" rel="noopener">
@@ -243,12 +260,15 @@ function render(d){
   // 큰 메뉴 → 작은 메뉴(탭)
   GROUPS = [
     {name:'해랑경희 소개', items:['philosophy','staff','press','collab']},
-    {name:'수업 안내', items:['curriculum','program','belts','character','leaders','guinness']},
+    {name:'수업 안내', items:['curriculum','program','belts','character','leaders','guinness','ipsi']},
     {name:'해랑경희 칼럼', items:['column']},
     {name:'등록 · 상담', items:['contact','fee','faq','location']},
     {name:'도장 소식', items:['today','schedule','notice','gallery']}
   ].map(g => ({...g, items: g.items.filter(id => S[id])})).filter(g => g.items.length);
 
+  const bookL = list(d.links).find(l => l.main && l.url) || list(d.links).find(l => l.icon === 'calendar' && l.url);
+  const bookUrl = bookL ? bookL.url : '';
+  const kakaoL = list(d.links).find(l => l.icon === 'kakao' && l.url);
   const tileIds = ['philosophy','staff','faq','fee','program','location'].filter(id => S[id]);
   const lionW = '<img class="wm" src="img/lion-white.png" alt="" aria-hidden="true">';
 
@@ -284,6 +304,7 @@ function render(d){
         <a class="cta-line" href="${go('contact')}">${svg('phone')}<span>상담 문의하기</span><i>›</i></a>
         ${classesBlock(d)}
         ${whyBlock(d)}
+        ${scenesBlock(d)}
         ${reviewBlock(d)}
         ${S.column ? columnBlock(d) : ''}
         ${collabBlock(d)}
@@ -307,7 +328,9 @@ function render(d){
         <h2 id="pageTitle"></h2>
       </div></div>
       <div class="subtabs"><div class="in" id="subtabs"></div></div>
-      <main class="wrap">${Object.values(S).map(x => x.html || '').join('')}</main>
+      <main class="wrap">${Object.values(S).map(x => x.html || '').join('')}
+        ${bookUrl ? `<div class="subcta" id="subcta"><p><b>수업 분위기를 직접 확인해 보세요</b><span>체험 수업은 네이버 예약으로 날짜를 고르시면 됩니다.</span></p>
+          <div><a class="main" href="${esc(bookUrl)}" target="_blank" rel="noopener">${svg('calendar')}체험 수업 예약</a><a href="${go('contact')}">${svg('chat')}상담 문의</a></div></div>` : ''}</main>
     </div>
 
     <footer class="foot"><div class="in">
@@ -326,6 +349,11 @@ function render(d){
       return `<div class="qp" id="qp"><button class="qtab" id="qtab" type="button" aria-expanded="false" aria-controls="qbox"><span class="v" aria-label="빠른상담"><i>빠</i><i>른</i><i>상</i><i>담</i></span><span class="ar">${svg('left',2.8)}</span></button>
         <nav class="qbox" id="qbox" aria-label="빠른 상담"><h4>빠른 상담</h4>${fl.map(l => { const lg = LOGOS[l.icon] && l.icon !== 'insta'; return row(`f-${esc(l.icon)}${lg ? ' f-logo' : ''}`, l.url, l.name, l.desc, lg ? `<img src="${LOGOS[l.icon]}" alt="">` : svg(l.icon, 2.2), true); }).join('')}${ph ? row('f-phone', 'tel:' + tel, '전화 상담', ct.phone, svg('phone', 2.2), false) : ''}<a href="#" data-share><span class="qi f-share">${svg('share', 2.2)}</span><span><b>공유하기</b><small>카톡·문자로 사이트 보내기</small></span></a></nav></div>`;
     })()}
+    ${bookUrl || tel ? `<nav class="mcta" aria-label="체험·상담 바로가기">
+      ${bookUrl ? `<a class="main" href="${esc(bookUrl)}" target="_blank" rel="noopener">${svg('calendar')}체험 수업 예약</a>` : ''}
+      ${tel ? `<a href="tel:${esc(tel)}">${svg('phone')}전화</a>` : ''}
+      ${kakaoL ? `<a href="${esc(kakaoL.url)}" target="_blank" rel="noopener">${svg('kakao')}카카오톡</a>` : ''}
+    </nav>` : ''}
     <button class="totop" id="totop" type="button" aria-label="맨 위로">${svg('up',2.6)}</button>`;
 
   document.getElementById('app').classList.add('ready');
@@ -408,6 +436,7 @@ function setupQuick(){
     const onHome = hero && hero.offsetParent !== null;
     const past = !onHome ? true : rv ? rv.getBoundingClientRect().top < innerHeight * .85 : hero.getBoundingClientRect().bottom < 80;
     document.body.classList.toggle('past-hero', past);
+    document.body.classList.toggle('past-top', !onHome || hero.getBoundingClientRect().bottom < 80);
   };
   window.addEventListener('scroll', chk, {passive:true}); chk();
   document.addEventListener('click', e => { if(!qp.contains(e.target)) set(false); });
@@ -458,6 +487,7 @@ function route(){
     tabs.parentElement.hidden = g.items.length < 2;
     tabs.innerHTML = g.items.map(x => `<a href="${go(x)}" class="${x === id ? 'on' : ''}">${esc(S[x].short || S[x].label)}</a>`).join('');
     document.querySelectorAll('#subPage .sec').forEach(s => s.hidden = s.dataset.id !== id);
+    const sc = document.getElementById('subcta'); if(sc) sc.hidden = id === 'contact';
     const t = tabs.querySelector('.on'); if(t) t.scrollIntoView({block:'nearest', inline:'center'});
   }
   window.scrollTo(0, 0);
@@ -548,9 +578,16 @@ function weekTable(d){
   return `<div class="card tt wk" style="margin-top:14px"><h4>요일별 운동테마</h4><table>
     ${rows.map(([w, v]) => `<tr class="${w === today ? 'today' : ''}"><td>${w}</td><td>${v.map(esc).join(' · ')}</td></tr>`).join('')}</table></div>`;
 }
+// 공지 문장 안의 'N일'이 오늘보다 앞이면 지난 공지 (이번 달 공지만, 날짜가 없는 문장은 그대로)
+function noticePast(t){
+  const m = /(^|[^0-9])([1-9]|[12][0-9]|3[01])일/.exec(String(t || ''));
+  return !!m && +m[2] < TODAY.getDate();
+}
 function monthNotices(d){
   const { exact } = monthPlan(d);
-  return exact ? { m: +exact.month.slice(5), list: list(exact.notices) } : { m: TODAY.getMonth() + 1, list: [] };
+  if(!exact) return { m: TODAY.getMonth() + 1, list: [], past: [] };
+  const all = list(exact.notices);
+  return { m: +exact.month.slice(5), list: all.filter(t => !noticePast(t)), past: all.filter(noticePast) };
 }
 function activePosters(d){
   return list(d.board).filter(p => p.image || p.title).filter(p => (!isDate(p.start) || parseD(p.start) <= TODAY) && (!isDate(p.end) || TODAY <= parseD(p.end)));
@@ -610,7 +647,8 @@ function noticePage(d){
       return p.url ? `<a class="card pst" href="${esc(p.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="card pst">${inner}</div>`;
     }).join('')}</div>` : ''}
     <h3 class="st" style="${ps.length ? 'margin-top:28px' : ''}">${nt.m}월 공지사항</h3>
-    ${nt.list.length ? `<div class="card hc nt"><ul style="padding-top:6px">${nt.list.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : `<div class="card emptybox">이번 달 공지사항이 아직 없어요.</div>`}`;
+    ${nt.list.length ? `<div class="card hc nt"><ul style="padding-top:6px">${nt.list.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : `<div class="card emptybox">${nt.past.length ? '앞으로 남은 공지사항이 없습니다.' : '이번 달 공지사항이 아직 없습니다.'}</div>`}
+    ${nt.past.length ? `<details class="card hc nt past-nt"><summary>지난 공지 ${nt.past.length}개</summary><ul>${nt.past.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` : ''}`;
 }
 function pressPage(d){
   const ps = list(d.press).filter(p => p.title && p.url).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
@@ -655,19 +693,51 @@ function upcomingCard(){
     }).join('')}</ul>` : `<p class="empty">예정된 일정이 없어요.</p>`}
   </div>`;
 }
-// 해랑경희만의 수련: 다른 도장과 다른 점 4가지 (수업 안내 속 내용을 첫 화면에 꺼내 보여줌)
+// 실제 수업 장면: 홈페이지 관리에서 사진을 넣은 장면만 보임 (사진이 없으면 칸 자체가 안 나옴)
+function scenesBlock(d){
+  const sc = list(d.scenes).filter(x => x && x.image);
+  if(!sc.length) return '';
+  return `<div class="seg seg2"><h2>해랑경희의 수업 장면</h2><p>실제 수업 시간의 모습입니다</p></div>
+    <div class="scenes">${sc.map(x => `<figure><img src="${esc(x.image)}" alt="${esc(x.alt || x.label || '수업 장면')}" loading="lazy" data-zoom><figcaption>${esc(x.label || '')}</figcaption></figure>`).join('')}</div>`;
+}
+// 성장 측정지 예시 화면 (실제 제자 기록이 아닌 가상의 값 · 이름 없음)
+function growthSample(d){
+  const gr = d.growth || {}, g = d.guinness || {};
+  const fs = list(gr.factors).filter(x => x && x.t);
+  const sc = list(gr.scale).length ? list(gr.scale) : ['성장 중이에요', '잘해요', '아주 잘해요'];
+  if(!fs.length) return '';
+  const q = Math.floor(TODAY.getMonth() / 3) + 1, items = g.items || {};
+  const ev = items[String(q)] || '기네스 종목', next = items[String(q % 4 + 1)] || '';
+  const ms = [0, 1, 2].map(k => (q - 1) * 3 + k + 1);
+  const recs = [18, 21, 24], lv = [2, 1, 2, 1, 2];
+  const max = Math.max(...recs);
+  return `<div class="cu-sec"><h4>측정지 예시</h4>
+    <div class="gsample" aria-label="성장 측정지 예시 화면">
+      <div class="gs-top"><b>○○○ 제자 · ${TODAY.getFullYear()}년 ${q}분기</b><span>예시 화면 · 실제 기록이 아닙니다</span></div>
+      <div class="gs-f">${fs.map((f, i) => `<div><span>${esc(f.t)}</span><i class="lv${lv[i % lv.length] + 1}">${esc(sc[lv[i % lv.length]] || '')}</i></div>`).join('')}</div>
+      <div class="gs-rec"><p class="gs-h">이번 분기 기네스 · ${esc(ev)}</p>
+        <div class="gs-bars">${ms.map((m, k) => `<div><span class="bar" style="height:${Math.round(recs[k] / max * 100)}%"></span><b>${recs[k]}</b><small>${m}월</small></div>`).join('')}</div>
+        <p class="gs-cmp">첫 기록 ${recs[0]} → 최고 기록 ${max} <em>▲ ${max - recs[0]}</em></p></div>
+      <div class="gs-cm"><p class="gs-h">사범님 한마디</p><p>지난달보다 기록이 꾸준히 좋아졌습니다. 동생들에게 먼저 다가가 알려 주는 모습도 멋졌습니다.</p></div>
+      ${next ? `<div class="gs-next"><span>다음 분기 도전 종목</span><b>${esc(next)}</b></div>` : ''}
+    </div></div>`;
+}
+// 해랑경희만의 수련: 함께 배우고 → 서로 가르치고 → 바르게 자라고 → 기록하고 → 성장을 확인 (하나의 흐름으로)
 function whyBlock(d){
   const gp = d.guinnessPage || {}, gr = d.growth || {};
+  const mixed = list(d.columns).find(c => /함께\s*수업|혼합\s*연령/.test(c.title || '') && c.url);
   const items = [
-    S.guinness && {id:'guinness', k:'매달 첫째 주 금요일', t: gp.title || '해랑 기네스', p:'석 달마다 종목을 하나 정해 매달 기록을 재고, 지난달 기록과 비교합니다.'},
-    S.guinness && gr.title && {id:'guinness', k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님이 지켜본 아이의 모습을 한 장에 담아 학부모님께 보내드립니다.'},
-    S.character && {id:'character', k:'매주 월요일', t:'인성 교육 · 태권웅변', p:'인성 활동지와 웅변으로 인사, 감사 표현, 자기 생각 말하기를 연습합니다.'},
-    S.leaders && {id:'leaders', k:'먼저 선 · 모범 범 · 모일 단', t:'선범단(先範團)', p:'실력과 생활 태도를 지도진 모두에게 인정받은 수련생이 동생들을 가르칩니다.'}
+    {step:'함께 배우고', href: mixed ? mixed.url : go('program'), k:'혼합연령수업', t:'형·동생이 함께하는 수업', p:'나이가 다른 친구들이 한 공간에서 어울리며 비교가 아닌 존중을, 경쟁이 아닌 협력을 배웁니다.'},
+    S.leaders && {step:'서로 가르치고', href: go('leaders'), k:'먼저 선 · 모범 범 · 모일 단', t:'선범단(先範團)', p:'실력과 생활 태도를 지도진 모두에게 인정받은 수련생이 동생들을 가르치며 책임감과 배려를 경험합니다.'},
+    S.character && {step:'바르게 자라고', href: go('character'), k:'매주 월요일', t:'인성 교육 · 태권웅변', p:'인성 활동지와 웅변으로 인사, 감사 표현, 자기 생각 말하기를 연습합니다.'},
+    S.guinness && {step:'기록하고', href: go('guinness'), k:'매달 첫째 주 금요일', t: gp.title || '해랑 기네스', p:'석 달마다 종목을 하나 정해 매달 기록을 재고, 지난달 기록과 비교합니다.'},
+    S.guinness && gr.title && {step:'성장을 확인합니다', href: go('guinness') , k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님이 지켜본 아이의 모습을 한 장에 담아 학부모님께 보내드립니다.'}
   ].filter(Boolean);
   if(!items.length) return '';
-  return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>태권도 수업과 함께 꾸준히 이어 가고 있는 활동입니다</p></div>
-    <div class="deck" aria-label="해랑경희만의 수련 넘겨보기">${items.map((x, i) => `<a class="dk${i === 0 ? ' p0' : i === 1 ? ' p1' : i === 2 ? ' p2' : ''}" href="${go(x.id)}">
-        <span class="dk-n">${pad2(i + 1)} <i>/ ${pad2(items.length)}</i></span>
+  return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>함께 배우고, 서로 가르치고, 기록으로 성장을 확인합니다</p></div>
+    <div class="dk-flow" role="tablist" aria-label="해랑경희 교육의 흐름">${items.map((x, i) => `<button type="button" data-go="${i}" class="${i ? '' : 'on'}"><b>${pad2(i + 1)}</b>${esc(x.step)}</button>`).join('<i aria-hidden="true">›</i>')}</div>
+    <div class="deck" aria-label="해랑경희만의 수련 넘겨보기">${items.map((x, i) => `<a class="dk${i === 0 ? ' p0' : i === 1 ? ' p1' : i === 2 ? ' p2' : ''}" href="${esc(x.href)}">
+        <span class="dk-n">${pad2(i + 1)} <i>/ ${pad2(items.length)}</i> <em>${esc(x.step)}</em></span>
         <small>${esc(x.k)}</small><b>${esc(x.t)}</b><p>${esc(x.p)}</p><span class="go">자세히 보기 ›</span></a>`).join('')}
     </div>
     ${items.length > 1 ? `<div class="dk-ctrl"><button type="button" data-prev aria-label="이전">${svg('left',2.4)}</button><span class="dk-dots">${items.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</span><button type="button" data-next aria-label="다음">${svg('right',2.4)}</button></div>` : ''}`;
@@ -920,8 +990,8 @@ function setupCalendar(){
     if(sel){ evs = eventsOn(sel); title = krDate(sel); }
     else{ const s = new Date(y, m, 1), e = new Date(y, m+1, 0); evs = EVENTS.filter(x => x.s <= e && x.en >= s); title = `${m+1}월 일정`; }
     box.innerHTML = `<h4>${title}</h4>` + (evs.length ? evs.map(e => `
-      <div class="ev"><div class="when"><b>${e.s.getDate()}</b><span>${e.s.getMonth()+1}월 ${WEEK[e.s.getDay()]}</span></div>${e.image ? `<img class="thumb" src="${esc(e.image)}" alt="${esc(e.title)}" data-zoom loading="lazy">` : ''}
-        <div class="what" style="border-color:${EV_COLORS[e.type] || EV_COLORS['기타']}"><b><span class="tag" style="background:${EV_COLORS[e.type] || EV_COLORS['기타']}">${esc(e.type || '기타')}</span>${esc(e.title)}</b>
+      <div class="ev${e.en < TODAY ? ' past' : ''}"><div class="when"><b>${e.s.getDate()}</b><span>${e.s.getMonth()+1}월 ${WEEK[e.s.getDay()]}</span></div>${e.image ? `<img class="thumb" src="${esc(e.image)}" alt="${esc(e.title)}" data-zoom loading="lazy">` : ''}
+        <div class="what" style="border-color:${EV_COLORS[e.type] || EV_COLORS['기타']}"><b><span class="tag" style="background:${EV_COLORS[e.type] || EV_COLORS['기타']}">${esc(e.type || '기타')}</span>${esc(e.title)}${e.en < TODAY ? '<em class="done">종료</em>' : ''}</b>
         <span>${rangeText(e)}${e.note ? ' · ' + esc(e.note) : ''}</span></div></div>`).join('') : `<div class="ev"><div class="what" style="border-color:var(--line)"><span>등록된 일정이 없어요.</span></div></div>`);
   };
   draw();
@@ -991,10 +1061,13 @@ function setupDeck(){
   const cs = [...st.querySelectorAll('.dk')], ctrl = st.nextElementSibling;
   if(cs.length < 2) return;
   const dots = ctrl ? [...ctrl.querySelectorAll('.dk-dots i')] : [];
+  const flow = [...document.querySelectorAll('.dk-flow button')];
   let i = 0;
+  flow.forEach((b, k) => b.onclick = () => { if(k !== i){ i = k; paint(); } });
   const paint = () => {
     cs.forEach((c, k) => { const r = (k - i + cs.length) % cs.length; c.classList.toggle('p0', r === 0); c.classList.toggle('p1', r === 1); c.classList.toggle('p2', r === 2); c.tabIndex = r ? -1 : 0; });
     dots.forEach((d, k) => d.classList.toggle('on', k === i));
+    flow.forEach((b, k) => b.classList.toggle('on', k === i));
   };
   const move = dir => {
     const f = cs[i]; f.classList.add(dir < 0 ? 'outr' : 'out');

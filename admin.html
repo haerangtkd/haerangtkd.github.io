@@ -234,12 +234,21 @@
     <p class="hint">사진은 자동으로 크기를 줄여서 올라가요. ◀ ▶로 순서를 바꿀 수 있어요. 가로 사진이 가장 잘 어울려요.</p>
   </div></details>
 
+  <details class="card"><summary>⑩-2 수업 장면 사진 (첫 화면)</summary><div class="in">
+    <p class="hint">첫 화면 '해랑경희의 수업 장면'에 나와요. <b>사진을 넣은 장면만</b> 홈페이지에 보이고, 사진이 없는 장면은 안 보여요. 각 칸의 '필요한 사진'을 보고 실제 수업 사진을 넣어 주세요. (다른 곳 사진이나 만든 그림은 넣지 않기)</p>
+    <div id="ed-scenes"></div>
+  </div></details>
+
   <details class="card"><summary>⑪ 상담 문의 · 링크</summary><div class="in">
     <label class="f">제목</label><input data-k="contact.title">
     <label class="f">전화번호 (누르면 바로 전화 연결)</label><input data-k="contact.phone" inputmode="tel">
     <label class="check"><input type="checkbox" id="floatPhone"> 오른쪽 '빠른상담' 칸에 전화 상담도 보이기</label>
     <p class="hint">위에서부터 <b>8개</b>가 첫 화면 '상담 및 문의하기' 칸에 나와요. 블로그 칸(도장 모습·해랑경희 칼럼·수련 이야기)은 지금 블로그 첫 화면으로 연결돼 있으니, 이름과 주소를 원하시는 글이나 카테고리로 바꿔 주세요.</p>
     <div id="ed-links"></div>
+    <label class="f" style="margin-top:18px;font-weight:700;color:var(--ink)">처음 오시는 학부모님께 (체험·상담 페이지 맨 위)</label>
+    <label class="f">제목</label><input data-k="trial.title">
+    <label class="f">한 줄 설명</label><input data-k="trial.lead">
+    <div id="ed-trial"></div>
   </div></details>
 
   <details class="card"><summary>⑫ 오시는 길 · 운영 시간</summary><div class="in">
@@ -434,6 +443,18 @@ function listEditor(boxId, path, cfgL){
 }
 
 function renderAll(){
+  listEditor('ed-scenes', 'scenes', {
+    noun:'장면', heading:'장면 (위에 있을수록 먼저 보여요)',
+    title:(x) => (x.label || '새 장면') + (x.image ? ' · 사진 있음' : ' · 사진 필요'),
+    blank:() => ({label:'', need:'', image:'', alt:''}),
+    fields:[{k:'label', label:'장면 이름 (사진 위에 작게 보여요)', half:true}, {k:'need', label:'필요한 사진 (관리용 메모, 화면에는 안 보여요)', half:true}, {k:'image', label:'사진', type:'photo'}, {k:'alt', label:'사진 설명 (화면에는 안 보여요, 검색에 쓰여요)'}]
+  });
+  listEditor('ed-trial', 'trial.steps', {
+    noun:'단계', heading:'진행 순서',
+    title:(x, i) => `${i + 1}. ${x.t || '새 단계'}`,
+    blank:() => ({t:'', d:''}),
+    fields:[{k:'t', label:'단계 이름'}, {k:'d', label:'설명', type:'textarea'}]
+  });
   listEditor('ed-staff', 'staff.members', {
     noun:'지도자', heading:'지도자 (위에 있을수록 먼저 보여요)',
     title:(m,i) => `${m.role || '지도자'} ${m.name || ''}`.trim(),
@@ -690,6 +711,8 @@ function tidy(){
   data.press = (data.press || []).filter(p => p.title && p.url).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   data.press.forEach(p => { if(!/^https?:/i.test(p.url)) p.url = 'https://' + p.url; });
   data.reviews = (data.reviews || []).filter(r => r.text);
+  data.scenes = (data.scenes || []).filter(x => x.label || x.image);
+  if(data.trial) data.trial.steps = (data.trial.steps || []).filter(x => x.t);
   data.collabs = (data.collabs || []).filter(c => c.partner || c.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   data.collabs.forEach(c => { if(c.url && !/^https?:/i.test(c.url)) c.url = 'https://' + c.url; });
   if(data.monthly) data.monthly.focus = (data.monthly.focus || []).filter(f => f.date && f.title).sort((a, b) => a.date.localeCompare(b.date));
