@@ -286,7 +286,8 @@ async function route(path, req, env, ctx) {
       const ex = me ? await examClosed(env) : {}, exams = me ? examList(ex, { sid: me.sid, name }) : [];
       const em = (await kv('exam:' + mon)) || {}, vids = (await kv('examvid')) || {}, myBelt = me ? (belts[mid] || me.belt0 || '') : (AB['n:' + name] || '');
       const prep = { month: mon, date: em.date || '', closed: !!em.closed, notes: em.notes || {}, vid: vids[myBelt] || '' };
-      const sun = ((await kv('sun:' + mon)) || []).map(x => ({ name: x.name, text: x.text, at: x.at }));
+      const sun = ((await kv('sun:' + mon)) || []).map(x => ({ name: x.name, cat: x.cat || '', text: x.text || '', at: x.at }));
+      try { const st = (await sunStatus(env))[name]; if (st) prep.sunMe = Object.assign({ need: SUN_NEED }, st); } catch (_) {} // 내 도장 · 경고 (prep에 실어 보냄 — 알림 서버를 안 고치려고)
       return json({ ok: true, sid: me ? me.sid || '' : '', kinder: !!(me && String(me.grade || '').includes('유치')), goal, exams, prep, sun,
         belt: me ? (belts[mid] || me.belt0 || '') : (AB['n:' + name] || ''), beltPct: pct, sb: RL ? !!(meR && meR.sb) : !!(me && sb[mid]),
         sbList: RL ? RL.filter(s => s.sb && s.status !== '퇴관').map(s => ({ name: s.name, belt: s.belt || '' })) : L.filter(k => sb[id(k)] && status[id(k)] !== '퇴관').map(k => ({ name: k.name, belt: belts[id(k)] || k.belt0 || '' })),
@@ -793,17 +794,18 @@ async function route(path, req, env, ctx) {
     await addLog(env, me.id, 'member', '🎯 ' + str(b.name, 20) + ' 제자 모드 목표 띠: ' + (belt || '기본'), '');
     return json({ ok: true });
   }
-  if (path === '/api/sun-list' || path === '/api/sun-add' || path === '/api/sun-del') { // ⭐ 선범단 선 모으기 (2026-11-14): 사범님이 넣고, 제자 모드에서 모든 제자가 봄
+  if (path === '/api/sun-list' || path === '/api/sun-add' || path === '/api/sun-del') { // ⭐ 선범단 도장 찍기 (2026-11-14 선 모으기 → 2026-11-15 도장): 사범님이 넣고, 제자 모드에서 모든 제자가 봄
     const mon = /^\d{4}-\d{2}$/.test(str(b.month, 7)) ? str(b.month, 7) : kstDay().slice(0, 7), k = 'sun:' + mon;
     let L = J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, []); if (!Array.isArray(L)) L = [];
-    if (path === '/api/sun-add') {
-      const name = str(b.name, 20), text = str(b.text, 80).trim(); if (!name || !text) return json({ ok: false, error: '한 줄을 적어 주세요' });
+    if (path === '/api/sun-add') { // 항목 3개 중 하나 (사유는 안 적음 — 2026-11-15 사용자 결정)
+      const name = str(b.name, 20), cat = SUN_CATS[b.cat] ? b.cat : ''; if (!name) return json({ ok: false, error: '선범단 이름을 골라 주세요' }); if (!cat) return json({ ok: false, error: '항목을 골라 주세요' });
       if (L.length >= 600) return json({ ok: false, error: '이번 달 기록이 너무 많아요' });
-      L.push({ id: rid(4), name, text, at: Date.now(), by: me.name });
+      L.push({ id: rid(4), name, cat, at: Date.now(), by: me.name });
     }
     if (path === '/api/sun-del') { const x = L.find(y => y.id === str(b.id, 20)); if (!x) return json({ ok: false, error: '이미 지워졌어요' }); if (x.by !== me.name && !me.boss) return json({ ok: false, error: '넣은 사람이나 관리자만 지울 수 있어요' }); L = L.filter(y => y !== x); }
     if (path !== '/api/sun-list') await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify(L));
-    return json({ ok: true, month: mon, list: L, sb: await sbNames(env) });
+    const sb = await sbNames(env), st = await sunStatus(env, sb);
+    return json({ ok: true, month: mon, list: L, sb, st, need: SUN_NEED });
   }
   if (path === '/api/hw-del') { await run(env, 'UPDATE hw SET del = 1, upd = ? WHERE id = ?', Date.now(), str(b.id, 40)); return json({ ok: true }); }
   if (path === '/api/clean-check') { // 그 주 청소 담당자만 체크
@@ -1415,6 +1417,12 @@ async function pmsgSend(env, b, kids, ctx) {
   if (h >= 8 && h < 21) await pushAll(env, '', '💬 학부모 연락', line, 'home'); else await run(env, 'INSERT INTO pushq2 (text, at) VALUES (?, ?)', line, now);
   return { ok: true };
 }
+// 그날 픽업 명단 인원 (결석 빼고) — 0명이면 13:30 확인 알림을 안 보냄 (2026-11-15)
+async function pickupCount(env, day) {
+  const r = await one(env, 'SELECT data FROM pickup WHERE day = ?', day); let p = r ? J(r.data, {}) : null;
+  if (!p) { const def = J((await one(env, "SELECT v FROM kv WHERE k = 'pickupDefault'") || {}).v, {}); p = { list: [...(def[dayW(day)] || [])], absent: [] }; }
+  const ab = new Set(p.absent || []); return (p.list || []).filter(n => !ab.has(n)).length;
+}
 // 픽업표(그날)에 결석·보호자 등하원 적기
 async function pickupMark(env, day, kid, act, memo, by) {
   const r = await one(env, 'SELECT data FROM pickup WHERE day = ?', day); let p = r ? J(r.data, {}) : null;
@@ -1431,6 +1439,26 @@ async function sbNames(env) { // 선범단 = 출석부 원생 정보 (2026-11-15
   const g = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
   const data = await g('app/data'), st = ((await g('app/settings')) || {}).settings || {}, sb = st.sb || {}, status = st.status || {}, belts = st.belts || {};
   return ((data && data.students) || []).filter(k => k && k.name && sb[k.name + '|' + k.birth] && status[k.name + '|' + k.birth] !== '퇴관').map(k => ({ name: k.name, sid: k.sid || '', belt: belts[k.name + '|' + k.birth] || k.belt0 || '' }));
+}
+// ⭐ 선범단 도장 (2026-11-15 사용자 결정): 다른 사람을 가르침 / 모범을 보임 / 태권도 실력 — 하나 하면 도장 1개. 한 달(1일~말일)에 5개.
+// 못 채운 달이 이어지면 경고 1(노란 카드), 두 달 연속이면 '자격 박탈 확인'(앱은 표시만, 명단에서 빼는 건 사범님). 다음 달 채우면 경고 없어짐.
+// 선범단이 된 달(앱이 처음 본 달, kv 'sunSince')은 셈하지 않음 — 그다음 달부터. 선범단에서 빠지면 지움(다시 되면 새로).
+const SUN_CATS = { teach: '가르침', model: '모범', skill: '실력' }, SUN_NEED = 5;
+const monAdd = (m, n) => { const d = new Date(Date.parse(m + '-01T00:00:00Z')); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 7); };
+async function sunStatus(env, sb) {
+  sb = sb || await sbNames(env); const cur = kstDay().slice(0, 7);
+  const r0 = await one(env, "SELECT v FROM kv WHERE k = 'sunSince'"), since = J((r0 || {}).v, {}) || {}, names = new Set(sb.map(x => x.name)); let ch = false;
+  for (const n of names) if (!since[n]) { since[n] = cur; ch = true; }
+  for (const n of Object.keys(since)) if (!names.has(n)) { delete since[n]; ch = true; }
+  if (ch) await run(env, "INSERT INTO kv (k, v) VALUES ('sunSince', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(since));
+  const cache = {}, cnt = async (m, n) => { if (!cache[m]) cache[m] = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'sun:' + m) || {}).v, []) || []; return cache[m].filter(x => x.name === n).length; };
+  const out = {};
+  for (const n of names) {
+    let miss = 0, m = monAdd(cur, -1);
+    while (m > since[n] && miss < 2) { if (await cnt(m, n) >= SUN_NEED) break; miss++; m = monAdd(m, -1); }
+    out[n] = { n: await cnt(cur, n), warn: miss >= 2 ? 0 : miss, out: miss >= 2, since: since[n] };
+  }
+  return out;
 }
 async function hwFor(env, kids) {
   const day = kstDay(), out = []; let sbs = null;
@@ -1571,12 +1599,12 @@ async function runTimed(env, now = Date.now()) {
     const ids = (await all(env, 'SELECT id FROM members WHERE boss = 1')).map(x => x.id);
     if (ids.length) await pushTo(env, await all(env, 'SELECT * FROM subs WHERE mid IN (' + ids.map(() => '?').join(',') + ')', ...ids), '📦 이번 달 백업을 받아 주세요', '출석부·업무·알림·장부·성장 측정을 파일 하나로 받아 보관해요', 'home');
   }
-  if (wd === 0 || wd === 6) return;
+  // 2026-11-15 사용자 결정: 시간 알림(13:30 픽업 확인 · 13·17:50·18·21시 업무 · 청소)도 주말 포함 매일. 예전엔 평일만.
   const win = h => m >= h && m < h + 20;
   const members = await all(env, 'SELECT id, name FROM members');
   const subsOf = async ids => ids.length ? all(env, 'SELECT * FROM subs WHERE mid IN (' + ids.map(() => '?').join(',') + ')', ...ids) : [];
-  // 13:30 등원·픽업 확인
-  if (win(13 * 60 + 30) && !(await one(env, 'SELECT v FROM kv WHERE k = ? AND v <> \'null\'', 'pkchk:' + day))) {
+  // 13:30 등원·픽업 확인 (매일, 픽업할 제자가 있는 날만)
+  if (win(13 * 60 + 30) && !(await one(env, 'SELECT v FROM kv WHERE k = ? AND v <> \'null\'', 'pkchk:' + day)) && await pickupCount(env, day)) { // 픽업할 제자가 없는 날(주말 등)은 안 보냄
     const cl = await attSync(env, '/sync/closed', { day });
     if (!(cl.ok && cl.closed) && await onceAt(env, 'sent:' + day + ':pk')) await pushAll(env, '', '🚌 등원·픽업 확인', '아직 오늘 등원·픽업 확인을 안 했어요. 확인하고 눌러 주세요', 'home');
   }
@@ -1599,7 +1627,7 @@ async function runTimed(env, now = Date.now()) {
       const chk = d => all(env, 'SELECT task FROM cleanchk WHERE day = ?', d);
       if (h >= 18) { const done = new Set((await chk(day)).map(x => x.task)), l = cleanTasks(c, day).filter(t => !done.has(t)); if (l.length) add(cleanWho(c, day), '🧹 오늘 청소 ' + l.length + '개 남음' + (h === 21 ? ' (21시까지)' : '')); }
       if (h >= 18 && wd === 5) { const wkd = new Set((await chk(weekKey(day))).map(x => x.task)), l = (c.daily || []).filter(t => !wkd.has(t)); if (l.length) add(cleanWho(c, day), '🗑 이번 주 ' + l.join(', ') + ' 아직 안 했어요'); }
-      if (h === 13) { let pd = new Date(Date.parse(day + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10); while (['토', '일'].includes(dayW(pd))) pd = new Date(Date.parse(pd + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10); const done = new Set((await chk(pd)).map(x => x.task)), l = pd >= (c.since || c.start) ? cleanTasks(c, pd).filter(t => !done.has(t)) : []; if (l.length) add(cleanWho(c, pd), '🧹 지난 청소 ' + l.length + '개 안 끝남 (' + pd.slice(5).replace('-', '/') + ')'); }
+      if (h === 13 && wd !== 0 && wd !== 6) { let pd = new Date(Date.parse(day + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10); while (['토', '일'].includes(dayW(pd))) pd = new Date(Date.parse(pd + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10); const done = new Set((await chk(pd)).map(x => x.task)), l = pd >= (c.since || c.start) ? cleanTasks(c, pd).filter(t => !done.has(t)) : []; if (l.length) add(cleanWho(c, pd), '🧹 지난 청소 ' + l.length + '개 안 끝남 (' + pd.slice(5).replace('-', '/') + ')'); }
     }
     for (const [id, list] of per) await pushTo(env, await subsOf([id]), (h === 17.5 ? '📌 오늘까지인 일 ' : '⏰ 아직 안 끝난 일 ') + list.length + '개', list.slice(0, 4).join('\n') + (list.length > 4 ? '\n외 ' + (list.length - 4) + '개' : ''), 'todo');
   }

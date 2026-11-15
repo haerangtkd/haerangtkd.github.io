@@ -15,7 +15,7 @@
 <!-- 🥋 제자 모드 (2026-11-14). 학부모 앱과 같은 알림 서버(/k/…)를 씀.
      들어오기: 제자 폰 = 사범님이 업무 앱에서 만든 코드 / 학부모 앱(승인된 휴대폰) = 코드 없이 바로 (폰 없는 제자, 의견 정리 4번)
      홈(의견 정리 4·5번): 소식 줄(비교 대신 축하) · 내 띠 카드(띠 색, 목표 띠까지 몇 단계, 대표 뱃지 3개, 내 출석 QR) · 출석·기록 · 이번 달 심사 준비 · 미션(같이/혼자/선범단) · 받은 뱃지만
-     ⭐ 선범단: 내 선범단 카드(본인만) · 선 모으기(모두 봄) · 선범단 명단. 제자끼리 글 주고받는 곳은 없음 (선범단방 닫음) -->
+     ⭐ 선범단: 내 선범단 카드(본인만) · 도장 모으기(모두 봄, 2026-11-15 선 → 도장) · 선범단 명단. 제자끼리 글 주고받는 곳은 없음 (선범단방 닫음) -->
 <style>
   :root{--brand:#A40F16;--ink:#1C1A19;--muted:#7A736E;--bg:#FFF8EF;--card:#fff;--line:#F0E6DA;--gold:#F2B705}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -128,6 +128,8 @@
   .sbc .wn{position:absolute;right:14px;top:14px;background:#3A2A00;color:#FFD54A;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:900}
   .sbc .b p{white-space:pre-wrap;line-height:1.7;font-size:15px;margin:8px 0 0}
   .flipn{text-align:center;color:var(--muted);font-size:12.5px;margin-top:6px}
+  .stp{display:flex;flex-wrap:wrap;gap:5px}.st{width:30px;height:30px;border-radius:50%;border:2px dashed #D9B9B9;display:flex;align-items:center;justify-content:center;font-size:16px}.st.on{border:2px solid #C0392B;background:#FFEDEA;transform:rotate(-8deg)}
+  .stl{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed var(--line)}.stl:first-of-type{border-top:0}.stl b{flex:none;width:64px;font-size:14.5px}.stl.me b{color:var(--brand)}
   .sun{display:flex;gap:10px;padding:9px 0;border-top:1px dashed var(--line)}.sun:first-of-type{border-top:0}.sun b{flex:none;font-size:15px}.sun span{flex:1;font-size:14.5px}.sun small{color:var(--muted);font-size:12px;flex:none}
   .tally{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.tally span{background:#FFF7E6;border-radius:999px;padding:5px 10px;font-size:13.5px;font-weight:800}.tally span.me{background:#FFE7A3}
   /* 아래에서 올라오는 창 */
@@ -320,20 +322,24 @@
       return head + '<div class="comp"><b>' + esc(c.title) + '</b><small>' + md(c.date) + '</small><div class="medals">' + (c.rows || []).slice().sort((a, b) => '금은동참가'.indexOf(a.medal) - '금은동참가'.indexOf(b.medal)).map(r => '<span class="' + (r.name === me ? 'me' : '') + '">' + (mdl[r.medal] || '🎽') + ' ' + esc(r.name) + (r.ev ? ' · ' + esc(r.ev) : '') + '</span>').join('') + '</div></div>'; }).join('') : '<div class="empty">아직 올라온 대회 기록이 없어요</div>') + '</section>';
     return h;
   }
-  // ── ⭐ 선범단: 내 카드(본인만) · 선 모으기(모두 봄) · 명단 ──
+  // ── ⭐ 선범단: 내 카드(본인만) · 도장 모으기(모두 봄) · 명단 ──
   function sbView() {
-    const me = D.name, c = D.sbCard, sun = D.sun || [], mon = +D.today.slice(5, 7);
+    const me = D.name, c = D.sbCard, sun = D.sun || [], mon = +D.today.slice(5, 7), sm = (D.prep || {}).sunMe || null, warn = Math.max((c && c.warn) || 0, sm && sm.warn || 0);
     let h = '<div class="hi"><span class="av" style="background:var(--gold)">⭐</span><div><b>선범단</b><small>다른 친구에게 모범이 되고 도와주는 제자</small></div></div>';
     if (D.sb && c) {
-      h += '<div class="sbc' + (c.warn ? ' warn' : '') + '" id="sbc"><div class="in"><div class="f"><div class="t">HAERANG KYUNGHEE</div><h3>⭐ 해랑경희 선범단</h3>' + (c.warn ? '<span class="wn">⚠ 경고 ' + c.warn + '</span>' : '') +
+      h += '<div class="sbc' + (warn ? ' warn' : '') + '" id="sbc"><div class="in"><div class="f"><div class="t">HAERANG KYUNGHEE</div><h3>⭐ 해랑경희 선범단</h3>' + (warn ? '<span class="wn">⚠ 경고 ' + warn + '</span>' : '') +
         '<div class="ph"' + (c.photo ? ' style="background-image:url(' + c.photo + ')"' : '') + '>' + (c.photo ? '' : esc(profAv().e)) + '</div><div class="dt"><b>' + esc(me) + '</b>' + (c.no ? '선범단 No. ' + esc(c.no) + '<br>' : '') + (c.date ? '임명 ' + esc(c.date.replace(/-/g, '.')) + '<br>' : '') + esc(D.belt || '') + '</div></div>' +
         '<div class="b"><div class="t">MY PROMISE</div><h3>선범단 다짐</h3><p>' + esc(c.pledge || '나는 도장의 모범이 되고, 친구를 도와주며, 배운 것을 나누겠습니다.') + '</p></div></div></div><div class="flipn">카드를 누르면 뒤집혀요 · 나만 보는 카드예요</div>';
       const sbHw = (D.hw || []).filter(x => x.sb && (x.kids || []).includes(me));
       if (sbHw.length) h += '<section class="card"><h2>⭐ 선범단 미션</h2>' + sbHw.map(x => '<div class="hw"><div class="t"><b>' + esc(x.title) + '</b><small>' + esc(x.body || '') + '</small></div></div>').join('') + '<p class="sub">체크는 🏠 나의 수련 → 미션에서 해요</p></section>';
     } else h += '<section class="card"><h2>💪 선범단이 되려면</h2><p class="sub" style="font-size:15px;margin:0">실력보다 <b>다른 친구에게 모범이 되고, 가르쳐 주는 제자</b>가 뽑혀요. 동생을 도와주고, 인사를 잘하고, 수련을 성실하게 하면 사범님이 지켜보고 있어요 👀</p></section>';
-    const cnt = {}; sun.forEach(x => { cnt[x.name] = (cnt[x.name] || 0) + 1; });
-    h += '<section class="card"><h2>🌟 ' + mon + '월 선 모으기<small>' + sun.length + '개</small></h2>' + (sun.length ? '<div class="tally">' + Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([n, k]) => '<span class="' + (n === me ? 'me' : '') + '">' + esc(n) + ' ⭐' + k + '</span>').join('') + '</div>' +
-      sun.slice().reverse().map(x => '<div class="sun"><b>' + esc(x.name) + '</b><span>' + esc(x.text) + '</span><small>' + md(new Date(x.at + 9 * 3600e3).toISOString().slice(0, 10)) + '</small></div>').join('') : '<div class="empty">이번 달 첫 선을 기다려요! 친구를 도와주면 사범님이 넣어 줘요</div>') + '</section>';
+    // 🔴 도장 모으기 (2026-11-15: 선 → 도장, 항목 가르침·모범·실력, 한 달 5개)
+    const SC = { teach: ['🧑‍🏫', '가르침'], model: ['🌟', '모범'], skill: ['🥋', '실력'] }, need = (sm && sm.need) || 5, by = {};
+    sun.forEach(x => { (by[x.name] = by[x.name] || []).push(x); });
+    const stamps = L => { let o = ''; for (let i = 0; i < Math.max(need, L.length); i++) { const x = L[i], cc = x && SC[x.cat]; o += '<span class="st' + (x ? ' on' : '') + '" title="' + (cc ? cc[1] : '') + '">' + (x ? (cc ? cc[0] : '⭐') : '') + '</span>'; } return o; };
+    if (D.sb && sm) { const k = (by[me] || []).length; h += '<section class="card"><h2>🔴 내 도장<small>' + k + ' / ' + need + '</small></h2><div class="stp">' + stamps(by[me] || []) + '</div><p class="sub">' + (k >= need ? '이번 달 도장을 다 모았어요! 🎉' : '이번 달 ' + (need - k) + '개 더 모으면 돼요. 친구를 가르쳐 주고, 모범을 보이고, 실력을 보여 줘요') + (sm.out ? '<br><b style="color:#C0392B">두 달 연속 못 채웠어요. 사범님과 이야기해요</b>' : sm.warn ? '<br><b style="color:#B07800">⚠ 경고 ' + sm.warn + ' · 이번 달 ' + need + '개를 채우면 없어져요</b>' : '') + '</p></section>'; }
+    const names = (D.sbList || []).map(x => x.name); Object.keys(by).forEach(n => { if (!names.includes(n)) names.push(n); });
+    h += '<section class="card"><h2>🔴 ' + mon + '월 도장 모으기<small>' + sun.length + '개</small></h2>' + (names.length ? names.map(n => '<div class="stl' + (n === me ? ' me' : '') + '"><b>' + esc(n) + '</b><div class="stp">' + stamps(by[n] || []) + '</div></div>').join('') + '<p class="sub">🧑‍🏫 가르침 · 🌟 모범 · 🥋 실력 — 사범님이 도장을 찍어 줘요</p>' : '<div class="empty">이번 달 첫 도장을 기다려요! 친구를 도와주면 사범님이 찍어 줘요</div>') + '</section>';
     h += '<section class="card"><h2>⭐ 선범단 명단<small>' + (D.sbList || []).length + '명</small></h2>' + ((D.sbList || []).length ? '<div class="sbl">' + D.sbList.map(x => '<div class="' + (x.name === me ? 'me' : '') + '">' + beltDot(x.belt) + '<b>' + esc(x.name) + '</b><small>' + esc(x.belt || '') + '</small></div>').join('') + '</div>' : '<div class="empty">곧 발표돼요</div>') + '</section>';
     return h;
   }

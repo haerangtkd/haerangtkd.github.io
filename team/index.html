@@ -942,7 +942,7 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'] }; // 심사 채점 (2026-11-14)
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '선 모으기'], ['widget', '📱', '위젯'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
+const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['widget', '📱', '위젯'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -2005,23 +2005,28 @@ async function widgetSheet() {
     };
   });
 }
-// ⭐ 선 모으기 (2026-11-14): 선범단이 한 좋은 일을 사범님이 한 줄로 → 제자 모드 '선범단'에서 모든 제자가 봄 (이번 달)
+// ⭐ 도장 찍기 (2026-11-14 선 모으기 → 2026-11-15 도장): 선범단 이름 → 항목(가르침·모범·실력) 누르면 도장 1개, 사유는 안 적음. 한 달 5개.
+// 못 채운 달이 이어지면 경고 1, 두 달 연속이면 '자격 박탈 확인'(표시만 — 명단에서 빼는 건 원생 정보에서 사범님이)
+const SUNC = { teach: ['🧑‍🏫', '가르침'], model: ['🌟', '모범'], skill: ['🥋', '실력'] };
 async function sunSheet(mon) {
-  mon = mon || today().slice(0, 7); let D = { list: [], sb: [] };
-  const draw = ov => { const cnt = {}; D.list.forEach(x => { cnt[x.name] = (cnt[x.name] || 0) + 1; });
-    ov.querySelector('#suB').innerHTML = '<label class="f">선범단 (' + D.sb.length + '명) · 이름을 눌러 고르고 한 줄 적기</label><div class="chips" id="suK">' + (D.sb.map(k => '<button data-n="' + esc(k.name) + '">' + esc(k.name) + (cnt[k.name] ? ' ⭐' + cnt[k.name] : '') + '</button>').join('') || '<span class="help">📈 성장에서 선범단을 정하면 여기 보여요</span>') + '</div>' +
-      '<div class="row" style="margin-top:8px"><input class="inp" id="suT" maxlength="80" placeholder="예: 동생에게 품새 가르쳐 줌" style="flex:1"><button class="btn g" id="suA">+ 선</button></div>' +
-      '<h3>' + (+mon.slice(5)) + '월 선 모으기 ' + D.list.length + '개</h3>' + (D.list.length ? clip('sun' + mon, D.list.slice().reverse().map(x => '<div class="kh"><b>' + esc(x.name) + '</b> ' + esc(x.text) + '<small>' + md(dayOf(x.at)) + ' · ' + esc(x.by) + (x.by === S.me.name || isBoss() ? ' · <a href="#" data-sd="' + esc(x.id) + '" style="color:#C0392B">지우기</a>' : '') + '</small></div>').join(''), '개') : '<p class="empty">아직 없어요</p>'); };
+  mon = mon || today().slice(0, 7); const cur = mon === today().slice(0, 7); let D = { list: [], sb: [], st: {}, need: 5 };
+  const draw = ov => { const cnt = {}; D.list.forEach(x => { cnt[x.name] = (cnt[x.name] || 0) + 1; }); const need = D.need || 5;
+    const tag = n => { const t = cur ? (D.st || {})[n] : null; return t && t.out ? ' <span style="color:#C0392B">· 박탈 확인</span>' : t && t.warn ? ' <span style="color:#B07800">· ⚠ 경고 ' + t.warn + '</span>' : ''; };
+    const warnL = cur ? D.sb.filter(k => (D.st[k.name] || {}).out || (D.st[k.name] || {}).warn) : [];
+    ov.querySelector('#suB').innerHTML = (warnL.length ? '<div class="kh" style="background:#FFF7DD;border-radius:10px;padding:10px">' + warnL.map(k => { const t = D.st[k.name]; return '<div><b>' + esc(k.name) + '</b> ' + (t.out ? '<span style="color:#C0392B">두 달 연속 못 채웠어요 · 선범단 자격 박탈 확인 (원생 정보에서 \'선범단이에요\'를 끄면 빠져요)</span>' : '<span style="color:#B07800">⚠ 경고 1 · 지난달 ' + need + '개를 못 채웠어요. 이번 달 채우면 없어져요</span>') + '</div>'; }).join('') + '</div>' : '') +
+      '<label class="f">선범단 (' + D.sb.length + '명) · 이름을 누르고 항목을 누르면 도장 1개</label><div class="chips" id="suK">' + (D.sb.map(k => '<button data-n="' + esc(k.name) + '">' + esc(k.name) + ' ' + (cnt[k.name] || 0) + '/' + need + (cnt[k.name] >= need ? ' ✅' : '') + tag(k.name) + '</button>').join('') || '<span class="help">원생 정보에서 \'선범단이에요\'를 켜면 여기 보여요</span>') + '</div>' +
+      '<div class="row" style="margin-top:10px;gap:8px">' + Object.entries(SUNC).map(([c, [ic, t]]) => '<button class="btn g" data-c="' + c + '" style="flex:1;padding:14px 4px;font-size:15px">' + ic + '<br>' + t + '</button>').join('') + '</div>' +
+      '<h3>' + (+mon.slice(5)) + '월 도장 ' + D.list.length + '개</h3>' + (D.list.length ? clip('sun' + mon, D.list.slice().reverse().map(x => { const c = SUNC[x.cat]; return '<div class="kh"><b>' + esc(x.name) + '</b> ' + (c ? c[0] + ' ' + c[1] : '⭐ ' + esc(x.text || '도장')) + '<small>' + md(dayOf(x.at)) + ' · ' + esc(x.by) + (x.by === S.me.name || isBoss() ? ' · <a href="#" data-sd="' + esc(x.id) + '" style="color:#C0392B">지우기</a>' : '') + '</small></div>'; }).join(''), '개') : '<p class="empty">아직 없어요</p>'); };
   let pick = '';
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>⭐ 선 모으기</h2><button class="btn" id="suP">‹ 지난달</button></div><p class="help">선범단 제자가 한 좋은 일을 한 줄로 넣어요. 제자 모드 \'선범단\'에서 모든 제자가 봐요 (선범단 개인 카드와는 따로).</p><div id="suB"><p class="help">불러오는 중…</p></div>', async ov => {
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>⭐ 도장 찍기</h2><button class="btn" id="suP">‹ 지난달</button></div><p class="help">선범단이 다른 사람을 가르치거나, 모범을 보이거나, 태권도 실력을 보이면 도장 1개. 한 달에 ' + 5 + '개를 모아야 해요. 제자 모드 \'선범단\'에서 모든 제자가 봐요.</p><div id="suB"><p class="help">불러오는 중…</p></div>', async ov => {
     ov.classList.add('full');
-    const load = async (path, body) => { const j = await api(path, Object.assign({ month: mon }, body || {})); if (!j.ok) return toast(j.error || '불러오지 못했어요'); D = j; draw(ov); if (pick) { const b = ov.querySelector('#suK [data-n="' + CSS.escape(pick) + '"]'); if (b) b.classList.add('on'); } };
+    const load = async (path, body) => { const j = await api(path, Object.assign({ month: mon }, body || {})); if (!j.ok) return toast(j.error || '불러오지 못했어요'), false; D = j; draw(ov); if (pick) { const b = ov.querySelector('#suK [data-n="' + CSS.escape(pick) + '"]'); if (b) b.classList.add('on'); } return true; };
     await load('/api/sun-list');
     ov.onclick = async e => {
       if (e.target.id === 'suP') { const d = new Date(mon + '-01T00:00:00Z'); d.setUTCMonth(d.getUTCMonth() - 1); return sunSheet(d.toISOString().slice(0, 7)); }
-      const n = e.target.closest('#suK [data-n]'); if (n) { pick = n.dataset.n; ov.querySelectorAll('#suK button').forEach(b => b.classList.toggle('on', b === n)); return ov.querySelector('#suT').focus(); }
-      if (e.target.id === 'suA') { const t = ov.querySelector('#suT').value.trim(); if (!pick) return toast('선범단 이름을 먼저 골라 주세요'); if (!t) return toast('한 줄을 적어 주세요'); await load('/api/sun-add', { name: pick, text: t }); toast(pick + ' ⭐ 선 +1'); return; }
-      const d = e.target.closest('[data-sd]'); if (d) { e.preventDefault(); if (!confirm('이 기록을 지울까요?')) return; await load('/api/sun-del', { id: d.dataset.sd }); }
+      const n = e.target.closest('#suK [data-n]'); if (n) { pick = n.dataset.n; ov.querySelectorAll('#suK button').forEach(b => b.classList.toggle('on', b === n)); return; }
+      const c = e.target.closest('[data-c]'); if (c) { if (!pick) return toast('선범단 이름을 먼저 골라 주세요'); if (await load('/api/sun-add', { name: pick, cat: c.dataset.c })) toast(pick + ' ' + SUNC[c.dataset.c][0] + ' 도장 +1'); return; }
+      const d = e.target.closest('[data-sd]'); if (d) { e.preventDefault(); if (!confirm('이 도장을 지울까요?')) return; await load('/api/sun-del', { id: d.dataset.sd }); }
     };
   });
 }
