@@ -1,0 +1,16 @@
+{
+  "id": "/kids/",
+  "name": "해랑경희 제자",
+  "short_name": "해랑 제자",
+  "description": "해랑경희 태권도장 제자 앱 — 내 띠·뱃지·선범단 도장",
+  "start_url": "/kids/",
+  "scope": "/kids/",
+  "display": "standalone",
+  "background_color": "#FFF8EF",
+  "theme_color": "#A40F16",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

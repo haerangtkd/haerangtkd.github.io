@@ -379,7 +379,7 @@
     <section id="t-kmode" hidden>
       <div class="card">
         <h2>🥋 제자 모드 코드</h2>
-        <p class="hint">제자 휴대폰(또는 태블릿)에서 <b>haerangtkd.github.io/notice/kids.html</b>을 열고, 도장에서 아래 코드를 직접 넣어 주세요. 학부모 앱과 따로예요. '새 코드'를 만들면 예전 기기는 나가져요.</p>
+        <p class="hint">제자 휴대폰(또는 태블릿)에서 <b>haerangtkd.github.io/kids/</b>을 열고, 도장에서 아래 코드를 직접 넣어 주세요. 학부모 앱과 따로예요. '새 코드'를 만들면 예전 기기는 나가져요.</p>
         <div class="share"><code id="kidsUrl"></code><button id="copyKids">복사</button></div>
         <input type="search" id="kq" placeholder="제자 이름 검색" style="margin-top:10px">
         <ul class="list" id="kcList" style="margin-top:8px"></ul>
@@ -849,7 +849,7 @@
   // ═════ 🥋 제자 모드 관리 (2026-11-14) ═════
   let km = { best: [], comps: [] }, kcItems = [];
   const KG = ['중고등부 남', '중고등부 여', '초등부 남', '초등부 여', '유치부 남', '유치부 여'];
-  $('kidsUrl').textContent = location.origin + location.pathname.replace(/admin\.html$/, 'kids.html');
+  $('kidsUrl').textContent = location.origin + '/kids/';
   $('copyKids').onclick = () => { const t = $('kidsUrl').textContent; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요'), () => prompt('복사해 주세요', t)); };
   async function loadKmode() {
     const [a, b2, c] = await Promise.all([post('/admin/kcodes', {}), post('/admin/kmode-get', {}), post('/admin/kposts', {})]);

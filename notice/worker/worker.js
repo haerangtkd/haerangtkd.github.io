@@ -56,6 +56,7 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE asess ADD COLUMN boss INTEGER DEFAULT 0').run(); } catch (_) {} // 업무 앱 관리자 (퇴관 원생은 관리자만)
   try { await env.DB.prepare('ALTER TABLE kids ADD COLUMN sid TEXT').run(); } catch (_) {} // 출석부 원생 id (2026-11-13 원생 한 명단)
   try { await env.DB.prepare('ALTER TABLE kids ADD COLUMN ano TEXT').run(); } catch (_) {} // 출석부에서 가져온 출결번호 (바뀌면 이것만 바꿈)
+  for (const c of ['ep TEXT', 'p256 TEXT', 'auth TEXT']) try { await env.DB.prepare('ALTER TABLE ksess ADD COLUMN ' + c).run(); } catch (_) {} // 제자 앱 휴대폰 알림 (2026-11-15)
   ready = true;
 }
 
@@ -164,6 +165,11 @@ async function route(path, req, env) {
       await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kprof:' + name, JSON.stringify(v)); return json({ ok: true, prof: v });
     }
     if (path === '/k/hw-check') return json(await teamSync(env, '/sync/hw-check', { kids: [name], kid: name, hw: b.hw, day: b.day, on: !!b.on, rel: '본인' }));
+    if (path === '/k/sub') { // 제자 앱 알림 켜기 (2026-11-15, 제자 앱 따로) — 코드로 들어온 기기만 (학부모 휴대폰은 안 받음)
+      if (viaP) return json({ ok: false, error: '제자 코드로 들어온 기기만 알림을 켤 수 있어요' });
+      const sub = b.sub || {}, k = sub.keys || {}; if (!/^https:\/\//.test(String(sub.endpoint || '')) || !k.p256dh || !k.auth) return json({ ok: false, error: '알림을 켜지 못했어요' });
+      await run(env, 'UPDATE ksess SET ep = ?, p256 = ?, auth = ? WHERE tok = ?', String(sub.endpoint).slice(0, 600), String(k.p256dh).slice(0, 200), String(k.auth).slice(0, 100), String(b.tok)); return json({ ok: true });
+    }
     if (path === '/k/logout') { await run(env, 'DELETE FROM ksess WHERE tok = ?', String(b.tok)); return json({ ok: true }); }
     if (path === '/k/post') return json({ ok: false, error: '선범단방은 닫았어요 (제자끼리 글 주고받기 없음)' }); // 2026-11-14 의견 정리 4번
     if (!t.ok || !t.sb) return json({ ok: false, error: '선범단만 들어갈 수 있어요', notSb: true });
@@ -369,6 +375,10 @@ async function route(path, req, env) {
   }
 
   // ═════════ 출석부 서버에서 부름 (서비스 바인딩, SYNC_KEY 확인) ═════════
+  if (path === '/sync/kid-push') { // 🥋 제자 앱 기기에만 알림 (2026-11-15: 선범단 도장 → 그 제자만)
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    return json(await kidPush(env, String(b.name || ''), String(b.title || '').slice(0, 60), String(b.body || '').slice(0, 200)));
+  }
   if (path === '/sync/notify') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const name = cleanNames([b.name])[0];
@@ -1015,6 +1025,13 @@ async function send(env, b) {
   return { ok: true, total, sent, failed, removed, next: nextAt < total - removed ? nextAt : null };
 }
 
+async function kidPush(env, name, title, body) {
+  const L = name ? await all(env, 'SELECT tok, ep, p256, auth FROM ksess WHERE name = ? AND ep IS NOT NULL ORDER BY seen DESC LIMIT 4', name) : [];
+  if (!L.length) return { ok: true, sent: 0, total: 0 };
+  const vapid = await getVapid(env), payload = JSON.stringify({ title, body, kind: '제자', url: SITE + '/kids/', tag: 'kid-' + Date.now() }); let sent = 0;
+  for (const s of L) { try { const res = await webPush({ endpoint: s.ep, p256dh: s.p256, auth: s.auth }, payload, await vapidHeader(s.ep, vapid)); if (res.status === 404 || res.status === 410) await run(env, 'UPDATE ksess SET ep = NULL WHERE tok = ?', s.tok); else if (res.ok) sent++; } catch (_) {} }
+  return { ok: true, sent, total: L.length };
+}
 // 보호자 한 사람(휴대폰 한 대)에게만 보내기 — 가입 승인 알림 (승인 전이라도 보냄)
 async function pushOne(env, s, title, body, view) {
   const vapid = await getVapid(env);

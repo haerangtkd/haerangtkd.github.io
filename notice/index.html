@@ -179,7 +179,7 @@
   .gcard{background:#fff;border-radius:18px;padding:14px 14px 12px;margin-top:12px}
   .gch{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.gch b{font-size:15.5px}.gch b small{font-weight:500;color:var(--muted)}.gch>small{color:var(--muted);font-size:12.5px}
   .gnav{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700}.gnav button{border:0;background:#F1ECE7;border-radius:8px;width:28px;height:28px;font-size:16px}.gnav button:disabled{opacity:.35}
-  .gline,.gbars{width:100%;display:block}.gradar{width:100%;max-width:330px;display:block;margin:0 auto}
+  .gline,.gbars{width:100%;display:block}.gfl{border-top:1px dashed #EEE9E4;padding-top:8px;margin-top:8px}.gfl:first-of-type{border-top:0}.gfl>b{font-size:13.5px}.gradar{width:100%;max-width:330px;display:block;margin:0 auto}
   .gsum{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);margin-top:4px}.gsum b{color:var(--ink)}.gsum .up{color:var(--brand);font-weight:800}
   .glv{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}.glv div{background:#F7F4F0;border-radius:12px;padding:8px 10px}.glv span{display:block;font-size:11.5px;color:var(--muted)}.glv b{font-size:14px}
   .glv .l3{color:#1E7A46}.glv .l2{color:#2F6FDE}.glv .l1{color:#C2672B}
@@ -538,7 +538,6 @@
 
   <!-- 가입 / 정보 수정 -->
   <section class="card" id="g-join" hidden>
-    <div class="who2" id="who2"><button class="on" type="button">👨‍👩‍👧 학부모</button><button type="button" data-kid>🥋 제자</button></div>
     <h2 id="joinTitle">학부모 가입</h2>
     <p id="joinDesc">가입하면 등원·하원 알림, 알림장, 공지, 앨범, 출석부를 이 휴대폰에서 볼 수 있습니다.</p>
     <div id="invBox">
@@ -1049,7 +1048,7 @@
       h += '<button class="status' + (t.out ? ' out' : t.in ? ' in' : '') + '" data-go-tab="kid"><span class="si">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span class="st"><b>' +
         (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</b><small>' +
         (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>';
-      h += envSection(k) + homeTiles(k) + contactSection(k) + evSection(k) + hwSection(k);
+      h += envSection(k) + homeTiles(k) + contactSection(k) + evSection(k); // 2026-11-15: 홈 미션 칸 뺌 (미션은 타일 → 새 창에서)
     }
     const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장'], ['album', '새 사진이 올라왔어요', '앨범']].filter(([x]) => fresh(x));
     const askRows = asks.filter(x => !x.urgent).map(x => '<button class="li" data-news="' + (x.type === 'journal' ? '알림장' : '공지') + '"><span class="lic i-ask">' + ICON.check + '</span><span class="lt"><b>' + esc(x.title) + '</b><small>읽고 \'확인했어요\'를 눌러 주세요</small></span><i class="new"></i>' + ICON.right + '</button>').join('');
@@ -1355,26 +1354,10 @@
       (s.approved ? '<button class="li" data-x="info"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 확인</b><small>출생연도 · 수련 요일 · 회비 · ' + esc(s.relation || '') + ' · 번호 뒷자리 ' + esc(s.phone4 || '') + '</small></span>' + ICON.right + '</button>' : '') +
       (canPush ? '<button class="li" data-x="push"><span class="lic">' + IC.bell + '</span><span class="lt"><b>알림</b><small>' + (pushOk ? '켜져 있어요 · 눌러서 확인' : '꺼져 있어요 · 눌러서 켜기') + '</small></span>' + ICON.right + '</button>' : '') +
       (s.approved ? '<button class="li" data-x="fam"><span class="lic">' + IC.share + '</span><span class="lt"><b>도장에 가족 추가 요청하기</b><small>할머니·아빠 등 다른 가족도 알림을 받을 수 있게 도장에서 도와드려요</small></span>' + ICON.right + '</button>' : '') +
-      '<button class="li" data-x="tokid" data-k="' + esc(k) + '"><span class="lic" style="font-size:18px">🥋</span><span class="lt"><b>' + (s.approved ? esc(k) + ' 제자 모드로 보기' : '제자 모드로 바꾸기') + '</b><small>' + (s.approved ? '코드 없이 바로 · 폰이 없는 친구도 띠·뱃지·미션을 봐요' : '제자 본인 휴대폰이면 여기서 바꿔요 · 사범님께 코드 받기') + '</small></span>' + ICON.right + '</button>' +
       '</div><p class="note" style="margin:10px 4px 0">정보가 다르면 도장에 알려 주세요. 퇴관하면 이 휴대폰 등록도 함께 해제돼요.</p></section>';
     const head = kidSel + '<div class="att-kid"><span class="avatar">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장 · ' + (s.approved ? '확인 완료' : '도장 확인 중') + '</small></div><span class="cnt" id="attCnt"></span></div>'
       + ''; // 성장 리포트 = 아래 탭 가운데 '성장' 버튼 (2026-11-15 사용자 요청, 빨간 버튼 없앰)
-    let att = '';
-    if (!s.approved) att = '<div class="calm" style="margin-top:12px"><span>도장에서 확인이 끝나면 출석 기록을 볼 수 있어요</span></div>';
-    else {
-      if (!$('tBody').querySelector('.cal')) tbody(head + '<div class="empty">불러오는 중…</div>' + settings);
-      const r = await attSec(month, k).catch(() => null);
-      if (tab !== 'kid' || month !== attMonth) return;
-      if (!r) att = '<div class="empty">출석 기록을 불러오지 못했어요</div>';
-      else {
-        att = r.html;
-        tbody(head + att + settings);
-        $('attCnt').textContent = (+month.slice(5)) + '월 출석 ' + r.n + '일';
-        bindKid(month);
-        return;
-      }
-    }
-    tbody(head + att + settings);
+    tbody(head + settings); // 2026-11-15: 제자 정보에서 출석 기록 뺌 (출석은 홈 '출석' 타일 → 일정 · 공지 · 출석)
     bindKid(month);
   }
   function bindKid(month) {
@@ -1389,9 +1372,6 @@
       if (x === 'info') openPage('info');
       if (x === 'edit') { fillJoin(me(), true); show('v-gate', 'g-join'); scrollTo(0, 0); }
       if (x === 'share') copy();
-      if (x === 'tokid') { // 2026-11-14: 승인된 학부모 휴대폰은 코드 없이 제자 모드로 (폰 없는 제자). 제자 화면 맨 아래 '학부모 화면으로'로 돌아옴
-        if (s && s.approved && s.token) { try { localStorage.setItem('haerang-kid-pick', r.dataset.k || ''); } catch (_) {} toKid(); }
-        else if (confirm('이 휴대폰을 제자 모드로 바꿀까요?\n도장에서 사범님께 제자 코드를 받아야 들어갈 수 있어요. 학부모 화면은 제자 화면 맨 아래 \'학부모 화면으로\'를 누르면 돌아와요.')) toKid(); }
       if (x === 'fam') famSheet();
       if (x === 'push') {
         if (canPush && s.push && Notification.permission === 'granted') { (reg || await navigator.serviceWorker.ready).showNotification('해랑경희', { body: '알림이 잘 오고 있어요.', icon: 'icon-192.png', badge: 'badge.png', tag: 'test' }); return; }
@@ -1514,6 +1494,14 @@
     return '<svg class="gradar" viewBox="-30 -6 320 290">' + ring(3) + ring(2) + ring(1) + [0, 1, 2, 3, 4].map(i => '<line x1="' + C + '" y1="' + (C + 10) + '" x2="' + P(i, R)[0] + '" y2="' + P(i, R)[1] + '" stroke="#E4DCD4"/>').join('') +
       '<polygon points="' + poly + '" fill="rgba(164,15,22,.22)" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round"/>' + G5.map((t, i) => lab(i, t, vals[i])).join('') + '</svg>';
   }
+  function gLv(pts) { // 한 요소의 달마다 단계 꺾은선 (2026-11-15: 요약 = 오각형, 성장 측정 = 요소마다 꺾은선)
+    const W = 320, H = 132, n = pts.length, X = i => n > 1 ? 34 + i * (W - 60) / (n - 1) : W / 2, Y = v => 28 + (3 - v) * (H - 60) / 2, COL = { 1: '#C2672B', 2: '#2F6FDE', 3: '#1E7A46' };
+    const path = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.v).toFixed(1)).join(' ');
+    return '<svg class="gline" viewBox="0 0 ' + W + ' ' + H + '">' + [3, 2, 1].map(v => '<line x1="30" x2="' + (W - 10) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#EEE9E4"/><text x="2" y="' + (Y(v) + 4) + '" font-size="10" fill="#A39A93">' + ['', '성장중', '잘해요', '아주'][v] + '</text>').join('') +
+      (n > 1 ? '<path d="' + path + '" fill="none" stroke="#D9D3CC" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' : '') +
+      pts.map((p, i) => '<circle cx="' + X(i) + '" cy="' + Y(p.v) + '" r="' + (i === n - 1 ? 7 : 5.5) + '" fill="' + COL[p.v] + '"/>' + (p.t && i === n - 1 ? '<text x="' + Math.min(X(i), W - 40) + '" y="' + (Y(p.v) - 11) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="' + COL[p.v] + '">' + esc(p.t) + '</text>' : '') +
+        '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11.5" fill="#8A827C">' + p.m + '월</text>').join('') + '</svg>';
+  }
   function gBars(att, k) { // 달마다 출석 일수 막대 (최근 12달)
     const ms = []; let m = thisMonth(); for (let i = 0; i < 12; i++) { ms.unshift(m); m = addMonth(m, -1); }
     const v = ms.map(x => ((att || []).find(a => a.month === x && a.name === k) || {}).n || 0), mx = Math.max(8, ...v);
@@ -1554,6 +1542,12 @@
         (per.exam ? '<p class="note" style="margin:8px 2px 0">집중과 자기조절·자신감과 표현력은 이번 분기 승급 심사 점수로 정해져요.</p>' : '') + (per.pct != null ? '<p class="note" style="margin:8px 2px 0">끈기와 꾸준함은 출석률 ' + per.pct + '%' + (per.an != null && per.at ? ' (' + per.an + '/' + per.at + '회)' : '') + '로 정해져요.</p>' : '') +
         '<div class="gcm"><b>사범님 한마디</b><p>' + esc(per.cm) + '</p></div></section>';
     };
+    const factorLines = () => { // 성장 측정 탭: 5가지 요소를 하나씩 달마다 꺾은선 (최근 6달)
+      if (!P.length) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>';
+      const L = P.slice(-6).map(q => { const ev = evAt(q.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null); return { m: +q.month.slice(5), v: [b.lv, ...q.att.map(x => GLV[x] || 1)], t: [b.t, ...q.att] }; });
+      return '<section class="gcard"><div class="gch"><b>5가지 요소 · 달마다</b><small>' + L[0].m + '~' + L[L.length - 1].m + '월</small></div>' + G5.map((g, i) => '<div class="gfl"><b>' + g + '</b>' + gLv(L.map(x => ({ m: x.m, v: x.v[i], t: x.t[i] }))) + '</div>').join('') +
+        '<p class="note" style="margin:6px 2px 0">초록 = 아주 잘해요 · 파랑 = 잘해요 · 주황 = 성장 중이에요</p></section>';
+    };
     const evCards = only => { const L = (only ? [only] : evs).map(e => ({ e, st: gEvStat(e, kid.rec) })).filter(x => x.st);
       return L.length ? L.map(({ e, st }) => '<section class="gcard"><div class="gch"><b>' + esc(e.name) + ' <small>(' + esc(e.unit) + ')</small></b><small>' + e.months[0] + '~' + e.months[e.months.length - 1] + '월</small></div>' + gLine(e, st) +
         '<div class="gsum">' + (st.best ? '<span>첫 기록 <b>' + gFmt(st.first.v) + e.unit + '</b></span><span>최고 <b>' + gFmt(st.best.v) + e.unit + '</b></span>' + (st.d > 0 ? '<span class="up">' + (e.lower ? '−' : '+') + gFmt(st.d) + e.unit + ' ' + (e.lower ? '단축' : '성장') + '</span>' : '') : '<span>' + st.ms.length + '번 도전 · 다음엔 첫 성공!</span>') + '</div></section>').join('')
@@ -1569,8 +1563,8 @@
       '<p class="note" style="margin:10px 4px 0">점수는 5점 만점이에요. 심사 점수는 성장 측정지의 집중과 자기조절(품새), 자신감과 표현력(웅변·영어)에도 쓰여요.</p>';
     let h = kidSel + head + chips;
     if (growF === '요약') h += tiles + factors() + attSecG + (lastEv ? evCards(lastEv) : '');
-    if (growF === '출석') h += attSecG + '<p class="note" style="margin:10px 4px 0">태블릿에서 등원 번호를 누른 날을 세요. 날짜별 등원·하원 시각은 \'제자 정보\'에서 볼 수 있어요.</p>';
-    if (growF === '성장 측정') h += factors() + evCards();
+    if (growF === '출석') h += attSecG + '<p class="note" style="margin:10px 4px 0">태블릿에서 등원 번호를 누른 날을 세요.</p>';
+    if (growF === '성장 측정') h += factorLines() + evCards();
     if (growF === '심사') h += exam;
     if (D.growErr && growF !== '출석') h += '<p class="note" style="margin:10px 4px 0">성장 측정 기록을 지금 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>';
     body(h);
@@ -1672,8 +1666,7 @@
 
   // ═════════ 시작 ═════════
   const kidMode = () => { try { return localStorage.getItem('haerang-mode') === 'kid'; } catch (_) { return false; } };
-  const toKid = () => { try { localStorage.setItem('haerang-mode', 'kid'); } catch (_) {} location.href = 'kids.html'; };
-  document.getElementById('who2').addEventListener('click', e => { if (e.target.closest('[data-kid]')) toKid(); });
+  // 2026-11-15 사용자 결정: 제자 모드는 학부모 앱에서 모두 빼고 따로 '제자 앱'(/kids/)으로. 예전에 이 앱을 제자로 쓰던 기기만 새 앱으로 보냄
   async function init() {
     if (isInApp) {
       show('v-gate', 'g-inapp');
@@ -1694,8 +1687,7 @@
       return show('v-gate', 'g-android');
     }
     if (!API) return show('v-gate', 'g-notready');
-    // 한 앱에서 학부모/제자 고르기 (2026-11-14): 제자로 들어간 기기는 제자 화면으로
-    if (kidMode()) return location.replace('kids.html');
+    if (kidMode()) { try { localStorage.removeItem('haerang-mode'); } catch (_) {} return location.replace('/kids/'); } // 한 번만 보냄
     if ('serviceWorker' in navigator) {
       reg = await navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => null);
       navigator.serviceWorker.addEventListener('message', () => { if ($('v-page').hidden) goHome(); });

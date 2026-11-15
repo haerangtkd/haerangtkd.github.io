@@ -801,6 +801,8 @@ async function route(path, req, env, ctx) {
       const name = str(b.name, 20), cat = SUN_CATS[b.cat] ? b.cat : ''; if (!name) return json({ ok: false, error: '선범단 이름을 골라 주세요' }); if (!cat) return json({ ok: false, error: '항목을 골라 주세요' });
       if (L.length >= 600) return json({ ok: false, error: '이번 달 기록이 너무 많아요' });
       L.push({ id: rid(4), name, cat, at: Date.now(), by: me.name });
+      const n = L.filter(x => x.name === name).length, ic = { teach: '🧑‍🏫', model: '🌟', skill: '🥋' }[cat]; // 그 제자 앱에만 알림 (2026-11-15 사용자 결정: 제자만)
+      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name, title: '⭐ 도장 1개를 받았어요!', body: ic + ' ' + SUN_CATS[cat] + ' 도장 · 이번 달 ' + n + '/' + SUN_NEED + (n === SUN_NEED ? ' 🎉 다 모았어요!' : '') }).catch(() => {}));
     }
     if (path === '/api/sun-del') { const x = L.find(y => y.id === str(b.id, 20)); if (!x) return json({ ok: false, error: '이미 지워졌어요' }); if (x.by !== me.name && !me.boss) return json({ ok: false, error: '넣은 사람이나 관리자만 지울 수 있어요' }); L = L.filter(y => y !== x); }
     if (path !== '/api/sun-list') await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify(L));

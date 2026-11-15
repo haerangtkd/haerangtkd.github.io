@@ -939,8 +939,14 @@ async function savePickup(p, what) {
 }
 // 다른 앱 바로 열기 (같은 사이트 안 다른 화면, 따로 불러와서 업무 앱이 무거워지지 않음)
 // 2026-11-15 사용자 결정: 📈 성장(성장 측정지) 없앰 — 학부모 앱 '성장'이 기록·출석·심사로 저절로 채워짐, 띠·선범단은 원생 정보
-const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'] }; // 심사 채점 (2026-11-14)
-function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
+const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'], appKid: ['🥋', '제자 모드', ''] }; // 2026-11-15: 심사·기네스 다음에 제자 모드(제자 코드·도장 찍기·제자 앱) // 심사 채점 (2026-11-14)
+function kidMenu() { // 🥋 제자 모드 (2026-11-15): 제자 앱에 쓰는 것 모아 두기
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🥋 제자 모드</h2></div><p class="help">제자 앱(따로 설치하는 앱)에 들어가는 코드를 만들고, 선범단 도장을 찍어요.</p>' +
+    '<div class="row" style="gap:8px;margin-top:8px"><button class="btn g" data-km="kcode" style="flex:1;padding:16px 4px">🔑<br>제자 코드</button><button class="btn g" data-km="sun" style="flex:1;padding:16px 4px">⭐<br>도장 찍기</button><button class="btn" data-km="open" style="flex:1;padding:16px 4px">📱<br>제자 앱 열기</button></div>', ov => {
+    ov.onclick = e => { const b = e.target.closest('[data-km]'); if (!b) return; const k = b.dataset.km; if (k === 'open') return window.open('/kids/', '_blank'); return k === 'kcode' ? kcodeSheet() : sunSheet(); };
+  });
+}
+function openApp(k) { if (k === 'appKid') return kidMenu(); try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
 const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['widget', '📱', '위젯'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
@@ -2552,7 +2558,7 @@ function kcodeSheet() {
     if (!items) { el.innerHTML = '<div class="help" style="padding:14px">' + (err ? esc(err) : '불러오는 중…') + '</div>'; return; }
     const L = items.filter(x => !qv.trim() || x.name.includes(qv.trim()));
     el.innerHTML = L.length ? L.map(x => '<button class="kcr" data-kc="' + esc(x.name) + '"><b>' + esc(x.name) + '</b><small>' + (x.devices ? '들어가 있는 기기 ' + x.devices + '대' : '') + '</small><span>만들기</span></button>').join('') : '<div class="help" style="padding:14px">찾는 이름이 없어요</div>'; };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🔑 제자 코드</h2></div><p class="help">제자 휴대폰에서 해랑경희 앱 → <b>🥋 제자</b>를 누르고 이 코드를 넣어요. 만들면 업무 알림에 \'' + esc((S.me && S.me.name) || '') + '님이 ○○ 제자를 승인했어요\'가 남아요.</p>' +
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🔑 제자 코드</h2></div><p class="help">제자 휴대폰에서 <b>haerangtkd.github.io/kids/</b> (해랑 제자 앱)을 열고 이 코드를 넣어요. 만들면 업무 알림에 \'' + esc((S.me && S.me.name) || '') + '님이 ○○ 제자를 승인했어요\'가 남아요.</p>' +
     '<input class="inp" id="kcQ" placeholder="이름 검색" autocomplete="off"><div id="kcL" class="kcl"></div><div id="kcOut"></div>', ov => {
     draw();
     api('/api/kcode-list').then(j => { if (j.ok) items = j.items || []; else err = j.error === 'not found' ? '알림 서버를 새로 배포해야 쓸 수 있어요' : (j.error || '불러오지 못했어요'); draw(); });
