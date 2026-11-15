@@ -274,6 +274,11 @@ async function route(path, req, env, ctx) {
       await addLog(env, '', 'event', path === '/sync/ev-sched-del' ? '📣 알림 관리에서 \'' + str(b.title, 60) + '\' 일정을 지웠어요 (신청표는 그대로)' : '📣 알림 관리에서 일정을 고쳐 신청표도 바뀜: ' + old + ' → ' + d.title + ' ' + (d.date || ''), str(b.ev, 40));
       return json({ ok: true });
     }
+    if (path === '/sync/mile-list') { // 제자 앱 '나의 마일리지' (2026-11-15): 잔액 · 누적 적립 · 누적 사용 · 기록 (넣은 직원 이름은 안 보냄)
+      const name = str(b.name, 20), L = await all(env, 'SELECT kind, n, amt, memo, at FROM mile WHERE name = ? ORDER BY id DESC LIMIT 300', name);
+      const earn = L.filter(x => x.amt > 0).reduce((a, x) => a + x.amt, 0), used = -L.filter(x => x.amt < 0).reduce((a, x) => a + x.amt, 0);
+      return json({ ok: true, bal: +((await one(env, 'SELECT COALESCE(SUM(amt), 0) AS t FROM mile WHERE name = ?', name)) || {}).t || 0, earn, used, per: MILE_PER, list: L });
+    }
     if (path === '/sync/kmode') { // 제자 모드 (2026-11-14): 내 띠·다음 띠까지(%)·선범단 여부 + 선범단 명단(모두) + 내 성장 측정 기록 — 📈 성장(gdocs)이 기준
       const name = str(b.name, 20), gd = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
       const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {}, sb = st.sb || {}, status = st.status || {}, AB = await attBelts(env), belts = {};

@@ -150,7 +150,7 @@ async function route(path, req, env) {
       while (weeks.has(w) && streak < 520) { streak++; const x = new Date(w + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - 7); w = x.toISOString().slice(0, 10); }
       const info = await attSync(env, '/sync/kid-info', { names: [name] }).catch(() => null), kid = info && info.ok ? (info.kids || [])[0] : null, birth = kid ? String(kid.bday || kid.birth || '') : ''; // 생년월일(양력)이 있으면 생일 축하 (2026-11-14)
       const hw = await teamSync(env, '/sync/hw', { kids: [name] });
-      return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '' },
+      return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [] }, // 월간 도전·수련 로그 (2026-11-15)
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
         hw: hw.ok ? (hw.hw || []) : [], best: (km.best || []).slice(-4), comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
@@ -166,6 +166,7 @@ async function route(path, req, env) {
         pins: (Array.isArray(b.pins) ? b.pins : old.pins || []).map(x => T(x, 20)).slice(0, 3), seen: Array.isArray(b.seen) ? b.seen.map(x => T(x, 20)).slice(0, 80) : old.seen }; // seen 이 없으면 '처음' (뱃지 축하 없이 기억만)
       await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kprof:' + name, JSON.stringify(v)); return json({ ok: true, prof: v });
     }
+    if (path === '/k/mile') return json(await teamSync(env, '/sync/mile-list', { name })); // 💰 나의 마일리지 (2026-11-15)
     if (path === '/k/hw-check') return json(await teamSync(env, '/sync/hw-check', { kids: [name], kid: name, hw: b.hw, day: b.day, on: !!b.on, rel: '본인' }));
     if (path === '/k/sub') { // 제자 앱 알림 켜기 (2026-11-15, 제자 앱 따로) — 코드로 들어온 기기만 (학부모 휴대폰은 안 받음)
       if (viaP) return json({ ok: false, error: '제자 코드로 들어온 기기만 알림을 켤 수 있어요' });

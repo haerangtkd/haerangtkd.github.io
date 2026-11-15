@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>해랑경희 제자</title>
-<meta name="theme-color" content="#A40F16">
+<meta name="theme-color" content="#0B0B0C">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="해랑 제자">
@@ -164,6 +164,73 @@
   .opts.c button{font-size:0}
   .lockt{font-size:12.5px;color:var(--muted);margin-top:6px;min-height:18px}
   .qrbox{text-align:center}.qrbox svg{width:min(70vw,260px);height:auto;border-radius:12px;border:8px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+  /* ═══ 2026-11-15 어두운 화면 (사용자가 보여 준 운동 앱 화면처럼 · 색은 해랑경희 빨강·금색) ═══ */
+  :root{--brand:#E5484D;--ink:#F4F2EF;--muted:#9A948F;--bg:#0B0B0C;--card:#151517;--line:#29292C;--gold:#E3B341;--acc:linear-gradient(90deg,#A40F16,#E5484D 55%,#E3B341)}
+  html,body{background:var(--bg);color:var(--ink)}
+  .card{background:var(--card);border:1.5px solid rgba(229,72,77,.45);box-shadow:none;border-radius:18px}
+  .card h2{font-size:17px}.card h2.lnk{cursor:pointer}.card h2 small{color:var(--muted)}
+  .login input{background:#18181A;border-color:#2C2C30;color:var(--ink)}
+  .big{background:var(--acc)}
+  .news{margin:-14px -14px 12px;border-radius:0;background:#1A1A1C;padding:12px 16px;box-shadow:none;cursor:pointer}
+  .news i{font-style:normal}.news b{color:var(--muted);font-size:18px;line-height:1}
+  .newsL{background:#1A1A1C;margin:-12px -14px 12px;padding:4px 16px 12px;border-bottom:1px solid var(--line)}.newsL div{font-size:13.5px;padding:7px 0;border-top:1px solid #232326;color:#D6D2CD}
+  .mcard{border:1.5px solid rgba(229,72,77,.55);border-radius:18px;padding:14px 16px 14px;background:linear-gradient(150deg,#2A2A2D,#141416 60%,#1E1E21);position:relative}
+  .mcard .mt{display:flex;align-items:center;gap:8px}.mcard .mt i{width:30px;height:14px;border-radius:3px;flex:none;box-shadow:inset 0 -2px 0 rgba(0,0,0,.25);outline:1px solid #55555A}.mcard .mt b{font-size:22px;font-weight:900}.mcard .mt small{color:var(--muted);font-size:13px}.mcard .mt .sbtag{margin-left:auto}
+  .mcard .mn{display:flex;align-items:center;gap:8px;margin-top:12px}.mcard .mn .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:17px;font-weight:900;color:#fff;flex:none;overflow:hidden}
+  .mcard .lv{border:1.5px solid var(--brand);border-radius:999px;font-size:11.5px;font-weight:800;padding:1px 8px;color:#FFB1B4}.mcard .mn b{font-size:21px;font-weight:900}.mcard .ed{border:0;background:none;color:var(--ink);font-size:17px;padding:0 4px}.mcard .mn small{margin-left:auto;color:var(--muted);font-size:14px}
+  .pb{height:7px;border-radius:99px;background:#3A3A3E;margin-top:8px;overflow:hidden}.pb b{display:block;height:100%;border-radius:99px;background:var(--acc)}
+  .mcard .mb{display:flex;align-items:flex-end;gap:10px;margin-top:12px}
+  .mcard .pins{margin:0;flex:none;gap:8px}.mcard .pins button{flex:none;width:44px;height:44px;border-radius:50%;border:2px dashed #77777C;background:transparent;color:#C9C6C2;font-size:20px;display:grid;place-items:center;padding:0}.mcard .pins button.has{border:2px solid var(--gold);background:#232326;font-size:22px}.mcard .pins .pimg{width:34px;height:34px}
+  .mcard .lg{flex:1;text-align:right;font-weight:900;letter-spacing:2px;font-size:12px;line-height:1.25;color:#55555A;align-self:center}
+  .mcard .qrm{margin:0;width:92px;height:92px;border-radius:10px;padding:4px}.mcard .qrm svg{width:84px;height:84px}
+  .mpill{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;border:0;border-radius:999px;padding:12px 18px 12px 10px;background:var(--acc);color:#fff;font-size:19px;font-weight:900}
+  .mpill i{width:32px;height:32px;border-radius:50%;background:#fff;color:#A40F16;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:17px}.mpill b{margin-left:auto;font-size:24px}
+  .r2b{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.r2b button,.goalr{display:flex;align-items:center;gap:8px;border:1.5px solid rgba(229,72,77,.45);background:#121214;border-radius:14px;padding:13px 14px;font-size:15.5px;font-weight:700;text-align:left}
+  .r2b i,.goalr i{font-style:normal}.r2b em{margin-left:auto;font-style:normal;color:var(--muted);font-size:18px}
+  .goalr{width:100%;margin-top:10px}.goalr span{color:#D6D2CD;flex:none}.goalr b{flex:1;font-weight:700;font-size:15.5px;margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goalr b.no{color:var(--muted)}.goalr i{color:var(--ink);font-size:17px}
+  .log h2 .dr{font-size:11.5px;border:1px solid #3A3A3E;border-radius:6px;padding:2px 6px}
+  .lg2{display:flex;align-items:center;gap:10px}.rg{position:relative;width:46%;flex:none}.rg svg{width:100%;display:block}.rg img{position:absolute;left:50%;top:50%;width:20%;transform:translate(-50%,-50%);opacity:.85}
+  .ri{flex:1;display:flex;flex-direction:column;gap:12px}.ri b{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:900}.ri b i{width:20px;height:20px;border-radius:50%;border:2px solid;display:grid;place-items:center;font-size:11px;font-style:normal}
+  .ri .ss{display:inline-block;margin:4px 0 0 26px;border:1px solid #3A3A3E;border-radius:4px;font-size:9.5px;font-weight:900;letter-spacing:1px;color:#55555A;padding:1px 6px}.ri .ss.on{color:#1C1A19;background:var(--gold);border-color:var(--gold)}
+  .ri em{font-style:normal;color:var(--muted);font-size:14px;margin-left:8px}.ri small{display:block;margin-left:26px;color:var(--muted);font-size:12px;margin-top:2px}
+  .b4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.b4 button{border:0;background:none;color:var(--ink);font-size:11.5px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:5px;padding:0}
+  .b4 .ic{width:62px;height:62px;border-radius:14px;display:grid;place-items:center;font-size:30px;background:radial-gradient(circle at 30% 30%,#FFF6D6,#E3B341);overflow:hidden}.b4 .ic.lk{background:#2A2A2D;font-size:24px}.b4 .ic .pimg{width:56px;height:56px}
+  .hw{border-top-color:var(--line)}.hw button{background:#26262A;color:var(--ink)}.hw button.on{background:#1E9E5A}
+  .tag.w{background:#16304F;color:#8EC1FF}.tag.s{background:#123A2C;color:#7FD9B0}.tag.g{background:#3D3010;color:#F5CF6B}
+  .today .tags span{background:#2E2116;color:#F5B57D}.focus{background:linear-gradient(135deg,#12332A,#0E271F)}.focus small{color:#7FD9B0}
+  .exr{background:#2A2416}.prep .vid{background:#26262A}.prep .it{border-top-color:var(--line)}.prep .it b{color:#FF8A8F}
+  .rl{border-top-color:var(--line)}
+  .bestg div{background:#232326}.bestg small{color:#E3B341}.medals span{background:#232326}.medals span.me{background:#4A3A10}.mon{color:#FF8A8F}
+  .sbl div{background:#232326}.comp,.stl,.sun{border-top-color:var(--line)}.st{border-color:#5A3A3A}.st.on{background:#3A1B1B;border-color:#E5484D}
+  .nav{background:#121214;box-shadow:none;border-top:1px solid var(--line)}.nav button.on{background:rgba(229,72,77,.18);color:#FF8A8F}
+  .bday .box{background:#1B1B1D;color:var(--ink)}
+  .pled{background:#3D3010;color:#F5CF6B}
+  .sheet .box{background:#1B1B1D;color:var(--ink)}.opts button{background:#2A2A2D}.sheet textarea{background:#121214;color:var(--ink);border-color:#2C2C30!important}
+  .hi .av{box-shadow:none}
+  /* 꽉 찬 화면 (뱃지 · 마일리지) */
+  .pg{position:fixed;inset:0;z-index:35;background:var(--bg);overflow:auto;animation:up .2s}
+  .pg header{position:sticky;top:0;z-index:2;display:flex;align-items:center;background:rgba(11,11,12,.92);backdrop-filter:blur(8px);padding:calc(10px + env(safe-area-inset-top)) 10px 10px}
+  .pg header button{border:0;background:#232326;color:var(--ink);width:38px;height:38px;border-radius:50%;font-size:24px;line-height:1}.pg header b{flex:1;text-align:center;font-size:18px}.pg header span{width:38px}
+  .pgb{max-width:520px;margin:0 auto;padding:6px 14px calc(40px + env(safe-area-inset-bottom))}
+  .bx{background:var(--card);border-radius:20px;padding:16px;margin-top:12px}.bx h3{margin:0 0 12px;font-size:19px;display:flex;align-items:center}.bx h3 small{margin-left:auto;color:var(--muted);font-size:13px;font-weight:600}
+  .mch{text-align:center}.mch .hex{filter:drop-shadow(0 8px 18px rgba(0,0,0,.5))}.mch b{display:block;font-size:17px;margin-top:6px}.mch small{color:var(--muted);font-size:13px}.mch .pb{max-width:220px;margin:8px auto 0}
+  .mrow{display:flex;align-items:center;gap:4px;margin-top:12px}.mrow .allb{margin-left:auto;color:#FF8A8F}
+  .bgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px}
+  .bt{border:0;background:none;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:6px;padding:0}.bt b{font-size:12.5px;font-weight:700;line-height:1.3;text-align:center}.bt small{font-size:11px;color:var(--muted)}
+  .bt .ic{width:78px;height:78px;border-radius:50%;display:grid;place-items:center;font-size:36px;background:radial-gradient(circle at 30% 25%,#FFF2C2,#E3B341 60%,#A87A12);box-shadow:0 4px 0 #6B4D0A;overflow:hidden}.bt .ic .pimg{width:76px;height:76px}
+  .bt.off .ic{background:#1E1E21;box-shadow:inset 0 0 0 2px #3A3A3E;filter:grayscale(1)}.bt.off .ic>*{opacity:.35}.bt.off b{color:#8A8580}
+  .pg2{display:block;width:60px;height:4px;border-radius:9px;background:#2E2E32;overflow:hidden}.pg2 em{display:block;height:100%;background:#9BE15D}
+  .b1{text-align:center;padding:30px 10px}.b1 .ic{width:min(62vw,240px);height:min(62vw,240px);margin:0 auto;border-radius:50%;display:grid;place-items:center;font-size:110px;background:radial-gradient(circle at 30% 25%,#FFF2C2,#E3B341 60%,#A87A12);box-shadow:0 10px 0 #6B4D0A,0 20px 40px rgba(0,0,0,.6);overflow:hidden;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}.b1 .ic .pimg{width:100%;height:100%}
+  .b1.off .ic{background:#1E1E21;box-shadow:inset 0 0 0 4px #3A3A3E;filter:grayscale(1)}.b1.off .ic>*{opacity:.35}
+  .b1>b{display:block;font-size:24px;margin-top:26px}.b1 p{color:var(--muted);line-height:1.6;margin:8px 0 14px}.b1 em{font-style:normal;font-weight:900;color:var(--gold);font-size:17px}.b1 em.no{color:var(--muted)}.b1 .pb{max-width:220px;margin:0 auto}.b1 small{display:block;color:var(--muted);margin-top:6px}
+  .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 8px;margin-top:10px;text-align:center}.mgrid b{display:block;font-size:12.5px;margin-top:4px}.mgrid small{color:var(--muted);font-size:11px}.mgrid .off b{color:#8A8580}
+  .mlc{border:1.5px solid rgba(229,72,77,.55);border-radius:18px;padding:14px 16px;background:linear-gradient(150deg,#2A2A2D,#141416 60%,#1E1E21);margin-top:6px}
+  .mlc .tg{display:inline-block;border:1px solid #77777C;border-radius:999px;font-size:12px;padding:2px 9px}.mlc .mb2{display:flex;align-items:center;gap:8px;font-size:34px;font-weight:900;margin-top:6px}.mlc .mb2 i{width:28px;height:28px;border-radius:50%;background:var(--acc);display:grid;place-items:center;font-style:normal;font-size:14px;color:#fff}.mlc .mb2 small{font-size:16px;color:var(--muted)}
+  .mlc .ac{display:grid;grid-template-columns:1fr auto;gap:4px 14px;justify-content:end;text-align:right;color:var(--muted);font-size:13px;margin-top:4px;border-bottom:1px solid #3A3A3E;padding-bottom:12px}.mlc .ac b{color:var(--ink)}
+  .mlc .hb{display:flex;gap:8px;margin-top:12px}.mlc .hb button{flex:1;border:1.5px solid rgba(229,72,77,.5);background:transparent;color:var(--ink);border-radius:10px;padding:9px 4px;font-size:13px;font-weight:700}
+  .dh{font-size:16px;margin:22px 2px 10px}.fb{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.fb button{border:0;border-radius:8px;padding:11px;background:#2A2A2D;color:var(--ink);font-weight:800}.fb button.on{background:var(--acc);color:#fff}
+  .pc{display:flex;gap:6px;margin:12px 0 6px;padding-bottom:12px;border-bottom:1px solid #3A3A3E}.pc button{border:1px solid #55555A;background:none;color:var(--ink);border-radius:999px;padding:5px 12px;font-size:12.5px}.pc button.on{background:var(--brand);border-color:var(--brand)}
+  .ml{display:flex;align-items:center;padding:12px 2px;border-bottom:1px solid #232326}.ml div{flex:1}.ml b{display:block;font-size:15px}.ml small{color:var(--muted);font-size:12.5px}.ml em{font-style:normal;font-weight:900;font-size:17px}.ml em.p{color:#7FD9B0}.ml em.m{color:#FF8A8F}
 </style>
 </head>
 <body>
@@ -192,7 +259,7 @@
   const firstName = n => { n = String(n || '').trim(); return n.length >= 3 ? n.slice(1) : n; };
   const mask = n => { n = String(n || ''); return n.length >= 3 ? n[0] + '○'.repeat(n.length - 2) + n[n.length - 1] : n.length === 2 ? n[0] + '○' : n; }; // 소식 줄: 김○랑
   const md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8));
-  let D = null, view = 'home', plan = null, newsI = 0, newsT = null;
+  let D = null, view = 'home', plan = null, newsI = 0, newsT = null, newsOpen = false;
   // ── 띠 (해랑경희 띠 순서, 사이 띠(줄띠·검은띠)는 유치부만) ──
   const BELTS = ['흰띠', '노란줄띠', '노란띠', '초록줄띠', '초록띠', '초록검은띠', '보라띠', '보라검은띠', '파란띠', '파란검은띠', '주황띠', '주황검은띠', '분홍띠', '밤띠', '빨간띠', '1품', '2품', '3품', '4품', '5품', '6품'];
   const STRIPE = ['노란줄띠', '초록줄띠', '초록검은띠', '보라검은띠', '파란검은띠', '주황검은띠'];
@@ -280,11 +347,12 @@
   // ── 🏅 뱃지 자동 지급 (의견 정리 5번: 출석 연속 · 기네스 기록 갱신 · 심사 합격 · 미션 완료) ──
   const BHOW = { att1: '도장에 처음 오면', att10: '도장에 10일 오면', att30: '도장에 30일 오면', att50: '도장에 50일 오면', att100: '도장에 100일 오면', att200: '도장에 200일 오면', st4: '4주 동안 매주 오면', st12: '12주 동안 매주 오면', st24: '24주 동안 매주 오면', rec1: '기네스 기록을 한 번 갱신', rec5: '기네스 기록을 5번 갱신',
     ex1: '승급 심사 합격', exb: '심사로 새 띠를 받으면', ex5: '심사에서 \'훌륭해요\'를 받으면', hw1: '미션 1번 완료', hw10: '미션 10번 완료', comp: '대회에 나가면', gold: '대회 금메달', best: '최우수 수련생', sb: '선범단이 되면' };
+  const BCAT = k => /^pum/.test(k) ? '품 패치' : /^att/.test(k) ? '출석' : /^st/.test(k) ? '연속 출석' : /^rec/.test(k) ? '기네스 기록' : /^ex/.test(k) ? '심사' : /^hw/.test(k) ? '미션' : '대회 · 선범단';
   function badges() {
     const a = D.att || {}, mine = (D.comps || []).flatMap(c => (c.rows || []).filter(r => r.name === D.name)), bestMe = (D.best || []).some(q => Object.values(q.g || {}).includes(D.name));
     const ups = (D.events || []).reduce((n, e) => { const s = evStat(e, D.rec); return n + (s ? s.ups : 0); }, 0);
     const hwN = (D.hw || []).reduce((n, h) => n + (h.chk || []).filter(c => c.kid === D.name).length, 0), ex = (D.exams || []).filter(x => !x.absent);
-    const pum = pumOf(D.belt);
+    const pum = pumOf(D.belt), PROG = { att10: [a.total, 10], att30: [a.total, 30], att50: [a.total, 50], att100: [a.total, 100], att200: [a.total, 200], st4: [a.streak, 4], st12: [a.streak, 12], st24: [a.streak, 24], rec1: [ups, 1], rec5: [ups, 5], hw1: [hwN, 1], hw10: [hwN, 10] };
     return [['pum2', '🎖️', '2품 빨간 패치', pum >= 2, '2품이 되면 받아요', 'patch-2.png'], ['pum3', '🎖️', '3품 파란 패치', pum >= 3, '3품이 되면 받아요', 'patch-3.png'], ['pum4', '🎖️', '4품 금색 패치', pum >= 4, '4품이 되면 받아요', 'patch-4.png'],
       ['att1', '🌱', '첫 출석', a.total >= 1], ['att10', '🔟', '출석 10일', a.total >= 10], ['att30', '💪', '출석 30일', a.total >= 30], ['att50', '🏅', '출석 50일', a.total >= 50], ['att100', '💯', '출석 100일', a.total >= 100], ['att200', '👑', '출석 200일', a.total >= 200],
       ['st4', '🔥', '4주 연속 출석', a.streak >= 4], ['st12', '☄️', '12주 연속 출석', a.streak >= 12], ['st24', '🌋', '24주 연속 출석', a.streak >= 24],
@@ -292,7 +360,7 @@
       ['ex1', '🎖️', '심사 합격', ex.some(x => x.pass)], ['exb', '🥋', '새 띠', ex.some(x => x.nb)], ['ex5', '🌟', '심사 훌륭해요', ex.some(x => (x.subj || []).some(y => +y.v === 5) || (x.items || []).some(y => y.good))],
       ['hw1', '✅', '미션 완료', hwN >= 1], ['hw10', '🎯', '미션 10번', hwN >= 10],
       ['comp', '🥋', '대회 출전', mine.length > 0], ['gold', '🥇', '금메달', mine.some(r => r.medal === '금')], ['best', '🏆', '최우수 수련생', bestMe], ['sb', '⭐', '선범단', !!D.sb]]
-      .map(([k, ic, t, on, how, img]) => ({ k, ic, t, on: !!on, how: how || BHOW[k] || '', img: img || '' }));
+      .map(([k, ic, t, on, how, img]) => { const pr = PROG[k] || []; return { k, ic, t, on: !!on, how: how || BHOW[k] || '', img: img || '', cat: BCAT(k), cur: pr[0] || 0, tgt: pr[1] || 0 }; });
   }
   const myBadges = () => badges().filter(x => x.on);
   // 품 패치 (2026-11-15 사용자 요청: 품에 따라 주는 패치를 로고 색으로 — 2품 빨강 · 3품 파랑 · 4품 금색)
@@ -319,42 +387,101 @@
     if (isBday()) L.unshift('🎂 오늘은 ' + firstName(D.name) + '의 생일! 생일 축하해!');
     return L;
   }
-  function newsRun() { clearInterval(newsT); const L = newsList(), el = document.querySelector('.news span'); if (!el || L.length < 2) return; newsT = setInterval(() => { const x = document.querySelector('.news span'); if (!x) return clearInterval(newsT); newsI = (newsI + 1) % L.length; x.textContent = L[newsI]; x.style.animation = 'none'; void x.offsetWidth; x.style.animation = ''; document.querySelector('.news em').textContent = (newsI + 1) + '/' + L.length; }, 4500); }
+  function newsRun() { clearInterval(newsT); const L = newsList(), el = document.querySelector('.news span'); if (!el || L.length < 2) return; newsT = setInterval(() => { const x = document.querySelector('.news span'); if (!x) return clearInterval(newsT); newsI = (newsI + 1) % L.length; x.textContent = L[newsI]; x.style.animation = 'none'; void x.offsetWidth; x.style.animation = '';  }, 4500); }
   const isBday = () => D.birth && D.birth === D.today.slice(5);
   function home() {
-    const nm = firstName(D.name), today = D.today, dow = WD[new Date(today + 'T00:00:00Z').getUTCDay()], a = D.att || {}, av = profAv();
+    const nm = firstName(D.name), today = D.today, mon = +today.slice(5, 7), a = D.att || {}, av = profAv();
     let h = '';
+    // 📣 맨 위 소식 줄 (누르면 펼침) — 2026-11-15 사용자가 보여 준 운동 앱 화면처럼
     const N = newsList(); newsI = Math.min(newsI, Math.max(0, N.length - 1));
-    if (N.length) h += '<div class="news">📣<span>' + esc(N[newsI]) + '</span>' + (N.length > 1 ? '<em>' + (newsI + 1) + '/' + N.length + '</em>' : '') + '</div>';
-    h += '<div class="hi"><span class="av' + (av.fr ? ' fr-' + av.fr : '') + '" style="background:' + esc(av.bg) + '">' + avHtml(av.e) + '</span><div><b>안녕, ' + esc(nm) + '! 👋' + (D.sb ? '<span class="sbtag">⭐ 선범단</span>' : '') + '</b><small>' + (+today.slice(5, 7)) + '월 ' + (+today.slice(8)) + '일 ' + dow + '요일 · ' + (isBday() ? '🎂 생일 축하해!' : '오늘도 기합 크게!') + '</small></div><button class="edit" id="pEdit">✏ 꾸미기</button></div>';
-    // 내 띠 카드
-    const cb = cardBg(D.belt), bp = D.belt ? beltPath() : null, pins = (D.prof.pins || []).map(k => myBadges().find(b => b.k === k)).filter(Boolean);
-    h += '<section class="bcard' + (cb.light ? ' light' : '') + '" style="background:' + cb.bg + '"><div class="top"><small>🥋 내 띠</small>' + (window.qrSvg && D.qr ? '<button class="qrm" id="qrB" aria-label="출석 QR 크게 보기">' + qrSvg(D.qr, 54) + '</button>' : '') + '</div><div class="bn">' + esc(D.belt || '띠를 기다리는 중') + '</div>' +
-      (!bp ? '<div class="sl">사범님이 곧 띠를 넣어 주실 거예요</div>' : bp.done ? '<div class="sl">최고의 띠예요! 멋져요 👏</div>' :
-        '<div class="steps">' + Array.from({ length: bp.total }, (_, i) => '<i class="' + (i < bp.at ? 'on' : '') + '"></i>').join('') + '</div><div class="sl">' + (bp.left ? esc(bp.goal) + '까지 <b>' + bp.left + '단계</b> 남았어요' : esc(bp.goal) + ' 도착!') + '</div>') +
-      '<div class="pins">' + [0, 1, 2].map(i => pins[i] ? '<button class="has" data-pin="' + i + '">' + bIc(pins[i]) + '<small>' + esc(pins[i].t) + '</small></button>' : '<button data-pin="' + i + '">＋</button>').join('') + '</div></section>';
-    // 🎯 내 목표 (제자가 직접, 2026-11-15)
-    h += '<section class="card"><h2>🎯 내 목표</h2><div class="goal">' + (D.prof.mygoal ? '<b>' + esc(D.prof.mygoal) + '</b><button id="goalB">✏ 고치기</button>' : '<b style="color:var(--muted);font-size:15px">이번 달 나의 목표를 정해 볼까요?</b><button id="goalB">✏ 목표 정하기</button>') + '</div></section>';
-    if (D.mile != null) h += '<section class="card"><h2>💰 내 마일리지</h2><div class="goal"><b style="font-size:30px">' + (+D.mile).toLocaleString() + '<small style="font-size:15px">원</small></b><small class="sub" style="margin:0;text-align:right">상점 1개 = 100원<br>도장에서 QR을 찍어 써요</small></div></section>';
-    // 출석 · 성장
-    const ev = [...(D.events || [])].reverse().find(e => evStat(e, D.rec)), st = ev ? evStat(ev, D.rec) : null;
-    h += '<div class="row2 row2-wrap"><section class="card"><h2>🔥 출석</h2><div class="num">' + (a.streak || 0) + '<small>주</small> <span class="fire">' + (a.streak ? '🔥' : '🌱') + '</span></div><div class="sub">' + (a.streak ? a.streak + '주 연속으로 왔어요!' : '이번 주에 오면 불꽃이 켜져요') + '<br>이번 달 <b>' + (a.month || 0) + '일</b> · 지금까지 <b>' + (a.total || 0) + '일</b></div></section>' +
-      '<section class="card"><h2>📈 내 기록</h2>' + (st && st.last ? '<div class="sub" style="margin:0 0 4px">' + esc(ev.name) + '</div><div class="num" style="font-size:38px">' + f1(st.last.v) + '<small>' + esc(ev.unit) + '</small></div><div style="margin-top:8px">' + (st.d > 0 ? '<span class="up">' + (ev.lower ? '−' : '+') + f1(st.d) + ' ▲</span>' : '') + (st.isBest ? '<span class="best">⭐ 최고 기록</span>' : '') + (!(st.d > 0) && !st.isBest ? '<span class="sub">다음엔 더 잘할 수 있어!</span>' : '') + '</div>' : '<div class="sub">매달 첫째 주 금요일에 성장 측정을 해요</div>') + '</section></div>';
+    h += '<div class="news" id="newsB"><i>🔔</i><span>' + esc(N[newsI] || ('안녕, ' + nm + '! 오늘도 기합 크게!')) + '</span><b>' + (N.length > 1 ? '⌄' : '') + '</b></div>' +
+      (newsOpen && N.length > 1 ? '<div class="newsL">' + N.map(x => '<div>' + esc(x) + '</div>').join('') + '</div>' : '');
+    // 🪪 내 카드 (띠 · 단계 · 대표 뱃지 3개 · 출석 QR)
+    const bp = D.belt ? beltPath() : null, pins = (D.prof.pins || []).map(k => myBadges().find(b => b.k === k)).filter(Boolean), lv = BELTS.indexOf(D.belt) + 1;
+    h += '<section class="mcard"><div class="mt">' + beltDot(D.belt) + '<b>' + esc(D.belt || '띠를 기다려요') + '</b><small>' + (bp && !bp.done && bp.goal ? esc(bp.goal) + '까지 ' + bp.left + '단계' : bp && bp.done ? '최고의 띠예요 👏' : '') + '</small>' + (D.sb ? '<span class="sbtag">⭐ 선범단</span>' : '') + '</div>' +
+      '<div class="mn"><span class="av' + (av.fr ? ' fr-' + av.fr : '') + '" style="background:' + esc(av.bg) + '">' + avHtml(av.e) + '</span>' + (lv > 0 ? '<span class="lv">LV. ' + lv + '</span>' : '') + '<b>' + esc(D.name) + '</b><button class="ed" id="pEdit" aria-label="꾸미기">✎</button>' + (bp && !bp.done && bp.total ? '<small>' + bp.at + ' / ' + bp.total + '</small>' : '') + '</div>' +
+      '<div class="pb"><b style="width:' + (bp && bp.total ? Math.round(bp.at / bp.total * 100) : bp && bp.done ? 100 : 0) + '%"></b></div>' +
+      '<div class="mb"><div class="pins">' + [0, 1, 2].map(i => pins[i] ? '<button class="has" data-pin="' + i + '">' + bIc(pins[i]) + '</button>' : '<button data-pin="' + i + '">＋</button>').join('') + '</div><span class="lg">HAERANG<br>KYUNGHEE</span>' +
+      (window.qrSvg && D.qr ? '<button class="qrm" id="qrB" aria-label="출석 QR 크게 보기">' + qrSvg(D.qr, 84) + '</button>' : '') + '</div></section>';
+    // 💰 나의 마일리지
+    h += '<button class="mpill" id="mileB"><i>M</i>나의 마일리지<b>' + (+(D.mile || 0)).toLocaleString() + '</b>›</button>';
+    // 미션 · 심사 준비 / 나의 목표
+    const hw = (D.hw || []).filter(x => (x.kids || []).includes(D.name)), hwDone = hw.filter(x => (x.chk || []).some(c => c.kid === D.name && (x.mode !== 'daily' || c.day === today))).length;
+    h += '<div class="r2b"><button id="hwB"><i>★</i>나의 미션 ' + hwDone + '/' + hw.length + '<em>›</em></button><button id="prepB"><i>📝</i>심사 준비<em>›</em></button></div>';
+    h += '<button class="goalr" id="goalB"><span>나의 목표</span><b' + (D.prof.mygoal ? '' : ' class="no"') + '>' + esc(D.prof.mygoal || '나의 목표 미입력') + '</b><i>✎</i></button>';
+    // 🔄 이번 달 수련 로그 (출석 · 미션 · 기네스)
+    h += monthLog();
+    // 🏅 나의 뱃지 (4칸, 누르면 뱃지 화면)
+    const B = myBadges().slice().reverse(), show = [...pins, ...B.filter(b => !pins.includes(b))].slice(0, 4);
+    h += '<section class="card"><h2 class="lnk" id="badgeB">나의 뱃지<small>' + B.length + ' / ' + badges().length + ' ›</small></h2><div class="b4">' + [0, 1, 2, 3].map(i => show[i] ? '<button data-bd="' + show[i].k + '"><span class="ic">' + bIc(show[i]) + '</span>' + esc(show[i].t) + '</button>' : '<button id="badgeB2"><span class="ic lk">🔒</span>도전해요</button>').join('') + '</div></section>';
+    // 🏆 내 기네스 기록
     const RL = (D.events || []).map(e => ({ e, st: evStat(e, D.rec) })).filter(x => x.st && x.st.last);
-    if (RL.length > 1 || (RL.length === 1 && RL[0].e !== ev)) h += '<section class="card"><h2>🏆 내 기네스 기록</h2>' + RL.map(({ e, st }) => '<div class="rl"><b>' + esc(e.name) + '<br><small class="sub" style="margin:0">' + st.sc.map(x => x.m + '월 ' + f1(x.v)).join(' → ') + '</small></b><span class="v">' + f1(st.best ? st.best.v : st.last.v) + '<small>' + esc(e.unit) + '</small></span>' + (st.isBest ? '<span class="best">⭐</span>' : '') + '</div>').join('') + '<p class="sub">가장 좋은 기록이에요</p></section>';
-    h += prepCard();
+    if (RL.length) h += '<section class="card"><h2>🏆 내 기네스 기록</h2>' + RL.map(({ e, st }) => '<div class="rl"><b>' + esc(e.name) + '<br><small class="sub" style="margin:0">' + st.sc.map(x => x.m + '월 ' + f1(x.v)).join(' → ') + '</small></b><span class="v">' + f1(st.best ? st.best.v : st.last.v) + '<small>' + esc(e.unit) + '</small></span>' + (st.isBest ? '<span class="best">⭐</span>' : '') + '</div>').join('') + '<p class="sub">가장 좋은 기록이에요</p></section>';
+    h += '<div id="prepCard">' + prepCard() + '</div>';
     // 미션 (학부모와 같이 해요 / 제자 혼자 해요 / 선범단)
-    const td = today, hw = (D.hw || []).filter(x => (x.kids || []).includes(D.name));
-    h += '<section class="card"><h2>✅ 미션</h2>' + (hw.length ? hw.map(x => { const daily = x.mode === 'daily', can = !daily || (td >= x.start && td <= x.end), mc = (x.chk || []).filter(c => c.kid === D.name), done = mc.some(c => daily ? c.day === td : true), byDojo = mc.find(c => /^도장/.test(c.rel || ''));
+    const td = today;
+    h += '<section class="card" id="hwCard"><h2>✅ 미션</h2>' + (hw.length ? hw.map(x => { const daily = x.mode === 'daily', can = !daily || (td >= x.start && td <= x.end), mc = (x.chk || []).filter(c => c.kid === D.name), done = mc.some(c => daily ? c.day === td : true), byDojo = mc.find(c => /^도장/.test(c.rel || ''));
       return '<div class="hw"><div class="t"><b>' + (x.sb ? '<span class="tag g">⭐ 선범단</span>' : '') + '<span class="tag ' + (x.who === 'self' ? 's">🙋 혼자 해요' : 'w">👨‍👩‍👧 학부모와 같이') + '</span>' + esc(x.title) + '</b><small>' + (daily ? '매일 · ' + mc.length + '일 했어요' : x.end ? md(x.end) + '까지' : '') + (byDojo ? ' · 도장에서 확인 ✓' : '') + '</small></div>' + (can ? '<button data-hw="' + esc(x.id) + '" class="' + (done ? 'on' : '') + '">' + (done ? '✓ 했어요!' : daily ? '오늘 했어요' : '했어요') + '</button>' : '') + '</div>'; }).join('') : '<div class="empty">지금은 미션이 없어요 😊</div>') + '</section>';
     // 오늘의 운동
-    const th = ((plan || {}).weekday || {})[dow] || [], fc = ((plan || {}).focus || []).find(x => x.date <= today && today <= (x.end || x.date));
+    const dow = WD[new Date(today + 'T00:00:00Z').getUTCDay()], th = ((plan || {}).weekday || {})[dow] || [], fc = ((plan || {}).focus || []).find(x => x.date <= today && today <= (x.end || x.date));
     h += '<section class="card today"><h2>📅 오늘의 운동</h2>' + (th.length ? '<div class="tags">' + th.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '<div class="sub">' + (dow === '일' || dow === '토' ? '즐거운 주말! 월요일에 만나요 ☺' : '오늘의 운동을 준비 중이에요') + '</div>') +
       (fc ? '<div class="focus"><small>이번 주 수련 주제</small><b>' + esc(fc.title) + '</b></div>' : '') + '</section>';
-    // 받은 뱃지만 (전체 목록은 숨김)
-    const B = myBadges();
-    h += '<section class="card"><h2>🏅 내 뱃지<small>' + B.length + ' / ' + badges().length + '개</small><button class="allb" id="allB">전체 뱃지 ›</button></h2>' + (B.length ? '<div class="badges">' + B.map(b => '<div class="bd"><div class="ic">' + bIc(b) + '</div>' + esc(b.t) + '</div>').join('') + '</div><p class="sub" style="text-align:center">내 띠 카드의 빈칸을 눌러 대표 뱃지 3개를 골라요</p>' : '<div class="empty">도장에 오면 첫 뱃지를 받아요! 🌱</div>') + '</section>';
     return h;
+  }
+  // 이번 달 수련 로그 — 동그라미 3개 (출석 · 미션 · 기네스 측정), 100%면 SUCCESS
+  function monthLog() {
+    const t = D.today, ym = t.slice(0, 7), mon = +t.slice(5, 7), a = D.att || {}, days = a.days || [], last = new Date(Date.UTC(+t.slice(0, 4), mon, 0)).getUTCDate();
+    let exp = 0; for (let d = 1; d <= +t.slice(8, 10); d++) { const w = WD[new Date(Date.UTC(+t.slice(0, 4), mon - 1, d)).getUTCDay()]; if (days.includes(w)) exp++; }
+    const attP = exp ? Math.min(100, Math.round((a.month || 0) / exp * 100)) : Math.min(100, Math.round((a.month || 0) / 12 * 100));
+    const hw = (D.hw || []).filter(x => (x.kids || []).includes(D.name)), hwD = hw.filter(x => (x.chk || []).some(c => c.kid === D.name)).length, hwP = hw.length ? Math.round(hwD / hw.length * 100) : 0;
+    const ev = (D.events || []).find(e => (e.months || []).includes(mon)), recP = ev && ((D.rec || {})[ev.name] || {})[mon] != null ? 100 : 0;
+    const R = [['출석', attP, '#E5484D', (a.month || 0) + '일' + (exp ? ' / ' + exp + '일' : '')], ['미션', hwP, '#E3B341', hw.length ? hwD + ' / ' + hw.length : '없어요'], ['기네스 측정', recP, '#4C8DF6', ev ? esc(ev.name) + (recP ? ' 완료' : ' 아직') : '이번 달 없음']];
+    const ring = (r, p, c) => { const L = 2 * Math.PI * r; return '<circle r="' + r + '" cx="60" cy="60" fill="none" stroke="#2A2A2D" stroke-width="9"/><circle r="' + r + '" cx="60" cy="60" fill="none" stroke="' + c + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + (L * p / 100).toFixed(1) + ' ' + L.toFixed(1) + '" transform="rotate(-90 60 60)"/>'; };
+    return '<section class="card log"><h2>나의 ' + mon + '월 수련 로그<small class="dr">' + ym.replace('-', '.') + '.01 ~ ' + ym.replace('-', '.') + '.' + last + '</small></h2><div class="lg2"><div class="rg"><svg viewBox="0 0 120 120">' + ring(52, R[0][1], R[0][2]) + ring(40, R[1][1], R[1][2]) + ring(28, R[2][1], R[2][2]) + '</svg><img src="../img/lion-white.png" alt=""></div>' +
+      '<div class="ri">' + R.map(([n, p, c, s]) => '<div><b><i style="border-color:' + c + '">' + (p >= 100 ? '✓' : '') + '</i>' + n + '</b><span class="ss' + (p >= 100 ? ' on' : '') + '">★ SUCCESS ★</span><em>' + p + '%</em><small>' + s + '</small></div>').join('') + '</div></div></section>';
+  }
+  // ── 🏅 뱃지 화면 (2026-11-15 사용자가 보여 준 애플 피트니스 뱃지 화면처럼): 월간 도전 · 품 패치 · 갈래별 뱃지, 누르면 크게 ──
+  const MONTH_NEED = 12, MCOL = ['#E5484D', '#F08A24', '#F2B705', '#8BC34A', '#2E9E4F', '#1FB5A8', '#29B6F6', '#2F6FDE', '#7B4FB8', '#F07AA8', '#E9682B', '#C0A355'];
+  const hexB = (m, on, sz) => { const c = on ? MCOL[(m - 1) % 12] : '#3A3A3D'; return '<svg class="hex" viewBox="0 0 100 100" width="' + sz + '" height="' + sz + '"><defs><linearGradient id="hg' + m + (on ? 'o' : 'f') + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="' + c + '"/><stop offset="1" stop-color="' + c + '"/></linearGradient></defs><polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="url(#hg' + m + (on ? 'o' : 'f') + ')" stroke="' + (on ? '#D9D9DC' : '#55555A') + '" stroke-width="5"/><text x="50" y="66" text-anchor="middle" font-size="46" font-weight="900" fill="' + (on ? '#fff' : '#77777C') + '" font-family="system-ui">' + m + '</text></svg>'; };
+  const monthsBack = n => { const t = D.today, L = []; for (let i = 0; i < n; i++) { const d = new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1 - i, 1)); L.push(d.toISOString().slice(0, 7)); } return L; };
+  function page(title, html, onClick) { // 꽉 찬 화면 (뒤로 ‹)
+    const el = document.createElement('div'); el.className = 'pg'; el.innerHTML = '<header><button data-back>‹</button><b>' + esc(title) + '</b><span></span></header><div class="pgb">' + html + '</div>';
+    el.onclick = e => { if (e.target.closest('[data-back]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el;
+  }
+  function badgePage() {
+    const B = badges(), mm = (D.att || {}).months || {}, cur = D.today.slice(0, 7), cm = +cur.slice(5), n = mm[cur] || 0;
+    const past = monthsBack(12).slice(1).filter(k => (mm[k] || 0) >= MONTH_NEED);
+    let h = '<section class="bx"><h3>월간 도전 목표</h3><div class="mch">' + hexB(cm, n >= MONTH_NEED, 150) + '<b>' + cm + '월 도전 목표</b><small>이번 달 ' + MONTH_NEED + '일 출석하기 · ' + Math.min(n, MONTH_NEED) + ' / ' + MONTH_NEED + '</small><div class="pb"><b style="width:' + Math.min(100, Math.round(n / MONTH_NEED * 100)) + '%"></b></div></div>' +
+      '<div class="mrow">' + (past.length ? past.slice(0, 5).map(k => hexB(+k.slice(5), true, 30)).join('') : '<small class="sub" style="margin:0">지난 도전 목표를 이루면 여기에 모여요</small>') + '<button class="allb" data-mall>모두 보기 ›</button></div></section>';
+    const cats = []; B.forEach(b => { let c = cats.find(x => x.n === b.cat); if (!c) cats.push(c = { n: b.cat, L: [] }); c.L.push(b); });
+    cats.forEach(c => { h += '<section class="bx"><h3>' + esc(c.n) + '<small>' + c.L.filter(b => b.on).length + ' / ' + c.L.length + '</small></h3><div class="bgrid">' + c.L.map(b => '<button class="bt' + (b.on ? '' : ' off') + '" data-bd="' + b.k + '"><span class="ic">' + bIc(b) + '</span><b>' + esc(b.t) + '</b>' + (!b.on && b.tgt ? '<i class="pg2"><em style="width:' + Math.min(100, Math.round(b.cur / b.tgt * 100)) + '%"></em></i><small>' + Math.min(b.cur, b.tgt) + ' / ' + b.tgt + '</small>' : '') + '</button>').join('') + '</div></section>'; });
+    page('뱃지', h, (e, el) => { const b = e.target.closest('[data-bd]'); if (b) return badgeOne(b.dataset.bd); if (e.target.closest('[data-mall]')) monthAll(); });
+  }
+  function monthAll() {
+    const mm = (D.att || {}).months || {};
+    page('월간 도전 목표', '<div class="mgrid">' + monthsBack(12).map(k => { const on = (mm[k] || 0) >= MONTH_NEED; return '<div class="' + (on ? '' : 'off') + '">' + hexB(+k.slice(5), on, 84) + '<b>' + (+k.slice(5)) + '월 도전 목표</b><small>' + k.slice(0, 4) + '년 · 출석 ' + (mm[k] || 0) + '일</small></div>'; }).join('') + '</div><p class="sub" style="text-align:center">한 달에 ' + MONTH_NEED + '일 출석하면 그 달의 도전 목표 뱃지를 받아요</p>');
+  }
+  function badgeOne(k) {
+    const b = badges().find(x => x.k === k); if (!b) return;
+    page(b.cat, '<div class="b1' + (b.on ? '' : ' off') + '"><span class="ic">' + bIc(b) + '</span><b>' + esc(b.t) + '</b><p>' + esc(b.how) + (b.on ? '' : ' 받을 수 있어요') + '</p>' + (b.on ? '<em>🎉 받았어요!</em>' : b.tgt ? '<div class="pb"><b style="width:' + Math.min(100, Math.round(b.cur / b.tgt * 100)) + '%"></b></div><small>지금 ' + Math.min(b.cur, b.tgt) + ' / ' + b.tgt + '</small>' : '<em class="no">아직이에요 · 도전해 봐요!</em>') + '</div>');
+    if (b.on) fx(1400);
+  }
+  // ── 💰 나의 마일리지 (2026-11-15: 잔액 · 누적 · 획득/사용 방법 · 상세 조회) ──
+  async function milePage() {
+    let M = { bal: D.mile || 0, earn: 0, used: 0, list: [] }, f = 'all', per = 1;
+    const draw = el => { const since = (() => { const d = new Date(D.today + 'T00:00:00Z'); if (per === 1) return D.today.slice(0, 8) + '01'; d.setUTCMonth(d.getUTCMonth() - per); return d.toISOString().slice(0, 10); })();
+      const L = (M.list || []).filter(x => (f === 'all' || (f === 'earn' ? x.amt > 0 : x.amt < 0)) && new Date(x.at + 9 * 3600e3).toISOString().slice(0, 10) >= since);
+      el.querySelector('.pgb').innerHTML = '<section class="mlc"><span class="tg">보유 마일리지</span><div class="mb2"><i>M</i>' + (+M.bal).toLocaleString() + '<small>원</small></div><div class="ac"><span>누적 적립</span><b>' + (+M.earn).toLocaleString() + '</b><span>누적 사용</span><b>' + (+M.used).toLocaleString() + '</b></div>' +
+        '<div class="hb"><button data-how="get">마일리지 받는 방법 ›</button><button data-how="use">마일리지 쓰는 방법 ›</button></div></section>' +
+        '<h3 class="dh">상세 조회</h3><div class="fb">' + [['all', '전체'], ['earn', '적립'], ['use', '사용']].map(([k, t]) => '<button data-f="' + k + '" class="' + (f === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
+        '<div class="pc">' + [[1, '이번 달'], [3, '3개월'], [6, '6개월'], [12, '1년']].map(([k, t]) => '<button data-p="' + k + '" class="' + (per === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
+        (L.length ? L.map(x => { const d = new Date(x.at + 9 * 3600e3); return '<div class="ml"><div><b>' + (x.amt > 0 ? '상점 ' + x.n + '개 적립' : '마일리지 사용') + '</b><small>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + (x.memo ? ' · ' + esc(x.memo) : '') + '</small></div><em class="' + (x.amt > 0 ? 'p' : 'm') + '">' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '</em></div>'; }).join('') : '<div class="empty" style="padding:40px 0">내역이 없어요</div>'); };
+    const el = page('나의 마일리지', '<div class="empty">불러오는 중…</div>', (e, el) => {
+      const fb = e.target.closest('[data-f]'); if (fb) { f = fb.dataset.f; return draw(el); }
+      const pb = e.target.closest('[data-p]'); if (pb) { per = +pb.dataset.p; return draw(el); }
+      const hw = e.target.closest('[data-how]'); if (hw) sheet(hw.dataset.how === 'get' ? '<h3>💰 마일리지 받는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">도장에서 받은 <b>상점(스티커)</b>을 모아서 사범님께 가져가요.<br>상점 <b>1개 = 100원</b>으로 바꿔 줘요.<br>사범님이 <b>내 출석 QR</b>을 찍으면 바로 쌓여요!</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>' : '<h3>🛍 마일리지 쓰는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">사범님께 <b>내 출석 QR</b>을 보여 주면<br>모은 마일리지만큼 쓸 수 있어요.<br>쓰면 이 앱에 바로 알림이 와요.</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>');
+    });
+    const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el);
   }
   // ── 📝 이번 달 심사 준비 (웅변 원고 · 영어 문장 · 내 띠 품새 영상) ──
   function prepCard() {
@@ -439,6 +566,12 @@
   $('body').onclick = async e => {
     if (e.target.closest('#pEdit')) return profSheet();
     if (e.target.closest('#qrB')) return qrSheet();
+    if (e.target.closest('#newsB')) { newsOpen = !newsOpen; return draw(); }
+    if (e.target.closest('#mileB')) return milePage();
+    if (e.target.closest('#badgeB,#badgeB2')) return badgePage();
+    const bd = e.target.closest('[data-bd]'); if (bd) return badgeOne(bd.dataset.bd);
+    if (e.target.closest('#hwB')) { const c = $('hwCard'); return c && c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    if (e.target.closest('#prepB')) { const c = $('prepCard'); if (c && c.innerHTML.trim()) return c.scrollIntoView({ behavior: 'smooth', block: 'start' }); return alert('이번 달 심사 준비가 아직 올라오지 않았어요'); }
     if (e.target.closest('#goalB')) return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!');
     if (e.target.closest('#pledB')) return textSheet('⭐ 나의 선범단 다짐', 'pledge', 200, '예: 동생들에게 먼저 인사하고, 모르는 친구를 도와줄게요');
     if (e.target.closest('#allB')) return allBadgeSheet();
