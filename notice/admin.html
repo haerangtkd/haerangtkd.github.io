@@ -626,7 +626,7 @@
     const L = (doneEvs || []).filter(x => x.names.length);
     $('nEvs').hidden = nType !== 'journal' || !L.length;
     $('nEvs').innerHTML = '<label class="f" style="margin-top:0">완료한 행사 참가자에게 <small style="font-weight:400;color:#8a827c">(누르면 참가자만 골라져요)</small></label><div class="tpl">' +
-      L.map(x => '<button data-ev="' + esc(x.id) + '"' + (evCur === x.id ? ' style="background:var(--brand);color:#fff"' : '') + '>🎟 ' + esc(x.title) + ' · ' + x.names.length + '명</button>').join('') + '</div>' +
+      L.map(x => '<button data-ev="' + esc(x.id) + '"' + (evCur === x.id ? ' style="background:var(--brand);color:#fff"' : '') + '>' + (x.goods ? '🛒 ' : '🎟 ') + esc(x.title) + (x.closed ? ' (완료)' : '') + ' · ' + x.names.length + '명</button>').join('') + '</div>' +
       (evOnly ? '<button type="button" class="lo" id="nEvAll" style="margin-top:6px;padding:6px 10px;font-size:13px">전체 명단 보기</button>' : '');
   }
   function useEv(id) {

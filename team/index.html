@@ -1698,6 +1698,7 @@ function eventSetup(ev0, isNew) {
     '<label class="f">체크 칸 (쉼표로, 예: 양말, 신발)</label><input class="inp" id="eC" value="' + esc((ev.checks || []).join(', ')) + '">' +
     '<label class="f">준비물 (학부모 앱 신청 화면에도 보여요)</label><textarea class="inp" id="ePrep" rows="2" maxlength="300" placeholder="예: 도복, 물통, 실내화">' + esc(ev.prep || '') + '</textarea>' +
     '<label class="ck" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="eG"' + (giveOn(ev) ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 나눠 줄 것이 있어요 (명단에 \'지급\' 칸 보이기)</label>' +
+    (goods ? '' : '<label class="ck" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:15px"><input type="checkbox" id="eComp"' + ((ev.comp != null ? ev.comp : /대회/.test(ev.title || '')) ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 🥇 대회예요 (명단에 금·은·동 결과 적기 · 결과 알림)</label>') +
     '<label class="ck" style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="eV"' + (ev.van ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 하원차 칸 사용</label>' +
     '<label class="ck" id="eDashL" style="display:' + (goods ? 'flex' : 'none') + ';gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="eDash"' + (ev.dash ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 대시보드에 보이기 <small style="color:var(--muted)">(끄면 \'완료되지 않은 물품·구매\'로만)</small></label>' +
     '<div id="ePubBox"' + (goods ? ' hidden' : '') + ' style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin-top:14px"><label class="ck" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:15px;font-weight:700"><input type="checkbox" id="ePub"' + (ev.pub ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 학부모 앱에서 신청 받기</label>' +
@@ -1729,7 +1730,7 @@ function eventSetup(ev0, isNew) {
       ev.products = g('eP').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const m = l.match(/^(.*?)[\s:]*([\d,]+)\s*원?$/); return m ? { n: m[1].trim() || '품목', p: +m[2].replace(/,/g, '') } : { n: l, p: 0 }; });
       ev.options = g('eO').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const [n, c] = l.split(/[:：]/); let ch = (c || '').split(/[,，]/).map(x => x.trim()).filter(Boolean); if (!ch.length && /사이즈/.test(n)) for (let s = 90; s <= 190; s += 10) ch.push(String(s)); return { n: n.trim(), c: ch }; });
       ev.checks = g('eC').value.split(/[,，]/).map(x => x.trim()).filter(Boolean);
-      ev.prep = g('ePrep').value.trim(); ev.give = g('eG').checked;
+      ev.prep = g('ePrep').value.trim(); ev.give = g('eG').checked; if (g('eComp')) ev.comp = g('eComp').checked;
       if (elg.mode === 'age') { elg.from = +g('eEf').value || 0; elg.to = +g('eEt').value || 0; if (!elg.from && !elg.to) return toast('몇 살부터 몇 살까지인지 적어 주세요'); if (elg.from && elg.to && elg.from > elg.to) return toast('나이 순서를 확인해 주세요'); }
       if (elg.mode === 'grp' && !(elg.grps || []).length) return toast('신청 대상 분류를 골라 주세요');
       if (elg.mode === 'kids' && !elg.kids.length) return toast('신청 대상 제자를 골라 주세요');
@@ -1773,9 +1774,16 @@ function eventSheet(ev0) {
       (r.pmemo ? '<p class="help" style="margin:4px 2px 0">학부모님 말: ' + esc(r.pmemo) + '</p>' : '') +
       (r.guest ? '<div class="sub" style="align-items:center"><button class="tg" data-a="ginfo">✏️ 비회원 정보</button><span class="help" style="margin:0 4px">' + (esc(guestLine(r)) || '학년·보호자 연락처를 넣어 주세요') + '</span></div>' : '') +
       '<input class="memo2" data-a="memo" placeholder="비고" value="' + esc(r.memo || '') + '"></div>';
+    // 🥇 대회 결과 (2026-11-16): 대회 신청표면 제자마다 금·은·동·참가를 적고 '결과 알림' → 학부모 앱 알림 + 제자 앱 알림·명예의 전당 대회 기록
+    const isComp = !goods && (ev.comp != null ? !!ev.comp : /대회/.test(ev.title || ''));
+    const compBox = () => { if (!isComp) return ''; const P = act.filter(r => !r.guest), A = ev.awards || {}, M = ['금', '은', '동', '참가'];
+      return '<div class="card" style="margin-top:10px;padding:12px"><b>🥇 대회 결과</b><p class="help" style="margin:2px 0 8px">상을 고르고 \'결과 알림 보내기\'를 누르면 학부모님·제자 앱에 알림이 가고, 제자 앱 명예의 전당에 대회 기록으로 올라가요.</p>' +
+        P.map(r => '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-top:1px solid var(--line)"><span style="flex:1;font-weight:700">' + esc(r.name) + '</span>' + M.map(m => '<button class="tg' + (A[r.name] === m ? ' on' : '') + '" data-aw="' + esc(r.name) + '" data-m="' + m + '">' + ({ 금: '🥇 금', 은: '🥈 은', 동: '🥉 동', 참가: '참가' })[m] + '</button>').join('') + '</div>').join('') +
+        '<button class="btn g" id="evAward" style="width:100%;margin-top:8px"' + (Object.keys(A).length ? '' : ' disabled') + '>🏅 결과 알림 보내기' + (ev.awardSent ? ' (다시)' : '') + '</button>' + (ev.awardSent ? '<p class="help" style="margin:6px 0 0">✅ ' + new Date(ev.awardSent).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' 보냈어요</p>' : '') + '</div>'; };
     S._evDraw = () => { const sh = document.querySelector('.sheet.full'); if (!sh) return; const y = sh.scrollTop; sh.querySelector('#evBody').innerHTML = body(); sh.scrollTop = y; };
     const body = () => '<div class="sumbar"><div><small>' + W + '</small><b>' + act.length + '명</b></div>' + (free ? '' : '<div><small>결제</small><b>' + act.filter(r => r.paid).length + '/' + act.length + '</b></div>') + (free && !goods ? '<div><small>참가비</small><b>무료</b></div>' : '<div><small>' + (goods ? '지급' : '합계') + '</small><b>' + (goods ? act.filter(r => r.given).length + '/' + act.length : won(tot)) + '</b></div>') + '</div>' +
       (free ? '' : act.some(r => !r.paid) ? '<p class="help">미결제: ' + act.filter(r => !r.paid).map(r => esc(r.name)).join(', ') + ' (' + won(tot - paidAmt) + ')</p>' : act.length ? '<p class="help" style="color:var(--ok)">모두 결제했어요 · 합계 ' + won(tot) + '</p>' : '') +
+      compBox() + (act.filter(r => !r.guest).length && catOf(ev) !== 'buy' ? '<button class="btn" id="evJournal" style="width:100%;margin-top:10px">📣 ' + W + '한 제자 보호자에게 알림장 쓰기</button>' : '') + // 2026-11-16: 행사·물품 신청표 → 알림장
       (rows.some(r => r.guest && !r.appCancel) ? '<button class="btn" id="evGuests" style="width:100%;margin-top:10px">📋 비회원 ' + rows.filter(r => r.guest && !r.appCancel).length + '명 연락처 모아 보기</button>' : '') +
       '<div class="row" style="margin-top:12px"><button class="btn g" id="evAdd" style="flex:1">+ 사람 추가</button><button class="btn" id="evSet">설정</button><button class="btn" id="evDone">' + (ev.closed ? '다시 진행' : '완료로') + '</button></div>' +
       (rows.length ? clip('ev' + ev.id, rows.map(card).join(''), '명') : '<p class="empty">+ 사람 추가로 명단을 넣어 주세요</p>') +
@@ -1788,6 +1796,11 @@ function eventSheet(ev0) {
     ov.addEventListener('click', async e => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.id === 'evSet') { await flush(); return eventSetup(ev); }
+      if (b.dataset.aw) { ev.awards = ev.awards || {}; if (ev.awards[b.dataset.aw] === b.dataset.m) delete ev.awards[b.dataset.aw]; else ev.awards[b.dataset.aw] = b.dataset.m; redraw(); queue('대회 결과'); return; }
+      if (b.id === 'evAward') { await flush(); const n = Object.keys(ev.awards || {}).length; if (!confirm(n + '명의 대회 결과를 보낼까요?\n학부모님 휴대폰·제자 앱에 알림이 가고, 제자 앱 명예의 전당에 기록돼요.')) return;
+        b.disabled = true; let off = 0, sent = 0; for (let i = 0; i < 40; i++) { const j = await api('/api/comp-notify', { id: ev.id, offset: off }); if (!j.ok) { b.disabled = false; return toast(j.error || '보내지 못했어요'); } sent += j.sent || 0; if (!j.next) { ev.awardSent = j.at; break; } off = j.next; }
+        toast('대회 결과를 보냈어요 · 학부모 ' + sent + '대'); redraw(); return; }
+      if (b.id === 'evJournal') { await flush(); try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = '/notice/admin.html?ev=' + encodeURIComponent(ev.id); return; }
       if (b.id === 'evGuests') { // 비회원 보호자 연락처 모아 보기·복사 (비회원은 학부모 앱이 없어서 문자로 연락, 2026-11-15)
         const G = (ev.rows || []).filter(r => r.guest && !r.appCancel), txt = ev.title + ' 비회원 ' + G.length + '명\n' + G.map(r => '· ' + r.name + (guestLine(r) ? ' · ' + guestLine(r) : '') + (r.wait ? ' (대기)' : '')).join('\n');
         try { await navigator.clipboard.writeText(txt); toast('비회원 연락처를 복사했어요'); } catch (_) { prompt('길게 눌러 복사해 주세요', txt); }

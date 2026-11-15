@@ -371,9 +371,9 @@ async function route(path, req, env, ctx) {
       return json({ ok: true, year: y0, events: evMap(evs), eventsY, kids });
     }
     if (path === '/sync/done-events') { // 알림 관리 '알림장 쓰기': 완료한 행사표의 참가자 (2026-11-13 사용자 요청) — 완료한 지 30일 안, 최근 것부터
-      const rows = await all(env, "SELECT id, data, upd FROM items WHERE type = 'event' AND del = 0 AND upd > ? ORDER BY upd DESC LIMIT 60", Date.now() - 30 * 864e5);
-      return json({ ok: true, events: rows.map(r => ({ id: r.id, upd: r.upd, d: J(r.data, {}) })).filter(x => x.d.closed && x.d.kind !== 'goods').slice(0, 12)
-        .map(x => ({ id: x.id, title: str(x.d.title, 100), date: x.d.date || '', names: [...new Set((x.d.rows || []).filter(y => y && y.name && !y.wait && !y.appCancel && !y.guest).map(y => str(y.name, 20)))] })) });
+      const rows = await all(env, "SELECT id, data, upd FROM items WHERE type = 'event' AND del = 0 ORDER BY upd DESC LIMIT 80"); // 2026-11-16: 진행 중인 행사·물품 신청표도 (완료한 것은 30일 안)
+      return json({ ok: true, events: rows.map(r => ({ id: r.id, upd: r.upd, d: J(r.data, {}) })).filter(x => !x.d.closed || x.upd > Date.now() - 30 * 864e5).slice(0, 20)
+        .map(x => ({ id: x.id, title: str(x.d.title, 100), date: x.d.date || '', closed: !!x.d.closed, goods: x.d.kind === 'goods', names: [...new Set((x.d.rows || []).filter(y => y && y.name && !y.wait && !y.appCancel && !y.guest).map(y => str(y.name, 20)))] })) });
     }
     if (path === '/sync/jtpl') return json({ ok: true, tpl: await jtplGet(env) }); // 알림 관리 '알림장 쓰기' 양식
     if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 40', ...kids)).map(r => ({ id: r.id, kid: r.kid, label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r) })) : [] });
@@ -1154,6 +1154,20 @@ async function route(path, req, env, ctx) {
   }
 
   // 할 일 · 일정 · 행사표 · 구매표 저장 (what: 알림에 쓸 한 줄)
+  if (path === '/api/comp-notify') { // 🥇 대회 결과 → 학부모 알림(6명씩) + 제자 앱 알림 + 명예의 전당 대회 기록 (2026-11-16)
+    const it = await one(env, "SELECT id, data FROM items WHERE id = ? AND type = 'event' AND del = 0", str(b.id, 40)); if (!it) return json({ ok: false, error: '신청표를 찾지 못했어요' });
+    const d = J(it.data, {}), A = d.awards || {}, names = Object.keys(A).filter(n => ['금', '은', '동', '참가'].includes(A[n])); if (!names.length) return json({ ok: false, error: '상을 먼저 골라 주세요' });
+    const off = b.offset | 0, M = { 금: '🥇 금메달', 은: '🥈 은메달', 동: '🥉 동메달', 참가: '참가' };
+    if (!off) {
+      const cs = await noticeSync(env, '/sync/comp-set', { id: 'ev:' + it.id, date: /^\d{4}-\d{2}-\d{2}$/.test(d.date || '') ? d.date : kstDay(), title: str(d.title, 80), rows: names.map(n => ({ name: n, medal: A[n] })) });
+      if (!cs.ok) return json({ ok: false, error: cs.error || '제자 앱 대회 기록에 넣지 못했어요 (알림 서버를 새로 반영해야 해요)' });
+      ctx.waitUntil(kidPushMany(env, names.map(n => ({ name: n, title: A[n] === '참가' ? '🏅 ' + str(d.title, 40) + ' 수고했어요!' : M[A[n]] + ' 축하해요! 🎉', body: str(d.title, 60) + ' · 명예의 전당에 기록됐어요' }))).catch(() => {}));
+    }
+    const r = await noticeSync(env, '/sync/broadcast', { title: '🏅 ' + str(d.title, 40) + ' 결과', body: '{kid} 참가해 줘서 고마워요 · 결과는 제자 앱 명예의 전당에서 볼 수 있어요', children: names, offset: off, kind: '대회' });
+    if (!r.ok) return json(r);
+    let at = 0; if (!r.next) { at = Date.now(); d.awardSent = at; await run(env, 'UPDATE items SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), at, it.id); await addLog(env, me.id, 'event', '🥇 ' + str(d.title, 40) + ' 대회 결과를 보냈어요 · ' + names.length + '명', it.id).catch(() => {}); }
+    return json({ ok: true, sent: r.sent || 0, next: r.next || 0, at });
+  }
   if (path === '/api/item') {
     const old = b.item && b.item.type === 'event' && b.item.id ? await one(env, "SELECT data FROM items WHERE id = ? AND type = 'event'", str(b.item.id, 40)) : null;
     if (old && J(old.data, {}).sp && !b.item.sp) b.item.sp = J(old.data, {}).sp; // 일정표 연결은 오래된 화면이 저장해도 유지

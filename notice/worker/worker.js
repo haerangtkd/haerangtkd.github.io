@@ -463,6 +463,13 @@ async function route(path, req, env) {
     const r = await checkIn(env, name, act, false);
     return json(r.ok ? { ok: true, sent: r.sent, total: r.total, time: r.time } : r);
   }
+  if (path === '/sync/comp-set') { // 업무 앱 대회 신청표 결과 → 제자 앱 명예의 전당 대회 기록 (같은 신청표면 바꿔 씀, 2026-11-16)
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const T = (v, n) => String(v == null ? '' : v).trim().slice(0, n), km = J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {}, id = T(b.id, 40);
+    const c = { id, date: /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : kstDay(new Date()), title: T(b.title, 80), rows: (Array.isArray(b.rows) ? b.rows : []).map(r => ({ name: T(r && r.name, 20), medal: ['금', '은', '동', '참가'].includes(r && r.medal) ? r.medal : '참가', ev: T(r && r.ev, 30) })).filter(r => r.name).slice(0, 60) };
+    km.comps = (km.comps || []).filter(x => x.id !== id).concat([c]).sort((a, z) => a.date.localeCompare(z.date)).slice(-200);
+    await run(env, "INSERT INTO kv (k, v) VALUES ('kmode', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(km)); return json({ ok: true });
+  }
   if (path === '/sync/today-att') { // 출석부 '등·하원' 탭: 오늘 등원·하원 시각 + 알림 받을 보호자 수
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const at = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', kstDay(new Date())), ps = await all(env, 'SELECT kids FROM parents WHERE ok = 1'), g = {};
@@ -473,7 +480,7 @@ async function route(path, req, env) {
   // 업무 앱: 숙제 올릴 때 학부모님께 알림 (대상 제자 또는 모두)
   if (path === '/sync/broadcast') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
-    return json(await send(env, { kind: ['심사', '성장'].includes(b.kind) ? b.kind : '미션', title: b.title, body: b.body, children: b.children, view: b.view === 'grow' ? 'grow' : '', offset: b.offset | 0 })); // view 'grow' = 승급 심사 결과·성장 리포트 → 성장 리포트 // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
+    return json(await send(env, { kind: ['심사', '성장', '대회'].includes(b.kind) ? b.kind : '미션', title: b.title, body: b.body, children: b.children, view: b.view === 'grow' ? 'grow' : '', offset: b.offset | 0 })); // view 'grow' = 승급 심사 결과·성장 리포트 → 성장 리포트 // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
   }
   // 업무 앱 '한 파일 백업': 표 목록·표 내용 (관리자 비밀번호는 업무 서버가 먼저 확인)
   if (path === '/sync/bk-tables' || path === '/sync/bk-dump') {
