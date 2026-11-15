@@ -142,6 +142,7 @@
   .sbc .ft{position:absolute;left:0;right:0;bottom:0;padding:7px 14px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;border-top:2px solid #C0A355;background:#FFFBF0}
   .sbc .ft span{flex:1;color:#5A3B00}
   .sbc .cseal{width:26px;height:26px;border:2px solid #C8102E;border-radius:4px;color:#C8102E;font:900 8.5px/1.05 serif;display:grid;place-items:center;text-align:center;transform:rotate(-6deg);opacity:.9}
+  .sbc .seal{width:34px;height:34px;transform:rotate(-4deg);margin:-6px 0}
   .sbc .wn{position:absolute;right:12px;top:10px;background:#3A2A00;color:#FFD54A;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:900}
   .sbc .b{transform:rotateY(180deg);background:#09316F url(sb-bg.jpg) center/cover;color:#fff;display:flex;flex-direction:column;justify-content:center;text-align:center;padding:16px 22px}
   .sbc .b:before{content:'';position:absolute;inset:0;background:rgba(9,49,111,.72)}.sbc .b>*{position:relative}
@@ -389,7 +390,7 @@
         '<div class="bdy"><div class="ph"' + (c.photo ? ' style="background-image:url(' + c.photo + ')"' : ' style="background:' + esc(av.bg) + ';color:#fff"') + '>' + (c.photo ? '' : avHtml(av.e)) + '</div>' +
         '<div class="rows"><div class="nm">' + esc(me) + '</div><div class="rn">' + esc(romName(me)) + '</div>' +
         '<div class="rw"><span>띠</span><b>' + esc(D.belt || '-') + '</b></div>' + (dk ? '<div class="rw"><span>임명일</span><b>' + dk + '</b></div>' : '') + '<div class="rw"><span>소속</span><b>해랑경희 선범단</b></div></div></div>' +
-        '<div class="ft"><span>다른 수련생에게 모범이 되는 선범단원</span>대표 이아빈<i class="cseal">해랑<br>경희</i></div></div>' +
+        '<div class="ft"><span>다른 수련생에게 모범이 되는 선범단원</span>대표 이아빈<img class="seal" src="seal.png" alt=""></div></div>' +
         '<div class="b"><small>MY PROMISE</small><h4>⭐ 나의 선범단 다짐</h4><p>' + esc(pled) + '</p>' + (D.prof.mygoal ? '<p style="font-size:13.5px;margin-top:12px;color:#E9CF86">🎯 ' + esc(D.prof.mygoal) + '</p>' : '') + '</div></div></div></div>' +
         '<div class="flipn">카드를 누르면 뒤집혀요 · 나만 보는 카드예요</div><button class="pled" id="pledB">✏ 나의 다짐 ' + (D.prof.pledge ? '고치기' : '쓰기') + '</button>';
       const sbHw = (D.hw || []).filter(x => x.sb && (x.kids || []).includes(me));
