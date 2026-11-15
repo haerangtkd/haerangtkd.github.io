@@ -864,7 +864,7 @@
   }
   $('kq').oninput = drawKc;
   $('kcList').onclick = async e => {
-    const mk = e.target.closest('[data-kmk]'); if (mk) { const n = mk.dataset.kmk, had = kcItems.find(x => x.name === n && x.code); if (had && !confirm(n + ' 제자의 코드를 새로 만들까요? 예전 기기는 나가져요.')) return; const j = await post('/admin/kcode-make', { name: n }); if (!j.ok) return toast(j.error || '만들지 못했어요'); toast(n + ' 코드: ' + j.code); return loadKmode(); }
+    const mk = e.target.closest('[data-kmk]'); if (mk) { const n = mk.dataset.kmk; const j = await post('/admin/kcode-make', { name: n }); if (!j.ok) return toast(j.error || '만들지 못했어요'); alert(n + ' 제자 코드: ' + j.code + '\n\n숫자 6자리 · 5분 동안 한 번만 쓸 수 있어요'); return loadKmode(); }
     const d = e.target.closest('[data-kdel]'); if (d) { if (!confirm(d.dataset.kdel + ' 제자의 코드를 지울까요? 그 기기는 나가져요.')) return; await post('/admin/kcode-del', { name: d.dataset.kdel }); loadKmode(); }
   };
   function qList() { const t = today(), cur = t.slice(0, 7), L = []; for (let i = 0; i < 24; i++) { const d = new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1 - i, 1)); L.push(d.toISOString().slice(0, 7)); } (km.best || []).forEach(x => { if (!L.includes(x.q)) L.push(x.q); }); return { L, cur }; } // 매달 (지난달도 넣을 수 있음)

@@ -127,8 +127,11 @@ async function route(path, req, env) {
     const ip = 'kid:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, ip);
     if (lu) return json({ ok: false, error: '잠시 뒤에 다시 해 주세요 (' + Math.ceil((lu - Date.now()) / 60000) + '분)' });
     // 2026-11-14 사용자 결정: 코드는 사범님이 업무 앱(더보기 → 🔑 제자 코드)에서 본인 계정으로 만들어 줌 → 제자는 코드만 넣음
-    const code = String(b.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12), r = code.length >= 6 ? await one(env, 'SELECT name FROM kcodes WHERE code = ?', code) : null;
+    // 2026-11-15 사용자 결정: 숫자 6자리 일회용 코드 (5분 안에 한 번만, 인바디 Touch 인증코드처럼)
+    const code = String(b.code || '').replace(/\D/g, '').slice(0, 6), r = code.length === 6 ? await one(env, 'SELECT name, created FROM kcodes WHERE code = ?', code) : null;
     if (!r) return json({ ok: false, error: failText('제자 코드가 맞지 않아요', await failAdd(env, ip)) });
+    await run(env, 'UPDATE kcodes SET code = NULL WHERE name = ?', r.name); // 한 번 쓰면 끝
+    if (Date.now() - (r.created || 0) > KCODE_TTL) return json({ ok: false, error: '코드 시간(5분)이 지났어요. 사범님께 새 코드를 받아 주세요' });
     await failClear(env, ip); const tok = rid(24);
     await run(env, 'INSERT INTO ksess (tok, name, created, seen) VALUES (?, ?, ?, ?)', tok, r.name, Date.now(), Date.now());
     return json({ ok: true, tok, name: r.name });
@@ -491,10 +494,8 @@ async function route(path, req, env) {
       return json({ ok: true, items: ks.map(n => { const s2 = ss.find(x => x.name === n); return { name: n, devices: s2 ? s2.n : 0 }; }) });
     }
     const name = str(b.name, 20).trim(); if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', name))) return json({ ok: false, error: '명단에 없는 제자예요' });
-    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
-    for (let t = 0; t < 20 && !code; t++) { const c = [...crypto.getRandomValues(new Uint8Array(8))].map(x => A[x % A.length]).join(''); if (!(await one(env, 'SELECT name FROM kcodes WHERE code = ?', c))) code = c; }
-    await run(env, 'INSERT INTO kcodes (name, code, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET code = excluded.code, created = excluded.created', name, code, Date.now());
-    return json({ ok: true, code, name });
+    const code = await newKcode(env, name); if (!code) return json({ ok: false, error: '코드를 만들지 못했어요. 다시 눌러 주세요' });
+    return json({ ok: true, code, name, exp: Date.now() + KCODE_TTL });
   }
   // 업무 앱 첫 화면: 가입 승인 기다리는 보호자 수
   if (path === '/sync/pending') {
@@ -681,16 +682,13 @@ async function route(path, req, env) {
     if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', ev: r.ev || '' } } : { ok: false, error: '지워진 일정이에요' }); }
     // 🥋 제자 모드 관리 (2026-11-14): 개인 코드 · 최우수 수련생 · 대회 기록 · 선범단 커뮤니티 지우기
     if (path === '/admin/kcodes') {
-      const ks = (await all(env, 'SELECT name FROM kids ORDER BY name')).map(r => r.name), cs = await all(env, 'SELECT name, code FROM kcodes'), ss = await all(env, 'SELECT name, COUNT(*) AS n, MAX(seen) AS seen FROM ksess GROUP BY name');
+      const ks = (await all(env, 'SELECT name FROM kids ORDER BY name')).map(r => r.name), cs = (await all(env, 'SELECT name, code, created FROM kcodes WHERE code IS NOT NULL')).filter(c => Date.now() - (c.created || 0) <= KCODE_TTL), ss = await all(env, 'SELECT name, COUNT(*) AS n, MAX(seen) AS seen FROM ksess GROUP BY name');
       return json({ ok: true, items: ks.map(n => { const c = cs.find(x => x.name === n), s2 = ss.find(x => x.name === n); return { name: n, code: c ? c.code : '', devices: s2 ? s2.n : 0, seen: s2 ? s2.seen : 0 }; }) });
     }
     if (path === '/admin/kcode-make') {
       const name = String(b.name || '').trim().slice(0, 20); if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', name))) return json({ ok: false, error: '명단에 없는 제자예요' });
-      const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
-      for (let t = 0; t < 20 && !code; t++) { const c = [...crypto.getRandomValues(new Uint8Array(8))].map(x => A[x % A.length]).join(''); if (!(await one(env, 'SELECT name FROM kcodes WHERE code = ?', c))) code = c; }
-      await run(env, 'INSERT INTO kcodes (name, code, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET code = excluded.code, created = excluded.created', name, code, Date.now());
-      await run(env, 'DELETE FROM ksess WHERE name = ?', name); // 새 코드 = 예전 기기는 로그아웃
-      return json({ ok: true, code });
+      const code = await newKcode(env, name); if (!code) return json({ ok: false, error: '코드를 만들지 못했어요. 다시 눌러 주세요' });
+      return json({ ok: true, code, exp: Date.now() + KCODE_TTL }); // 일회용 (2026-11-15) — 예전 기기는 그대로
     }
     if (path === '/admin/kcode-del') { const name = String(b.name || ''); await run(env, 'DELETE FROM kcodes WHERE name = ?', name); await run(env, 'DELETE FROM ksess WHERE name = ?', name); return json({ ok: true }); }
     if (path === '/admin/kmode-get') return json({ ok: true, km: J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {} });
@@ -888,6 +886,16 @@ async function qrName(env, qr) { qr = String(qr || '').trim().toUpperCase(); if 
 async function kidQr(env, name) { // 제자마다 내 출석 QR (2026-11-14) — 나중에 출결 태블릿 전면 카메라가 읽음. 코드·이름과 다른 값
   let q = await kvj(env, 'kqr:' + name); if (q) return q;
   q = 'HRK1-' + rid(6).toUpperCase(); await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'kqr:' + name, JSON.stringify(q)); return (await kvj(env, 'kqr:' + name)) || q;
+}
+const KCODE_TTL = 5 * 60000; // 제자 코드 = 숫자 6자리, 5분 안에 한 번만 (2026-11-15)
+async function newKcode(env, name) {
+  for (let t = 0; t < 20; t++) {
+    const c = String(100000 + crypto.getRandomValues(new Uint32Array(1))[0] % 900000), o = await one(env, 'SELECT name, created FROM kcodes WHERE code = ?', c);
+    if (o && o.name !== name && Date.now() - (o.created || 0) <= KCODE_TTL) continue; // 다른 제자가 지금 쓰는 번호
+    if (o && o.name !== name) await run(env, 'UPDATE kcodes SET code = NULL WHERE name = ?', o.name);
+    await run(env, 'INSERT INTO kcodes (name, code, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET code = excluded.code, created = excluded.created', name, c, Date.now()); return c;
+  }
+  return '';
 }
 const bestKey = q => /^\d{4}-[1-4]$/.test(q) ? q.slice(0, 5) + String(+q.slice(5) * 3).padStart(2, '0') + 'q' : q; // 예전 분기 = 그 분기 마지막 달 뒤에
 function mergeBest(auto, manual) { // 기네스 1등(자동) + 알림 관리에서 직접 넣은 이름(그 부는 직접 넣은 게 먼저)

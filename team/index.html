@@ -496,6 +496,7 @@
   .clip.more{-webkit-mask-image:linear-gradient(#000 calc(100% - 34px),transparent);mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
   .clipmore{display:none;margin:4px auto 0;border:0;background:var(--soft);color:var(--brand);font-weight:800;font-size:13px;border-radius:99px;padding:5px 14px}
   .clipmore.on{display:block}
+.kcdig{display:flex;gap:8px;justify-content:center;margin-top:8px}.kcdig i{font-style:normal;width:42px;height:54px;border:1.5px solid #D5DCE6;border-radius:10px;display:grid;place-items:center;font-size:28px;font-weight:900;background:#fff}.kcbig b.kct{display:block;color:#C62828;font-size:17px;letter-spacing:1px;margin-top:6px}.kcbig b.kct.over{font-size:14px}
 </style>
 </head>
 <body>
@@ -2593,16 +2594,19 @@ function kcodeSheet() {
     if (!items) { el.innerHTML = '<div class="help" style="padding:14px">' + (err ? esc(err) : '불러오는 중…') + '</div>'; return; }
     const L = items.filter(x => !qv.trim() || x.name.includes(qv.trim()));
     el.innerHTML = L.length ? L.map(x => '<button class="kcr" data-kc="' + esc(x.name) + '"><b>' + esc(x.name) + '</b><small>' + (x.devices ? '들어가 있는 기기 ' + x.devices + '대' : '') + '</small><span>만들기</span></button>').join('') : '<div class="help" style="padding:14px">찾는 이름이 없어요</div>'; };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🔑 제자 코드</h2></div><p class="help">제자 휴대폰에서 <b>haerangtkd.github.io/kids/</b> (해랑 제자 앱)을 열고 이 코드를 넣어요. 만들면 업무 알림에 \'' + esc((S.me && S.me.name) || '') + '님이 ○○ 제자를 승인했어요\'가 남아요.</p>' +
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🔑 제자 코드</h2></div><p class="help">제자 휴대폰에서 <b>haerangtkd.github.io/kids/</b> (해랑 제자 앱)을 열고 이 코드를 넣어요. 코드는 <b>숫자 6자리, 5분 동안 한 번만</b> 쓸 수 있어요. 만들면 업무 알림에 \'' + esc((S.me && S.me.name) || '') + '님이 ○○ 제자를 승인했어요\'가 남아요.</p>' +
     '<input class="inp" id="kcQ" placeholder="이름 검색" autocomplete="off"><div id="kcL" class="kcl"></div><div id="kcOut"></div>', ov => {
     draw();
     api('/api/kcode-list').then(j => { if (j.ok) items = j.items || []; else err = j.error === 'not found' ? '알림 서버를 새로 배포해야 쓸 수 있어요' : (j.error || '불러오지 못했어요'); draw(); });
     ov.querySelector('#kcQ').oninput = draw;
-    ov.querySelector('#kcL').onclick = async e => { const b = e.target.closest('[data-kc]'); if (!b) return; const n = b.dataset.kc;
-      if (!confirm(n + ' 제자 코드를 만들까요?\n예전 코드는 못 쓰게 되고, 이미 들어가 있는 기기는 그대로예요.')) return;
-      const j = await api('/api/kcode-new', { name: n }); if (!j.ok) return toast(j.error === 'not found' ? '업무·알림 서버를 새로 배포해야 쓸 수 있어요' : j.error);
-      ov.querySelector('#kcOut').innerHTML = '<div class="kcbig"><small>' + esc(j.name) + ' 제자 코드</small><b>' + esc(j.code) + '</b><p class="help">제자 휴대폰에 바로 넣어 주세요. 다른 사람에게 보내지 마세요.</p></div>';
-      ov.querySelector('#kcOut').scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+    // 숫자 6자리 · 5분 일회용 (2026-11-15 사용자: 인바디 Touch 인증코드처럼, 재발급)
+    let tick = null;
+    const make = async (n, again) => { const j = await api('/api/kcode-new', { name: n, again: !!again }); if (!j.ok) return toast(j.error === 'not found' ? '업무·알림 서버를 새로 배포해야 쓸 수 있어요' : j.error);
+      const exp = Date.now() + Math.max(10000, (j.exp || 0) - Date.now() || 300000), out = ov.querySelector('#kcOut');
+      out.innerHTML = '<div class="kcbig"><small>' + esc(j.name) + ' 제자 코드</small><div class="kcdig">' + String(j.code).split('').map(c => '<i>' + esc(c) + '</i>').join('') + '</div><p class="help" style="margin:8px 0 2px">제자 앱에 넣어 주세요 · 한 번만 쓸 수 있어요</p><b class="kct" id="kcT">05:00</b><button class="btn" id="kcR" style="margin-top:8px">↻ 재발급</button></div>';
+      clearInterval(tick); const t = () => { const el = ov.querySelector('#kcT'); if (!el) return clearInterval(tick); const s = Math.max(0, Math.round((exp - Date.now()) / 1000)); el.textContent = s ? String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0') : '시간이 지났어요 · 재발급을 눌러 주세요'; el.classList.toggle('over', !s); if (!s) clearInterval(tick); };
+      t(); tick = setInterval(t, 1000); ov.querySelector('#kcR').onclick = () => make(n, true); out.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+    ov.querySelector('#kcL').onclick = async e => { const b = e.target.closest('[data-kc]'); if (!b) return; make(b.dataset.kc); };
   });
 }
 function hwListSheet() {

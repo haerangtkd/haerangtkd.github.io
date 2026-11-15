@@ -464,10 +464,8 @@ async function route(path, req, env, ctx) {
   if (path === '/api/kcode-new') {
     if (me.shared) return json({ ok: false, error: '도장 공용 계정으로는 못 만들어요. 내 PIN으로 로그인해 주세요' });
     const r = await noticeSync(env, '/sync/kcode-new', { name: str(b.name, 20) }); if (!r.ok) return json(r);
-    const t = me.name + '님이 ' + r.name + ' 제자를 승인했어요';
-    await addLog(env, me.id, 'home', '🥋 ' + t, '');
-    ctx.waitUntil(pushAll(env, me.id, '🥋 제자 모드 승인', t, 'home').catch(() => {}));
-    return json({ ok: true, code: r.code, name: r.name });
+    if (!b.again) { const t = me.name + '님이 ' + r.name + ' 제자를 승인했어요'; await addLog(env, me.id, 'home', '🥋 ' + t, ''); ctx.waitUntil(pushAll(env, me.id, '🥋 제자 모드 승인', t, 'home').catch(() => {})); } // 재발급은 알림 없음
+    return json({ ok: true, code: r.code, name: r.name, exp: r.exp || Date.now() + 300000 }); // 숫자 6자리 · 5분 일회용 (2026-11-15)
   }
   // ═════════ 기네스 결과지 (team/guinness.html) — 문서 몇 개를 통째로 저장 (app/settings, app/data, app/comments, inputs/P2026-10 …) ═════════
   if (path === '/api/gdoc-get') { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', str(b.path, 80)); return json({ ok: true, exists: !!r, data: r ? J(r.data, null) : null }); }

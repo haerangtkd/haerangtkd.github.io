@@ -185,6 +185,20 @@
   .glv .l3{color:#1E7A46}.glv .l2{color:#2F6FDE}.glv .l1{color:#C2672B}
   .gcm{background:#FFF4EA;border-radius:14px;padding:12px 14px;margin-top:10px}.gcm b{font-size:13.5px;color:#9A5A12}.gcm p{margin:4px 0 0;font-size:14px;line-height:1.6}
   .gx{margin-top:4px}.gxr{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #F1ECE6}.gxr:first-child{border-top:0}.gxr>span{width:64px;font-size:14px;font-weight:800;flex:none}.gxr .gxd{display:flex;gap:4px;flex:none}.gxr .gxd i{width:14px;height:14px;border-radius:50%;background:#E8E2DB}.gxr .gxd i.on{background:var(--brand)}.gxr b{font-size:13.5px;flex:1}.gxr small{display:block;font-size:12px;color:var(--muted);font-weight:500}.gxr em{font-style:normal;font-size:12px;font-weight:800;color:#1E7A46}.gxr em.dn{color:#B5ADA5}
+  /* 인바디 '상세'·'변화'처럼 (2026-11-15) */
+  .ibx{padding:4px 16px}.ib{padding:16px 0;border-top:1px solid #EFEAE5}.ib:first-child{border-top:0}
+  .ibh b{font-size:15px;color:#6B7280;font-weight:800}.ibh small{display:block;font-size:12px;color:#9A938D;margin-top:2px}
+  .ibr{display:grid;grid-template-columns:118px 1fr;gap:12px;align-items:center;margin-top:8px}
+  .ibv b{font-size:30px;font-weight:900;color:#3C4250;letter-spacing:-1px}.ibv b.t{font-size:19px;letter-spacing:0}.ibv i{font-style:normal;font-size:15px;color:#6B7280;margin-left:2px}
+  .ibd{display:inline-block;margin-top:6px;background:#F1F3F6;color:#6B7280;border-radius:8px;padding:3px 8px;font-size:12.5px;font-weight:800}.ibv .ibd{display:block;width:max-content}.ibd.up{background:#E6F5EE;color:#1E7A46}.ibd.dn{background:#FFF0E3;color:#C2672B}
+  .ibbar .trk{position:relative;height:16px;border-radius:8px;background:#E6E9EE;overflow:hidden}.ibbar .trk i{position:absolute;left:0;top:0;bottom:0;background:#45B795;border-radius:8px}.ibbar .trk em{position:absolute;top:0;bottom:0;width:2px;background:#fff}
+  .ibbar .lab{display:flex;margin-top:6px}.ibbar .lab span{flex:1;text-align:center;font-size:11.5px;color:#B3B8C2}.ibbar .lab span.on{color:#1E7A46;font-weight:800}
+  .ibt{margin:8px 0 0;font-size:13.5px;line-height:1.55;color:#3C4250;background:#F7F8FA;border-radius:10px;padding:8px 10px}
+  .ibs{margin-top:6px;font-size:12px;color:#6B7280}.ibs summary{cursor:pointer;font-weight:700;list-style:none}.ibs summary::-webkit-details-marker{display:none}
+  .ibc .gch small b{font-size:13px}.ibc .gch small b.c3{color:#1E7A46}.ibc .gch small b.c2{color:#2F6FDE}.ibc .gch small b.c1{color:#C2672B}
+  .gsheet{display:block;position:relative;margin:10px auto 0;border:0;background:#fff;padding:10px;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);width:min(78%,340px);cursor:zoom-in}.gsheet img{width:100%;display:block}.gsheet .zoom{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:16px;background:rgba(80,86,99,.6);display:grid;place-items:center;font-size:28px}
+  .gshv{position:fixed;inset:0;z-index:90;background:#111;display:flex;flex-direction:column}.gshb{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;color:#fff}.gshb button{border:0;background:#2A2A2D;color:#fff;border-radius:10px;padding:8px 14px;font:inherit;font-weight:800}.gshb button[data-sv]{background:var(--brand)}
+  .gshi{flex:1;overflow:auto;padding:8px;-webkit-overflow-scrolling:touch}.gshi img{width:100%;display:block;border-radius:6px}
   .gsrc{background:#F6F8FC;border-radius:10px;padding:8px 10px;margin-top:8px;font-size:12.5px;color:#4A5468;line-height:1.55}.gsrc b{color:#2B3A55}
   .glvb{font-size:13px;font-weight:800;padding:3px 10px;border-radius:20px;background:#F1ECE7}.glvb.l3{background:#E6F3EC;color:#1E7A46}.glvb.l2{background:#E8EFFC;color:#2F6FDE}.glvb.l1{background:#FFF0E3;color:#C2672B}
   .gxh{margin:12px 0 2px;font-size:13px;font-weight:900;color:#5A524C}.gxh small{font-weight:700;color:var(--muted)}
@@ -1483,6 +1497,14 @@
   let growF = '요약', growD = null, growP = {}, growX = {};
   const GLV = { '성장 중이에요': 1, '잘해요': 2, '아주 잘해요': 3 };
   const G5 = ['몸의 기초', '집중과 자기조절', '끈기와 꾸준함', '자신감과 표현력', '배려와 리더십'];
+  // 예전 결과지(claude.ai 아티팩트)의 글을 그대로 (2026-11-15 사용자: 아티팩트 내용 다 불러와 줘)
+  const GD = ['튼튼한 체력이 모든 성장의 바탕이에요', '수업 내용을 받아들이는 학습 수용력을 길러요', '끝까지 앉아 과제를 마칠 수 있어요', '나를 믿는 만큼 생각의 기준이 단단해져요', '건강한 관계를 스스로 가려 사귀는 안목이 생겨요'];
+  const GT = [null,
+    ['집중이 흐트러질 때가 있었어요. 짧게라도 끝까지 해 보는 연습을 함께 응원해 주세요.', '수업에 바르게 참여하며 동작을 차분히 따라 했어요.', '바른 자세로 집중하며 친구들의 본보기가 되었어요.'],
+    ['쉬는 날이 조금 있었어요. 꾸준히 나오는 것만으로도 실력은 자라요.', '꾸준히 도장에 나와 수련했어요.', '빠짐없이 나와 끝까지 해내는 힘을 길렀어요.'],
+    ['어려운 동작 앞에서 망설였어요. 집에서도 함께 응원해 주세요.', '어려워도 포기하지 않고 끝까지 도전했어요.', '실패해도 스스로 다시 도전하며 자신 있게 표현했어요.'],
+    ['혼자 하는 것이 더 편했어요. 친구와 함께하는 경험을 늘려가요.', '친구와 사이좋게 어울리며 함께 수련했어요.', '친구를 먼저 응원하고 도와주며 분위기를 밝게 만들었어요.']];
+  const GLB = ['성장 중이에요', '잘해요', '아주 잘해요'];
   const gNum = v => v != null && typeof v !== 'object' && !isNaN(+v);
   const gFmt = v => (Math.round(+v * 10) / 10).toString();
   function gEvStat(ev, rec) { // 한 종목: 달마다 기록, 첫 기록 → 최고 기록
@@ -1561,16 +1583,51 @@
         '<p class="note" style="margin:8px 2px 0">5가지 요소는 기록·출석·심사로 저절로 정해져요. <a data-gf="성장 측정" style="color:var(--brand);font-weight:800">어디서 정했는지 보기 ›</a></p>' +
         '<div class="gcm"><b>사범님 한마디</b><p>' + esc(per.cm) + '</p></div></section>';
     };
-    const factorLines = () => { // 성장 측정 탭 (2026-11-15 사용자 요청): 5가지 요소를 하나씩 — 단계 · 어디서 정했는지 · 달마다 꺾은선, 몸의 기초에는 종목 기록
+    const gRows = () => { // 인바디 '상세'와 '변화'처럼 (2026-11-15 사용자 영상): 요소마다 큰 값 · 지난달보다 · 3칸 막대 + 달마다 꺾은선, 맨 아래 결과지
       if (!per) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>';
-      const L = P.slice(Math.max(0, pi - 5), pi + 1).map(q => { const ev = evAt(q.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null); return { m: +q.month.slice(5), v: [b.lv, ...q.att.map(x => GLV[x] || 1)], t: [b.t, ...q.att], s: [b.src, ...(q.src || [])] }; });
-      const cur = L[L.length - 1], ev = evAt(per.month), nav = P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>';
-      return '<div class="gch" style="margin:12px 4px 0"><b>' + (+per.month.slice(5)) + '월 5가지 요소</b>' + nav + '</div>' + G5.map((g, i) => '<section class="gcard"><div class="gch"><b>' + String(i + 1).padStart(2, '0') + ' ' + g + '</b><span class="glvb l' + cur.v[i] + '">' + esc(cur.t[i]) + '</span></div>' +
-        '<div class="gsrc"><b>📍 어디서 정했나요</b><br>' + esc(cur.s[i] || '기록이 아직 없어서 기본으로 정했어요') + '</div>' + (L.length > 1 ? gLv(L.map(x => ({ m: x.m, v: x.v[i], t: x.t[i] }))) : '') +
-        (i === 0 && ev && gEvStat(ev, kid.rec) ? evCards(ev, true) : '') + '</section>').join('') +
-        '<p class="note" style="margin:6px 4px 0">초록 = 아주 잘해요 · 파랑 = 잘해요 · 주황 = 성장 중이에요</p>';
+      const L = P.slice(Math.max(0, pi - 5), pi + 1).map(q => { const ev = evAt(q.month), st = ev ? gEvStat(ev, kid.rec) : null, b = gBody(ev, st); return { m: +q.month.slice(5), ym: q.month, v: [b.lv, ...q.att.map(x => GLV[x] || 1)], t: [b.t, ...q.att], s: [b.src, ...(q.src || [])], ev, st }; });
+      const cur = L[L.length - 1], prev = L[L.length - 2] || null, nav = P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>';
+      const big = i => { if (i === 0 && cur.st && cur.st.best) return '<b>' + gFmt(cur.st.best.v) + '</b><i>' + esc(cur.ev.unit) + '</i>'; if (i === 0) return '<b class="t">' + esc(cur.t[0]) + '</b>'; return '<b class="t">' + esc(cur.t[i]) + '</b>'; };
+      const diff = i => { if (i === 0) return cur.st && cur.st.d > 0 ? '<span class="ibd up">' + (cur.ev.lower ? '−' : '+') + gFmt(cur.st.d) + '</span>' : ''; if (!prev) return ''; const d = cur.v[i] - prev.v[i]; return '<span class="ibd ' + (d > 0 ? 'up' : d < 0 ? 'dn' : '') + '">' + (d > 0 ? '▲ ' + d + '단계' : d < 0 ? '▼ ' + -d + '단계' : '지난달과 같아요') + '</span>'; };
+      const bar = lv => '<div class="ibbar"><div class="trk"><i style="width:' + [0, 26, 60, 100][lv] + '%"></i><em style="left:33.3%"></em><em style="left:66.6%"></em></div><div class="lab"><span' + (lv === 1 ? ' class="on"' : '') + '>성장 중</span><span' + (lv === 2 ? ' class="on"' : '') + '>잘해요</span><span' + (lv === 3 ? ' class="on"' : '') + '>아주 잘해요</span></div></div>';
+      let h = '<div class="gch" style="margin:12px 4px 0"><b>' + (+per.month.slice(5)) + '월 상세</b>' + nav + '</div><section class="gcard ibx">' + G5.map((g, i) => '<div class="ib"><div class="ibh"><b>' + String(i + 1).padStart(2, '0') + ' ' + g + '</b><small>' + GD[i] + '</small></div>' +
+        '<div class="ibr"><div class="ibv">' + big(i) + diff(i) + '</div>' + bar(cur.v[i]) + '</div>' + (i ? '<p class="ibt">' + esc(GT[i][cur.v[i] - 1]) + '</p>' : '') +
+        '<details class="ibs"><summary>📍 어디서 정했나요</summary>' + esc(cur.s[i] || '기록이 아직 없어서 기본으로 정했어요') + '</details></div>').join('') + '</section>';
+      h += '<div class="gch" style="margin:16px 4px 0"><b>변화</b><small>최근 ' + L.length + '달</small></div>' + G5.map((g, i) => '<section class="gcard ibc"><div class="gch"><b>' + g + '</b><small>' + cur.m + '월 · <b class="c' + cur.v[i] + '">' + esc(i === 0 && cur.st && cur.st.best ? gFmt(cur.st.best.v) + cur.ev.unit : cur.t[i]) + '</b></small></div>' +
+        (i === 0 && cur.ev && cur.st ? gLine(cur.ev, cur.st) : L.length > 1 ? gLv(L.map(x => ({ m: x.m, v: x.v[i], t: x.t[i] }))) : '<p class="note" style="margin:6px 2px">다음 달부터 변화가 그려져요</p>') + '</section>').join('');
+      h += '<div class="gch" style="margin:16px 4px 0"><b>결과지</b><small>누르면 크게 · 사진으로 저장</small></div><button class="gsheet" data-gsheet><img id="gShImg" alt="' + esc(k) + ' ' + (+per.month.slice(5)) + '월 성장 측정 결과지"><span class="zoom">🔍</span></button>';
+      return h;
     };
-    const evCards = (only, inner) => { const L = (only ? [only] : evs).map(e => ({ e, st: gEvStat(e, kid.rec) })).filter(x => x.st);
+    // 결과지 사진 (예전 성장 측정지 모양, 캔버스로 그림 — 저장만, 따로 보내지 않음)
+    const gSheet = () => {
+      const L = P.slice(Math.max(0, pi - 5), pi + 1), ev = evAt(per.month), st = ev ? gEvStat(ev, kid.rec) : null, b = gBody(ev, st), lv = [b.lv, ...per.att.map(x => GLV[x] || 1)], tx = [b.t, ...per.att];
+      const W = 816, H = 1056, c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2; const g = c.getContext('2d'); g.scale(2, 2);
+      const A = '#9E1B1F', N = '#13305E', F = 'Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+      const T = (t, x, y, sz, col, w, al) => { g.font = (w || 400) + ' ' + sz + 'px ' + F; g.fillStyle = col || '#1E1E1E'; g.textAlign = al || 'left'; g.fillText(t, x, y); };
+      const wrap = (t, x, y, mw, sz, col, lh, w) => { g.font = (w || 400) + ' ' + sz + 'px ' + F; g.fillStyle = col; g.textAlign = 'left'; let line = '', yy = y; for (const ch of String(t)) { if (g.measureText(line + ch).width > mw && line) { g.fillText(line, x, yy); line = ch.trim() ? ch : ''; yy += lh; } else line += ch; } if (line) g.fillText(line, x, yy); return yy; };
+      const rr = (x, y, w, h, r, fill, stroke) => { g.beginPath(); g.roundRect(x, y, w, h, r); if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = 1.5; g.stroke(); } };
+      g.fillStyle = '#FBF7F0'; g.fillRect(0, 0, W, H); g.fillStyle = A; g.fillRect(0, 0, W, 104);
+      T('HAERANG KYUNGHEE TAEKWONDO', 48, 36, 12, 'rgba(255,255,255,.88)', 500); T('성장 측정 결과지', 48, 80, 32, '#fff', 900); T((+per.month.slice(0, 4)) + '년 ' + (+per.month.slice(5)) + '월', 330, 80, 18, '#fff', 700);
+      T('수련생', W - 48, 50, 12, 'rgba(255,255,255,.85)', 400, 'right'); T(k, W - 48, 82, 26, '#fff', 900, 'right');
+      T('성장에 영향을 주는 5가지 요소', 48, 146, 17, N, 900); T('기록 · 출석 · 심사로 저절로 정해져요', W - 48, 146, 12, '#5C5C5C', 400, 'right');
+      let y = 162; G5.forEach((nm, i) => { rr(48, y, W - 96, 88, 10, '#fff', '#D9D3CA');
+        T(String(i + 1).padStart(2, '0') + ' ' + nm, 64, y + 28, 15, A, 900); T(tx[i], 300, y + 28, 15, '#1E1E1E', 800);
+        [1, 2, 3].forEach(j => rr(440 + (j - 1) * 98, y + 17, 92, 12, 6, j <= lv[i] ? N : '#DCD3C5'));
+        wrap(GD[i], 64, y + 54, 340, 12, '#5C5C5C', 17); if (i) wrap(GT[i][lv[i] - 1], 440, y + 54, 290, 12, '#2B2B2B', 17); else if (b.src) wrap(b.src.replace(/^🏆 /, ''), 440, y + 54, 290, 12, '#2B2B2B', 17);
+        y += 98; });
+      y += 8; T('올해 나의 성장 기록', 48, y + 14, 15, A, 700); y += 28; g.fillStyle = '#D9D3CA'; g.fillRect(48, y, W - 96, 1); y += 22;
+      const evL = evs.map(e => ({ e, st: gEvStat(e, kid.rec) })).filter(x => x.st);
+      T('종목', 56, y, 12, '#5C5C5C'); T('첫 기록', 520, y, 12, '#5C5C5C', 400, 'right'); T('최고', 640, y, 12, '#5C5C5C', 400, 'right'); T('변화', W - 56, y, 12, '#5C5C5C', 400, 'right'); y += 24;
+      (evL.length ? evL : [null]).slice(0, 4).forEach(x => { if (!x) { T('아직 잰 기록이 없어요 · 매달 첫째 주 금요일에 재요', 56, y, 14, '#5C5C5C'); y += 26; return; }
+        T(x.e.name + (x.e.lower ? ' (짧을수록 좋아요)' : ''), 56, y, 14, '#1E1E1E', 700); T(x.st.first ? gFmt(x.st.first.v) + x.e.unit : '-', 520, y, 14, '#1E1E1E', 400, 'right'); T(x.st.best ? gFmt(x.st.best.v) + x.e.unit : '-', 640, y, 14, N, 800, 'right');
+        T(x.st.d > 0 ? (x.e.lower ? '−' : '+') + gFmt(x.st.d) + x.e.unit + ' ▲' : x.st.best ? '기록 유지' : x.st.ms.length + '번 도전', W - 56, y, 14, x.st.d > 0 ? A : '#5C5C5C', 800, 'right'); y += 26; });
+      y += 10; rr(48, y, W - 96, 120, 12, '#F2EADD'); T('사범님 한마디', 66, y + 28, 14, A, 700); wrap(per.cm || '', 66, y + 56, W - 132, 14, '#1E1E1E', 23); y += 134;
+      const nx = (() => { const m = +per.month.slice(5), e = evs.find(z => z.months[0] > m) || evs[0]; return e; })();
+      if (nx) { rr(48, y, W - 96, 52, 12, null, N); rr(64, y + 13, 84, 26, 6, N); T('다음 도전', 106, y + 31, 13, '#fff', 900, 'center'); T(nx.months[0] + '~' + nx.months[nx.months.length - 1] + '월 종목 · ' + nx.name, 166, y + 32, 15, '#1E1E1E', 700); y += 64; }
+      g.fillStyle = '#E6E1DA'; g.fillRect(48, H - 64, W - 96, 1); T('해랑경희 태권도장', 48, H - 34, 15, A, 900); T('기록은 비교가 아니라 성장을 보기 위한 것이에요', W - 48, H - 34, 12, '#5C5C5C', 400, 'right');
+      return c;
+    };
+        const evCards = (only, inner) => { const L = (only ? [only] : evs).map(e => ({ e, st: gEvStat(e, kid.rec) })).filter(x => x.st);
       return L.length ? L.map(({ e, st }) => '<section class="gcard"' + (inner ? ' style="box-shadow:none;border:1px solid #EEE9E4;margin:10px 0 0"' : '') + '><div class="gch"><b>' + esc(e.name) + ' <small>(' + esc(e.unit) + ')</small></b><small>' + e.months[0] + '~' + e.months[e.months.length - 1] + '월</small></div>' + gLine(e, st) +
         '<div class="gsum">' + (st.best ? '<span>첫 기록 <b>' + gFmt(st.first.v) + e.unit + '</b></span><span>최고 <b>' + gFmt(st.best.v) + e.unit + '</b></span>' + (st.d > 0 ? '<span class="up">' + (e.lower ? '−' : '+') + gFmt(st.d) + e.unit + ' ' + (e.lower ? '단축' : '성장') + '</span>' : '') : '<span>' + st.ms.length + '번 도전 · 다음엔 첫 성공!</span>') + '</div></section>').join('')
         : '<div class="calm" style="margin-top:12px"><span>아직 성장 측정 기록이 없어요. 매달 첫째 주 금요일 수업에서 재요.</span></div>'; };
@@ -1595,16 +1652,26 @@
     let h = kidSel + head + chips;
     if (growF === '요약') h += tiles + factors() + attSecG + (lastEv ? evCards(lastEv) : '');
     if (growF === '출석') h += attSecG + '<p class="note" style="margin:10px 4px 0">태블릿에서 등원 번호를 누른 날을 세요.</p>';
-    if (growF === '성장 측정') { const ev0 = per ? evAt(per.month) : null, oth = evs.filter(e => e !== ev0 && gEvStat(e, kid.rec)); h += factorLines() + (oth.length ? '<div class="gch" style="margin:14px 4px 0"><b>다른 기네스 종목 기록</b></div>' + oth.map(e => evCards(e)).join('') : ''); }
+    if (growF === '성장 측정') { const ev0 = per ? evAt(per.month) : null, oth = evs.filter(e => e !== ev0 && gEvStat(e, kid.rec)); h += gRows() + (oth.length ? '<div class="gch" style="margin:14px 4px 0"><b>다른 기네스 종목 기록</b></div>' + oth.map(e => evCards(e)).join('') : ''); }
     if (growF === '심사') h += exam;
     if (D.growErr && growF !== '출석') h += '<p class="note" style="margin:10px 4px 0">성장 측정 기록을 지금 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>';
     body(h);
+    let shC = null; if (growF === '성장 측정' && per) { try { shC = gSheet(); const im = $('gShImg'); if (im) im.src = shC.toDataURL('image/png'); } catch (_) {} }
     $('pBody').onclick = e => {
+      if (e.target.closest('[data-gsheet]') && shC) return gSheetView(shC, k + '_' + per.month + '_성장측정.png');
       const f = e.target.closest('[data-gf]'); if (f) { growF = f.dataset.gf; $('v-page').scrollTop = 0; return drawGrow(); }
       const g = e.target.closest('[data-gp]'); if (g && !g.disabled) { growP[k] = pi + +g.dataset.gp; return drawGrow(); }
       const gx = e.target.closest('[data-gx]'); if (gx && !gx.disabled) { growX[k] = xi + +gx.dataset.gx; return drawGrow(); }
       const c = e.target.closest('[data-gk]'); if (c) { store.set(LS, { ...me(), kid: +c.dataset.gk }); renderHome(); return drawGrow(); }
     };
+  }
+  function gSheetView(c, fname) { // 결과지 크게 보기 + 사진으로 저장 (휴대폰 = 공유 창 → 사진 저장, 컴퓨터 = 내려받기)
+    const el = document.createElement('div'); el.className = 'gshv'; el.innerHTML = '<div class="gshb"><button data-x>✕</button><b>성장 측정 결과지</b><button data-sv>저장</button></div><div class="gshi"><img src="' + c.toDataURL('image/png') + '" alt=""></div>';
+    document.body.appendChild(el);
+    el.onclick = async e => { if (e.target.closest('[data-x]')) return el.remove(); if (!e.target.closest('[data-sv]')) return;
+      const blob = await new Promise(r => c.toBlob(r, 'image/png')), file = new File([blob], fname, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: '성장 측정 결과지' }); return; } catch (err) { if (err && err.name === 'AbortError') return; } }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); };
   }
   const RENDER = {
     plan() { return drawPlan(null, true); }, cal() { return drawPlan(null, true); }, grow() { growD = null; return drawGrow(); },
