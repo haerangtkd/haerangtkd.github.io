@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>해랑경희 태권도장 소개</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--red:#A40F16;--red2:#C8242B;--navy:#12306B;--navy2:#0B1F47;--gold:#C9A75C;--paper:#FBF8F4;--ink:#1C1A19;--muted:#6B6460;--line:#E8E0D8}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#111}
+body{font-family:Pretendard,'Noto Sans KR',system-ui,sans-serif;color:var(--ink);-webkit-user-select:none;user-select:none;touch-action:none;word-break:keep-all}
+.stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform:translate(-50%,-50%) scale(var(--k,1));overflow:hidden;background:var(--paper)}
+.s{position:absolute;inset:0;padding:70px 96px 96px;opacity:0;visibility:hidden;transition:opacity .6s ease,visibility 0s .6s;background:var(--paper)}
+.s.on{opacity:1;visibility:visible;transition:opacity .6s ease}
+/* 등장 모션 */
+[data-a]{opacity:0;transform:translateY(34px);transition:opacity .8s cubic-bezier(.2,.8,.2,1),transform .8s cubic-bezier(.2,.8,.2,1);transition-delay:calc(var(--d,0) * 1ms)}
+[data-a=l]{transform:translateX(-60px)}[data-a=r]{transform:translateX(60px)}[data-a=z]{transform:scale(.8)}[data-a=f]{transform:none}
+.s.on [data-a]{opacity:1;transform:none}
+/* 머리 */
+.hd .eb{display:block;font-size:17px;font-weight:700;letter-spacing:.22em;color:var(--red)}
+.hd h2{font-size:58px;font-weight:900;letter-spacing:-.03em;margin-top:6px;line-height:1.15}
+.chip{display:inline-block;background:var(--red);color:#fff;font-weight:800;font-size:20px;padding:7px 16px;border-radius:6px;margin-bottom:14px}
+.wm{position:absolute;top:58px;right:96px;width:150px}
+.mg{position:absolute;pointer-events:none;opacity:.9}
+/* 어두운 장 */
+.dk{background:radial-gradient(1200px 700px at 20% 10%,#1B3E86 0%,var(--navy2) 55%,#06122B 100%);color:#fff}
+.dk .hd .eb{color:var(--gold)}.dk .muted{color:#B9C3D9}
+.glow{position:absolute;border-radius:50%;filter:blur(60px);opacity:.45;animation:drift 14s ease-in-out infinite alternate;pointer-events:none}
+@keyframes drift{to{transform:translate(80px,-50px) scale(1.2)}}
+.muted{color:var(--muted)}
+/* 진행 표시 */
+.bar{position:absolute;left:0;right:0;bottom:0;height:70px;display:flex;align-items:center;justify-content:center;gap:10px;z-index:20;pointer-events:none}
+.bar i{width:10px;height:10px;border-radius:9px;background:rgba(120,110,100,.3);transition:all .4s}
+.bar i.on{width:34px;background:var(--red)}
+.stage.dkon .bar i{background:rgba(255,255,255,.3)}.stage.dkon .bar i.on{background:var(--gold)}
+.nb{position:absolute;bottom:14px;z-index:21;border:0;width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,.06);font:inherit;font-size:26px;font-weight:700;color:var(--ink);cursor:pointer}
+.stage.dkon .nb{background:rgba(255,255,255,.12);color:#fff}
+#pv{left:30px}#nx{right:30px}
+.hint{position:absolute;right:96px;bottom:24px;font-size:15px;color:var(--muted);z-index:21;animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{50%{transform:translateX(8px)}}
+
+/* 0 상담 전 Q&A */
+.qa{display:flex;flex-direction:column;gap:26px;margin-top:60px}
+.qa div{display:flex;gap:26px;align-items:flex-start;background:#fff;border-radius:22px;padding:30px 36px;box-shadow:0 6px 24px rgba(0,0,0,.05);font-size:32px;font-weight:600;line-height:1.4}
+.qa b.q{flex:none;color:var(--red);font-weight:900}.qa em{font-style:normal;font-weight:900;background:linear-gradient(transparent 62%,#F7D6D8 62%)}
+.qa small{display:block;font-size:20px;color:var(--muted);font-weight:500;margin-top:6px}
+
+/* 1 표지 */
+#c1{display:flex;align-items:center;padding:0 110px}
+#c1 .lion{width:520px;flex:none;animation:float 6s ease-in-out infinite;filter:drop-shadow(0 30px 40px rgba(0,0,0,.35))}
+@keyframes float{50%{transform:translateY(-16px) rotate(-1.5deg)}}
+#c1 .t{margin-left:80px}
+#c1 .t .tag{display:inline-block;border:1px solid rgba(255,255,255,.35);border-radius:99px;padding:8px 18px;font-size:19px;color:#E4E9F5}
+#c1 .t img.w{width:560px;display:block;margin:26px 0 22px}
+#c1 .t h1{font-size:44px;font-weight:800;letter-spacing:-.02em;line-height:1.35}
+#c1 .t h1 b{color:var(--gold)}
+#c1 .ft{display:flex;gap:16px;margin-top:40px}
+#c1 .ft span{background:rgba(255,255,255,.1);border-radius:14px;padding:14px 20px;font-size:19px;font-weight:600}
+#c1 .ft span b{display:block;font-size:26px;color:var(--gold);font-weight:900}
+
+/* 2 이 생각에서 */
+.think{display:grid;grid-template-columns:1fr 70px 1fr;align-items:stretch;margin-top:70px;gap:0}
+.think .bx{border-radius:26px;padding:50px 44px;font-size:36px;font-weight:800;line-height:1.45;color:#fff;display:flex;flex-direction:column;justify-content:center}
+.think .bx small{font-size:19px;font-weight:700;letter-spacing:.15em;opacity:.75;margin-bottom:16px}
+.think .a{background:linear-gradient(135deg,#D9452E,var(--red))}
+.think .b{background:linear-gradient(135deg,#2A55A8,var(--navy))}
+.think .pl{display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:900;color:var(--gold)}
+.lead2{font-size:28px;font-weight:700;margin-top:44px;text-align:center}
+.lead2 b{color:var(--red)}
+
+/* 3 목적 */
+.goal{display:flex;align-items:center;gap:70px;margin-top:50px}
+.pills{display:flex;flex-direction:column;gap:20px;width:400px}
+.pills span{background:var(--navy);color:#fff;font-size:30px;font-weight:800;border-radius:16px;padding:24px 30px;position:relative}
+.pills span::before{content:'';position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--gold);border-radius:16px 0 0 16px}
+.arw{width:110px;height:24px;background:var(--red);position:relative;clip-path:polygon(0 30%,70% 30%,70% 0,100% 50%,70% 100%,70% 70%,0 70%)}
+.s.on .arw{animation:push 1.4s ease-in-out infinite .9s}
+@keyframes push{50%{transform:translateX(14px)}}
+.goal .res{flex:1;text-align:center}
+.goal .res img{width:240px;animation:spinin 1.4s cubic-bezier(.2,.8,.2,1) both .6s}
+.s:not(.on) .goal .res img{animation:none}
+@keyframes spinin{from{transform:rotate(-200deg) scale(.3);opacity:0}}
+.goal .res h3{font-size:46px;font-weight:900;color:var(--red);margin:26px 0 16px;letter-spacing:-.02em}
+.goal .res p{font-size:26px;font-weight:600;line-height:1.5}
+
+/* 4 무엇을 가르치나요 */
+.tree{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:40px}
+.br{border-radius:24px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.06);overflow:hidden}
+.br h3{color:#fff;font-size:32px;font-weight:900;padding:26px 30px}
+.br ul{list-style:none;padding:12px 30px 26px}
+.br li{font-size:26px;font-weight:700;padding:14px 0;border-bottom:1px dashed var(--line);display:flex;align-items:center;gap:14px}
+.br li:last-child{border:0}
+.br li i{width:14px;height:14px;border-radius:50%;border:4px solid currentColor;flex:none}
+.br li small{font-size:16px;color:var(--muted);font-weight:500}
+.br.t1 h3{background:#C9692E}.br.t1 li i{color:#C9692E}
+.br.t2 h3{background:#2A8A93}.br.t2 li i{color:#2A8A93}
+.br.t3 h3{background:var(--navy)}.br.t3 li i{color:var(--navy)}
+.say{margin-top:34px;font-size:25px;font-weight:600;line-height:1.55;text-align:center}
+.say b{color:var(--red)}
+
+/* 5 마음 */
+.mind{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:44px}
+.mind div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:26px 24px;min-height:200px}
+.mind b{display:block;font-size:28px;font-weight:900;color:var(--gold);margin-bottom:12px}
+.mind span{font-size:20px;line-height:1.5;color:#E1E6F2}
+
+/* 6 매력 */
+.charm{display:grid;grid-template-columns:1.1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:22px;margin-top:40px;height:560px}
+.charm>div{border-radius:24px;padding:32px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.06);display:flex;flex-direction:column;justify-content:flex-end}
+.charm .big{grid-row:span 2;background:linear-gradient(160deg,var(--red),#6E0A0F);color:#fff;justify-content:space-between}
+.charm .big .n{font-size:150px;font-weight:900;line-height:1;letter-spacing:-.04em}
+.charm .big .n small{font-size:44px}
+.charm h4{font-size:30px;font-weight:900;margin-bottom:8px;letter-spacing:-.02em}
+.charm p{font-size:21px;line-height:1.5;color:var(--muted);font-weight:500}
+.charm .big p{color:#F6DADC}
+.charm .ic{font-size:44px;margin-bottom:auto}
+
+/* 7 지도진 */
+.team{display:grid;grid-template-columns:1.25fr 1fr;gap:34px;margin-top:34px;height:600px}
+.lead-c{display:flex;gap:30px;background:var(--navy);color:#fff;border-radius:26px;padding:30px}
+.ph{position:relative;border-radius:18px;overflow:hidden;background:repeating-linear-gradient(135deg,#E9E2DA 0 14px,#F2ECE6 14px 28px);flex:none}
+.ph::after{content:'사진 · ' attr(data-l);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-size:16px;font-weight:700;color:#9A8F86}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.lead-c .ph{width:270px;height:100%}
+.lead-c h3{font-size:22px;color:var(--gold);font-weight:800}
+.lead-c h4{font-size:40px;font-weight:900;margin:4px 0 16px}
+.lead-c ul{list-style:none}
+.lead-c li{font-size:19px;padding:6px 0 6px 22px;position:relative;line-height:1.35}
+.lead-c li::before{content:'';position:absolute;left:0;top:14px;width:9px;height:9px;border-radius:50%;background:var(--gold)}
+.subs{display:flex;flex-direction:column;gap:24px}
+.sub{display:flex;gap:24px;background:#fff;border-radius:22px;padding:22px;box-shadow:0 8px 28px rgba(0,0,0,.06);flex:1}
+.sub .ph{width:170px}
+.sub h4{font-size:30px;font-weight:900;margin:2px 0 10px}.sub h4 small{font-size:19px;color:var(--red);font-weight:800;display:block}
+.sub li{font-size:19px;list-style:none;padding:4px 0;font-weight:600;color:#3C3633}
+.kta{position:absolute;right:96px;top:120px;font-size:18px;font-weight:700;color:var(--navy);border:2px solid var(--navy);border-radius:99px;padding:8px 18px}
+
+/* 8 요일별 */
+.tabs{display:flex;gap:12px;margin-top:30px}
+.tabs button{border:0;border-radius:99px;padding:14px 30px;font:inherit;font-size:24px;font-weight:800;background:#EEE7E0;color:#6B6460;cursor:pointer;position:relative;overflow:hidden}
+.tabs button.on{background:var(--red);color:#fff}
+.tabs button.on::after{content:'';position:absolute;left:0;bottom:0;height:4px;background:rgba(255,255,255,.6);animation:tabt 6s linear forwards}
+@keyframes tabt{from{width:0}to{width:100%}}
+.common{margin-top:26px;font-size:24px;font-weight:700}.common b{color:var(--red)}
+.week{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:20px}
+.day{background:#fff;border-radius:22px;box-shadow:0 8px 28px rgba(0,0,0,.06);overflow:hidden;min-height:380px;animation:dayin .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*90ms)}
+@keyframes dayin{from{opacity:0;transform:translateY(30px)}}
+.day h5{background:var(--navy);color:#fff;text-align:center;font-size:30px;font-weight:900;padding:16px}
+.day ul{list-style:none;padding:20px}
+.day li{font-size:24px;font-weight:700;padding:12px 0;border-bottom:1px solid var(--line);text-align:center}
+.day li:last-child{border:0}
+.day .eng{margin:0 16px 18px;background:#FFF3CF;color:#8A5A00;border-radius:12px;text-align:center;font-weight:800;font-size:19px;padding:10px}
+
+/* 9 띠 */
+.belt-wrap{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px}
+.lane h3{font-size:30px;font-weight:900}.lane h3 small{font-size:20px;color:var(--muted);font-weight:600;margin-left:8px}
+.lane .q{font-size:22px;font-weight:700;color:var(--red);margin:6px 0 16px}
+.belts{display:flex;gap:6px;height:64px}
+.belts i{flex:1;border-radius:8px;transform:scaleY(0);transform-origin:bottom;transition:transform .45s cubic-bezier(.3,1.4,.5,1);transition-delay:calc(var(--i)*110ms + 400ms);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.s.on .belts i{transform:none}
+.lv{display:flex;gap:6px;margin-top:8px}.lv span{flex:1;text-align:center;font-size:16px;font-weight:700;color:var(--muted)}
+.kidnote{margin-top:24px;background:#fff;border-radius:18px;padding:20px 24px;font-size:20px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.05)}
+.kidnote b{color:var(--red)}
+.road{display:flex;flex-direction:column;gap:16px}
+.step{display:flex;align-items:center;gap:22px;background:#fff;border-radius:20px;padding:20px 26px;box-shadow:0 6px 20px rgba(0,0,0,.05);position:relative}
+.step .bd{width:84px;height:30px;border-radius:6px;flex:none;position:relative}
+.step .bd.pm{background:linear-gradient(180deg,var(--red) 50%,#111 50%)}.step .bd.dn{background:#111}
+.step .bd img{position:absolute;right:-14px;top:-12px;width:46px}
+.step h4{font-size:26px;font-weight:900}.step h4 small{font-size:18px;color:var(--muted);font-weight:600;margin-left:8px}
+.step p{font-size:19px;color:#3C3633;margin-top:4px;font-weight:500}
+.step .wh{margin-left:auto;font-size:22px;font-weight:900;color:#fff;background:var(--navy);border-radius:12px;padding:10px 16px;flex:none}
+.flow{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px;font-size:24px;font-weight:800}
+.flow span{padding:10px 22px;border-radius:99px;background:#EFE8E1}
+.flow span:last-child{background:var(--red);color:#fff}
+.flow em{font-style:normal;color:var(--gold)}
+
+/* 10 선범단 */
+#c10{display:grid;grid-template-columns:520px 1fr;gap:60px;align-items:center;padding-top:60px}
+.badge{position:relative;width:440px;height:440px;margin:0 auto}
+.badge .ring{position:absolute;inset:0;border-radius:50%;border:3px dashed var(--gold);animation:rot 30s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.badge .core{position:absolute;inset:50px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2A55A8,var(--navy2));display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;box-shadow:0 30px 60px rgba(0,0,0,.4)}
+.badge .core img{width:150px;filter:brightness(0) invert(1)}
+.badge .core b{font-size:46px;font-weight:900;margin-top:10px;letter-spacing:.06em}
+.badge .core small{font-size:18px;color:var(--gold);font-weight:700;letter-spacing:.2em}
+.sb h2{font-size:52px;font-weight:900;letter-spacing:-.03em;line-height:1.2}
+.sb .def{font-size:24px;line-height:1.55;margin:18px 0 26px;color:#DCE2EF}
+.sb .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.sb .grid div{background:rgba(255,255,255,.08);border-radius:18px;padding:22px}
+.sb .grid h5{font-size:22px;color:var(--gold);font-weight:900;margin-bottom:10px}
+.sb .grid p{font-size:18px;line-height:1.55;color:#E7EBF4}
+
+/* 11 사진 */
+.mq{margin-top:34px;display:flex;flex-direction:column;gap:20px;mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);margin-left:-96px;margin-right:-96px}
+.row{display:flex;gap:20px;width:max-content;animation:mq 50s linear infinite}
+.row.rev{animation-direction:reverse}
+@keyframes mq{to{transform:translateX(-50%)}}
+.pc{width:300px;flex:none}
+.pc .ph{width:300px;height:220px}
+.pc p{text-align:center;font-size:20px;font-weight:700;margin-top:10px;color:var(--navy)}
+
+/* 12 시간표 */
+.tt{display:grid;grid-template-columns:1fr;gap:12px;margin-top:34px;width:1000px}
+.tr{display:grid;grid-template-columns:260px 1fr;align-items:center;background:#fff;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.05);overflow:hidden}
+.tr b{font-size:30px;font-weight:900;padding:18px 28px;background:var(--navy);color:#fff;font-variant-numeric:tabular-nums}
+.tr span{font-size:26px;font-weight:700;padding:0 30px}.tr span small{font-size:19px;color:var(--muted);font-weight:600;margin-left:10px}
+.tr.fam b{background:var(--gold);color:#1C1A19}.tr.ad b{background:var(--red)}
+.clock{position:absolute;right:120px;top:250px;width:330px;height:330px;border-radius:50%;background:#fff;box-shadow:0 20px 50px rgba(0,0,0,.08);border:10px solid var(--navy)}
+.clock i{position:absolute;left:50%;bottom:50%;transform-origin:50% 100%;border-radius:9px;background:var(--ink)}
+.clock .h{width:12px;height:80px;margin-left:-6px;animation:rot 40s linear infinite}
+.clock .m{width:8px;height:120px;margin-left:-4px;background:var(--red);animation:rot 4s linear infinite}
+.clock::after{content:'';position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px;border-radius:50%;background:var(--gold)}
+
+/* 13 마무리 */
+#c13{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:110px}
+#c13 .qt{font-size:40px;font-weight:800;line-height:1.5;letter-spacing:-.02em}
+#c13 .qt b{color:var(--gold)}
+#c13 p{font-size:25px;line-height:1.65;margin-top:30px;color:#DCE2EF}
+#c13 .thx{font-size:46px;font-weight:900;margin-top:36px}
+#c13 .go{margin-top:34px;border:0;border-radius:99px;background:var(--red);color:#fff;font:inherit;font-size:28px;font-weight:900;padding:22px 50px;cursor:pointer;box-shadow:0 14px 40px rgba(164,15,22,.5);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.05)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="stage" id="st">
+
+<!-- 0. 상담 전 Q&A -->
+<section class="s" data-n="상담 전 Q&A">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>BEFORE WE START</span><h2 data-a style="--d:100">상담 전에 여쭤볼게요</h2></div>
+  <div class="qa">
+    <div data-a="l" style="--d:300"><b class="q">Q1.</b><span>태권도를 시작하려는 <em>이유</em>가 무엇인가요?<small>체력 · 자신감 · 친구 관계 · 바른 습관 · 입시 등</small></span></div>
+    <div data-a="l" style="--d:500"><b class="q">Q2.</b><span>지금까지 해 본 <em>운동이나 수련 경험</em>이 있나요?<small>다른 도장·학원, 운동한 기간</small></span></div>
+    <div data-a="l" style="--d:700"><b class="q">Q3.</b><span>아이의 <em>성향이나 건강</em>에서 미리 알아 두어야 할 점이 있나요?<small>낯가림, 다친 곳, 조심해야 할 부분</small></span></div>
+  </div>
+  <img class="mg" src="../../../img/brand/magnolia-black.png" alt="" style="right:60px;bottom:40px;width:200px;opacity:.5" data-a="r">
+</section>
+
+<!-- 1. 표지 -->
+<section class="s dk" id="c1" data-n="표지">
+  <i class="glow" style="width:500px;height:500px;background:var(--red);left:-120px;top:-100px"></i>
+  <i class="glow" style="width:420px;height:420px;background:var(--gold);right:-80px;bottom:-120px;animation-delay:-6s;opacity:.25"></i>
+  <img class="lion" src="../../../img/brand/lion-red.png" alt="" data-a="z">
+  <div class="t">
+    <span class="tag" data-a style="--d:300">본 도장은 대한태권도협회 등록 도장입니다</span>
+    <img class="w" src="../../../img/brand/wordmark-white.png" alt="해랑경희 태권도장" data-a style="--d:450">
+    <h1 data-a style="--d:650">나를 이기고 <b>세상을 이롭게</b> 한다</h1>
+    <div class="ft">
+      <span data-a style="--d:900"><b>공인 6단</b>대표 사범</span>
+      <span data-a style="--d:1050"><b>경희대</b>태권도학과</span>
+      <span data-a style="--d:1200"><b>서울특별시</b>대표 시범단 출신</span>
+    </div>
+  </div>
+</section>
+
+<!-- 2. 이 생각에서 시작됩니다 -->
+<section class="s" data-n="교육의 시작">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>OUR QUESTION</span><h2 data-a style="--d:100">해랑경희의 태권도 교육은<br>이 생각에서 시작됩니다</h2></div>
+  <div class="think">
+    <div class="bx a" data-a="l" style="--d:400"><small>QUESTION 1</small>내가 만나는 수련생들이 태권도를 운동으로써 매력을 느끼게 하려면, 나는 어떤 교육을 제공해야 하는가?</div>
+    <div class="pl" data-a="z" style="--d:800">+</div>
+    <div class="bx b" data-a="r" style="--d:600"><small>QUESTION 2</small>수련생들이 복잡하게 다가오는 미래를 성숙한 사람으로서 헤쳐 나가게 도와주려면, 나는 어떤 교육을 제공해야 하는가?</div>
+  </div>
+  <p class="lead2" data-a style="--d:1100">운동을 통한 신체적 발달뿐만 아니라 <b>전인교육을 위한 종목</b>으로서 태권도를 교육합니다.</p>
+</section>
+
+<!-- 3. 수련의 목적 -->
+<section class="s" data-n="수련의 목적">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>PURPOSE</span><h2 data-a style="--d:100">태권도 수련의 목적</h2></div>
+  <div class="goal">
+    <div class="pills">
+      <span data-a="l" style="--d:250">건강한 신체발달</span>
+      <span data-a="l" style="--d:400">강인한 정신력</span>
+      <span data-a="l" style="--d:550">원만한 사회성</span>
+      <span data-a="l" style="--d:700">자기 방어 역량</span>
+    </div>
+    <div class="arw" data-a="f" style="--d:850"></div>
+    <div class="res">
+      <img src="../../../img/brand/lion-red.png" alt="">
+      <h3 data-a style="--d:1200">'나를 이기고 세상을 이롭게 한다'</h3>
+      <p data-a style="--d:1400">태권도 정신을 함양한 태권도인이 되어<br>건강한 사회인으로서 글로벌 세계에 기여하는 인재 양성</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 무엇을 가르치나요 -->
+<section class="s" data-n="교육 내용">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>WHAT WE TEACH</span><h2 data-a style="--d:100">해랑경희에서는 무엇을 가르치나요?</h2></div>
+  <div class="tree">
+    <div class="br t1" data-a style="--d:300"><h3>태권도 기술</h3><ul><li><i></i>품새</li><li><i></i>겨루기</li><li><i></i>격파 · 시범</li><li><i></i>태권호신술</li></ul></div>
+    <div class="br t2" data-a style="--d:500"><h3>인성 발달</h3><ul><li><i></i>정신건강 <small>Mental health</small></li><li><i></i>라이프 스킬 <small>Life skill</small></li><li><i></i>사회 발달</li></ul></div>
+    <div class="br t3" data-a style="--d:700"><h3>체력 · 운동능력</h3><ul><li><i></i>운동기능 발달</li><li><i></i>체력 향상</li><li><i></i>건강 생활습관</li></ul></div>
+  </div>
+  <p class="say" data-a style="--d:1000">인성을 배우는 <b>라이프 스킬</b>, 자기 조절과 인내심을 키우는 <b>품새</b>, 나를 이기고 자신감을 키우는 <b>겨루기·체력·격파·호신술</b>.<br>신체적·정신적·사회적으로 외면과 내면이 균형 있게 자라도록 돕습니다.</p>
+</section>
+
+<!-- 5. 수련이 마음에 주는 것 -->
+<section class="s dk" data-n="마음의 성장">
+  <i class="glow" style="width:520px;height:520px;background:#2A55A8;right:-100px;top:-120px"></i>
+  <i class="glow" style="width:380px;height:380px;background:var(--red);left:-60px;bottom:-140px;animation-delay:-5s;opacity:.3"></i>
+  <img class="wm" src="../../../img/brand/wordmark-white.png" alt="">
+  <div class="hd"><span class="eb" data-a>MIND & TAEKWONDO</span><h2 data-a style="--d:100">태권도가 마음을 키우는 방법</h2></div>
+  <div class="mind">
+    <div data-a style="--d:250"><b>신체활동</b><span>행복감과 만족감을 높이고 정신건강에 부정적인 요소를 덜어 줍니다</span></div>
+    <div data-a style="--d:350"><b>구령과 기합</b><span>억압된 마음을 풀어 주어 정신적 평안, 자신감 향상, 스트레스 해소</span></div>
+    <div data-a style="--d:450"><b>경쟁</b><span>성공적인 경쟁 경험으로 위축된 자아에 에너지를 채워 줍니다</span></div>
+    <div data-a style="--d:550"><b>도전</b><span>긴장을 이겨 낸 경험으로 유능감, 성공 경험으로 자존감이 높아집니다</span></div>
+    <div data-a style="--d:650"><b>집단활동</b><span>카타르시스, 이타주의적 협동심 — 함께하는 힘</span></div>
+    <div data-a style="--d:750"><b>띠와 승급심사</b><span>사회적인 자아를 키우고 열등감·불안감을 줄여 줍니다</span></div>
+    <div data-a style="--d:850"><b>규율과 규칙</b><span>자기조절력과 자율성을 높이고 안팎의 무질서를 극복합니다</span></div>
+    <div data-a style="--d:950"><b>도복</b><span>도복을 입는 순간, 새로운 나로 바뀌는 경험</span></div>
+  </div>
+</section>
+
+<!-- 6. 태권도만의 매력 -->
+<section class="s" data-n="태권도의 매력">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>WHY TAEKWONDO</span><h2 data-a style="--d:100">태권도만의 매력은 무엇이 있나요?</h2></div>
+  <div class="charm">
+    <div class="big" data-a="l" style="--d:300"><span class="ic">🎓</span><div><div class="n"><span class="cnt" data-to="30">0</span><small>여 개</small></div><h4>대학·대학원 태권도 전공</h4><p>수련생이 취득한 품·단증은 입시에서 공식적으로 인정받아 체육 특기자 또는 전공 점수로 반영됩니다.</p></div></div>
+    <div data-a style="--d:450"><span class="ic">🇰🇷</span><h4>대한민국 국기</h4><p>법령으로 국기(國技)로 지정된 유일한 무술</p></div>
+    <div data-a style="--d:600"><span class="ic">🏅</span><h4>올림픽 정식종목</h4><p>전 세계적으로 인정받는 스포츠</p></div>
+    <div data-a style="--d:750"><span class="ic">🎖️</span><h4>군인·공무원 가산점</h4><p>시험에서 단증이 가산점으로 인정</p></div>
+    <div data-a style="--d:900"><span class="ic">🧭</span><h4>넓어지는 진로</h4><p>진로 선택의 폭을 넓히는 데 유리합니다</p></div>
+  </div>
+</section>
+
+<!-- 7. 지도진 -->
+<section class="s" data-n="지도진">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>OUR TEAM</span><h2 data-a style="--d:100">지도진 소개</h2></div>
+  <div class="team">
+    <div class="lead-c" data-a="l" style="--d:300">
+      <figure class="ph" data-l="대표 이아빈 사범"><img src="img/lee.jpg" alt="" onerror="this.remove()"></figure>
+      <div>
+        <h3>안녕하십니까!</h3>
+        <h4>대표 이아빈 사범</h4>
+        <ul>
+          <li>경희대학교 태권도학과 학사</li>
+          <li>태권도 공인 6단</li>
+          <li>세계 태권도 평화 봉사 재단 해외 파견 단원 (교수법 발표회 1위)</li>
+          <li>서울특별시 대표 태권도 시범단 단원</li>
+          <li>세계 태권도 전문 트레이너 협회(WTPTA) 교육 이사</li>
+          <li>대한태권도협회 격파 심판 자격</li>
+          <li>국제 태권도 사범 자격</li>
+          <li>전문·생활 스포츠 지도사 자격</li>
+          <li>헌병 특수임무대 태권도 조교</li>
+        </ul>
+      </div>
+    </div>
+    <div class="subs">
+      <div class="sub" data-a="r" style="--d:500">
+        <figure class="ph" data-l="김병수 사범님"><img src="img/kim.jpg" alt="" onerror="this.remove()"></figure>
+        <div><h4><small>지도 사범님</small>김병수</h4><ul><li>계명대학교 태권도학과 졸업</li><li>경상북도 대표 태권도단 (전국체전 금메달)</li><li>생활 스포츠 지도사 자격</li><li>국제 태권도 사범 자격</li></ul></div>
+      </div>
+      <div class="sub" data-a="r" style="--d:700">
+        <figure class="ph" data-l="박성남 선생님"><img src="img/park.jpg" alt="" onerror="this.remove()"></figure>
+        <div><h4><small>지도 선생님</small>박성남</h4><ul><li>라이프가드 안전요원 경력</li><li>유아교육, 웅변(스피치)교육 지도 경력</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. 요일별 수련 프로그램 -->
+<section class="s" id="c8" data-n="요일별 프로그램">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>WEEKLY PROGRAM</span><h2 data-a style="--d:100">요일별 수련 프로그램</h2></div>
+  <div class="tabs" data-a style="--d:200"><button data-t="0" class="on">초등부</button><button data-t="1">유치부</button><button data-t="2">중고등부 · 성인부</button></div>
+  <div id="prog"></div>
+</section>
+
+<!-- 9. 띠 시스템 -->
+<section class="s" data-n="띠 시스템">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>BELT SYSTEM</span><h2 data-a style="--d:100;font-size:50px">운동 점진성의 원리에 따른 띠 시스템</h2></div>
+  <div class="belt-wrap">
+    <div class="lane" data-a="l" style="--d:250">
+      <h3>유급자 과정<small>12개월 · 각 1개월</small></h3>
+      <p class="q">"나는 무엇이든 할 수 있고 도전한다."</p>
+      <div class="belts" id="belts"></div>
+      <div class="lv" id="lvs"></div>
+      <div class="kidnote">태권도의 입문반으로 과목별 기초를 배우고 <b>'도장'</b>에서 자신의 역할과 인성을 실천하는 단계입니다.<br><b>유치부</b>는 띠를 반 단계씩 나누어 <b>18개월</b> 동안 운동기능·협응능력·사회성을 천천히 키웁니다.</div>
+    </div>
+    <div class="road">
+      <div class="step" data-a="r" style="--d:500"><div class="bd pm"></div><div><h4>1품(단) 과정<small>12개월</small></h4><p>"변화의 시작은 지금부터" — 배운 것을 <b>가정</b>에서 실천</p></div></div>
+      <div class="step" data-a="r" style="--d:700"><div class="bd dn"><img src="../../../img/brand/lion-red.png" alt=""></div><div><h4>2품(단) 과정<small>24개월 · 빨간사자 패치</small></h4><p>"강한 나를 만나는 시간" — 두려움에 도전, <b>사회</b>에서 실천</p></div></div>
+      <div class="step" data-a="r" style="--d:900"><div class="bd dn"><img src="../../../img/brand/lion-red.png" alt="" style="filter:hue-rotate(210deg) saturate(1.6)"></div><div><h4>3품(단) 과정<small>36개월 · 파란사자 패치</small></h4><p>"올바른 자아가 만들어지는 시간" — 대회 입상, <b>일상</b>에서 실천</p></div></div>
+      <div class="flow" data-a style="--d:1100"><span>도장</span><em>→</em><span>가정</span><em>→</em><span>사회</span><em>→</em><span>일상</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10. 선범단 -->
+<section class="s dk" id="c10" data-n="선범단">
+  <i class="glow" style="width:520px;height:520px;background:var(--gold);left:-60px;top:120px;opacity:.22"></i>
+  <div class="badge" data-a="z" style="--d:200"><div class="ring"></div><div class="core"><img src="../../../img/brand/lion-red.png" alt=""><b>선범단</b><small>HAERANG LEADERS</small></div></div>
+  <div class="sb">
+    <span class="chip" data-a style="--d:300">해랑경희 교육의 정수</span>
+    <h2 data-a style="--d:400">선범단 시스템</h2>
+    <p class="def" data-a style="--d:550">품행이 다른 사람에게 모범이 되고, 태권도 실력이 준비되었으며, 다른 수련생이 운동 과제를 익히는 데 잘 도울 수 있다고 <b style="color:var(--gold)">지도진으로부터 공인받은 수련생</b>들입니다.</p>
+    <div class="grid">
+      <div data-a style="--d:700"><h5>선발</h5><p>유품(단)자로서 다른 수련생을 50번 이상 도와준 경험 + 지도진 심의</p></div>
+      <div data-a style="--d:850"><h5>특전</h5><p>선범단원만의 특별한 패치<br>도장 명예의 전당 등극<br>도장에서 가장 높은 띠의 대우</p></div>
+      <div data-a style="--d:1000"><h5>의무</h5><p>책임감을 가지고 선후배와 지식을 공유<br>한 달에 5번 이상 다른 수련생을 돕고, 지도진에게 실력 검증</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 11. 사진으로 보는 -->
+<section class="s" data-n="사진">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>MOMENTS</span><h2 data-a style="--d:100">사진으로 보는 해랑경희 태권도장</h2></div>
+  <div class="mq" data-a="f" style="--d:300"><div class="row" id="r1"></div><div class="row rev" id="r2"></div></div>
+</section>
+
+<!-- 12. 시간표 -->
+<section class="s" data-n="수련 시간표">
+  <img class="wm" src="../../../img/brand/wordmark-black.png" alt="">
+  <div class="hd"><span class="eb" data-a>TIMETABLE</span><h2 data-a style="--d:100">수련 시간표</h2></div>
+  <div class="tt">
+    <div class="tr" data-a="l" style="--d:200"><b>2:00 ~ 2:50</b><span>초등부</span></div>
+    <div class="tr" data-a="l" style="--d:300"><b>3:00 ~ 3:50</b><span>초등부</span></div>
+    <div class="tr" data-a="l" style="--d:400"><b>4:00 ~ 4:50</b><span>유치 · 초등부<small>함께 수업 / 분리 수업</small></span></div>
+    <div class="tr" data-a="l" style="--d:500"><b>5:00 ~ 5:50</b><span>유치 · 초등부<small>함께 수업 / 분리 수업</small></span></div>
+    <div class="tr" data-a="l" style="--d:600"><b>6:40 ~ 7:30</b><span>초등 고학년 · 중고등부</span></div>
+    <div class="tr fam" data-a="l" style="--d:700"><b>8:00 ~ 8:50</b><span>Family Class<small>가족이 함께</small></span></div>
+    <div class="tr ad" data-a="l" style="--d:800"><b>9:00 ~ 9:50</b><span>중고등 · 성인부</span></div>
+  </div>
+  <div class="clock" data-a="z" style="--d:500"><i class="h"></i><i class="m"></i></div>
+</section>
+
+<!-- 13. 마무리 -->
+<section class="s dk" id="c13" data-n="마무리">
+  <i class="glow" style="width:600px;height:600px;background:var(--red);left:50%;top:40%;margin-left:-300px;opacity:.25"></i>
+  <img src="../../../img/brand/magnolia-white.png" alt="" class="mg" style="left:70px;bottom:40px;width:190px;opacity:.55" data-a="l">
+  <img src="../../../img/brand/magnolia-white.png" alt="" class="mg" style="right:70px;top:40px;width:150px;opacity:.35;transform:scaleX(-1)">
+  <img src="../../../img/brand/lion-red.png" alt="" style="width:120px" data-a="z">
+  <div class="qt" data-a style="--d:250">'제대로 된 사람을 만났다는 분명한 증거는<br>함께 있을 때 변해 가는 내 모습이 <b>자신의 마음에 드는 것</b>'</div>
+  <p data-a style="--d:500">해랑경희 지도진은 수련생이 저희를 만나기 전과 후가 달라져 있기를,<br>사회의 많은 사람들과 함께 공존할 수 있는 사람이 되기를 희망합니다.</p>
+  <div class="thx" data-a style="--d:750">감사합니다.</div>
+  <button class="go" id="goForm" hidden data-a style="--d:950">📝 등록 서류 작성하기</button>
+</section>
+
+<div class="bar" id="bar"></div>
+<button class="nb" id="pv" aria-label="앞">‹</button><button class="nb" id="nx" aria-label="다음">›</button>
+<div class="hint" id="hint">넘기려면 화면을 밀거나 눌러 주세요 ›</div>
+</div>
+
+<script>
+(() => {
+  const st = document.getElementById('st'), S = [...st.querySelectorAll('.s')], bar = document.getElementById('bar');
+  let i = 0;
+  function fit() { st.style.setProperty('--k', Math.min(innerWidth / 1600, innerHeight / 900)); }
+  addEventListener('resize', fit); fit();
+  bar.innerHTML = S.map(() => '<i></i>').join('');
+
+  // 띠
+  const BC = ['#FFFFFF','#F9C846','#1BA845','#B86CC6','#1A82D0','#FF7A1F','#F01FB0','#9B5228','#E8361A','#E8361A','#E8361A','#E8361A'];
+  document.getElementById('belts').innerHTML = BC.map((c, k) => '<i style="background:' + c + ';--i:' + k + '"></i>').join('');
+  document.getElementById('lvs').innerHTML = BC.map((c, k) => '<span>' + (12 - k) + '급</span>').join('');
+
+  // 사진 (img/p01.jpg ~ p18.jpg 를 넣으면 나타남)
+  const PH = ['태권도 기술','마음수련 · 인성교육','유연성 스트레칭','도구 체력훈련','키크기 줄넘기','야외 체력훈련','태권도 교류전','태권도 대회 도전','원어민 영어태권도','워터파크','아쿠아리움','축구 활동','에어바운스','초대형 키즈월드','잠자리 캠프','아이스월드','서바이벌','스포츠파크'];
+  const card = (t, k) => '<div class="pc"><figure class="ph" data-l="' + t + '"><img src="img/p' + String(k + 1).padStart(2, '0') + '.jpg" alt="" onerror="this.remove()"></figure><p>' + t + '</p></div>';
+  const half = (a, o) => { const h = a.map((t, k) => card(t, k + o)).join(''); return h + h; };
+  document.getElementById('r1').innerHTML = half(PH.slice(0, 9), 0);
+  document.getElementById('r2').innerHTML = half(PH.slice(9), 9);
+
+  // 요일별 프로그램
+  const P = [
+    { c: '키성장 스트레칭 · 체력단련', d: [['인성교육','줄넘기','태권웅변'],['태권도 기본동작','품새','발차기'],['태권체조','겨루기','호신술'],['태권도 기본동작','품새','발차기'],['학교체육','레크리에이션']], eng: 3 },
+    { c: '키성장 스트레칭 · 체력단련', d: [['예절교육','태권웅변'],['태권도','생활근력 향상','도구수업'],['줄넘기','명상'],['태권도','생활근력 향상','도구수업'],['학교체육','레크리에이션']] },
+    { c: '스트레칭 · 태권도 기술', d: [['척추기립근','광배근','이두근'],['대흉근','삼두근'],['전신코어','복근','유산소'],['어깨근','전완근'],['대퇴근','비복근']] }
+  ];
+  const DN = ['월','화','수','목','금'];
+  let tab = 0, tabT = null;
+  function drawTab(t) {
+    tab = t; const p = P[t];
+    document.querySelectorAll('.tabs button').forEach((b, k) => { b.classList.toggle('on', k === t); if (k === t) { b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; } });
+    document.getElementById('prog').innerHTML = '<p class="common">매일 공통 · <b>' + p.c + '</b></p><div class="week">' +
+      p.d.map((items, k) => '<div class="day" style="--i:' + k + '"><h5>' + DN[k] + '</h5><ul>' + items.map(x => '<li>' + x + '</li>').join('') + '</ul>' + (p.eng === k ? '<div class="eng">🌏 영어 태권도하는 날</div>' : '') + '</div>').join('') + '</div>';
+    clearTimeout(tabT); if (S[i].id === 'c8') tabT = setTimeout(() => drawTab((tab + 1) % 3), 6000);
+  }
+  document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { e.stopPropagation(); drawTab(+b.dataset.t); } });
+
+  // 숫자 올라가기
+  function count(el) { const to = +el.dataset.to, t0 = performance.now(); const f = n => { const p = Math.min(1, (n - t0) / 1400); el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(f); }; el.textContent = 0; setTimeout(() => requestAnimationFrame(f), 500); }
+
+  function go(n) {
+    n = Math.max(0, Math.min(S.length - 1, n)); if (n === i && S[i].classList.contains('on')) return;
+    S[i].classList.remove('on'); i = n; const s = S[i];
+    void s.offsetWidth; s.classList.add('on');
+    st.classList.toggle('dkon', s.classList.contains('dk'));
+    [...bar.children].forEach((d, k) => d.classList.toggle('on', k === i));
+    document.getElementById('pv').style.visibility = i ? 'visible' : 'hidden';
+    document.getElementById('nx').style.visibility = i < S.length - 1 ? 'visible' : 'hidden';
+    if (i > 0) document.getElementById('hint').hidden = true;
+    s.querySelectorAll('.cnt').forEach(count);
+    clearTimeout(tabT); if (s.id === 'c8') drawTab(0);
+  }
+  document.getElementById('pv').onclick = e => { e.stopPropagation(); go(i - 1); };
+  document.getElementById('nx').onclick = e => { e.stopPropagation(); go(i + 1); };
+  bar.onclick = null;
+  addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') go(i + 1); if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(i - 1); });
+  let x0 = null, y0 = 0, moved = false;
+  addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; moved = false; });
+  addEventListener('pointerup', e => {
+    if (x0 === null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
+    if (e.target.closest('button')) return;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) return go(i + (dx < 0 ? 1 : -1));
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) go(i + (e.clientX < innerWidth * 0.3 ? -1 : 1));
+  });
+
+  // 태블릿 상담 모드 안에서 열렸을 때만 '등록 서류 작성하기'
+  const inKiosk = window.parent !== window;
+  const gf = document.getElementById('goForm');
+  if (inKiosk) { gf.hidden = false; gf.onclick = e => { e.stopPropagation(); window.parent.postMessage({ haerang: 'consult-contract' }, location.origin); }; }
+
+  go(+(new URLSearchParams(location.search).get('p') || 0));
+})();
+</script>
+</body>
+</html>
