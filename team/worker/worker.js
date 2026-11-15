@@ -172,7 +172,7 @@ async function renameMember(env, id, from, to) {
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
   // 2026-11-13: 하나가 실패해도 나머지는 돌게 각각 따로, 시간이 정해진 알림(runTimed)을 먼저
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate, sbMigrate]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate, sbMigrate, recRollover]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -299,7 +299,7 @@ async function route(path, req, env, ctx) {
       const sun = ((await kv('sun:' + mon)) || []).map(x => ({ name: x.name, cat: x.cat || '', text: x.text || '', at: x.at }));
       try { const st = (await sunStatus(env))[name]; if (st) prep.sunMe = Object.assign({ need: SUN_NEED }, st); } catch (_) {} // 내 도장 · 경고 (prep에 실어 보냄 — 알림 서버를 안 고치려고)
       const mile = +((await one(env, 'SELECT COALESCE(SUM(amt), 0) AS t FROM mile WHERE name = ?', name)) || {}).t || 0; // 💰 마일리지
-      return json({ ok: true, mile, gbest: guinBest(data, RL), sid: me ? me.sid || '' : '', kinder: !!(me && String(me.grade || '').includes('유치')), goal, exams, prep, sun,
+      return json({ ok: true, mile, gbest: [...J((await one(env, "SELECT v FROM kv WHERE k = 'gbestArch'") || {}).v, []), ...guinBest(data, RL)].slice(-60), sid: me ? me.sid || '' : '', kinder: !!(me && String(me.grade || '').includes('유치')), goal, exams, prep, sun,
         belt: me ? (belts[mid] || me.belt0 || '') : (AB['n:' + name] || ''), beltPct: pct, sb: RL ? !!(meR && meR.sb) : !!(me && sb[mid]),
         sbList: RL ? RL.filter(s => s.sb && s.status !== '퇴관').map(s => ({ name: s.name, belt: s.belt || '' })) : L.filter(k => sb[id(k)] && status[id(k)] !== '퇴관').map(k => ({ name: k.name, belt: belts[id(k)] || k.belt0 || '' })),
         events: data ? (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })) : [], rec: recAll });
@@ -316,7 +316,10 @@ async function route(path, req, env, ctx) {
       const fill = (t, n) => String(t || '').replace(/(\[아이 ?이름\]|\[이름\]|○○|ㅇㅇ)(이(?=[는가를의도랑와한]))?/g, callName(n));
       const per = studs.length ? await all(env, "SELECT path, data FROM gdocs WHERE path LIKE 'inputs/P%'") : [], perOf = {}; per.forEach(r => { perOf[r.path.slice(8)] = (J(r.data, {}) || {}).kids || {}; });
       const ex = await examClosed(env), ros = await attSync(env, '/sync/roster', { all: true }), R = {}; (ros.ok ? ros.students : []).forEach(x => { if (x.name) R[x.name] = x; });
-      const now = kstDay().slice(0, 7), y0 = +now.slice(0, 4), last12 = []; for (let i = 11; i >= 0; i--) { const d = new Date(Date.UTC(y0, +now.slice(5) - 1 - i, 1)); last12.push(d.toISOString().slice(0, 7)); }
+      const now = kstDay().slice(0, 7), y0 = +now.slice(0, 4), last12 = []; for (let i = +now.slice(5) - 1 + 24; i >= 0; i--) { const d = new Date(Date.UTC(y0, +now.slice(5) - 1 - i, 1)); last12.push(d.toISOString().slice(0, 7)); } // 올해 + 지난 2년 (2026-11-15: 한 해씩 보기)
+      const snaps = {}; (await all(env, "SELECT path, data FROM gdocs WHERE path LIKE 'app/rec-%'")).forEach(r => { const y = +r.path.slice(8); if (y) snaps[y] = J(r.data, {}) || {}; }); // 지난해 기네스 기록 (recRollover)
+      const recOfY = (y, k, who) => { if (y === y0) return (k && k.rec) || {}; const S = snaps[y]; if (!S || !Array.isArray(S.students)) return {}; const x = S.students.find(z => (who.sid && z.sid === who.sid) || (k && z.name === k.name && String(z.birth) === String(k.birth)) || z.name === who.name); return (x && x.rec) || {}; };
+      const evsOfY = y => y === y0 || !snaps[y] || !Array.isArray(snaps[y].events) ? evs : snaps[y].events;
       const qMonths = m => { const y = +m.slice(0, 4), q0 = Math.floor((+m.slice(5) - 1) / 3) * 3 + 1, L = []; for (let x = q0; x <= +m.slice(5); x++) L.push(y + '-' + String(x).padStart(2, '0')); return L; };
       const AQ = {}; const attQ = async m => { const L = qMonths(m.slice(0, 5) + String(Math.floor((+m.slice(5) - 1) / 3) * 3 + 3).padStart(2, '0')).filter(x => x <= now), key = L[0]; // 분기 전체(이번 달까지)를 한 번만 불러옴
         if (!(key in AQ)) { const q = await attQuarter(env, L).catch(() => null); AQ[key] = q && q.ok ? q : null; } return AQ[key]; };
@@ -326,11 +329,12 @@ async function route(path, req, env, ctx) {
         const k = studs.find(x => x && x.name === n), ro = R[n] || {}, who = { sid: (k && k.sid) || ro.id, name: n }, id = k ? k.name + '|' + k.birth : '', rec = (k && k.rec) || {};
         if (!k && !ro.id) { kids.push({ name: n, rec: {}, periods: [], exams: examList(ex, who) }); continue; }
         const birth = +(ro.birth || (k && k.birth) || 0), kage = birth ? y0 - birth + 1 : 0, grade = String((k && k.grade) || '') || (kage && kage <= 7 ? '유치' : kage ? '초' + (kage - 7) : '');
-        const recMonths = new Set(); evs.forEach(e => { const r = rec[e.name] || {}; Object.keys(r).forEach(mo => { if (r[mo] != null) recMonths.add(+mo); }); });
-        const months = last12.filter(m => m === now || (id && perOf['P' + m] && perOf['P' + m][id]) || (+m.slice(0, 4) === y0 && recMonths.has(+m.slice(5))) || (ex[m] && examRowOf(ex[m], who)));
+        const recY = {}, hasRec = m => { const y = +m.slice(0, 4), R2 = recY[y] || (recY[y] = recOfY(y, k, who)); return evsOfY(y).some(e => { const r = R2[e.name] || {}; return r[+m.slice(5)] != null; }); };
+        const months = last12.filter(m => m === now || (id && perOf['P' + m] && perOf['P' + m][id]) || hasRec(m) || (ex[m] && examRowOf(ex[m], who)));
         if (ro.status === '퇴관' && months[months.length - 1] === now && !(id && perOf['P' + now] && perOf['P' + now][id])) months.pop(); // 퇴관한 제자는 이번 달을 새로 만들지 않음
         const ps = []; let prevCm = '';
         for (const mo of months) {
+          const rec = recY[+mo.slice(0, 4)] || (recY[+mo.slice(0, 4)] = recOfY(+mo.slice(0, 4), k, who)), evs = evsOfY(+mo.slice(0, 4)); // 그해 기록·종목
           const x = (id && perOf['P' + mo] && perOf['P' + mo][id]) || {}, a = [...(x.att || [null, null, null, null])];
           const src = a.map(v => v ? '📝 사범님이 예전 성장 측정지에 적은 평가' : ''); // 5가지 요소를 어디서 정했는지 (2026-11-15 사용자 요청) — 몸의 기초는 학부모 앱이 기록으로
           const au = examAuto(ex, who, mo); [['a0', 's0', 0], ['a2', 's2', 2], ['a3', 's3', 3]].forEach(([k, s, j]) => { if (au[k]) { a[j] = au[k]; src[j] = au[s]; } });
@@ -360,9 +364,11 @@ async function route(path, req, env, ctx) {
           prevCm = cm;
           ps.push({ month: mo, att: a, sc, total, src, cm: fill(cm, n).slice(0, 600), auto, pct, an, at, exam: au.n || 0 });
         }
-        kids.push({ name: n, rec, periods: ps, exams: examList(ex, who) });
+        const ry = {}; Object.keys(snaps).forEach(y => { const R2 = recOfY(+y, k, who); if (Object.keys(R2).length) ry[y] = R2; });
+        kids.push({ name: n, rec, recY: ry, periods: ps, exams: examList(ex, who) });
       }
-      return json({ ok: true, events: evs.map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })), kids });
+      const evMap = L => (L || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })), eventsY = {}; Object.keys(snaps).forEach(y => { eventsY[y] = evMap(evsOfY(+y)); });
+      return json({ ok: true, year: y0, events: evMap(evs), eventsY, kids });
     }
     if (path === '/sync/done-events') { // 알림 관리 '알림장 쓰기': 완료한 행사표의 참가자 (2026-11-13 사용자 요청) — 완료한 지 30일 안, 최근 것부터
       const rows = await all(env, "SELECT id, data, upd FROM items WHERE type = 'event' AND del = 0 AND upd > ? ORDER BY upd DESC LIMIT 60", Date.now() - 30 * 864e5);
@@ -483,6 +489,7 @@ async function route(path, req, env, ctx) {
     const gp = str(b.path, 80); if (!/^(app|inputs)\/[\w-]{1,40}$/.test(gp)) return json({ ok: false, error: '잘못된 요청' });
     if (gp === 'app/data' && b.data && Array.isArray(b.data.students)) { // 🏆 기네스 기록장에서 넣은 기록을 예전 화면이 덮어쓰지 않게: 서버에만 있는 기록 칸은 남김 (2026-11-14)
       const cur = J((await one(env, 'SELECT data FROM gdocs WHERE path = ?', 'app/data') || {}).data, null);
+      if (cur && (cur.recYear || 0) !== (b.data.recYear || 0)) return json({ ok: false, error: '새해가 되어 기록을 새로 시작했어요. 화면을 닫았다가 다시 열어 주세요' });
       if (cur && Array.isArray(cur.students)) b.data.students.forEach(k => { const o = cur.students.find(x => (k.sid && x.sid === k.sid) || (x.name === k.name && String(x.birth) === String(k.birth))); if (!o || !o.rec) return; k.rec = k.rec || {};
         Object.keys(o.rec).forEach(ev => { k.rec[ev] = k.rec[ev] || {}; Object.keys(o.rec[ev] || {}).forEach(mm => { if (k.rec[ev][mm] == null) k.rec[ev][mm] = o.rec[ev][mm]; }); }); });
     }
@@ -1345,8 +1352,8 @@ function examAuto(ex, who, month) {
     out[a.replace('a', 's')] = '🏅 ' + mlab + ' · ' + ks.map(k => { const L = acc[a][k], n = L.length, g = L.filter(x => x.g >= (x.v2 ? 1 : 0.75)).length; return EXAM_NAME[k] + ' ' + (n === 1 ? (g ? '훌륭해요' : '연습이 필요해요') : '훌륭해요 ' + g + '/' + n + '번'); }).join(' · '); });
   return out;
 }
-function examList(ex, who) { // 학부모 앱 '심사': 마감한 달마다 (최근 12달)
-  return Object.keys(ex).sort().slice(-12).map(m => { const r = examRowOf(ex[m], who); if (!r) return null; const d = r.d, meta = ex[m].meta, notes = meta.notes || {};
+function examList(ex, who) { // 학부모 앱 '심사': 마감한 달마다 (최근 4년 · 화면이 해마다 나눠 보여 줌)
+  return Object.keys(ex).sort().slice(-48).map(m => { const r = examRowOf(ex[m], who); if (!r) return null; const d = r.d, meta = ex[m].meta, notes = meta.notes || {};
     const base = { month: m, date: meta.date || '', absent: !!d.absent, pass: d.pass !== false, cur: d.cur || '', nb: d.nb && d.nb !== d.cur ? d.nb : '' };
     if (d.v === 2) { const G = EXAM2[d.grp] || EXAM2.elem, its = G.items.concat(d.sc && d.sc.manner ? [EXAM_MANNER] : []), tx = d.tx || {};
       return Object.assign(base, { v: 2, grp: G.n, topic: meta.topicAt || meta.topic || '', items: its.filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, g: x.g || '', good: d.sc[x.k] === 2, tx: x.k === 'poom' ? [tx.poom, tx.poom2].filter(Boolean).join(' · ') : x.tx ? tx[x.k] || '' : '', note: notes[x.k] || (x.g && /발차기/.test(x.g) ? notes.kick || '' : '') })) }); }
@@ -1443,6 +1450,9 @@ async function esignSet(env, b, kids) {
   await addLog(env, '', 'event', '🎟 ' + d.title + ': ' + what + ' · 학부모 앱', ev);
   await run(env, 'INSERT INTO pushq (text, at) VALUES (?, ?)', d.title + ' · ' + what, now);
   await bumpItem(env, ev); // 업무 앱이 새로 받아 가도록
+  // 🥋 제자 앱에도 알림 (2026-11-15 사용자: 학부모가 취소한 행사가 제자에게 안 감) — 제자 앱에서 알림을 켠 기기만
+  const kt = cancel ? '🎟 행사 신청이 취소되었어요' : had && !had.cancel ? '🎟 행사 신청 내용이 바뀌었어요' : '🎟 행사 신청 완료!', kb = str(d.title, 60) + ' · ' + (cancel ? '부모님이 신청을 취소하셨어요' : had && !had.cancel ? '부모님이 신청 내용을 바꾸셨어요' : '부모님이 신청해 주셨어요' + (d.date ? ' · ' + (+d.date.slice(5, 7)) + '/' + (+d.date.slice(8)) : ''));
+  try { await noticeSync(env, '/sync/kid-push', { name: kid, title: kt, body: kb }); } catch (_) {}
   return { ok: true };
 }
 // 업무 앱 행사표에서 제자를 빼면(✕) = 도장에서 신청 취소: 학부모 앱에 '도장에서 취소했어요' + 보호자 휴대폰 알림 (2026-11-13 사용자 요청)
@@ -1459,6 +1469,7 @@ async function staffCancel(env, ev, oldD, newD, names, rm, me) {
     if (e && e.cancel) continue;
     if (!e && (!row || !newD.pub)) continue; // 학부모 앱에 안 보이는 행사에 직원이 넣었다 뺀 것은 알리지 않음
     await run(env, "INSERT INTO esign (ev, kid, data, rel, cancel, state, at, upd) VALUES (?, ?, '{}', '', 1, 'staff', ?, ?) ON CONFLICT(ev, kid) DO UPDATE SET cancel = 1, state = 'staff', upd = excluded.upd", ev, kid, now, now);
+    try { await noticeSync(env, '/sync/kid-push', { name: kid, title: '🎟 행사 신청이 취소되었어요', body: title.slice(0, 60) + ' · 도장에서 신청을 취소했어요' }); } catch (_) {} // 제자 앱에도
     const r = await noticeSync(env, '/sync/notify', { name: kid, title: '🎟 행사 신청이 취소되었어요', body: title + ' · ' + kid + ' 신청이 도장에서 취소되었어요. 궁금한 점은 도장에 문의해 주세요', view: 'plan' });
     await addLog(env, me.id, 'event', '🎟 ' + title + ': ' + kid + ' 신청 취소 (도장) · 학부모 ' + (r.ok ? '알림 보냄' : '알림 못 보냄' + (r.error ? ' — ' + str(r.error, 60) : '')), ev);
   }
@@ -1609,8 +1620,8 @@ async function attQuarter(env, months) { // 분기 출석(출석부 month-stats)
 }
 const GROW_CM = [{"cat": "기록 우수", "text": "우리 ㅇㅇ이는 모든 종목에서 고르게 좋은 기록을 보여 주었으며, 도전하는 자세도 훌륭한 제자입니다."}, {"cat": "기록 우수", "text": "우리 ㅇㅇ이는 이번 성장 측정에서 눈에 띄는 기록을 세웠습니다. 도전에 도전을 거듭하며, 성취욕이 강한 모습이 아주 훌륭합니다."}, {"cat": "기록 우수", "text": "우리 ㅇㅇ이는 매 순간 최선을 다하며, 기록뿐 아니라 측정에 임하는 자세까지 친구들에게 좋은 모범이 됩니다."}, {"cat": "기록 우수", "text": "우리 ㅇㅇ이는 자신을 믿는 힘이 아주 좋으며, 매 순간 최선을 다하는 모습이 아주 훌륭합니다."}, {"cat": "기록 우수", "text": "우리 ㅇㅇ이는 지난 기록을 스스로 뛰어넘으며 한 단계 더 성장한 모습을 보여 주었습니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 매 수업 시간마다 최선을 다하는 제자로, 이번 기록 성장이 특히 돋보였습니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 저번 측정보다 기록이 성장되었습니다. 꾸준한 노력이 결과로 나타났습니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 처음보다 자세가 몰라보게 좋아졌고, 그만큼 기록도 함께 성장하고 있습니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 하나하나 차근차근 발전하는 제자입니다. 지금처럼만 하면 다음 기록이 더욱 기대됩니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 꾸준히 출석하며 실력을 쌓아 가고 있어, 기록에서도 그 성실함이 보입니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 약했던 종목에서도 기록이 좋아져 점점 더 균형 잡힌 실력을 갖춰 가고 있습니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 수업 시간에 집중할 줄 알고, 친구들을 배려하는 따뜻한 마음을 가진 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 수업 시간에 꾸준히 노력하고, 힘들어도 포기하지 않는 멋진 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 지도진의 설명을 귀 기울여 듣고 그대로 해내려고 노력하는 훌륭한 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 어려운 동작도 먼저 \"해 볼게요!\" 하며 도전하는 용기 있는 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 친구들의 도전도 진심으로 응원해 주는 마음이 따뜻한 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 기록이 아쉬워도 웃으며 다시 도전하는 긍정적인 마음을 가진 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 인사와 예절이 바르고, 수업에 임하는 태도가 늘 성실한 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 끝까지 최선을 다하는 모습으로 친구들에게 좋은 에너지를 주는 제자입니다."}, {"cat": "첫 참여·저학년", "text": "우리 ㅇㅇ이는 처음 참여한 성장 측정에서도 씩씩하게 도전하는 모습이 정말 훌륭했습니다."}, {"cat": "첫 참여·저학년", "text": "우리 ㅇㅇ이는 낯선 측정에도 긴장하지 않고 즐겁게 참여해 주었습니다. 앞으로가 더 기대됩니다."}, {"cat": "첫 참여·저학년", "text": "우리 ㅇㅇ이는 아직 어리지만 형, 누나들 사이에서도 당차게 도전하는 멋진 제자입니다."}, {"cat": "기록 아쉬움", "text": "우리 ㅇㅇ이는 이번 기록이 조금 아쉬웠지만, 끝까지 도전하는 모습이 무척 대견했습니다."}, {"cat": "기록 아쉬움", "text": "우리 ㅇㅇ이는 실력이 충분한 제자입니다. 컨디션을 잘 챙기면 다음 달에는 더 좋은 기록이 나올 것입니다."}, {"cat": "기록 아쉬움", "text": "우리 ㅇㅇ이는 기록이 잠시 머물러 있지만, 지금처럼 꾸준히 하면 곧 한 단계 올라설 것입니다."}, {"cat": "기록 아쉬움", "text": "우리 ㅇㅇ이는 자세를 조금 더 다듬으면 기록이 훨씬 좋아질 수 있는 제자입니다. 수업에서 함께 연습하겠습니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 가진 힘이 충분한 제자입니다. 수업 시간에 조금만 더 집중하면 훨씬 좋은 기록이 나올 것이라 기대합니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 에너지가 넘치는 제자입니다. 그 에너지를 수업에 조금 더 모으면 큰 성장이 기대됩니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 하고 싶은 마음이 큰 제자입니다. 차례를 기다리는 연습을 함께 하면 더 멋지게 성장할 것입니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 잘할 수 있는 힘이 충분합니다. 조금만 더 자기 자신을 믿는다면 훨씬 좋은 기록이 나올 것입니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 처음에는 망설였지만 용기를 내어 도전했습니다. 그 한 걸음을 많이 칭찬해 주세요."}, {"cat": "출석", "text": "우리 ㅇㅇ이는 수업에 조금 더 자주 나오면 실력이 훨씬 빠르게 성장될 수 있는 제자입니다."}, {"cat": "출석", "text": "우리 ㅇㅇ이는 꾸준한 출석이 큰 장점인 제자입니다. 그 성실함이 곧 실력이 될 것입니다."}, {"cat": "출석", "text": "우리 ㅇㅇ이는 운동을 즐길 줄 아는 제자입니다. 즐겁게 하다 보면 기록은 자연스럽게 따라올 것입니다."}]; // 사범님 한마디 기본 문장 묶음 (📈 성장의 DEFAULT_COMMENTS, app/comments가 없을 때)
 // 🏆 이달의 최우수 수련생 = 그 달 기네스 1등 (2026-11-15 사용자: 기네스 기록으로) — 중고등부(남녀 하나) · 초등부 남·여 · 유치부 남·여, 같은 기록이면 함께
-function guinBest(data, RL) {
-  const t = kstDay(), yr = +t.slice(0, 4), cm = +t.slice(5, 7), L = (data && data.students) || [], evs = (data && data.events) || [], R = RL || [];
+function guinBest(data, RL, yr0, cm0) {
+  const t = kstDay(), yr = yr0 || +t.slice(0, 4), cm = cm0 || +t.slice(5, 7), L = (data && data.students) || [], evs = (data && data.events) || [], R = RL || [];
   const bySid = new Map(R.filter(s => s.id).map(s => [s.id, s])), byName = new Map(R.map(s => [s.name, s])), out = [];
   for (let m = 1; m <= cm; m++) {
     const ev = evs.find(e => (e.months || []).includes(m)); if (!ev) continue;
@@ -1635,6 +1646,26 @@ async function beltMigrate(env) { // 한 번만: 예전 📈 성장(gdocs) 띠 �
   const items = ((data && data.students) || []).filter(k => k && k.sid).map(k => ({ sid: k.sid, belt: belts[k.name + '|' + k.birth] || k.belt0 || '' })).filter(x => x.belt);
   const r = items.length ? await attSync(env, '/sync/belt-set', { items, onlyEmpty: true, who: '📈 성장에서 옮김', quiet: false }) : { ok: true, n: 0 }; if (!r.ok) return;
   await run(env, "INSERT INTO kv (k, v) VALUES ('beltmig1', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ at: Date.now(), n: r.n || 0, of: items.length }));
+}
+// 🏆 기네스 기록은 '몇 월'로만 저장돼서 해가 바뀌면 지난해 기록을 따로 보관 (2026-11-15 사용자: 한 해 것은 다 보고 지난 해는 작은 탭에서)
+// 새해 첫 크론: app/data 의 기록을 gdocs 'app/rec-지난해'에 그대로 저장 + 그해 달마다 1등(최우수)도 kv 'gbestArch'에 → app/data 기록을 비우고 recYear 표시
+async function recRollover(env) {
+  const yr = +kstDay().slice(0, 4), k = await one(env, "SELECT v FROM kv WHERE k = 'recyear'");
+  if (!k) { await run(env, "INSERT INTO kv (k, v) VALUES ('recyear', ?) ON CONFLICT(k) DO NOTHING", String(yr)); return; }
+  const old = +k.v; if (!old || old >= yr) return;
+  const r = await one(env, "SELECT data, upd FROM gdocs WHERE path = 'app/data'"), data = r ? J(r.data, null) : null;
+  if (data && Array.isArray(data.students)) {
+    const snap = { year: old, events: data.events || [], students: data.students.map(x => ({ sid: x.sid || '', name: x.name, birth: x.birth, grade: x.grade || '', rec: x.rec || {} })).filter(x => Object.keys(x.rec).length) };
+    await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO NOTHING', 'app/rec-' + old, JSON.stringify(snap), Date.now(), '');
+    try { const ro = await attSync(env, '/sync/roster', { all: true }), best = guinBest(data, ro.ok ? ro.students : [], old, 12);
+      const a = J((await one(env, "SELECT v FROM kv WHERE k = 'gbestArch'") || {}).v, []).filter(x => !String(x.q).startsWith(old + '-'));
+      await run(env, "INSERT INTO kv (k, v) VALUES ('gbestArch', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify([...a, ...best].slice(-60))); } catch (_) {}
+    data.students.forEach(x => { x.rec = {}; }); data.recYear = yr;
+    const w = await env.DB.prepare('UPDATE gdocs SET data = ?, upd = ? WHERE path = ? AND upd = ?').bind(JSON.stringify(data), Date.now(), 'app/data', r.upd).run();
+    if (!w.meta || !w.meta.changes) return; // 그 사이 누가 고쳤으면 다음 크론에서 다시
+    await addLog(env, '', 'home', '🏆 새해가 되어 ' + old + '년 기네스 기록을 따로 보관했어요 (학부모 앱 성장 → 지난 기록)', '');
+  }
+  await run(env, "UPDATE kv SET v = ? WHERE k = 'recyear'", String(yr));
 }
 async function sbMigrate(env) { // 한 번만: 예전 📈 성장 선범단 → 출석부 원생 정보 sb (2026-11-15)
   if (await one(env, "SELECT v FROM kv WHERE k = 'sbmig1'")) return;
