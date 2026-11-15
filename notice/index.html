@@ -271,7 +271,7 @@
   .envc .efl{display:block;height:44px;margin:0 -1px;background:var(--brand);clip-path:polygon(0 0,100% 0,95% 100%,5% 100%);border-radius:0 0 26px 26px/0 0 18px 18px;color:#fff;font:800 10.5px/1.25 'Pretendard',sans-serif;text-align:center;padding-top:8px;letter-spacing:-.01em}
   .envc .erow{display:flex;align-items:center;gap:12px;padding:12px 14px 14px}
   .envc .ewm{flex:none;width:52px;height:21px;background:var(--brand);-webkit-mask:url(../img/brand/wordmark-black.png) center/contain no-repeat;mask:url(../img/brand/wordmark-black.png) center/contain no-repeat}
-  .envc b{display:block;font-size:16px;color:var(--brand)}.envc small{display:block;color:var(--muted);margin-top:3px;font-size:13px}.envc .go{margin-left:auto;background:var(--brand);color:#fff;border-radius:99px;padding:7px 12px;font-weight:800;font-size:13px;white-space:nowrap}
+  .envc b{display:block;font-size:16px;color:var(--ink);word-break:keep-all}.envc small.et{color:var(--brand);font-weight:800;margin:0 0 2px;font-size:12.5px}.envc small{display:block;color:var(--muted);margin-top:3px;font-size:13px}.envc .go{margin-left:auto;background:var(--brand);color:#fff;border-radius:99px;padding:7px 12px;font-weight:800;font-size:13px;white-space:nowrap}
   @keyframes envIn{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
   .env-open{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;border:0;background:var(--brand);color:#fff;border-radius:12px;padding:11px;font-size:15px;font-weight:700}
   .env-ans{margin-top:10px;font-size:14px;font-weight:700;color:var(--green)}.env-ans.no{color:var(--muted)}
@@ -804,7 +804,7 @@
   const ENV_SLOGAN = 'To live a life of confidence in<br>new challenges through Taekwondo.';
   function envSection(k) {
     const L = ((home && home.envs) || []).filter(x => (x.envKids || []).some(e => e.kid === k && !e.ans));
-    return L.map(x => '<button class="envc" data-env="' + (x.id | 0) + '"><span class="efl">' + ENV_SLOGAN + '</span><span class="erow"><span class="ewm"></span><span><b>도장에서 봉투가 왔어요</b><small>' + esc(x.title) + '</small></span><span class="go">열어 보기</span></span></button>').join('');
+    return L.map(x => '<button class="envc" data-env="' + (x.id | 0) + '"><span class="efl">' + ENV_SLOGAN + '</span><span class="erow"><span class="ewm"></span><span><small class="et">📩 도장에서 봉투가 왔어요</small><b>' + esc((x.envKids || []).filter(e => !e.ans).map(e => e.kid).join('·') || k) + ' 참가 여부를 확인해 주세요</b><small>' + esc(x.title) + '</small></span><span class="go">열어 보기</span></span></button>').join('');
   }
   function envAnsLine(x) { const a = (x.envKids || []).filter(e => e.ans); return a.length ? a.map(e => '<div class="env-ans' + (e.ans === 'no' ? ' no' : '') + '">📩 ' + esc(e.kid) + ' · ' + (e.ans === 'yes' ? '참가' : '불참') + '로 답장했어요</div>').join('') : ''; }
   function openEnv(id) {
@@ -812,7 +812,7 @@
     sentReads.add(id); post('/p/read', { ids: [id] }).catch(() => {});
     const ov = document.createElement('div'); ov.className = 'envov';
     const draw = () => '<div class="from">📩 해랑경희에서 온 봉투</div><h3>' + esc(x.title) + '</h3>' + (x.body ? '<div class="bd">' + esc(x.body) + '</div>' : '') +
-      (x.envKids || []).map(e => '<div class="ekid"><b>' + esc(e.kid) + '</b>참가하나요?<div class="yn"><button class="yes' + (e.ans === 'yes' ? ' on' : '') + '" data-yn="yes" data-k="' + esc(e.kid) + '">참가</button><button class="no' + (e.ans === 'no' ? ' on' : '') + '" data-yn="no" data-k="' + esc(e.kid) + '">불참</button></div>' + (e.at ? '<span class="help-l">' + dateText(e.at) + '에 답장했어요 · 바꿀 수 있어요</span>' : '') + '</div>').join('') +
+      (x.envKids || []).map(e => '<div class="ekid"><b>' + esc(e.kid) + '</b>참가 여부를 확인해 주세요<div class="yn"><button class="yes' + (e.ans === 'yes' ? ' on' : '') + '" data-yn="yes" data-k="' + esc(e.kid) + '">참가</button><button class="no' + (e.ans === 'no' ? ' on' : '') + '" data-yn="no" data-k="' + esc(e.kid) + '">불참</button></div>' + (e.at ? '<span class="help-l">' + dateText(e.at) + '에 답장했어요 · 바꿀 수 있어요</span>' : '') + '</div>').join('') +
       '<button class="cls">닫기</button>';
     ov.innerHTML = '<div class="envbx"><div class="bk"></div><div class="lt"><b>' + esc(x.title) + '</b><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="fr"></div>' +
       '<div class="to"><small>TO.</small>' + esc((x.envKids || []).map(e => e.kid).join(' · ')) + ' 보호자님</div>' +

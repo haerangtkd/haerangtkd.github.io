@@ -1079,7 +1079,8 @@ async function send(env, b) {
     try {
       const aud = new URL(s.ep).origin;
       if (!auths.has(aud)) auths.set(aud, vapidHeader(s.ep, vapid));
-      const res = await webPush({ endpoint: s.ep, p256dh: s.p256, auth: s.auth }, payload, await auths.get(aud));
+      const pl = /\{kid\}/.test(title + body) ? (() => { const ks = J(s.kids, []).filter(c => !targets.length || targets.includes(c)).join('·') || '제자'; return payload.split('{kid}').join(ks); })() : payload; // 봉투: '김태권 참가 여부를 확인해 주세요' (보호자마다 자기 제자 이름)
+      const res = await webPush({ endpoint: s.ep, p256dh: s.p256, auth: s.auth }, pl, await auths.get(aud));
       if (res.status === 404 || res.status === 410) { await run(env, 'UPDATE parents SET ep = NULL WHERE id = ?', s.id); removed++; }
       else if (res.ok) sent++;
       else failed++;

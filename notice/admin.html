@@ -760,7 +760,7 @@
       $('nMkEv').checked = false; eKids.clear();
       if (notify) {
         const label = { notice: nKind === '공지' ? '공지' : nKind, journal: '알림장', schedule: '일정', album: '앨범' }[nType];
-        const r = await pushAll({ title: envl ? '📩 도장에서 봉투가 왔어요' : (urgent ? '[긴급] ' : '[' + label + '] ') + title, body: envl ? title + ' · 열어서 참가·불참을 알려 주세요' : nType === 'album' ? '사진 ' + ids.length + '장이 올라왔습니다' : bodyT.slice(0, 120), kind: label, children: target, view: envl ? '' : nType }, btn);
+        const r = await pushAll({ title: envl ? '📩 도장에서 봉투가 왔어요' : (urgent ? '[긴급] ' : '[' + label + '] ') + title, body: envl ? '{kid} 참가 여부를 확인해 주세요 · ' + title : nType === 'album' ? '사진 ' + ids.length + '장이 올라왔습니다' : bodyT.slice(0, 120), kind: label, children: target, view: envl ? '' : nType }, btn);
         msg += ' · 휴대폰 ' + r.sent + '대에 알림';
         if (envl && j.id) { let ks = 0, off = 0; try { for (let n = 0; n < 40; n++) { const k = await post('/admin/env-kid', { id: j.id, offset: off }); if (!k.ok) break; ks += k.sent || 0; if (!k.next) break; off = k.next; } } catch (_) {} if (ks) msg += ' · 제자 앱 ' + ks + '대'; } // 🥋 제자 앱에도 (2026-11-15)
       }
