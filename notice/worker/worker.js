@@ -150,21 +150,24 @@ async function route(path, req, env) {
       while (weeks.has(w) && streak < 520) { streak++; const x = new Date(w + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - 7); w = x.toISOString().slice(0, 10); }
       const info = await attSync(env, '/sync/kid-info', { names: [name] }).catch(() => null), kid = info && info.ok ? (info.kids || [])[0] : null, birth = kid ? String(kid.bday || kid.birth || '') : ''; // 생년월일(양력)이 있으면 생일 축하 (2026-11-14)
       const hw = await teamSync(env, '/sync/hw', { kids: [name] });
-      return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [], nth: Object.fromEntries([1, 10, 30, 50, 100, 200].filter(n => days.length >= n).map(n => [n, days[n - 1]])) }, // 월간 도전·수련 로그 (2026-11-15)
+      return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [], dl: days.filter(d => d >= kstAdd(today, -400)), nth: Object.fromEntries([1, 10, 30, 50, 100, 200, 300, 500].filter(n => days.length >= n).map(n => [n, days[n - 1]])) }, // 월간 도전·수련 로그 (2026-11-15)
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
         hw: hw.ok ? (hw.hw || []) : [], best: (km.best || []).slice(-4), comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
         mile: t.ok && t.mile != null ? t.mile : null, // 💰 마일리지 (상점 1개 = 100원, 2026-11-15)
         kids: viaP || null, kinder: !!(t.ok && t.kinder), goal: t.ok ? t.goal || '' : '', exams: t.ok ? t.exams || [] : [], prep: t.ok ? t.prep : null, sun: t.ok ? t.sun || [] : [],
         prof: (await kvj(env, 'kprof:' + name)) || {}, qr: await kidQr(env, name), sbCard: t.ok && t.sb ? await sbCard(env, name) : null,
-        evs: (await all(env, "SELECT title, kind, date FROM posts WHERE type = 'schedule' AND kind IN ('행사', '대회', '심사') AND date >= ? AND date <= ? ORDER BY date LIMIT 5", today, kstAdd(today, 30))) });
+        evs: (await all(env, "SELECT title, kind, date FROM posts WHERE type = 'schedule' AND kind IN ('행사', '대회', '심사') AND date >= ? AND date <= ? ORDER BY date LIMIT 5", today, kstAdd(today, 30))),
+        // 🎉 이벤트 탭 (2026-11-15): 도장 일정 (지난 60일 ~ 앞으로 180일) + 지금 신청 받는 행사 (신청은 학부모 앱에서)
+        sched: (await all(env, "SELECT title, kind, date, dend, body FROM posts WHERE type = 'schedule' AND date >= ? AND date <= ? ORDER BY date LIMIT 80", kstAdd(today, -60), kstAdd(today, 180))).map(x => ({ title: x.title, kind: x.kind || '', date: x.date, dend: x.dend || '', body: String(x.body || '').slice(0, 300) })),
+        tev: viaP ? [] : await teamSync(env, '/sync/events', { kids: [name] }).then(r => r.ok ? (r.events || []).map(e => ({ title: e.title, date: e.date || '', closeAt: e.close || '', desc: String(e.desc || '').slice(0, 300), prep: e.prep || '', free: !e.base && !(e.products || []).some(x => x.p), mine: !!(e.mine || []).some(m => m.kid === name && m.applied) })) : []).catch(() => []) });
     }
     if (path === '/k/prof') { // 프로필 꾸미기 · 대표 뱃지 3개 · 본 뱃지 (사진 대신 정해진 것 중에서 고르기)
       const old = (await kvj(env, 'kprof:' + name)) || {}, T = (v, n) => String(v == null ? '' : v).slice(0, n);
       const v = { av: T(b.av ?? old.av, 8), bg: /^#[0-9A-Fa-f]{6}$/.test(b.bg || '') ? b.bg : old.bg || '', fr: T(b.fr ?? old.fr, 12),
-        got: Object.assign({}, b.got && typeof b.got === 'object' ? Object.fromEntries(Object.entries(b.got).slice(0, 80).map(([k, d]) => [T(k, 20), /^\d{4}-\d{2}-\d{2}$/.test(String(d)) ? String(d) : '']).filter(x => x[0])) : {}, old.got || {}), // 뱃지 받은 날 (2026-11-15, 뒤집으면 보임) — 예전 날짜가 이김
+        got: Object.assign({}, b.got && typeof b.got === 'object' ? Object.fromEntries(Object.entries(b.got).slice(0, 150).map(([k, d]) => [T(k, 20), /^\d{4}-\d{2}-\d{2}$/.test(String(d)) ? String(d) : '']).filter(x => x[0])) : {}, old.got || {}), // 뱃지 받은 날 (2026-11-15, 뒤집으면 보임) — 예전 날짜가 이김
         pledge: T(b.pledge ?? old.pledge, 200).trim(), mygoal: T(b.mygoal ?? old.mygoal, 100).trim(), // 선범단 다짐 · 내 목표 = 제자가 직접 (2026-11-15 사용자 결정)
-        pins: (Array.isArray(b.pins) ? b.pins : old.pins || []).map(x => T(x, 20)).slice(0, 3), seen: Array.isArray(b.seen) ? b.seen.map(x => T(x, 20)).slice(0, 80) : old.seen }; // seen 이 없으면 '처음' (뱃지 축하 없이 기억만)
+        pins: (Array.isArray(b.pins) ? b.pins : old.pins || []).map(x => T(x, 20)).slice(0, 3), seen: Array.isArray(b.seen) ? b.seen.map(x => T(x, 20)).slice(0, 150) : old.seen }; // seen 이 없으면 '처음' (뱃지 축하 없이 기억만)
       await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kprof:' + name, JSON.stringify(v)); return json({ ok: true, prof: v });
     }
     if (path === '/k/mile') return json(await teamSync(env, '/sync/mile-list', { name })); // 💰 나의 마일리지 (2026-11-15)

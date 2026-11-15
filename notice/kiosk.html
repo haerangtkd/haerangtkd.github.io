@@ -304,9 +304,11 @@
         busy = true;
         try { const j = await post('/kiosk/lookup', { token, qr: txt.trim() }); if (j.relogin) { qrOff(); return toSetup(j.error); } if (!j.ok) throw new Error(j.error);
           if (!j.kids.length) { beep(false); $('qrMsg').textContent = '등록되지 않은 QR이에요. 번호를 눌러 주세요'; return; }
-          qrOff(); skew = (j.now || Date.now()) - Date.now(); if (j.minStay) minStay = j.minStay; found = j.kids; drawKids(); show('s-pick'); resetIdle(); }
+          qrOff(); skew = (j.now || Date.now()) - Date.now(); if (j.minStay) minStay = j.minStay; found = j.kids; drawKids(); show('s-pick'); resetIdle();
+          // QR은 제자 한 명 → 아직 등원 전이면 바로 등원 (2026-11-15 사용자 요청: QR 찍으면 자동 등원)
+          if (found.length === 1 && !found[0].in) { busy = false; const bt = $('kids').querySelector('[data-a="in"]'); if (bt) bt.click(); return; } }
         catch (_) { $('qrMsg').textContent = '인터넷 연결을 확인해 주세요'; }
-        finally { busy = false; }
+        finally { if (!$('kids').querySelector('button[disabled]')) busy = false; }
       } });
     } catch (e) { $('qrMsg').textContent = e.message || '카메라를 켤 수 없어요'; setTimeout(qrOff, 3500); }
   };
