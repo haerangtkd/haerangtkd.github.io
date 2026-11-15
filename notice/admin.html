@@ -23,7 +23,7 @@
   .top .row{display:flex;align-items:center;gap:8px;padding-bottom:8px}
   .top h1{font-size:18px;font-weight:900;margin-right:auto}
   .top .meta{font-size:12.5px;opacity:.85}
-  .top button.lo{color:#fff;font-size:12.5px;background:rgba(255,255,255,.16);border:0;border-radius:8px;padding:6px 10px}
+  .top a.lo,.top button.lo{color:#fff;font-size:12.5px;background:rgba(255,255,255,.16);border:0;border-radius:8px;padding:6px 10px}
   .tabs{display:flex}
   .kst{font-style:normal;font-size:11.5px;font-weight:700;background:#EEF1F7;color:#1F3B63;border-radius:99px;padding:1px 7px;margin-left:4px;vertical-align:2px}.kst.out{background:#F1EEEA;color:#6B6460}
   .tabs button{flex:1;border:0;background:none;color:rgba(255,255,255,.72);font-weight:700;font-size:15.5px;padding:10px 2px 12px;border-bottom:3px solid transparent;position:relative}
@@ -223,14 +223,13 @@
 
 <div id="app" hidden>
   <header class="top"><div class="in">
-    <div class="row"><h1>해랑경희 관리</h1><span class="meta" id="meta"></span><button class="lo" id="refresh">새로고침</button><button class="lo" id="logout">나가기</button></div>
+    <div class="row"><h1>해랑경희 관리</h1><span class="meta" id="meta"></span><a class="lo" href="/admin.html" style="text-decoration:none">🌐 홈페이지</a><button class="lo" id="refresh">새로고침</button><button class="lo" id="logout">나가기</button></div>
     <nav class="tabs">
-      <button data-t="att" class="on">출결<span class="cnt" id="pendBadge" hidden></span></button>
+      <button data-t="att" class="on">가입 승인<span class="cnt" id="pendBadge" hidden></span></button>
       <button data-t="news">소식</button>
       <button data-t="sched">일정</button>
       <button data-t="fee">회비</button>
-      <button data-t="roster">명단</button>
-      <button data-t="kmode">제자</button>
+      <!-- 명단·제자 탭은 2026-11-16 사용자 결정으로 뺌 (원생·초대번호·제자 코드는 업무 앱, 최우수 = 기네스 자동, 대회 기록 = 행사표 대회 상) -->
     </nav>
   </div></header>
 
@@ -243,8 +242,15 @@
         <p class="hint">도장 보호자가 맞는지 확인한 뒤 승인해 주세요. 승인하면 제자가 명단에 들어가고, 휴대폰 뒷자리가 출결번호가 됩니다.</p>
         <ul class="list" id="pendList"></ul>
       </div>
-      <div class="search"><input type="search" id="q" placeholder="제자 이름 검색"><div class="sum" id="attSum"></div></div>
-      <ul class="list" id="kids"></ul>
+      <div class="search" hidden><input type="search" id="q" placeholder="제자 이름 검색"><div class="sum" id="attSum"></div></div>
+      <ul class="list" id="kids" hidden></ul>
+      <div class="card"><h2>등원·하원 알림은 출석부로 옮겼어요</h2><p class="hint">출석부 → <b>등·하원</b> 탭에서 보호자께 등원·하원 알림을 보낼 수 있어요. 원생·가족 초대번호는 업무 앱 🥋 원생에서 해요.</p><a class="btn" href="/attendance/" style="display:block;text-align:center;text-decoration:none;margin-top:8px">출석부 열기</a></div>
+      <div class="card">
+        <h2>출결 태블릿</h2>
+        <p class="hint">도장 입구 태블릿에서 아래 주소를 열고 공용 PIN(업무 앱 '도장 공용')을 한 번 넣으면 출결용으로 등록됩니다. 태블릿을 잃어버렸을 때는 모두 해제해 주세요.</p>
+        <div class="share"><code id="kioskUrl"></code><button id="copyKiosk">복사</button></div>
+        <button class="btn ghost" id="kioskReset">등록된 태블릿 모두 해제</button>
+      </div>
       <div class="card" id="noKids" hidden>
         <h2>아직 명단이 없습니다</h2>
         <p class="hint">학부모님께 아래 주소를 보내 주세요. 학부모님이 가입하면 여기에서 승인할 수 있습니다.</p>
@@ -252,9 +258,10 @@
       </div>
     </section>
 
+    <!-- (출결 태블릿 카드: 명단 탭에서 옮김) -->
     <!-- ═════ 소식 ═════ -->
     <section id="t-news" hidden>
-      <div class="wbtns" id="wBtns"><button class="p" data-w="notice">✏ 공지 쓰기</button><button class="p" data-w="journal">✏ 알림장 쓰기</button><button data-w="env">📩 봉투 보내기</button><button data-w="album">📷 앨범 올리기</button></div>
+      <div class="wbtns" id="wBtns"><button class="p" data-w="notice">✏ 공지 쓰기</button><button class="p" data-w="journal">✏ 알림장 쓰기</button><button data-w="album">📷 앨범 올리기</button></div>
       <div class="seg big" id="nType" hidden><button data-v="notice" class="on">공지사항</button><button data-v="journal">알림장</button><button data-v="schedule">일정표</button><button data-v="album">앨범</button></div>
       <div class="card" id="wCard">
         <div class="wtop"><b id="wTitle">쓰기</b><button id="wClose">닫기</button></div>
@@ -286,7 +293,7 @@
         <label class="chk" id="fPin"><input type="checkbox" id="nPinChk"> 중요 공지로 맨 위에 고정</label>
         <label class="chk" id="fUrgent"><input type="checkbox" id="nUrgent"> <span><b style="color:#B42318">긴급 공지</b> · 학부모님 앱 첫 화면 맨 위에, 확인할 때까지 보여요</span></label>
         <label class="chk" id="fAsk"><input type="checkbox" id="nAsk"> 학부모님께 '확인했어요' 받기</label>
-        <label class="chk" id="fEnv"><input type="checkbox" id="nEnv"> <span><b>📩 봉투로 보내기</b> · 고른 제자 가정에만 봉투로 가고, 참가·불참 답장을 받아요 (심사·대회 안내처럼)</span></label>
+        <label class="chk" id="fEnv" style="align-items:flex-start;flex-wrap:nowrap"><input type="checkbox" id="nEnv" style="margin-top:3px;flex:none"><span style="display:block;flex:1;min-width:0"><b>📩 봉투로 보내기</b> · 고른 제자 가정에만 봉투로 가고 <b>참가·불참 답장</b>을 받아요.<small style="display:block;color:var(--muted);margin-top:2px">언제 쓰나요? 선범단 합격, 공인단(품·단) 심사 안내, 대회 출전처럼 도장에서 고른 제자에게만 알리고 참가 여부를 다시 받을 때예요. 제자 앱에는 아래 '제자 앱에 보일 말'이 가요.</small></span></label>
         <div id="fEnvEv" hidden style="margin:2px 0 8px 30px"><label class="f" style="margin-top:4px">'참가'하면 넣을 업무 앱 신청표</label><select id="nEnvEv" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e8e1da;font-size:15px"><option value="">넣지 않음</option><option value="new">새 신청표 만들기 (봉투 제목으로)</option></select><label class="f" style="margin-top:10px">🥋 제자 앱에 보일 말 <small style="font-weight:400;color:#8a817a">(제자는 봉투 대신 이 말을 받아요 · 답장은 부모님이)</small></label><input id="nKmsg" maxlength="120" value="심사를 보러 갈 준비가 되었어요! 가족과 상담해 보세요!" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e8e1da;font-size:15px;box-sizing:border-box"></div>
         <label class="chk"><input type="checkbox" id="nNotify" checked> 학부모님 휴대폰에 알림도 보내기</label>
         <button class="btn" id="nSend">올리기</button>
@@ -349,12 +356,6 @@
         <p class="hint">해랑 출석부에 있는데 이 앱 명단에 없는 제자를 찾아 한 번에 등록합니다. 출석부의 출석번호가 출결번호로 들어가고, 제자가 태블릿에서 번호를 누르면 출석부에도 자동으로 출석이 찍힙니다.</p>
         <div id="attDiff" style="margin-top:10px"></div>
         <button class="btn ghost" id="attDiffBtn">출석부 명단 확인하기</button>
-      </div>
-      <div class="card">
-        <h2>출결 태블릿</h2>
-        <p class="hint">도장 입구 태블릿에서 아래 주소를 열고 공용 PIN(업무 앱 '도장 공용')을 한 번 넣으면 출결용으로 등록됩니다. 태블릿을 잃어버렸을 때는 모두 해제해 주세요.</p>
-        <div class="share"><code id="kioskUrl"></code><button id="copyKiosk">복사</button></div>
-        <button class="btn ghost" id="kioskReset">등록된 태블릿 모두 해제</button>
       </div>
       <div class="card">
         <h2>가족 초대번호</h2>
@@ -581,7 +582,7 @@
     nType = t; const c = TYPES[t];
     [...$('nType').children].forEach(x => x.classList.toggle('on', x.dataset.v === t));
     $('nHead').textContent = c.head; $('nHint').textContent = c.hint; $('nListHead').textContent = c.list;
-    $('fKind').hidden = !c.kinds; $('fDate').hidden = !c.date; $('fTarget').hidden = !c.target; $('fPhotos').hidden = !c.photos; $('fPin').hidden = !c.pin; $('fUrgent').hidden = nType !== 'notice'; $('fAsk').hidden = nType !== 'notice' && nType !== 'journal'; $('fEnv').hidden = nType !== 'notice' && nType !== 'journal'; if ($('fEnv').hidden) $('nEnv').checked = false;
+    $('fKind').hidden = !c.kinds; $('fDate').hidden = !c.date; $('fTarget').hidden = !c.target; $('fPhotos').hidden = !c.photos; $('fPin').hidden = !c.pin; $('fUrgent').hidden = nType !== 'notice'; $('fAsk').hidden = nType !== 'notice' && nType !== 'journal'; $('fEnv').hidden = nType !== 'journal'; // 2026-11-16: 봉투는 알림장 안에서만 if ($('fEnv').hidden) $('nEnv').checked = false;
     $('nMonth').hidden = true; if (t !== 'schedule' && editId) endEdit(); evBox();
     $('fJtpl').hidden = t !== 'journal'; if (t === 'journal') { loadJtpl(); loadDoneEvs(); } else $('nEvs').hidden = true;
     $('nNotify').checked = c.notify;
