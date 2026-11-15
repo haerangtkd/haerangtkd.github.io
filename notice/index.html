@@ -270,7 +270,7 @@
   .envc{position:relative;display:block;width:100%;margin:12px 0 0;padding:0;border:1px solid #E7E0D8;border-radius:16px;background:#fff;color:var(--ink);text-align:left;overflow:hidden;box-shadow:0 8px 20px rgba(60,20,20,.12);animation:envIn .5s ease-out}
   .envc .efl{display:block;height:44px;margin:0 -1px;background:var(--brand);clip-path:polygon(0 0,100% 0,95% 100%,5% 100%);border-radius:0 0 26px 26px/0 0 18px 18px;color:#fff;font:800 10.5px/1.25 'Pretendard',sans-serif;text-align:center;padding-top:8px;letter-spacing:-.01em}
   .envc .erow{display:flex;align-items:center;gap:12px;padding:12px 14px 14px}
-  .envc .ewm{flex:none;width:42px;height:40px;background:url(../img/brand/lion-red.png) center/contain no-repeat}
+  .envc .ewm{flex:none;width:52px;height:21px;background:var(--brand);-webkit-mask:url(../img/brand/wordmark-black.png) center/contain no-repeat;mask:url(../img/brand/wordmark-black.png) center/contain no-repeat}
   .envc b{display:block;font-size:16px;color:var(--ink);word-break:keep-all}.envc small.et{color:var(--brand);font-weight:800;margin:0 0 2px;font-size:12.5px}.envc small{display:block;color:var(--muted);margin-top:3px;font-size:13px}.envc .go{margin-left:auto;background:var(--brand);color:#fff;border-radius:99px;padding:7px 12px;font-weight:800;font-size:13px;white-space:nowrap}
   @keyframes envIn{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
   .env-open{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;border:0;background:var(--brand);color:#fff;border-radius:12px;padding:11px;font-size:15px;font-weight:700}
@@ -282,11 +282,8 @@
   .envbx .lt b{display:block;color:var(--brand);font-size:15px}.envbx .lt i{display:block;height:8px;margin:10px 0;border-radius:4px;background:#F0E6DA}
   .envbx .fr{position:absolute;inset:0;border-radius:10px;z-index:3;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.3)}
   .envbx .to{position:absolute;right:16px;top:112px;z-index:4;color:#3A3330;font-size:13px;font-weight:700;text-align:right;max-width:60%}.envbx .to small{display:block;font-size:10px;color:#9A918A;font-weight:600;letter-spacing:.08em}
-  .envbx .lab{position:absolute;left:12px;bottom:14px;z-index:4;width:50%;background:#1E1E1F;color:#fff;border-radius:7px;padding:6px 7px 5px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
-  .envbx .lab .lh{display:flex;align-items:center;gap:5px}.envbx .lab img{width:24px;height:23px;flex:none}
-  .envbx .lab b{display:block;font-size:13.5px;font-weight:900;letter-spacing:-.03em;line-height:1.1;white-space:nowrap}.envbx .lab em{display:block;font-style:normal;font-size:6px;line-height:1.3;opacity:.85;margin-top:2px;word-break:keep-all}
-  .envbx .lab .ad{border-top:1px solid #6C6C6C;margin-top:5px;padding-top:3px;font-size:7.5px;font-weight:700;text-align:center;white-space:nowrap}
-  .envbx .wm{position:absolute;right:22px;bottom:16px;z-index:4;width:62px;height:60px;background:url(../img/brand/lion-red.png) center/contain no-repeat}
+  .envbx .lab{position:absolute;left:14px;bottom:18px;z-index:4;width:58%;height:auto}
+  .envbx .wm{position:absolute;right:18px;bottom:20px;z-index:4;width:28%;height:34px;background:var(--brand);-webkit-mask:url(../img/brand/wordmark-black.png) center/contain no-repeat;mask:url(../img/brand/wordmark-black.png) center/contain no-repeat}
   .envbx .fl{position:absolute;left:0;right:0;top:0;height:96px;z-index:5;transform-origin:top;transform-style:preserve-3d;transition:transform .6s ease-in}
   .envbx .fl>span{position:absolute;inset:0;background:var(--brand);clip-path:polygon(0 0,100% 0,96% 100%,4% 100%);border-radius:10px 10px 34px 34px/10px 10px 40px 40px;-webkit-backface-visibility:hidden;backface-visibility:hidden;color:#fff;font:900 15px/1.25 'Pretendard',sans-serif;text-align:center;display:flex;align-items:center;justify-content:center;padding:0 28px 6px;letter-spacing:-.01em}
   .envbx .fl>span.b2{transform:rotateX(180deg)}.envbx .fl>span.b2 i{display:block;font-style:normal;transform:rotate(180deg)}
@@ -816,7 +813,7 @@
       '<button class="cls">닫기</button>';
     ov.innerHTML = '<div class="envbx"><div class="bk"></div><div class="lt"><b>' + esc(x.title) + '</b><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="fr"></div>' +
       '<div class="to"><small>TO.</small>' + esc((x.envKids || []).map(e => e.kid).join(' · ')) + ' 보호자님</div>' +
-      '<div class="lab"><div class="lh"><img src="../img/brand/lion-red.png" alt=""><span><b>해랑경희 태권도장</b></span></div><div class="ad">44700 울산광역시 남구 돋질로251번길 38</div></div><div class="wm"></div>' +
+      '<img class="lab" src="../img/brand/logo-slogan.png" alt="해랑경희 태권도장"><div class="wm"></div>' +
       '<div class="fl"><span>' + ENV_SLOGAN + '</span><span class="b2"><i>' + ENV_SLOGAN + '</i></span></div></div><div class="envrd">' + draw() + '</div>';
     document.body.appendChild(ov);
     setTimeout(() => ov.classList.add('open'), 350); setTimeout(() => ov.classList.add('read'), 1600);
