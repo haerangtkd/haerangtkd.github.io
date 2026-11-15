@@ -938,7 +938,8 @@ async function savePickup(p, what) {
   if (!j.ok) toast(j.error || '저장하지 못했어요');
 }
 // 다른 앱 바로 열기 (같은 사이트 안 다른 화면, 따로 불러와서 업무 앱이 무거워지지 않음)
-const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appGns: ['📈', '성장', '/team/guinness.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'] }; // 심사 채점 (2026-11-14)
+// 2026-11-15 사용자 결정: 📈 성장(성장 측정지) 없앰 — 학부모 앱 '성장'이 기록·출석·심사로 저절로 채워짐, 띠·선범단은 원생 정보
+const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'] }; // 심사 채점 (2026-11-14)
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
 const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '선 모으기'], ['widget', '📱', '위젯'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
@@ -1932,7 +1933,7 @@ function kidSheet(id) {
     (s.status === '휴원' ? line('휴원', esc(kLp((s.leavePeriods || []).filter(p => !p.end)))) : '') +
     line('보호자', esc([s.guardian, kPhone(s.phone)].filter(Boolean).join(' ')) + (s.phone ? ' <a class="btn" href="tel:' + esc(s.phone) + '" style="padding:3px 10px;margin-left:6px;text-decoration:none;color:inherit">전화</a>' : '')) +
     line('다른 보호자', esc(kPhone(s.phone2 || ''))) +
-    line('띠', esc(s.belt || '')) + line('성별', esc(s.gender || '')) + line('생년월일', esc(s.bday ? s.bday + (s.lunar ? ' (음력)' : '') : '')) +
+    line('띠', esc((s.belt || '') + (s.sb ? ' · 선범단' : ''))) + line('성별', esc(s.gender || '')) + line('생년월일', esc(s.bday ? s.bday + (s.lunar ? ' (음력)' : '') : '')) +
     line('출석번호', esc(s.no || '')) + line('학교·유치원', esc([s.inst, s.cls ? s.cls + '반' : '', s.sno ? s.sno + '번' : ''].filter(Boolean).join(' '))) + line('주소', esc(s.addr || '')) + line('메모', esc(s.memo || '')) + '</div>' +
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
@@ -2177,6 +2178,7 @@ function kidEdit(s0, pre, after) {
     '<label class="f">이름</label><input class="inp" id="eName" value="' + esc(s.name) + '">' +
     '<label class="f">성별</label><div class="chips" id="eSex">' + ['남', '여'].map(x => '<button data-v="' + x + '" class="' + (s.gender === x ? 'on' : '') + '">' + x + '</button>').join('') + '</div>' +
     '<label class="f">띠 <small style="color:var(--muted)">(심사에 합격하면 자동으로 올라가요)</small></label><select class="inp" id="eBelt"><option value="">모름 · 비워 두기</option>' + KBELTS.map(v => '<option' + (s.belt === v ? ' selected' : '') + '>' + v + '</option>').join('') + '</select>' +
+    '<label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:15px"><input type="checkbox" id="eSb"' + (s.sb ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 선범단이에요</label>' +
     '<label class="f">생년월일</label><input type="date" class="inp" id="eBday" value="' + esc(s.bday || '') + '">' +
     '<label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:14px"><input type="checkbox" id="eLunar"' + (s.lunar ? ' checked' : '') + ' style="width:18px;height:18px;accent-color:var(--brand)"> 음력이에요 <small style="color:var(--muted)">(음력이면 제자 모드 생일 축하는 안 떠요)</small></label>' +
     '<label class="f">출생연도 <small style="color:var(--muted)">(생년월일을 넣으면 자동)</small></label><select class="inp" id="eBirth"><option value="">선택해 주세요</option>' + years.map(v => '<option value="' + v + '"' + (+s.birth === v ? ' selected' : '') + '>' + v + '년생</option>').join('') + '</select>' +
@@ -2205,7 +2207,7 @@ function kidEdit(s0, pre, after) {
     g('eSave').onclick = async () => {
       s.name = g('eName').value.replace(/\s+/g, ''); s.birth = +g('eBirth').value || '';
       // 원생 정보 칸 (2026-11-14): 생년월일·음력·반·번호·주소
-      s.bday = g('eBday').value || ''; s.lunar = g('eLunar').checked; if (s.bday) s.birth = +s.bday.slice(0, 4); s.cls = g('eCls').value.trim(); s.sno = g('eSno').value.replace(/\D/g, ''); s.addr = g('eAddr').value.trim(); s.joined = g('eJoin').value; s.phone = g('ePhone').value.replace(/\D/g, ''); s.phone2 = g('ePhone2').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4); s.inst = g('eInst').value.trim(); s.memo = g('eMemo').value.trim(); s.noAsk = g('eNoAsk').checked; s.belt = g('eBelt').value; // 띠 (2026-11-15)
+      s.bday = g('eBday').value || ''; s.lunar = g('eLunar').checked; if (s.bday) s.birth = +s.bday.slice(0, 4); s.cls = g('eCls').value.trim(); s.sno = g('eSno').value.replace(/\D/g, ''); s.addr = g('eAddr').value.trim(); s.joined = g('eJoin').value; s.phone = g('ePhone').value.replace(/\D/g, ''); s.phone2 = g('ePhone2').value.replace(/\D/g, ''); s.no = g('eNo').value.replace(/\D/g, '').slice(0, 4); s.inst = g('eInst').value.trim(); s.memo = g('eMemo').value.trim(); s.noAsk = g('eNoAsk').checked; s.belt = g('eBelt').value; s.sb = g('eSb').checked; // 띠·선범단 (2026-11-15)
       if (!s.name) return toast('이름을 적어 주세요');
       if (s.no && s.no.length !== 4) return toast('출석번호는 4자리로 적어 주세요');
       const dup = (S.kids || []).find(x => x.name === s.name && (!s0 || x.id !== s0.id) && x.status !== '퇴관');
@@ -2215,6 +2217,7 @@ function kidEdit(s0, pre, after) {
       else {
         if (s0.name !== s.name) h.push('이름 변경: ' + s0.name + ' → ' + s.name);
         if ((s0.belt || '') !== (s.belt || '')) h.push('띠: ' + (s0.belt || '없음') + ' → ' + (s.belt || '없음'));
+        if (!!s0.sb !== !!s.sb) h.push(s.sb ? '선범단 임명' : '선범단 해제');
         if ((s0.days || []).join('') !== s.days.join('')) h.push('수련요일 변경: ' + ((s0.days || []).join('') || '없음') + ' → ' + (s.days.join('') || '없음'));
         const ch = [['birth', '출생연도'], ['joined', '입관일'], ['guardian', '보호자'], ['phone', '연락처'], ['phone2', '연락처2'], ['no', '출석번호'], ['inst', '어린이집·유치원'], ['memo', '메모']].filter(([k]) => String(s0[k] || '') !== String(s[k] || '')).map(([, n]) => n);
         if (ch.length) h.push('정보 수정: ' + ch.join(', '));
