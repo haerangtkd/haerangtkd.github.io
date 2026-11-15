@@ -192,7 +192,9 @@
   .ibv b{font-size:30px;font-weight:900;color:#3C4250;letter-spacing:-1px}.ibv b.t{font-size:19px;letter-spacing:0}.ibv i{font-style:normal;font-size:15px;color:#6B7280;margin-left:2px}
   .ibd{display:inline-block;margin-top:6px;background:#F1F3F6;color:#6B7280;border-radius:8px;padding:3px 8px;font-size:12.5px;font-weight:800}.ibv .ibd{display:block;width:max-content}.ibd.up{background:#E6F5EE;color:#1E7A46}.ibd.dn{background:#FFF0E3;color:#C2672B}
   .ibbar .trk{position:relative;height:16px;border-radius:8px;background:#E6E9EE;overflow:hidden}.ibbar .trk i{position:absolute;left:0;top:0;bottom:0;background:#45B795;border-radius:8px}.ibbar .trk em{position:absolute;top:0;bottom:0;width:2px;background:#fff}
-  .ibbar .lab{display:flex;margin-top:6px}.ibbar .lab span{flex:1;text-align:center;font-size:11.5px;color:#B3B8C2}.ibbar .lab span.on{color:#1E7A46;font-weight:800}
+  .ibbar .lab{display:flex;margin-top:6px}.ibbar .lab span{flex:1;text-align:center;font-size:11.5px;white-space:nowrap;letter-spacing:-.3px;color:#B3B8C2}.ibbar .lab span.on{color:#1E7A46;font-weight:800}
+  .gtot{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#A40F16,#C9302C);color:#fff;border-radius:20px;padding:16px 18px;margin-top:12px}.gtot .n{font-size:46px;font-weight:900;letter-spacing:-1.5px;line-height:1}.gtot .n i{font-style:normal;font-size:17px;margin-left:2px}.gtot small{display:block;font-size:12.5px;opacity:.85}.gtot b{font-size:16px}.gtot em{display:inline-block;margin-top:6px;font-style:normal;font-size:12.5px;font-weight:800;background:rgba(255,255,255,.2);border-radius:8px;padding:3px 8px}
+  .ibv .pre{font-size:19px;color:#A39A93}.ibv small{display:block;font-size:12px;color:#6B7280;font-weight:700;margin-top:2px}.ibbar .trk em.m{background:#fff}
   .ibt{margin:8px 0 0;font-size:13.5px;line-height:1.55;color:#3C4250;background:#F7F8FA;border-radius:10px;padding:8px 10px}
   .ibs{margin-top:6px;font-size:12px;color:#6B7280}.ibs summary{cursor:pointer;font-weight:700;list-style:none}.ibs summary::-webkit-details-marker{display:none}
   .ibc .gch small b{font-size:13px}.ibc .gch small b.c3{color:#1E7A46}.ibc .gch small b.c2{color:#2F6FDE}.ibc .gch small b.c1{color:#C2672B}
@@ -1505,6 +1507,10 @@
     ['어려운 동작 앞에서 망설였어요. 집에서도 함께 응원해 주세요.', '어려워도 포기하지 않고 끝까지 도전했어요.', '실패해도 스스로 다시 도전하며 자신 있게 표현했어요.'],
     ['혼자 하는 것이 더 편했어요. 친구와 함께하는 경험을 늘려가요.', '친구와 사이좋게 어울리며 함께 수련했어요.', '친구를 먼저 응원하고 도와주며 분위기를 밝게 만들었어요.']];
   const GLB = ['성장 중이에요', '잘해요', '아주 잘해요'];
+  // 100점 성장 점수 (2026-11-15 사용자 결정): 90점 이상 아주 잘해요 · 70점 이상 잘해요, 기록이 없으면 '측정 전' · 해랑 성장 점수 = 평균
+  const lvS = v => v == null ? 2 : v >= 90 ? 3 : v >= 70 ? 2 : 1;
+  const gPos = v => v == null ? 0 : v <= 50 ? 4 : v <= 70 ? (v - 50) / 20 * 30 : v <= 90 ? 30 + (v - 70) / 20 * 40 : 70 + (v - 90) / 10 * 30; // 막대 위치: 성장 중 30% · 잘해요 40% · 아주 잘해요 30%
+  const perSc = (q, bLv) => q.sc && q.sc.length === 5 ? q.sc : [{ 1: 60, 2: 80, 3: 95 }[bLv] || null, ...q.att.map(x => ({ '성장 중이에요': 60, '잘해요': 80, '아주 잘해요': 95 })[x] || null)];
   const gNum = v => v != null && typeof v !== 'object' && !isNaN(+v);
   const gFmt = v => (Math.round(+v * 10) / 10).toString();
   function gEvStat(ev, rec) { // 한 종목: 달마다 기록, 첫 기록 → 최고 기록
@@ -1526,20 +1532,22 @@
       on.map((p, i) => { const top = i === on.length - 1; return '<circle cx="' + p.x + '" cy="' + Y(p.v) + '" r="6" fill="' + (top ? 'var(--brand)' : '#6E7D91') + '"/><text x="' + p.x + '" y="' + (Y(p.v) - 12) + '" text-anchor="middle" font-size="13" font-weight="800" fill="#1C1A19">' + gFmt(p.v) + '</text>'; }).join('') +
       pts.map((p, i) => '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="#8A827C">' + p.m + '월' + (p.fail ? ' ✕' : '') + '</text>').join('') + '</svg>';
   }
-  function gRadar(vals, labels) { // 5가지 요소 오각형 (인바디 '부위별 분석'처럼), vals 1~3
+  function gRadar(vals, labels, scs) { // 5가지 요소 오각형 (인바디 '부위별 분석'처럼), vals 1~3 · scs = 100점 점수(있으면 그것으로 그림)
     const C = 130, R = 92, ang = i => -Math.PI / 2 + i * 2 * Math.PI / 5, P = (i, r) => [C + Math.cos(ang(i)) * r, C + 10 + Math.sin(ang(i)) * r];
     const ring = k => '<polygon points="' + [0, 1, 2, 3, 4].map(i => P(i, R * k / 3).map(n => n.toFixed(1)).join(',')).join(' ') + '" fill="' + (k === 3 ? '#F7F4F0' : 'none') + '" stroke="#E4DCD4"/>';
-    const poly = vals.map((v, i) => P(i, R * Math.max(.35, v) / 3).map(n => n.toFixed(1)).join(',')).join(' ');
+    const poly = vals.map((v, i) => P(i, scs ? R * Math.max(.3, ((scs[i] ?? 75) - 30) / 70) : R * Math.max(.35, v) / 3).map(n => n.toFixed(1)).join(',')).join(' ');
     const lab = (i, t, lv) => { const [x, y] = P(i, R + 26); return '<text x="' + x + '" y="' + (y - 4) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="#1C1A19">' + esc(t) + '</text><text x="' + x + '" y="' + (y + 11) + '" text-anchor="middle" font-size="11" font-weight="700" fill="' + (lv === 3 ? '#1E7A46' : lv === 2 ? '#2F6FDE' : '#C2672B') + '">' + esc(labels[i]) + '</text>'; };
     return '<svg class="gradar" viewBox="-30 -6 320 290">' + ring(3) + ring(2) + ring(1) + [0, 1, 2, 3, 4].map(i => '<line x1="' + C + '" y1="' + (C + 10) + '" x2="' + P(i, R)[0] + '" y2="' + P(i, R)[1] + '" stroke="#E4DCD4"/>').join('') +
       '<polygon points="' + poly + '" fill="rgba(164,15,22,.22)" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round"/>' + G5.map((t, i) => lab(i, t, vals[i])).join('') + '</svg>';
   }
-  function gLv(pts) { // 한 요소의 달마다 단계 꺾은선 (2026-11-15: 요약 = 오각형, 성장 측정 = 요소마다 꺾은선)
-    const W = 320, H = 132, n = pts.length, X = i => n > 1 ? 34 + i * (W - 60) / (n - 1) : W / 2, Y = v => 28 + (3 - v) * (H - 60) / 2, COL = { 1: '#C2672B', 2: '#2F6FDE', 3: '#1E7A46' };
-    const path = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.v).toFixed(1)).join(' ');
-    return '<svg class="gline" viewBox="0 0 ' + W + ' ' + H + '">' + [3, 2, 1].map(v => '<line x1="30" x2="' + (W - 10) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#EEE9E4"/><text x="2" y="' + (Y(v) + 4) + '" font-size="10" fill="#A39A93">' + ['', '성장중', '잘해요', '아주'][v] + '</text>').join('') +
+  function gLv(pts) { // 한 요소의 달마다 점수 꺾은선 (2026-11-15: 100점 점수, 점수 없는 달은 빼고)
+    pts = pts.filter(p => p.s != null); if (!pts.length) return '<p class="note" style="margin:6px 2px">기록이 생기면 변화가 그려져요</p>';
+    const W = 320, H = 132, n = pts.length, X = i => n > 1 ? 34 + i * (W - 60) / (n - 1) : W / 2, Y0 = v => 28 + (100 - v) / 50 * (H - 60), COL = { 1: '#C2672B', 2: '#2F6FDE', 3: '#1E7A46' };
+    pts = pts.map(p => ({ ...p, v: lvS(p.s), y: Y0(Math.max(50, Math.min(100, p.s))), t: p.s + '점' })); const Y = v => Y0([0, 60, 80, 100][v]);
+    const path = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+    return '<svg class="gline" viewBox="0 0 ' + W + ' ' + H + '">' + [100, 90, 70, 50].map(v => '<line x1="30" x2="' + (W - 10) + '" y1="' + Y0(v) + '" y2="' + Y0(v) + '" stroke="#EEE9E4"' + (v === 90 || v === 70 ? ' stroke-dasharray="4 4"' : '') + '/><text x="2" y="' + (Y0(v) + 4) + '" font-size="10" fill="#A39A93">' + v + '</text>').join('') +
       (n > 1 ? '<path d="' + path + '" fill="none" stroke="#D9D3CC" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' : '') +
-      pts.map((p, i) => '<circle cx="' + X(i) + '" cy="' + Y(p.v) + '" r="' + (i === n - 1 ? 7 : 5.5) + '" fill="' + COL[p.v] + '"/>' + (p.t && i === n - 1 ? '<text x="' + Math.min(X(i), W - 40) + '" y="' + (Y(p.v) - 11) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="' + COL[p.v] + '">' + esc(p.t) + '</text>' : '') +
+      pts.map((p, i) => '<circle cx="' + X(i) + '" cy="' + p.y + '" r="' + (i === n - 1 ? 7 : 5.5) + '" fill="' + COL[p.v] + '"/>' + (p.t ? '<text x="' + Math.min(X(i), W - 40) + '" y="' + (p.y - 11) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="' + COL[p.v] + '">' + esc(p.t) + '</text>' : '') +
         '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11.5" fill="#8A827C">' + p.m + '월</text>').join('') + '</svg>';
   }
   function gBars(att, k) { // 달마다 출석 일수 막대 (최근 12달)
@@ -1575,32 +1583,35 @@
       '<button data-gf="성장 측정"><small>' + esc(lastEv ? lastEv.name : '성장 측정') + '</small><b>' + (lastSt && lastSt.best ? gFmt(lastSt.best.v) + '<i>' + esc(lastEv.unit) + '</i>' : '–') + '</b><em class="' + (lastSt && lastSt.d > 0 ? 'up' : 'ok') + '">' + (lastSt ? lastSt.d > 0 ? (lastEv.lower ? '−' : '+') + gFmt(lastSt.d) + ' ▲' : '최고 기록' : '측정 전') + '</em></button>' +
       (lastX ? '<button data-gf="심사"><small>' + (+lastX.month.slice(5)) + '월 심사</small><b class="sm">' + (lastX.absent ? '쉬었어요' : lastX.nb ? esc(lastX.nb) : lastX.pass ? '합격' : '다시 도전') + '</b><em class="' + (lastX.absent ? 'wait' : lastX.pass ? 'up' : 'ok') + '">' + (lastX.absent ? '다음 달에' : lastX.nb ? '새 띠 🎉' : lastX.pass ? '합격' : '응원해요') + '</em></button></div>'
         : '<button data-gf="심사"><small>심사</small><b class="sm">심사 전</b><em class="wait">곧 나와요</em></button></div>');
+    const totOf = q => { if (!q) return null; if (q.total !== undefined) return q.total; const ev = evAt(q.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null), v = perSc(q, b.lv).filter(z => z != null); return v.length ? Math.round(v.reduce((a2, z) => a2 + z, 0) / v.length) : null; };
+    const totCard = () => { const t = totOf(per), pt = pi > 0 ? totOf(P[pi - 1]) : null, d = t != null && pt != null ? t - pt : null; if (t == null) return '';
+      return '<div class="gtot"><div class="n">' + t + '<i>점</i></div><div><small>' + (+per.month.slice(5)) + '월 해랑 성장 점수 · 5가지 요소 평균</small><b>' + GLB[lvS(t) - 1] + '</b><br><em>' + (d == null ? '첫 달이에요' : d > 0 ? '지난달보다 ▲ ' + d + '점' : d < 0 ? '지난달보다 ▼ ' + -d + '점' : '지난달과 같아요') + '</em></div></div>'; };
     const factors = () => {
       if (!per) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>'; // 2026-11-15: 성장 측정지 없앰 → 서버가 달마다 자동으로 만듦
-      const ev = evAt(per.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null), vals = [b.lv, ...per.att.map(x => GLV[x] || 1)], labels = [b.t, ...per.att];
-      return '<section class="gcard"><div class="gch"><b>성장에 영향을 주는 5가지 요소</b>' + (P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>') + '</div>' +
-        gRadar(vals, labels) + '<div class="glv">' + G5.map((t, i) => '<div><span>' + t + '</span><b class="l' + vals[i] + '">' + esc(labels[i]) + '</b></div>').join('') + '</div>' +
-        '<p class="note" style="margin:8px 2px 0">5가지 요소는 기록·출석·심사로 저절로 정해져요. <a data-gf="성장 측정" style="color:var(--brand);font-weight:800">어디서 정했는지 보기 ›</a></p>' +
+      const ev = evAt(per.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null), sc = perSc(per, b.lv), vals = sc.map(lvS), labels = sc.map(v => v == null ? '측정 전' : v + '점 · ' + GLB[lvS(v) - 1].replace('이에요', ''));
+      return totCard() + '<section class="gcard"><div class="gch"><b>성장에 영향을 주는 5가지 요소</b>' + (P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>') + '</div>' +
+        gRadar(vals, labels, sc) + '<div class="glv">' + G5.map((t, i) => '<div><span>' + t + '</span><b class="l' + vals[i] + '">' + esc(labels[i]) + '</b></div>').join('') + '</div>' +
+        '<p class="note" style="margin:8px 2px 0">5가지 요소는 기록·출석·심사로 저절로 점수가 정해져요 (90점 이상 아주 잘해요 · 70점 이상 잘해요). <a data-gf="성장 측정" style="color:var(--brand);font-weight:800">어디서 정했는지 보기 ›</a></p>' +
         '<div class="gcm"><b>사범님 한마디</b><p>' + esc(per.cm) + '</p></div></section>';
     };
     const gRows = () => { // 인바디 '상세'와 '변화'처럼 (2026-11-15 사용자 영상): 요소마다 큰 값 · 지난달보다 · 3칸 막대 + 달마다 꺾은선, 맨 아래 결과지
       if (!per) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>';
-      const L = P.slice(Math.max(0, pi - 5), pi + 1).map(q => { const ev = evAt(q.month), st = ev ? gEvStat(ev, kid.rec) : null, b = gBody(ev, st); return { m: +q.month.slice(5), ym: q.month, v: [b.lv, ...q.att.map(x => GLV[x] || 1)], t: [b.t, ...q.att], s: [b.src, ...(q.src || [])], ev, st }; });
+      const L = P.slice(Math.max(0, pi - 5), pi + 1).map(q => { const ev = evAt(q.month), st = ev ? gEvStat(ev, kid.rec) : null, b = gBody(ev, st), sc = perSc(q, b.lv); return { m: +q.month.slice(5), ym: q.month, sc, v: sc.map(lvS), t: [b.t, ...q.att], s: [b.src, ...(q.src || [])], ev, st }; });
       const cur = L[L.length - 1], prev = L[L.length - 2] || null, nav = P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>';
-      const big = i => { if (i === 0 && cur.st && cur.st.best) return '<b>' + gFmt(cur.st.best.v) + '</b><i>' + esc(cur.ev.unit) + '</i>'; if (i === 0) return '<b class="t">' + esc(cur.t[0]) + '</b>'; return '<b class="t">' + esc(cur.t[i]) + '</b>'; };
-      const diff = i => { if (i === 0) return cur.st && cur.st.d > 0 ? '<span class="ibd up">' + (cur.ev.lower ? '−' : '+') + gFmt(cur.st.d) + '</span>' : ''; if (!prev) return ''; const d = cur.v[i] - prev.v[i]; return '<span class="ibd ' + (d > 0 ? 'up' : d < 0 ? 'dn' : '') + '">' + (d > 0 ? '▲ ' + d + '단계' : d < 0 ? '▼ ' + -d + '단계' : '지난달과 같아요') + '</span>'; };
-      const bar = lv => '<div class="ibbar"><div class="trk"><i style="width:' + [0, 26, 60, 100][lv] + '%"></i><em style="left:33.3%"></em><em style="left:66.6%"></em></div><div class="lab"><span' + (lv === 1 ? ' class="on"' : '') + '>성장 중</span><span' + (lv === 2 ? ' class="on"' : '') + '>잘해요</span><span' + (lv === 3 ? ' class="on"' : '') + '>아주 잘해요</span></div></div>';
-      let h = '<div class="gch" style="margin:12px 4px 0"><b>' + (+per.month.slice(5)) + '월 상세</b>' + nav + '</div><section class="gcard ibx">' + G5.map((g, i) => '<div class="ib"><div class="ibh"><b>' + String(i + 1).padStart(2, '0') + ' ' + g + '</b><small>' + GD[i] + '</small></div>' +
-        '<div class="ibr"><div class="ibv">' + big(i) + diff(i) + '</div>' + bar(cur.v[i]) + '</div>' + (i ? '<p class="ibt">' + esc(GT[i][cur.v[i] - 1]) + '</p>' : '') +
+      const big = i => { const v = cur.sc[i]; if (v == null) return '<b class="pre">측정 전</b>'; return '<b>' + v + '</b><i>점</i>' + (i === 0 && cur.st && cur.st.best ? '<small>최고 ' + gFmt(cur.st.best.v) + esc(cur.ev.unit) + (cur.st.d > 0 ? ' (' + (cur.ev.lower ? '−' : '+') + gFmt(cur.st.d) + ')' : '') + '</small>' : ''); };
+      const diff = i => { if (!prev || cur.sc[i] == null || prev.sc[i] == null) return ''; const d = cur.sc[i] - prev.sc[i]; return '<span class="ibd ' + (d > 0 ? 'up' : d < 0 ? 'dn' : '') + '">' + (d > 0 ? '▲ ' + d + '점' : d < 0 ? '▼ ' + -d + '점' : '지난달과 같아요') + '</span>'; };
+      const bar = v => { const lv = lvS(v); return '<div class="ibbar"><div class="trk">' + (v != null ? '<i style="width:' + gPos(v).toFixed(1) + '%"></i>' : '') + '<em class="m" style="left:30%"></em><em class="m" style="left:70%"></em></div><div class="lab"><span style="flex:30"' + (v != null && lv === 1 ? ' class="on"' : '') + '>성장 중</span><span style="flex:40"' + (v != null && lv === 2 ? ' class="on"' : '') + '>잘해요</span><span style="flex:30"' + (v != null && lv === 3 ? ' class="on"' : '') + '>아주 잘해요</span></div></div>'; };
+      let h = totCard() + '<div class="gch" style="margin:12px 4px 0"><b>' + (+per.month.slice(5)) + '월 상세</b>' + nav + '</div><section class="gcard ibx">' + G5.map((g, i) => '<div class="ib"><div class="ibh"><b>' + String(i + 1).padStart(2, '0') + ' ' + g + '</b><small>' + GD[i] + '</small></div>' +
+        '<div class="ibr"><div class="ibv">' + big(i) + diff(i) + '</div>' + bar(cur.sc[i]) + '</div>' + (i && cur.sc[i] != null ? '<p class="ibt">' + esc(GT[i][cur.v[i] - 1]) + '</p>' : '') +
         '<details class="ibs"><summary>📍 어디서 정했나요</summary>' + esc(cur.s[i] || '기록이 아직 없어서 기본으로 정했어요') + '</details></div>').join('') + '</section>';
-      h += '<div class="gch" style="margin:16px 4px 0"><b>변화</b><small>최근 ' + L.length + '달</small></div>' + G5.map((g, i) => '<section class="gcard ibc"><div class="gch"><b>' + g + '</b><small>' + cur.m + '월 · <b class="c' + cur.v[i] + '">' + esc(i === 0 && cur.st && cur.st.best ? gFmt(cur.st.best.v) + cur.ev.unit : cur.t[i]) + '</b></small></div>' +
-        (i === 0 && cur.ev && cur.st ? gLine(cur.ev, cur.st) : L.length > 1 ? gLv(L.map(x => ({ m: x.m, v: x.v[i], t: x.t[i] }))) : '<p class="note" style="margin:6px 2px">다음 달부터 변화가 그려져요</p>') + '</section>').join('');
+      h += '<div class="gch" style="margin:16px 4px 0"><b>변화</b><small>최근 ' + L.length + '달</small></div>' + G5.map((g, i) => '<section class="gcard ibc"><div class="gch"><b>' + g + '</b><small>' + cur.m + '월 · <b class="c' + cur.v[i] + '">' + (cur.sc[i] == null ? '측정 전' : cur.sc[i] + '점') + '</b></small></div>' +
+        (L.filter(x => x.sc[i] != null).length > 1 ? gLv(L.map(x => ({ m: x.m, s: x.sc[i] }))) : '<p class="note" style="margin:6px 2px">다음 달부터 점수 변화가 그려져요</p>') + (i === 0 && cur.ev && cur.st ? '<p class="note" style="margin:8px 2px 0">' + esc(cur.ev.name) + ' 기록</p>' + gLine(cur.ev, cur.st) : '') + '</section>').join('');
       h += '<div class="gch" style="margin:16px 4px 0"><b>결과지</b><small>누르면 크게 · 사진으로 저장</small></div><button class="gsheet" data-gsheet><img id="gShImg" alt="' + esc(k) + ' ' + (+per.month.slice(5)) + '월 성장 측정 결과지"><span class="zoom">🔍</span></button>';
       return h;
     };
     // 결과지 사진 (예전 성장 측정지 모양, 캔버스로 그림 — 저장만, 따로 보내지 않음)
     const gSheet = () => {
-      const L = P.slice(Math.max(0, pi - 5), pi + 1), ev = evAt(per.month), st = ev ? gEvStat(ev, kid.rec) : null, b = gBody(ev, st), lv = [b.lv, ...per.att.map(x => GLV[x] || 1)], tx = [b.t, ...per.att];
+      const ev = evAt(per.month), st = ev ? gEvStat(ev, kid.rec) : null, b = gBody(ev, st), sc = perSc(per, b.lv), lv = sc.map(lvS), tx = sc.map(v => v == null ? '측정 전' : v + '점 · ' + GLB[lvS(v) - 1]), tot = totOf(per);
       const W = 816, H = 1056, c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2; const g = c.getContext('2d'); g.scale(2, 2);
       const A = '#9E1B1F', N = '#13305E', F = 'Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
       const T = (t, x, y, sz, col, w, al) => { g.font = (w || 400) + ' ' + sz + 'px ' + F; g.fillStyle = col || '#1E1E1E'; g.textAlign = al || 'left'; g.fillText(t, x, y); };
@@ -1609,11 +1620,11 @@
       g.fillStyle = '#FBF7F0'; g.fillRect(0, 0, W, H); g.fillStyle = A; g.fillRect(0, 0, W, 104);
       T('HAERANG KYUNGHEE TAEKWONDO', 48, 36, 12, 'rgba(255,255,255,.88)', 500); T('성장 측정 결과지', 48, 80, 32, '#fff', 900); T((+per.month.slice(0, 4)) + '년 ' + (+per.month.slice(5)) + '월', 330, 80, 18, '#fff', 700);
       T('수련생', W - 48, 50, 12, 'rgba(255,255,255,.85)', 400, 'right'); T(k, W - 48, 82, 26, '#fff', 900, 'right');
-      T('성장에 영향을 주는 5가지 요소', 48, 146, 17, N, 900); T('기록 · 출석 · 심사로 저절로 정해져요', W - 48, 146, 12, '#5C5C5C', 400, 'right');
+      T('성장에 영향을 주는 5가지 요소', 48, 146, 17, N, 900); T(tot != null ? '해랑 성장 점수 ' + tot + '점 (5가지 평균)' : '기록 · 출석 · 심사로 저절로 정해져요', W - 48, 146, tot != null ? 15 : 12, tot != null ? A : '#5C5C5C', tot != null ? 900 : 400, 'right');
       let y = 162; G5.forEach((nm, i) => { rr(48, y, W - 96, 88, 10, '#fff', '#D9D3CA');
         T(String(i + 1).padStart(2, '0') + ' ' + nm, 64, y + 28, 15, A, 900); T(tx[i], 300, y + 28, 15, '#1E1E1E', 800);
-        [1, 2, 3].forEach(j => rr(440 + (j - 1) * 98, y + 17, 92, 12, 6, j <= lv[i] ? N : '#DCD3C5'));
-        wrap(GD[i], 64, y + 54, 340, 12, '#5C5C5C', 17); if (i) wrap(GT[i][lv[i] - 1], 440, y + 54, 290, 12, '#2B2B2B', 17); else if (b.src) wrap(b.src.replace(/^🏆 /, ''), 440, y + 54, 290, 12, '#2B2B2B', 17);
+        rr(440, y + 17, 290, 12, 6, '#DCD3C5'); if (sc[i] != null) rr(440, y + 17, Math.max(12, 290 * gPos(sc[i]) / 100), 12, 6, N); g.fillStyle = '#fff'; g.fillRect(440 + 290 * .3, y + 17, 2, 12); g.fillRect(440 + 290 * .7, y + 17, 2, 12);
+        wrap(GD[i], 64, y + 54, 340, 12, '#5C5C5C', 17); if (i && sc[i] != null) wrap(GT[i][lv[i] - 1], 440, y + 54, 290, 12, '#2B2B2B', 17); else if (b.src) wrap(b.src.replace(/^🏆 /, ''), 440, y + 54, 290, 12, '#2B2B2B', 17);
         y += 98; });
       y += 8; T('올해 나의 성장 기록', 48, y + 14, 15, A, 700); y += 28; g.fillStyle = '#D9D3CA'; g.fillRect(48, y, W - 96, 1); y += 22;
       const evL = evs.map(e => ({ e, st: gEvStat(e, kid.rec) })).filter(x => x.st);

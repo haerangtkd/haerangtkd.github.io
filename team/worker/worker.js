@@ -338,6 +338,15 @@ async function route(path, req, env, ctx) {
           if (row) { const L = qMonths(mo).map(m => row.m[m] || { o: 0, tot: 0 }); an = L.reduce((s, z) => s + z.o, 0); at = L.reduce((s, z) => s + z.tot, 0); if (at > 0) { an = Math.min(an, at); pct = Math.round(an / at * 100); } else { an = at = null; } }
           if (pct == null && x.an != null && x.an !== '' && +x.at > 0) { an = +x.an; at = +x.at; pct = Math.round(an / at * 100); } else if (pct == null && x.rate != null && x.rate !== '') pct = Math.round(+x.rate);
           if (pct != null) { a[1] = lvA(pct); const ql = qMonths(mo); src[1] = '📋 출석부 출석률 ' + pct + '%' + (an != null && at ? ' (' + (ql.length > 1 ? +ql[0].slice(5) + '~' + (+mo.slice(5)) : +mo.slice(5)) + '월 ' + an + '/' + at + '회, 휴관일 빼고)' : ''); }
+          // 100점 성장 점수 (2026-11-15 사용자 결정): 90점 이상 아주 잘해요 · 70점 이상 잘해요 · 그 아래 성장 중이에요, 기록이 없으면 null(측정 전)
+          const OLD = { '성장 중이에요': 60, '잘해요': 80, '아주 잘해요': 95 }, sc = [null, ...a.map(v => v ? OLD[v] || null : null)];
+          [['v0', 1], ['v2', 3], ['v3', 4]].forEach(([k2, j]) => { if (au[k2] != null) sc[j] = au[k2]; });
+          if (pct != null) sc[2] = Math.round(pct >= hi ? 90 + (pct - hi) / Math.max(1, 100 - hi) * 10 : pct >= mid ? 70 + (pct - mid) / Math.max(1, hi - mid) * 20 : 50 + pct / Math.max(1, mid) * 20);
+          { const ev = evs.find(e => (e.months || []).includes(+mo.slice(5))), ms = ev ? (ev.months || []).filter(m => m <= +mo.slice(5)).map(m => (rec[ev.name] || {})[m]).filter(v => v != null) : [], nv = ms.filter(v => typeof v !== 'object' && !isNaN(+v)).map(Number);
+            if (nv.length) { const f = nv[0], bst = ev.lower ? Math.min(...nv) : Math.max(...nv), d = ev.lower ? f - bst : bst - f, r = f ? d / Math.abs(f) : (d > 0 ? .1 : 0); sc[0] = nv.length === 1 ? 70 : Math.min(100, 70 + Math.round(r * 200)); } // 내 첫 기록 대비 (10% 좋아지면 90점)
+            else if (ms.length) sc[0] = 60; } // 도전만 했어요
+          sc.forEach((v, j) => { if (v != null && j > 0) a[j - 1] = v >= 90 ? '아주 잘해요' : v >= 70 ? '잘해요' : '성장 중이에요'; });
+          const scv = sc.filter(v => v != null), total = scv.length ? Math.round(scv.reduce((s2, z) => s2 + z, 0) / scv.length) : null; // 해랑 성장 점수 = 기록이 있는 요소의 평균
           for (let j = 0; j < 4; j++) if (!a[j]) { a[j] = '잘해요'; src[j] = j === 1 ? '출석 기록이 아직 없어서 기본으로 잘해요' : '이번 분기 심사 기록이 아직 없어서 기본으로 잘해요'; }
           // 한마디: 손으로 쓴 것이 있으면 그대로, 없으면 자동
           let cm = String(x.cm || '').trim(), auto = false;
@@ -349,7 +358,7 @@ async function route(path, req, env, ctx) {
             let pool = bank.filter(c => c.cat === cat); if (!pool.length) pool = bank; const p2 = pool.filter(c => c.text !== prevCm); if (p2.length) pool = p2;
             cm = pool.length ? pool[hsh(n + mo) % pool.length].text : '이번 달도 열심히 수련했어요. 다음 달도 함께 성장해요!'; }
           prevCm = cm;
-          ps.push({ month: mo, att: a, src, cm: fill(cm, n).slice(0, 600), auto, pct, an, at, exam: au.n || 0 });
+          ps.push({ month: mo, att: a, sc, total, src, cm: fill(cm, n).slice(0, 600), auto, pct, an, at, exam: au.n || 0 });
         }
         kids.push({ name: n, rec, periods: ps, exams: examList(ex, who) });
       }
@@ -1332,6 +1341,7 @@ function examAuto(ex, who, month) {
   const mlab = ms.length ? (ms.length > 1 ? ms[0] + '~' + ms[ms.length - 1] : ms[0]) + '월 심사' : '';
   Object.keys(acc).forEach(a => { const ks = Object.keys(acc[a]); if (!ks.length) return; const all1 = ks.flatMap(k => acc[a][k].map(x => x.g)), avg = all1.reduce((s, z) => s + z, 0) / all1.length;
     out[a] = avg >= 0.8 ? '아주 잘해요' : avg >= 0.4 ? '잘해요' : '성장 중이에요';
+    out[a.replace('a', 'v')] = Math.round(50 + 50 * avg); // 100점 성장 점수 (2026-11-15): 훌륭해요 비율 0~1 → 50~100점, 90점 이상 아주 잘해요 · 70점 이상 잘해요
     out[a.replace('a', 's')] = '🏅 ' + mlab + ' · ' + ks.map(k => { const L = acc[a][k], n = L.length, g = L.filter(x => x.g >= (x.v2 ? 1 : 0.75)).length; return EXAM_NAME[k] + ' ' + (n === 1 ? (g ? '훌륭해요' : '연습이 필요해요') : '훌륭해요 ' + g + '/' + n + '번'); }).join(' · '); });
   return out;
 }
