@@ -457,10 +457,18 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const name = cleanNames([b.name])[0]; if (!name) return json({ ok: false, error: '이름' });
     if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', name))) return json({ ok: false, error: name + ' 학생은 알림 앱 명단에 없어요' });
-    const a = await one(env, 'SELECT tin FROM att WHERE day = ? AND name = ?', kstDay(new Date()), name);
-    if (a && a.tin) return json({ ok: true, already: true });
-    const r = await checkIn(env, name, 'in', false);
-    return json(r.ok ? { ok: true, sent: r.sent, total: r.total } : r);
+    const act = b.act === 'out' ? 'out' : 'in', force = !!b.force; // 출석부 '등·하원' 탭 (2026-11-16, 알림 관리 출결을 옮김): 하원도, 다시 보내기도
+    const a = await one(env, 'SELECT tin, tout FROM att WHERE day = ? AND name = ?', kstDay(new Date()), name);
+    if (!force && a && (act === 'in' ? a.tin : a.tout)) return json({ ok: true, already: true, time: act === 'in' ? a.tin : a.tout });
+    const r = await checkIn(env, name, act, false);
+    return json(r.ok ? { ok: true, sent: r.sent, total: r.total, time: r.time } : r);
+  }
+  if (path === '/sync/today-att') { // 출석부 '등·하원' 탭: 오늘 등원·하원 시각 + 알림 받을 보호자 수
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const at = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', kstDay(new Date())), ps = await all(env, 'SELECT kids FROM parents WHERE ok = 1'), g = {};
+    ps.forEach(p => J(p.kids, []).forEach(k => { g[k] = (g[k] || 0) + 1; }));
+    const kd = await all(env, 'SELECT name, sid FROM kids');
+    return json({ ok: true, list: kd.map(k => { const x = at.find(y => y.name === k.name) || {}; return { name: k.name, sid: k.sid || '', in: x.tin || '', out: x.tout || '', g: g[k.name] || 0 }; }) });
   }
   // 업무 앱: 숙제 올릴 때 학부모님께 알림 (대상 제자 또는 모두)
   if (path === '/sync/broadcast') {

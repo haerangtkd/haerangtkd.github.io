@@ -17,6 +17,8 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
   html{-webkit-text-size-adjust:100%}
+  html,body{overflow-x:hidden;overflow-x:clip;max-width:100%} /* 2026-11-16: 화면이 옆으로 밀려 한쪽으로 치우치던 것 */
+  input[type=date]{min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none} .row2>*{min-width:0}
   body{font-family:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
   button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
   input,select,textarea{font:inherit;color:var(--ink)}
@@ -213,6 +215,7 @@
       <button data-t="today" class="on">오늘 출석</button>
       <button data-t="students">원생 관리</button>
       <button data-t="manage">출결관리</button>
+      <button data-t="gate">등·하원</button>
       <!-- 월별 기록 탭은 2026-11-14 사용자 결정으로 뺌 (출석률은 원생 관리 목록에, 가로 PDF는 사범님 공간 → 관리자 칸에서 달을 골라 받음) -->
     </nav>
     <div class="crumb"><span class="t">해랑경희 / <b id="crumbT">출석 관리</b></span><span class="pill" id="savePill">저장됨</span><button class="obtn" id="spaceBtn">사범님 공간</button></div>
@@ -252,6 +255,12 @@
     </section>
 
     <!-- 출결관리 -->
+    <!-- 등·하원 (2026-11-16: 알림 관리 '출결'을 옮김) — 학부모 앱 등원·하원 시각 + 알림 보내기 -->
+    <section id="v-gate" hidden>
+      <div class="row2" style="margin-top:10px"><input type="search" class="inp" id="gQ" placeholder="이름 검색"><button class="sbtn" id="gRefresh">새로고침</button></div>
+      <p style="color:var(--muted);font-size:13.5px;margin:8px 2px">누르면 보호자 휴대폰에 등원·하원 알림이 가요 (학부모 앱에 기록). 태블릿을 안 누른 날에 써 주세요.</p>
+      <div class="card"><div id="gSum" style="padding:12px 14px 0;font-weight:700"></div><div id="gList" style="padding:6px 6px 10px"></div></div>
+    </section>
     <section id="v-manage" hidden>
       <div class="seg2" id="mSeg"><button data-m="list" class="on">학생들 명단</button><button data-m="trial">체험 수업</button></div>
       <div id="mList">
@@ -1258,7 +1267,7 @@ function askReason(title, cur) {
 }
 
 // ═════════════ 탭 · 그리기 ═════════════
-const TITLES = { today: '출석 관리', students: '원생 관리', manage: '출결 관리', month: '월별 기록' };
+const TITLES = { today: '출석 관리', students: '원생 관리', manage: '출결 관리', month: '월별 기록', gate: '등·하원 알림' };
 function setTab(t) {
   S.tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
@@ -1274,7 +1283,28 @@ function render() {
   if (S.tab === 'students') renderStudents();
   if (S.tab === 'manage') renderManage();
   if (S.tab === 'month') renderMonth();
+  if (S.tab === 'gate') renderGate();
 }
+// ═════════════ 등·하원 (알림 관리 '출결'을 옮김, 2026-11-16) ═════════════
+let GATE = null;
+async function renderGate(reload) {
+  if (!GATE || reload) { $('gList').innerHTML = '<p style="padding:14px;color:var(--muted)">불러오는 중…</p>'; const j = await api('/api/today-att', {}, true); GATE = j.ok ? j.list : null; if (!j.ok) { $('gList').innerHTML = '<p style="padding:14px;color:var(--muted)">' + esc(j.error || '불러오지 못했어요') + '</p>'; return; } }
+  const q = ($('gQ').value || '').replace(/\s+/g, ''), by = {}; GATE.forEach(x => { by[x.sid || ('n:' + x.name)] = x; });
+  const L = S.students.filter(s => s.status !== '퇴관').map(s => Object.assign({ id: s.id, name: s.name }, by[s.id] || GATE.find(x => x.name === s.name) || {})).filter(x => !q || x.name.includes(q))
+    .sort((a, b) => (!!b.in && !b.out) - (!!a.in && !a.out) || !!b.in - !!a.in || byName(a, b));
+  $('gSum').textContent = '지금 도장에 ' + GATE.filter(x => x.in && !x.out).length + '명 · 하원 ' + GATE.filter(x => x.out).length + '명';
+  $('gList').innerHTML = L.map(x => '<div style="display:flex;align-items:center;gap:6px;padding:9px 8px;border-bottom:1px solid var(--line)"><div style="flex:1;min-width:0"><b>' + esc(x.name) + '</b><div style="font-size:13px;color:var(--muted)">' + (x.out ? '등원 ' + esc(x.in || '-') + ' · 하원 ' + esc(x.out) : x.in ? '등원 ' + esc(x.in) : '보호자 ' + (x.g || 0) + '명') + '</div></div>' +
+    '<button class="sbtn" data-gi="' + esc(x.id) + '" data-ga="in"' + (x.in && !x.out ? ' style="background:#E7F4EC;border-color:#9FD3B2"' : '') + '>등원</button><button class="sbtn" data-gi="' + esc(x.id) + '" data-ga="out"' + (x.out ? ' style="background:#E7F4EC;border-color:#9FD3B2"' : '') + '>하원</button></div>').join('') || '<p style="padding:14px;color:var(--muted)">맞는 제자가 없어요</p>';
+}
+$('gQ').oninput = () => renderGate(); $('gRefresh').onclick = () => renderGate(true);
+$('gList').onclick = async e => {
+  const b = e.target.closest('[data-gi]'); if (!b) return; const x = (stById(b.dataset.gi) || {}), act = b.dataset.ga, g = (GATE || []).find(y => y.sid === x.id || y.name === x.name) || {};
+  const done = act === 'in' ? g.in && !g.out : g.out;
+  if (!confirm(x.name + ' ' + (act === 'in' ? '등원' : '하원') + ' 알림을 보호자께 보낼까요?' + (done ? '\n(오늘 이미 ' + (act === 'in' ? '등원 ' + g.in : '하원 ' + g.out) + ' 기록이 있어요)' : ''))) return;
+  b.disabled = true; const j = await api('/api/checkin-notify', { sid: x.id, act, force: true });
+  if (!j.ok) { b.disabled = false; return toast(j.error || '보내지 못했어요'); }
+  toast(!j.total ? x.name + ' 기록했어요 (알림 받을 휴대폰 없음)' : x.name + ' ' + (act === 'in' ? '등원' : '하원') + ' 알림을 보냈어요'); renderGate(true);
+};
 async function reloadAll() { S.att.clear(); S.months.clear(); S.ab.clear(); await boot(); await loadMonth(S.day.slice(0, 7)); render(); }
 
 // 다른 사범님이 바꾼 내용 받아 오기 (화면을 보고 있을 때만, 1분마다)

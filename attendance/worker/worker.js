@@ -419,7 +419,12 @@ async function route(path, req, env) {
   if (path === '/api/checkin-notify') { // 태블릿을 안 누른 제자 출석 + '등원 알림 보내기' → 학부모 앱에 등원으로 기록하고 알림
     const st = await one(env, 'SELECT data FROM students WHERE id = ?', str(b.sid, 60)); if (!st) return json({ ok: false, error: '원생을 찾지 못했어요' });
     if (!env.NOTICE || !env.SYNC_KEY) return json({ ok: false, error: '학부모 알림 앱이 연결되지 않았어요' });
-    try { const r = await env.NOTICE.fetch('https://notice/sync/teacher-checkin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify({ name: J(st.data, {}).name }) }); return json(await r.json()); }
+    try { const r = await env.NOTICE.fetch('https://notice/sync/teacher-checkin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify({ name: J(st.data, {}).name, act: b.act === 'out' ? 'out' : 'in', force: !!b.force }) }); return json(await r.json()); }
+    catch (_) { return json({ ok: false, error: '학부모 알림 앱에 연결하지 못했어요' }); }
+  }
+  if (path === '/api/today-att') { // '등·하원' 탭 (2026-11-16): 학부모 앱 등원·하원 시각
+    if (!env.NOTICE || !env.SYNC_KEY) return json({ ok: false, error: '학부모 알림 앱이 연결되지 않았어요' });
+    try { const r = await env.NOTICE.fetch('https://notice/sync/today-att', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: '{}' }); return json(await r.json()); }
     catch (_) { return json({ ok: false, error: '학부모 알림 앱에 연결하지 못했어요' }); }
   }
   if (path === '/api/student-delete') { // 원생 삭제는 관리자만 (2026-11-14 사용자 결정) — 학부모 앱·태블릿 쪽도 같이 지움
