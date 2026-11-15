@@ -193,6 +193,9 @@
   .ibd{display:inline-block;margin-top:6px;background:#F1F3F6;color:#6B7280;border-radius:8px;padding:3px 8px;font-size:12.5px;font-weight:800}.ibv .ibd{display:block;width:max-content}.ibd.up{background:#E6F5EE;color:#1E7A46}.ibd.dn{background:#FFF0E3;color:#C2672B}
   .ibbar .trk{position:relative;height:16px;border-radius:8px;background:#E6E9EE;overflow:hidden}.ibbar .trk i{position:absolute;left:0;top:0;bottom:0;background:#45B795;border-radius:8px}.ibbar .trk em{position:absolute;top:0;bottom:0;width:2px;background:#fff}
   .ibbar .lab{display:flex;margin-top:6px}.ibbar .lab span{flex:1;text-align:center;font-size:11.5px;white-space:nowrap;letter-spacing:-.3px;color:#B3B8C2}.ibbar .lab span.on{color:#1E7A46;font-weight:800}
+  .ibk{padding:16px 0 10px}.ibk .gsum{padding:0 18px}.ibkh{padding:0 18px}.ibkh b{font-size:16px;font-weight:800}.ibkh small{font-size:12px;color:#8F96A0;font-weight:500}.ibkp{display:flex;justify-content:flex-end;padding:8px 18px 0}.ibkp span{background:#F2F3F5;border-radius:8px;padding:5px 10px;font-size:12.5px;color:#6B7280}.ibkp span b{color:#2B2F36;margin-left:6px}
+  .ibsc{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:4px;scrollbar-width:none}.ibsc::-webkit-scrollbar{display:none}.ibch{display:block}
+  .ibtg{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#8F96A0;border:0;background:none;font:inherit}.ibtg i{width:34px;height:20px;border-radius:10px;background:#D5D8DD;position:relative;transition:.2s}.ibtg i:after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s}.ibtg.on i{background:var(--brand)}.ibtg.on i:after{left:16px}.ibtg b{color:#2B2F36}
   .gtot{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#A40F16,#C9302C);color:#fff;border-radius:20px;padding:16px 18px;margin-top:12px}.gtot .n{font-size:46px;font-weight:900;letter-spacing:-1.5px;line-height:1}.gtot .n i{font-style:normal;font-size:17px;margin-left:2px}.gtot small{display:block;font-size:12.5px;opacity:.85}.gtot b{font-size:16px}.gtot em{display:inline-block;margin-top:6px;font-style:normal;font-size:12.5px;font-weight:800;background:rgba(255,255,255,.2);border-radius:8px;padding:3px 8px}
   .ibv .pre{font-size:19px;color:#A39A93}.ibv small{display:block;font-size:12px;color:#6B7280;font-weight:700;margin-top:2px}.ibbar .trk em.m{background:#fff}
   .ibt{margin:8px 0 0;font-size:13.5px;line-height:1.55;color:#3C4250;background:#F7F8FA;border-radius:10px;padding:8px 10px}
@@ -1496,7 +1499,7 @@
     $('pBody').onclick = e => { const f = e.target.closest('[data-open]'); if (f) { const [tt, id] = f.dataset.open.split(':'); const x = (news[tt] || []).find(y => y.id === +id); if (x) openPost(x); } };
   }
   // ═════════ 📈 성장 리포트 (2026-11-14 사용자 요청: 성장 측정지를 인바디 앱처럼 리포트로 — 출석 · 성장 측정 · 심사(업무 앱 🏅 심사를 마감한 달)) ═════════
-  let growF = '요약', growD = null, growP = {}, growX = {};
+  let growF = '요약', growD = null, growP = {}, growX = {}, growAll = false;
   const GLV = { '성장 중이에요': 1, '잘해요': 2, '아주 잘해요': 3 };
   const G5 = ['몸의 기초', '집중과 자기조절', '끈기와 꾸준함', '자신감과 표현력', '배려와 리더십'];
   // 예전 결과지(claude.ai 아티팩트)의 글을 그대로 (2026-11-15 사용자: 아티팩트 내용 다 불러와 줘)
@@ -1520,18 +1523,21 @@
     const d = sc.length > 1 && best ? (ev.lower ? +sc[0].v - +best.v : +best.v - +sc[0].v) : 0;
     return { ms, sc, first: sc[0] || null, last: ms[ms.length - 1], best, d };
   }
-  function gLine(ev, st) { // 기록 꺾은선 (인바디 '변화'처럼)
-    const pts = ev.months.map(m => { const x = st.ms.find(y => y.m === m); return { m, v: x && gNum(x.v) ? +x.v : null, fail: x && !gNum(x.v) }; });
-    const vs = pts.filter(p => p.v != null).map(p => p.v); if (!vs.length) return '';
-    let lo = Math.min(...vs), hi = Math.max(...vs); if (lo === hi) { lo -= 1; hi += 1; } const pad = (hi - lo) * .25; lo -= pad; hi += pad;
-    const W = 320, H = 150, X = i => 30 + i * (W - 60) / Math.max(1, pts.length - 1), Y = v => 22 + (1 - (ev.lower ? (hi - v) / (hi - lo) : (v - lo) / (hi - lo))) * (H - 56);
-    const on = pts.map((p, i) => ({ ...p, x: X(i) })).filter(p => p.v != null);
-    const path = on.map((p, i) => (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + Y(p.v).toFixed(1)).join(' ');
-    return '<svg class="gline" viewBox="0 0 ' + W + ' ' + H + '">' + [0, 1, 2].map(i => '<line x1="14" x2="' + (W - 14) + '" y1="' + (22 + i * (H - 56) / 2) + '" y2="' + (22 + i * (H - 56) / 2) + '" stroke="#EEE9E4"/>').join('') +
-      '<path d="' + path + '" fill="none" stroke="#D9D3CC" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
-      on.map((p, i) => { const top = i === on.length - 1; return '<circle cx="' + p.x + '" cy="' + Y(p.v) + '" r="6" fill="' + (top ? 'var(--brand)' : '#6E7D91') + '"/><text x="' + p.x + '" y="' + (Y(p.v) - 12) + '" text-anchor="middle" font-size="13" font-weight="800" fill="#1C1A19">' + gFmt(p.v) + '</text>'; }).join('') +
-      pts.map((p, i) => '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="#8A827C">' + p.m + '월' + (p.fail ? ' ✕' : '') + '</text>').join('') + '</svg>';
-  }
+  // 인바디 '변화' 그래프처럼 (2026-11-15 사용자 영상): 회색 굵은 선 · 점마다 숫자 · 오르면 초록, 내리면 빨강 · 마지막 점 점선 · 칸이 넘치면 옆으로 밀기(최신이 먼저 보임)
+  function ibChart(pts, o) { o = o || {}; pts = pts.filter(p => p.v != null && !isNaN(+p.v)); if (!pts.length) return '<p class="note" style="margin:6px 2px">아직 기록이 없어요</p>';
+    const n = pts.length, GAP = 58, PADX = 30, W = Math.max(320, PADX * 2 + (n - 1) * GAP), H = 150, vs = pts.map(p => +p.v);
+    let lo = Math.min(...vs), hi = Math.max(...vs); if (lo === hi) { lo -= 1; hi += 1; } const pad = (hi - lo) * .35; lo -= pad; hi += pad;
+    const X = i => n === 1 ? W / 2 : PADX + i * (W - PADX * 2) / (n - 1), Y = v => 26 + (1 - (v - lo) / (hi - lo)) * (H - 58);
+    const better = (a, b) => o.lower ? a < b : a > b, col = i => { if (!i) return '#9AA3AE'; const a = vs[i], b = vs[i - 1]; return better(a, b) ? '#2FAE7C' : a === b ? (i > 1 ? col(i - 1) : '#9AA3AE') : '#E5484D'; };
+    const path = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(vs[i]).toFixed(1)).join(' '), lx = X(n - 1);
+    return '<div class="ibsc"><svg class="ibch" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+      '<line x1="' + lx + '" x2="' + lx + '" y1="8" y2="' + (H - 28) + '" stroke="#C9CDD3" stroke-dasharray="3 3"/>' +
+      (n > 1 ? '<path d="' + path + '" fill="none" stroke="#D5D8DD" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' : '') +
+      pts.map((p, i) => '<circle cx="' + X(i) + '" cy="' + Y(vs[i]) + '" r="4.6" fill="' + col(i) + '" stroke="#fff" stroke-width="1.5"/><text x="' + X(i) + '" y="' + (Y(vs[i]) - 10) + '" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3C4250">' + esc(p.t != null ? p.t : gFmt(p.v)) + '</text>' +
+        '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#8F96A0">' + esc(p.x) + '</text>').join('') + '</svg></div>'; }
+  function ibCard(title, unit, last, chart) { return '<section class="gcard ibk"><div class="ibkh"><b>' + esc(title) + (unit ? ' <small>(' + esc(unit) + ')</small>' : '') + '</b></div>' + (last ? '<div class="ibkp"><span>' + esc(last) + '</span></div>' : '') + chart + '</section>'; }
+  function gLine(ev, st) { // 기록 꺾은선
+    return ibChart(ev.months.map(m => { const x = st.ms.find(y => y.m === m); return { x: m + '월', v: x && gNum(x.v) ? +x.v : null }; }), { lower: ev.lower }); }
   function gRadar(vals, labels, scs) { // 5가지 요소 오각형 (인바디 '부위별 분석'처럼), vals 1~3 · scs = 100점 점수(있으면 그것으로 그림)
     const C = 130, R = 92, ang = i => -Math.PI / 2 + i * 2 * Math.PI / 5, P = (i, r) => [C + Math.cos(ang(i)) * r, C + 10 + Math.sin(ang(i)) * r];
     const ring = k => '<polygon points="' + [0, 1, 2, 3, 4].map(i => P(i, R * k / 3).map(n => n.toFixed(1)).join(',')).join(' ') + '" fill="' + (k === 3 ? '#F7F4F0' : 'none') + '" stroke="#E4DCD4"/>';
@@ -1539,16 +1545,6 @@
     const lab = (i, t, lv) => { const [x, y] = P(i, R + 26); return '<text x="' + x + '" y="' + (y - 4) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="#1C1A19">' + esc(t) + '</text><text x="' + x + '" y="' + (y + 11) + '" text-anchor="middle" font-size="11" font-weight="700" fill="' + (lv === 3 ? '#1E7A46' : lv === 2 ? '#2F6FDE' : '#C2672B') + '">' + esc(labels[i]) + '</text>'; };
     return '<svg class="gradar" viewBox="-30 -6 320 290">' + ring(3) + ring(2) + ring(1) + [0, 1, 2, 3, 4].map(i => '<line x1="' + C + '" y1="' + (C + 10) + '" x2="' + P(i, R)[0] + '" y2="' + P(i, R)[1] + '" stroke="#E4DCD4"/>').join('') +
       '<polygon points="' + poly + '" fill="rgba(164,15,22,.22)" stroke="var(--brand)" stroke-width="2.5" stroke-linejoin="round"/>' + G5.map((t, i) => lab(i, t, vals[i])).join('') + '</svg>';
-  }
-  function gLv(pts) { // 한 요소의 달마다 점수 꺾은선 (2026-11-15: 100점 점수, 점수 없는 달은 빼고)
-    pts = pts.filter(p => p.s != null); if (!pts.length) return '<p class="note" style="margin:6px 2px">기록이 생기면 변화가 그려져요</p>';
-    const W = 320, H = 132, n = pts.length, X = i => n > 1 ? 34 + i * (W - 60) / (n - 1) : W / 2, Y0 = v => 28 + (100 - v) / 50 * (H - 60), COL = { 1: '#C2672B', 2: '#2F6FDE', 3: '#1E7A46' };
-    pts = pts.map(p => ({ ...p, v: lvS(p.s), y: Y0(Math.max(50, Math.min(100, p.s))), t: p.s + '점' })); const Y = v => Y0([0, 60, 80, 100][v]);
-    const path = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
-    return '<svg class="gline" viewBox="0 0 ' + W + ' ' + H + '">' + [100, 90, 70, 50].map(v => '<line x1="30" x2="' + (W - 10) + '" y1="' + Y0(v) + '" y2="' + Y0(v) + '" stroke="#EEE9E4"' + (v === 90 || v === 70 ? ' stroke-dasharray="4 4"' : '') + '/><text x="2" y="' + (Y0(v) + 4) + '" font-size="10" fill="#A39A93">' + v + '</text>').join('') +
-      (n > 1 ? '<path d="' + path + '" fill="none" stroke="#D9D3CC" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' : '') +
-      pts.map((p, i) => '<circle cx="' + X(i) + '" cy="' + p.y + '" r="' + (i === n - 1 ? 7 : 5.5) + '" fill="' + COL[p.v] + '"/>' + (p.t ? '<text x="' + Math.min(X(i), W - 40) + '" y="' + (p.y - 11) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="' + COL[p.v] + '">' + esc(p.t) + '</text>' : '') +
-        '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11.5" fill="#8A827C">' + p.m + '월</text>').join('') + '</svg>';
   }
   function gBars(att, k) { // 달마다 출석 일수 막대 (최근 12달)
     const ms = []; let m = thisMonth(); for (let i = 0; i < 12; i++) { ms.unshift(m); m = addMonth(m, -1); }
@@ -1604,8 +1600,11 @@
       let h = totCard() + '<div class="gch" style="margin:12px 4px 0"><b>' + (+per.month.slice(5)) + '월 상세</b>' + nav + '</div><section class="gcard ibx">' + G5.map((g, i) => '<div class="ib"><div class="ibh"><b>' + String(i + 1).padStart(2, '0') + ' ' + g + '</b><small>' + GD[i] + '</small></div>' +
         '<div class="ibr"><div class="ibv">' + big(i) + diff(i) + '</div>' + bar(cur.sc[i]) + '</div>' + (i && cur.sc[i] != null ? '<p class="ibt">' + esc(GT[i][cur.v[i] - 1]) + '</p>' : '') +
         '<details class="ibs"><summary>📍 어디서 정했나요</summary>' + esc(cur.s[i] || '기록이 아직 없어서 기본으로 정했어요') + '</details></div>').join('') + '</section>';
-      h += '<div class="gch" style="margin:16px 4px 0"><b>변화</b><small>최근 ' + L.length + '달</small></div>' + G5.map((g, i) => '<section class="gcard ibc"><div class="gch"><b>' + g + '</b><small>' + cur.m + '월 · <b class="c' + cur.v[i] + '">' + (cur.sc[i] == null ? '측정 전' : cur.sc[i] + '점') + '</b></small></div>' +
-        (L.filter(x => x.sc[i] != null).length > 1 ? gLv(L.map(x => ({ m: x.m, s: x.sc[i] }))) : '<p class="note" style="margin:6px 2px">다음 달부터 점수 변화가 그려져요</p>') + (i === 0 && cur.ev && cur.st ? '<p class="note" style="margin:8px 2px 0">' + esc(cur.ev.name) + ' 기록</p>' + gLine(cur.ev, cur.st) : '') + '</section>').join('');
+      const LL = (growAll ? P.slice(0, pi + 1) : P.slice(Math.max(0, pi - 5), pi + 1)).map(q => { const ev = evAt(q.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null); return { x: (+q.month.slice(5)) + '월', sc: perSc(q, b.lv), tot: totOf(q) }; });
+      const scCard = (title, f, lastV) => ibCard(title, '점', cur.m + '월 · ' + (lastV == null ? '측정 전' : lastV + '점'), LL.filter(x => f(x) != null).length ? ibChart(LL.map(x => ({ x: x.x, v: f(x), t: f(x) }))) : '<p class="note" style="margin:6px 18px">기록이 생기면 변화가 그려져요</p>');
+      h += '<div class="gch" style="margin:16px 4px 0"><b>변화</b><button class="ibtg' + (growAll ? ' on' : '') + '" data-gall><span' + (growAll ? '' : ' style="color:#2B2F36;font-weight:800"') + '>최근</span><i></i><span' + (growAll ? ' style="color:#2B2F36;font-weight:800"' : '') + '>전체</span></button></div>' +
+        scCard('해랑 성장 점수', x => x.tot, totOf(per)) + G5.map((g, i) => scCard(g, x => x.sc[i], cur.sc[i]) +
+        (i === 0 && cur.ev && cur.st && cur.st.ms.some(y => gNum(y.v)) ? ibCard(cur.ev.name, cur.ev.unit, cur.m + '월 · 최고 ' + gFmt(cur.st.best.v) + cur.ev.unit, gLine(cur.ev, cur.st)) : '')).join('');
       h += '<div class="gch" style="margin:16px 4px 0"><b>결과지</b><small>누르면 크게 · 사진으로 저장</small></div><button class="gsheet" data-gsheet><img id="gShImg" alt="' + esc(k) + ' ' + (+per.month.slice(5)) + '월 성장 측정 결과지"><span class="zoom">🔍</span></button>';
       return h;
     };
@@ -1639,7 +1638,7 @@
       return c;
     };
         const evCards = (only, inner) => { const L = (only ? [only] : evs).map(e => ({ e, st: gEvStat(e, kid.rec) })).filter(x => x.st);
-      return L.length ? L.map(({ e, st }) => '<section class="gcard"' + (inner ? ' style="box-shadow:none;border:1px solid #EEE9E4;margin:10px 0 0"' : '') + '><div class="gch"><b>' + esc(e.name) + ' <small>(' + esc(e.unit) + ')</small></b><small>' + e.months[0] + '~' + e.months[e.months.length - 1] + '월</small></div>' + gLine(e, st) +
+      return L.length ? L.map(({ e, st }) => '<section class="gcard ibk"' + (inner ? ' style="box-shadow:none;border:1px solid #EEE9E4;margin:10px 0 0"' : '') + '><div class="ibkh"><b>' + esc(e.name) + ' <small>(' + esc(e.unit) + ')</small></b></div><div class="ibkp"><span>' + e.months[0] + '~' + e.months[e.months.length - 1] + '월 종목' + (st.best ? '<b>최고 ' + gFmt(st.best.v) + esc(e.unit) + '</b>' : '') + '</span></div>' + gLine(e, st) +
         '<div class="gsum">' + (st.best ? '<span>첫 기록 <b>' + gFmt(st.first.v) + e.unit + '</b></span><span>최고 <b>' + gFmt(st.best.v) + e.unit + '</b></span>' + (st.d > 0 ? '<span class="up">' + (e.lower ? '−' : '+') + gFmt(st.d) + e.unit + ' ' + (e.lower ? '단축' : '성장') + '</span>' : '') : '<span>' + st.ms.length + '번 도전 · 다음엔 첫 성공!</span>') + '</div></section>').join('')
         : '<div class="calm" style="margin-top:12px"><span>아직 성장 측정 기록이 없어요. 매달 첫째 주 금요일 수업에서 재요.</span></div>'; };
     const attSecG = '<section class="gcard"><div class="gch"><b>달마다 출석</b><small>최근 12달</small></div>' + gBars(D.att, k) + '</section>';
@@ -1668,7 +1667,9 @@
     if (D.growErr && growF !== '출석') h += '<p class="note" style="margin:10px 4px 0">성장 측정 기록을 지금 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>';
     body(h);
     let shC = null; if (growF === '성장 측정' && per) { try { shC = gSheet(); const im = $('gShImg'); if (im) im.src = shC.toDataURL('image/png'); } catch (_) {} }
+    document.querySelectorAll('#pBody .ibsc').forEach(el => { el.scrollLeft = el.scrollWidth; });
     $('pBody').onclick = e => {
+      if (e.target.closest('[data-gall]')) { growAll = !growAll; const y = $('v-page').scrollTop; drawGrow(); $('v-page').scrollTop = y; return; }
       if (e.target.closest('[data-gsheet]') && shC) return gSheetView(shC, k + '_' + per.month + '_성장측정.png');
       const f = e.target.closest('[data-gf]'); if (f) { growF = f.dataset.gf; $('v-page').scrollTop = 0; return drawGrow(); }
       const g = e.target.closest('[data-gp]'); if (g && !g.disabled) { growP[k] = pi + +g.dataset.gp; return drawGrow(); }
