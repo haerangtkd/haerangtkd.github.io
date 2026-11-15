@@ -269,6 +269,16 @@
   .dck button.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,#151517)}.dck button.on i{background:var(--c);color:#111;font-weight:900}.dck button.on small{color:#fff}
   .dca{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);padding:2px 4px}.dca i{width:26px;height:26px;border-radius:50%;border:2.5px solid #E5484D;display:grid;place-items:center;font-style:normal;font-size:13px}.dca.on{color:#fff}.dca.on i{background:#E5484D;color:#fff}
   .cal .cd.pf span{background:linear-gradient(90deg,#E5484D,#E3B341);color:#111;font-weight:900}
+
+  /* 이달의 최우수 수련생 (2026-11-15) */
+  .bnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.bnav div{text-align:center}.bnav small{display:block;color:var(--gold);font-weight:800;font-size:12.5px}.bnav b{font-size:20px}
+  .bnav button{border:0;background:#1C1C1F;color:#fff;width:38px;height:38px;border-radius:50%;font-size:22px;cursor:pointer}.bnav button:disabled{opacity:.25}
+  .bgr2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.bgr2>.bst2:first-child{grid-column:span 2}
+  .bst2{position:relative;border:1.5px solid #3A2F18;background:radial-gradient(circle at 50% 0,rgba(227,179,65,.18),#141416 70%);border-radius:18px;padding:16px 8px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .bst2 .crown{position:absolute;top:6px;left:50%;transform:translateX(-50%) translateY(-60%);font-size:22px}
+  .bst2 .av{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:30px;font-weight:900;color:#fff;overflow:hidden;box-shadow:0 0 0 3px #E3B341,0 6px 16px rgba(0,0,0,.5);margin-bottom:6px}
+  .bst2 small{color:var(--gold);font-weight:800;font-size:12px}.bst2 b{font-size:17px}.bst2 em{font-style:normal;font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:5px}.bst2 em i{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .bst2.me{border-color:#E3B341;box-shadow:0 0 0 2px rgba(227,179,65,.4)}
 </style>
 </head>
 <body>
@@ -419,7 +429,9 @@
     tier('대회', 'comp', mine.length, [1, 3, 5], ['🥋', '🎽', '🏟️'], n => n === 1 ? '대회 출전' : '대회 ' + n + '번 출전', n => '대회에 ' + n + '번 나가면');
     tier('대회', 'med', med, [1, 3, 5], ['🥉', '🥈', '🏆'], n => n === 1 ? '첫 입상' : '입상 ' + n + '번', n => '대회에서 ' + n + '번 메달을 받으면');
     tier('대회', 'gold', gold, [1, 3], ['🥇', '👑'], n => n === 1 ? '금메달' : '금메달 ' + n + '개', n => '대회 금메달을 ' + n + '개 받으면');
-    L.push({ k: 'best', ic: '🏆', t: '최우수 수련생', on: bestMe, how: '분기 최우수 수련생으로 뽑히면', cat: '대회' });
+    const bestN = (D.best || []).filter(q => Object.values(q.g || {}).includes(D.name)).length;
+    L.push({ k: 'best', ic: '🏆', t: '최우수 수련생', on: bestMe, how: '이달의 최우수 수련생으로 뽑히면', cat: '대회' });
+    tier('대회', 'bs', bestN, [3, 6], ['👑', '🌟'], n => '최우수 수련생 ' + n + '번', n => '최우수 수련생으로 ' + n + '번 뽑히면');
     L.push({ k: 'sb', ic: '⭐', t: '선범단', on: !!D.sb, how: '선범단이 되면', cat: '선범단' });
     return L.map(b => Object.assign({ img: '', cur: 0, tgt: 0 }, b, { tgt: b.tgt > 1 ? b.tgt : 0 }));
   }
@@ -446,6 +458,7 @@
     (D.evs || []).forEach(e => L.push('📣 ' + md(e.date) + ' ' + e.title + (e.kind === '심사' ? ' · 연습 열심히!' : '')));
     myBadges().filter(b => !(D.prof.seen || []).includes(b.k) && (D.prof.seen || []).length).forEach(b => L.push('🏅 새 뱃지를 받았어요: ' + (b.img || b.belt ? '🎖️' : b.ic) + ' ' + b.t));
     (D.events || []).forEach(e => { const s = evStat(e, D.rec); if (s && s.isBest && s.last && s.last.m === s.sc[s.sc.length - 1].m) L.push('📈 ' + e.name + ' 내 최고 기록을 갱신했어요!'); });
+    const lb = (D.best || [])[(D.best || []).length - 1]; if (lb && lb.q === t.slice(0, 7)) L.unshift('👑 ' + (+lb.q.slice(5)) + '월 최우수 수련생 발표! ' + (Object.values(lb.g || {}).includes(D.name) ? firstName(D.name) + ', 축하해! 🎉' : '명예의 전당에서 확인해요'));
     if (isBday()) L.unshift('🎂 오늘은 ' + firstName(D.name) + '의 생일! 생일 축하해!');
     return L;
   }
@@ -584,10 +597,22 @@
       (p.notes.kick ? '<div class="it"><b>🦵 발차기</b><p>' + esc(p.notes.kick) + '</p></div>' : '') + (p.notes.poom ? '<div class="it"><b>🥋 품새</b><p>' + esc(p.notes.poom) + '</p></div>' : '') +
       (p.vid ? '<a class="vid" href="' + esc(p.vid) + '" target="_blank" rel="noopener">▶ ' + esc(D.belt) + ' 품새 영상 보기</a>' : '') + (res ? '<div style="margin-top:10px">' + res + '</div>' : '') + '</section>';
   }
+  // 🏆 이달의 최우수 수련생 (2026-11-15 사용자: 매달 바뀌고 지난 기록도 보기 · 프로필 보이게 · 중고등부 하나 / 초등부 남·여 / 유치부 남·여)
+  const BG5 = ['중고등부', '초등부 남', '초등부 여', '유치부 남', '유치부 여', '중고등부 남', '중고등부 여'];
+  let bestI = null;
+  const bestLabel = q => q.length === 7 ? (+q.slice(0, 4)) + '년 ' + (+q.slice(5)) + '월' : q.slice(0, 4) + '년 ' + q.slice(5) + '분기';
+  function bestCard() {
+    const B = D.best || [], me = D.name; if (!B.length) return '<section class="card"><h2>🏆 이달의 최우수 수련생</h2><div class="empty">곧 발표돼요! 누가 될까요? 👀</div></section>';
+    if (bestI == null || bestI >= B.length) bestI = B.length - 1; const q = B[bestI], P = D.bestProf || {};
+    const cards = BG5.filter(k => (q.g || {})[k]).map(k => { const n = q.g[k], p = P[n] || {}, e = p.av || firstName(n).slice(0, 1);
+      return '<div class="bst2' + (n === me ? ' me' : '') + '"><span class="crown">👑</span><span class="av" style="background:' + esc(p.bg || 'var(--brand)') + '">' + avHtml(e) + '</span><small>' + esc(k) + '</small><b>' + esc(n) + (n === me ? ' 🎉' : '') + '</b>' + (p.belt ? '<em>' + beltDot(p.belt) + esc(p.belt) + '</em>' : '') + '</div>'; }).join('');
+    return '<section class="card"><div class="bnav"><button data-bi="-1"' + (bestI <= 0 ? ' disabled' : '') + '>‹</button><div><small>🏆 최우수 수련생</small><b>' + bestLabel(q.q) + '</b></div><button data-bi="1"' + (bestI >= B.length - 1 ? ' disabled' : '') + '>›</button></div><div class="bgr2">' + cards + '</div>' +
+      (B.length > 1 ? '<p class="sub" style="text-align:center;margin:10px 0 0">‹ › 로 지난달 최우수 수련생도 볼 수 있어요</p>' : '') + '</section>';
+  }
   function fame() {
-    const me = D.name, q = (D.best || [])[(D.best || []).length - 1];
+    const me = D.name;
     let h = '<div class="hi"><span class="av" style="background:var(--gold)">🏆</span><div><b>명예의 전당</b><small>해랑경희의 멋진 제자들</small></div></div>';
-    h += '<section class="card"><h2>🏆 최우수 수련생' + (q ? '<small>' + q.q.slice(0, 4) + '년 ' + q.q.slice(5) + '분기</small>' : '') + '</h2>' + (q ? '<div class="bestg">' + ['중고등부 남', '중고등부 여', '초등부 남', '초등부 여', '유치부 남', '유치부 여'].filter(k => (q.g || {})[k]).map(k => '<div class="' + (q.g[k] === me ? 'me' : '') + '"><small>' + k + '</small><b>' + esc(q.g[k]) + (q.g[k] === me ? ' 🎉' : '') + '</b></div>').join('') + '</div>' : '<div class="empty">곧 발표돼요! 누가 될까요? 👀</div>') + '</section>';
+    h += '<div id="bestC">' + bestCard() + '</div>';
     const C = [...(D.comps || [])].sort((a, b) => b.date.localeCompare(a.date)), mdl = { 금: '🥇', 은: '🥈', 동: '🥉', 참가: '🎽' };
     let cm = ''; h += '<section class="card"><h2>🥇 대회 기록</h2>' + (C.length ? C.map(c => { const m = c.date.slice(0, 7), head = m !== cm ? '<div class="mon">' + (+m.slice(5)) + '월</div>' : ''; cm = m;
       return head + '<div class="comp"><b>' + esc(c.title) + '</b><small>' + md(c.date) + '</small><div class="medals">' + (c.rows || []).slice().sort((a, b) => '금은동참가'.indexOf(a.medal) - '금은동참가'.indexOf(b.medal)).map(r => '<span class="' + (r.name === me ? 'me' : '') + '">' + (mdl[r.medal] || '🎽') + ' ' + esc(r.name) + (r.ev ? ' · ' + esc(r.ev) : '') + '</span>').join('') + '</div></div>'; }).join('') : '<div class="empty">아직 올라온 대회 기록이 없어요</div>') + '</section>';
@@ -713,6 +738,7 @@
     const dcb = e.target.closest('[data-dc]'); if (dcb) { const k = dcb.dataset.dc, day = D.today, on = !dayDone(day)[k]; D.dc = D.dc || {}; const x = Object.assign({}, D.dc[day] || {}); if (on) x[k] = 1; else delete x[k]; D.dc[day] = x; draw(); if (on) { fx(1200); newBadgeCheck(); }
       const j = await post('/k/day', { day, k, on }); if (j.ok) D.dc = j.dc; else { alert(j.error || '잠시 뒤에 다시 해 주세요'); start(); } return; }
     const pm = e.target.closest('[data-pm]'); if (pm) { const b0 = planM || D.today.slice(0, 7), d = new Date(Date.UTC(+b0.slice(0, 4), +b0.slice(5, 7) - 1 + (+pm.dataset.pm), 1)); planM = d.toISOString().slice(0, 7); return draw(); }
+    const bi = e.target.closest('[data-bi]'); if (bi && !bi.disabled) { bestI += +bi.dataset.bi; $('bestC').innerHTML = bestCard(); return; }
     const ac = e.target.closest('[data-act]'); if (ac) { const k = ac.dataset.act;
       if (k === 'sb') { view = 'sb'; scrollTo(0, 0); return draw(); } if (k === 'badge') return badgePage(); if (k === 'mile') return milePage(); if (k === 'qr') return qrSheet(); if (k === 'deco') return profSheet();
       if (k === 'goal') return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!'); if (k === 'cal') return logCal(); if (k === 'all') return allBadgeSheet(); }

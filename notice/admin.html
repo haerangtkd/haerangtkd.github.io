@@ -385,8 +385,8 @@
         <ul class="list" id="kcList" style="margin-top:8px"></ul>
       </div>
       <div class="card">
-        <h2>🏆 분기별 최우수 수련생</h2>
-        <div style="display:flex;gap:8px;align-items:center;margin:6px 0"><select id="kbQ"></select><span class="hint">비우면 그 부는 안 보여요</span></div>
+        <h2>🏆 이달의 최우수 수련생</h2>
+        <div style="display:flex;gap:8px;align-items:center;margin:6px 0"><select id="kbQ"></select><span class="hint">달을 골라 넣어요 (지난달도 넣을 수 있어요) · 비우면 그 부는 안 보여요</span></div>
         <div id="kbG" class="kbg"></div>
         <datalist id="kNames"></datalist>
         <button class="btn" id="kbSave" style="margin-top:8px">최우수 수련생 저장</button>
@@ -848,7 +848,7 @@
 
   // ═════ 🥋 제자 모드 관리 (2026-11-14) ═════
   let km = { best: [], comps: [] }, kcItems = [];
-  const KG = ['중고등부 남', '중고등부 여', '초등부 남', '초등부 여', '유치부 남', '유치부 여'];
+  const KG = ['중고등부', '초등부 남', '초등부 여', '유치부 남', '유치부 여']; // 2026-11-15: 매달 · 중고등부 하나로
   $('kidsUrl').textContent = location.origin + '/kids/';
   $('copyKids').onclick = () => { const t = $('kidsUrl').textContent; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요'), () => prompt('복사해 주세요', t)); };
   async function loadKmode() {
@@ -867,12 +867,12 @@
     const mk = e.target.closest('[data-kmk]'); if (mk) { const n = mk.dataset.kmk, had = kcItems.find(x => x.name === n && x.code); if (had && !confirm(n + ' 제자의 코드를 새로 만들까요? 예전 기기는 나가져요.')) return; const j = await post('/admin/kcode-make', { name: n }); if (!j.ok) return toast(j.error || '만들지 못했어요'); toast(n + ' 코드: ' + j.code); return loadKmode(); }
     const d = e.target.closest('[data-kdel]'); if (d) { if (!confirm(d.dataset.kdel + ' 제자의 코드를 지울까요? 그 기기는 나가져요.')) return; await post('/admin/kcode-del', { name: d.dataset.kdel }); loadKmode(); }
   };
-  function qList() { const y = +today().slice(0, 4), cur = y + '-' + Math.ceil(+today().slice(5, 7) / 3), L = []; for (const yy of [y - 1, y]) for (let q = 1; q <= 4; q++) L.push(yy + '-' + q); return { L: L.filter(x => x <= cur).reverse(), cur }; }
+  function qList() { const t = today(), cur = t.slice(0, 7), L = []; for (let i = 0; i < 24; i++) { const d = new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1 - i, 1)); L.push(d.toISOString().slice(0, 7)); } (km.best || []).forEach(x => { if (!L.includes(x.q)) L.push(x.q); }); return { L, cur }; } // 매달 (지난달도 넣을 수 있음)
   function drawBest() {
     const { L, cur } = qList(), sel = $('kbQ').value || cur;
-    $('kbQ').innerHTML = L.map(q => '<option value="' + q + '"' + (q === sel ? ' selected' : '') + '>' + q.slice(0, 4) + '년 ' + q.slice(5) + '분기</option>').join('');
+    $('kbQ').innerHTML = L.map(q => '<option value="' + q + '"' + (q === sel ? ' selected' : '') + '>' + q.slice(0, 4) + '년 ' + (q.length === 7 ? (+q.slice(5)) + '월' : q.slice(5) + '분기 (예전)') + ((km.best || []).some(x => x.q === q) ? ' ✓' : '') + '</option>').join('');
     const g = ((km.best || []).find(x => x.q === sel) || {}).g || {};
-    $('kbG').innerHTML = KG.map(k => '<label>' + k + '<input type="text" list="kNames" data-kg="' + k + '" value="' + esc(g[k] || '') + '"></label>').join('');
+    $('kbG').innerHTML = (sel.length === 7 ? KG : [...KG, '중고등부 남', '중고등부 여'].filter(k => k !== '중고등부' || g[k])).map(k => '<label>' + k + '<input type="text" list="kNames" data-kg="' + k + '" value="' + esc(g[k] || '') + '"></label>').join('');
   }
   $('kbQ').onchange = drawBest;
   $('kbSave').onclick = async () => {

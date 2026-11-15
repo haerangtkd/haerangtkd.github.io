@@ -152,7 +152,7 @@ async function route(path, req, env) {
       const hw = await teamSync(env, '/sync/hw', { kids: [name] });
       return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [], dl: days.filter(d => d >= kstAdd(today, -400)), nth: Object.fromEntries([1, 10, 30, 50, 100, 200, 300, 500].filter(n => days.length >= n).map(n => [n, days[n - 1]])) }, // 월간 도전·수련 로그 (2026-11-15)
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
-        hw: hw.ok ? (hw.hw || []) : [], best: (km.best || []).slice(-4), comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
+        hw: hw.ok ? (hw.hw || []) : [], best: (km.best || []).slice().sort((a, c) => bestKey(a.q).localeCompare(bestKey(c.q))).slice(-36), bestProf: await bestProfiles(env, km.best || []), // 최우수 수련생 매달 + 프로필 (2026-11-15) comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
         mile: t.ok && t.mile != null ? t.mile : null, // 💰 마일리지 (상점 1개 = 100원, 2026-11-15)
         kids: viaP || null, kinder: !!(t.ok && t.kinder), goal: t.ok ? t.goal || '' : '', exams: t.ok ? t.exams || [] : [], prep: t.ok ? t.prep : null, sun: t.ok ? t.sun || [] : [],
@@ -695,8 +695,8 @@ async function route(path, req, env) {
     if (path === '/admin/kcode-del') { const name = String(b.name || ''); await run(env, 'DELETE FROM kcodes WHERE name = ?', name); await run(env, 'DELETE FROM ksess WHERE name = ?', name); return json({ ok: true }); }
     if (path === '/admin/kmode-get') return json({ ok: true, km: J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {} });
     if (path === '/admin/kmode-save') {
-      const T = (v, n) => String(v == null ? '' : v).trim().slice(0, n), G = ['중고등부 남', '중고등부 여', '초등부 남', '초등부 여', '유치부 남', '유치부 여'];
-      const best = (Array.isArray(b.best) ? b.best : []).filter(x => x && /^\d{4}-[1-4]$/.test(x.q || '')).map(x => ({ q: x.q, g: Object.fromEntries(G.map(k => [k, T((x.g || {})[k], 20)]).filter(([, v]) => v)) })).sort((a, c) => a.q.localeCompare(c.q)).slice(-12);
+      const T = (v, n) => String(v == null ? '' : v).trim().slice(0, n), G = ['중고등부', '초등부 남', '초등부 여', '유치부 남', '유치부 여', '중고등부 남', '중고등부 여']; // 2026-11-15: 매달 · 중고등부 하나로 (예전 분기 기록 'YYYY-n'도 그대로 둠)
+      const best = (Array.isArray(b.best) ? b.best : []).filter(x => x && /^\d{4}-(\d{2}|[1-4])$/.test(x.q || '')).map(x => ({ q: x.q, g: Object.fromEntries(G.map(k => [k, T((x.g || {})[k], 20)]).filter(([, v]) => v)) })).sort((a, c) => bestKey(a.q).localeCompare(bestKey(c.q))).slice(-60);
       const comps = (Array.isArray(b.comps) ? b.comps : []).filter(x => x && /^\d{4}-\d{2}-\d{2}$/.test(x.date || '') && T(x.title, 80)).map(x => ({ id: T(x.id, 20) || rid(4), date: x.date, title: T(x.title, 80), rows: (Array.isArray(x.rows) ? x.rows : []).map(r => ({ name: T(r && r.name, 20), medal: ['금', '은', '동', '참가'].includes(r && r.medal) ? r.medal : '참가', ev: T(r && r.ev, 30) })).filter(r => r.name).slice(0, 60) })).sort((a, c) => a.date.localeCompare(c.date)).slice(-200);
       const km = { best, comps };
       await run(env, "INSERT INTO kv (k, v) VALUES ('kmode', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(km)); return json({ ok: true, km });
@@ -888,6 +888,13 @@ async function qrName(env, qr) { qr = String(qr || '').trim().toUpperCase(); if 
 async function kidQr(env, name) { // 제자마다 내 출석 QR (2026-11-14) — 나중에 출결 태블릿 전면 카메라가 읽음. 코드·이름과 다른 값
   let q = await kvj(env, 'kqr:' + name); if (q) return q;
   q = 'HRK1-' + rid(6).toUpperCase(); await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'kqr:' + name, JSON.stringify(q)); return (await kvj(env, 'kqr:' + name)) || q;
+}
+const bestKey = q => /^\d{4}-[1-4]$/.test(q) ? q.slice(0, 5) + String(+q.slice(5) * 3).padStart(2, '0') + 'q' : q; // 예전 분기 = 그 분기 마지막 달 뒤에
+async function bestProfiles(env, best) { // 최우수 수련생 프로필 (꾸민 캐릭터·배경색·띠)
+  const names = [...new Set(best.slice(-36).flatMap(x => Object.values(x.g || {})))].slice(0, 120); if (!names.length) return {};
+  const pr = await all(env, 'SELECT k, v FROM kv WHERE k IN (' + names.map(() => '?').join(',') + ')', ...names.map(n => 'kprof:' + n));
+  const r = await attSync(env, '/sync/roster', { all: true }).catch(() => null), belt = Object.fromEntries(((r && r.students) || []).map(s => [s.name, s.belt || '']));
+  return Object.fromEntries(names.map(n => { const p = J((pr.find(x => x.k === 'kprof:' + n) || {}).v, {}) || {}; return [n, { av: p.av || '', bg: p.bg || '', belt: belt[n] || '' }]; }));
 }
 async function sbCard(env, name) { const d = (await kvj(env, 'ksb')) || {}; return Object.assign({ no: '', date: '', warn: 0 }, (d.info || {})[name] || {}, { pledge: d.pledge || '', photo: (await kvj(env, 'ksbph:' + name)) || '' }); }
 async function teamSync(env, path, body) {
