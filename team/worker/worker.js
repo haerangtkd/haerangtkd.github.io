@@ -1154,6 +1154,7 @@ async function route(path, req, env, ctx) {
   }
 
   // 할 일 · 일정 · 행사표 · 구매표 저장 (what: 알림에 쓸 한 줄)
+  if (path === '/api/sb-photo' || path === '/api/sb-photo-get') return json(await noticeSync(env, path.replace('/api/sb-', '/sync/ksb-'), { name: str(b.name, 20), data: b.data == null ? undefined : str(b.data, 130000) })); // 선범단 사진 (원생 정보에서, 2026-11-16)
   if (path === '/api/comp-notify') { // 🥇 대회 결과 → 학부모 알림(6명씩) + 제자 앱 알림 + 명예의 전당 대회 기록 (2026-11-16)
     const it = await one(env, "SELECT id, data FROM items WHERE id = ? AND type = 'event' AND del = 0", str(b.id, 40)); if (!it) return json({ ok: false, error: '신청표를 찾지 못했어요' });
     const d = J(it.data, {}), A = d.awards || {}, names = Object.keys(A).filter(n => ['금', '은', '동', '참가'].includes(A[n])); if (!names.length) return json({ ok: false, error: '상을 먼저 골라 주세요' });

@@ -471,6 +471,14 @@ async function route(path, req, env) {
     km.comps = (km.comps || []).filter(x => x.id !== id).concat([c]).sort((a, z) => a.date.localeCompare(z.date)).slice(-200);
     await run(env, "INSERT INTO kv (k, v) VALUES ('kmode', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(km)); return json({ ok: true });
   }
+  if (path === '/sync/ksb-photo' || path === '/sync/ksb-photo-get') { // 업무 앱 원생 정보에서 선범단 사진 (2026-11-16, 알림 관리 제자 탭을 뺌)
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const n = String(b.name || '').slice(0, 20); if (!n) return json({ ok: false, error: '이름이 없어요' });
+    if (path === '/sync/ksb-photo-get') return json({ ok: true, data: (await kvj(env, 'ksbph:' + n)) || '' });
+    const d = String(b.data || ''); if (!d) { await run(env, 'DELETE FROM kv WHERE k = ?', 'ksbph:' + n); return json({ ok: true }); }
+    if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(d) || d.length > 120000) return json({ ok: false, error: '사진이 너무 커요' });
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'ksbph:' + n, JSON.stringify(d)); return json({ ok: true });
+  }
   if (path === '/sync/today-att') { // 출석부 '등·하원' 탭: 오늘 등원·하원 시각 + 알림 받을 보호자 수
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const at = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', kstDay(new Date())), ps = await all(env, 'SELECT kids FROM parents WHERE ok = 1'), g = {};

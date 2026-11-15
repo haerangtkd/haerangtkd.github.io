@@ -1960,10 +1960,11 @@ function kidSheet(id) {
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + clip('kPm' + s.id, L.map(x => pmRow(x, false)).join(''), '건') : ''; })() +
-    '<div id="kSib"></div><div id="kFam"></div><div id="kGoal"></div><div id="kDocs"></div><h3>바뀐 기록</h3>' + clip('kHist' + s.id, '<p class="help">불러오는 중…</p>', '개', '', 'kHist') +
+    (s.sb ? '<div id="kSbPh"></div>' : '') + '<div id="kSib"></div><div id="kFam"></div><div id="kGoal"></div><div id="kDocs"></div><h3>바뀐 기록</h3>' + clip('kHist' + s.id, '<p class="help">불러오는 중…</p>', '개', '', 'kHist') +
     (isBoss() ? '<div style="margin:28px 0 8px;text-align:center"><button class="btn" id="kDel" style="color:#C62828;background:#FDECEC">🗑 원생 삭제 (관리자)</button><p class="help">그만둔 제자는 보통 퇴관으로 바꿔요. 잘못 넣은 원생·시험용만 지워 주세요.</p></div>' : ''), ov => {
     ov.classList.add('full');
     if (isBoss()) loadDocs().then(() => { const el = ov.querySelector('#kDocs'); const L = (S.docs || []).filter(d => d.sid === s.id); if (el && L.length) { el.innerHTML = '<h3>등록 서류</h3>' + L.map(docRow).join(''); el.onclick = e => { const r = e.target.closest('[data-doc]'); if (r) docView(r.dataset.doc); }; } });
+    if (s.sb) kidSbPhoto(ov.querySelector('#kSbPh'), s);
     kidSiblings(ov.querySelector('#kSib'), s); kidFamily(ov.querySelector('#kFam'), s); if (s.status !== '퇴관') kidGoal(ov.querySelector('#kGoal'), s);
     ov.querySelector('#kSt').onclick = () => kidStatusSheet(s);
     ov.querySelector('#kTp').onclick = () => kidTempSheet(s);
@@ -1971,6 +1972,17 @@ function kidSheet(id) {
     if (ov.querySelector('#kDel')) ov.querySelector('#kDel').onclick = () => kidDelete(s);
     api('/api/student-history', { sid: s.id }).then(j => { const el = ov.querySelector('#kHist'); if (el) el.innerHTML = j.ok && (j.items || []).length ? j.items.map(h => '<div class="kh">' + esc(h.text) + '<small>' + longTime(h.at) + (h.who ? ' · ' + esc(h.who) : '') + '</small></div>').join('') : '<p class="help">기록이 없어요</p>'; });
   });
+}
+// 🪪 선범단 사진 (2026-11-16: 알림 관리 제자 탭을 빼고 원생 정보에서) — 제자 앱 선범단 카드에 보임, 300×400 jpg로 줄여 보냄
+async function kidSbPhoto(el, s) {
+  if (!el) return; const draw = d => { el.innerHTML = '<h3>🪪 선범단 사진</h3><div style="display:flex;gap:12px;align-items:center">' + (d ? '<img src="' + d + '" style="width:72px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">' : '<div style="width:72px;height:96px;border-radius:10px;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted);font-size:12px">사진 없음</div>') +
+    '<div style="flex:1"><p class="help" style="margin:0 0 6px">제자 앱 선범단 카드에 보여요.</p><label class="btn g" style="display:inline-block">' + (d ? '사진 바꾸기' : '+ 사진 넣기') + '<input type="file" accept="image/*" hidden id="sbF"></label>' + (d ? ' <button class="btn" id="sbX">지우기</button>' : '') + '</div></div>';
+    el.querySelector('#sbF').onchange = async e => { const f = e.target.files[0]; if (!f) return; const img = new Image(); img.src = URL.createObjectURL(f); await img.decode().catch(() => {});
+      const c = document.createElement('canvas'); c.width = 300; c.height = 400; const g = c.getContext('2d'), r = Math.max(300 / img.width, 400 / img.height), w = img.width * r, h = img.height * r; g.drawImage(img, (300 - w) / 2, (400 - h) / 2, w, h);
+      let q = .85, data = c.toDataURL('image/jpeg', q); while (data.length > 110000 && q > .3) { q -= .1; data = c.toDataURL('image/jpeg', q); }
+      const j = await api('/api/sb-photo', { name: s.name, data }); if (!j.ok) return toast(j.error || '올리지 못했어요'); toast('선범단 사진을 넣었어요'); draw(data); };
+    const x = el.querySelector('#sbX'); if (x) x.onclick = async () => { if (!confirm('선범단 사진을 지울까요?')) return; const j = await api('/api/sb-photo', { name: s.name, data: '' }); if (!j.ok) return toast(j.error || '지우지 못했어요'); draw(''); }; };
+  el.innerHTML = '<h3>🪪 선범단 사진</h3><p class="help">불러오는 중…</p>'; const j = await api('/api/sb-photo-get', { name: s.name }); draw(j.ok ? j.data || '' : '');
 }
 // 🗑 원생 삭제 (2026-11-14 사용자 결정: 관리자만, 한쪽에서 지우면 다 같이) — 무엇이 지워지는지 먼저 보여 주고 한 번 더 묻기
 async function kidDelete(s) {
