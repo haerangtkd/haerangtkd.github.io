@@ -276,7 +276,7 @@
     return [['att1', '🌱', '첫 출석', a.total >= 1], ['att10', '🔟', '출석 10일', a.total >= 10], ['att30', '💪', '출석 30일', a.total >= 30], ['att50', '🏅', '출석 50일', a.total >= 50], ['att100', '💯', '출석 100일', a.total >= 100], ['att200', '👑', '출석 200일', a.total >= 200],
       ['st4', '🔥', '4주 연속 출석', a.streak >= 4], ['st12', '☄️', '12주 연속 출석', a.streak >= 12], ['st24', '🌋', '24주 연속 출석', a.streak >= 24],
       ['rec1', '📈', '기록 갱신', ups >= 1], ['rec5', '🚀', '기록 갱신 5번', ups >= 5],
-      ['ex1', '🎖️', '심사 합격', ex.some(x => x.pass)], ['exb', '🥋', '새 띠', ex.some(x => x.nb)], ['ex5', '🌟', '심사 아주 잘해요', ex.some(x => (x.subj || []).some(y => +y.v === 5))],
+      ['ex1', '🎖️', '심사 합격', ex.some(x => x.pass)], ['exb', '🥋', '새 띠', ex.some(x => x.nb)], ['ex5', '🌟', '심사 훌륭해요', ex.some(x => (x.subj || []).some(y => +y.v === 5) || (x.items || []).some(y => y.good))],
       ['hw1', '✅', '미션 완료', hwN >= 1], ['hw10', '🎯', '미션 10번', hwN >= 10],
       ['comp', '🥋', '대회 출전', mine.length > 0], ['gold', '🥇', '금메달', mine.some(r => r.medal === '금')], ['best', '🏆', '최우수 수련생', bestMe], ['sb', '⭐', '선범단', !!D.sb]]
       .map(([k, ic, t, on]) => ({ k, ic, t, on }));
@@ -337,10 +337,10 @@
   function prepCard() {
     const p = D.prep, ex = (D.exams || [])[(D.exams || []).length - 1];
     const res = ex ? '<div class="exr">🏅 ' + (+ex.month.slice(5)) + '월 심사 · ' + (ex.absent ? '쉬었어요' : ex.pass ? (ex.nb ? '합격! ' + esc(ex.nb) + '로 올라가요 🎉' : '합격! 잘했어요 👏') : '다음 심사에서 다시 도전해요 💪') + '</div>' : '';
-    if (!p || p.closed || !(p.notes.speech || p.notes.eng || p.vid || p.date)) return res ? '<section class="card"><h2>🏅 심사</h2>' + res + '</section>' : '';
+    if (!p || p.closed || !(p.topic || p.notes.speech || p.notes.eng || p.vid || p.date)) return res ? '<section class="card"><h2>🏅 심사</h2>' + res + '</section>' : '';
     const dd = p.date ? Math.round((new Date(p.date + 'T00:00:00Z') - new Date(D.today + 'T00:00:00Z')) / 864e5) : null;
     return '<section class="card prep"><h2>📝 이번 달 심사 준비' + (p.date && dd >= 0 ? '<small><span class="dd">' + (dd ? 'D-' + dd : '오늘!') + '</span> ' + md(p.date) + '</small>' : '') + '</h2>' +
-      (p.notes.speech ? '<div class="it"><b>🎤 웅변 원고</b><p>' + esc(p.notes.speech) + '</p></div>' : '') + (p.notes.eng ? '<div class="it"><b>🔤 영어 문장</b><p>' + esc(p.notes.eng) + '</p></div>' : '') +
+      (p.topic || p.notes.speech ? '<div class="it"><b>🎤 웅변' + (p.topic ? ' · 주제 ' + esc(p.topic) : '') + '</b>' + (p.notes.speech ? '<p>' + esc(p.notes.speech) + '</p>' : '') + '</div>' : '') + (p.notes.eng ? '<div class="it"><b>🔤 영어 문장</b><p>' + esc(p.notes.eng) + '</p></div>' : '') +
       (p.notes.kick ? '<div class="it"><b>🦵 발차기</b><p>' + esc(p.notes.kick) + '</p></div>' : '') + (p.notes.poom ? '<div class="it"><b>🥋 품새</b><p>' + esc(p.notes.poom) + '</p></div>' : '') +
       (p.vid ? '<a class="vid" href="' + esc(p.vid) + '" target="_blank" rel="noopener">▶ ' + esc(D.belt) + ' 품새 영상 보기</a>' : '') + (res ? '<div style="margin-top:10px">' + res + '</div>' : '') + '</section>';
   }

@@ -185,6 +185,10 @@
   .glv .l3{color:#1E7A46}.glv .l2{color:#2F6FDE}.glv .l1{color:#C2672B}
   .gcm{background:#FFF4EA;border-radius:14px;padding:12px 14px;margin-top:10px}.gcm b{font-size:13.5px;color:#9A5A12}.gcm p{margin:4px 0 0;font-size:14px;line-height:1.6}
   .gx{margin-top:4px}.gxr{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #F1ECE6}.gxr:first-child{border-top:0}.gxr>span{width:64px;font-size:14px;font-weight:800;flex:none}.gxr .gxd{display:flex;gap:4px;flex:none}.gxr .gxd i{width:14px;height:14px;border-radius:50%;background:#E8E2DB}.gxr .gxd i.on{background:var(--brand)}.gxr b{font-size:13.5px;flex:1}.gxr small{display:block;font-size:12px;color:var(--muted);font-weight:500}.gxr em{font-style:normal;font-size:12px;font-weight:800;color:#1E7A46}.gxr em.dn{color:#B5ADA5}
+  .gsrc{background:#F6F8FC;border-radius:10px;padding:8px 10px;margin-top:8px;font-size:12.5px;color:#4A5468;line-height:1.55}.gsrc b{color:#2B3A55}
+  .glvb{font-size:13px;font-weight:800;padding:3px 10px;border-radius:20px;background:#F1ECE7}.glvb.l3{background:#E6F3EC;color:#1E7A46}.glvb.l2{background:#E8EFFC;color:#2F6FDE}.glvb.l1{background:#FFF0E3;color:#C2672B}
+  .gxh{margin:12px 0 2px;font-size:13px;font-weight:900;color:#5A524C}.gxh small{font-weight:700;color:var(--muted)}
+  .gxb{font-size:12.5px;font-weight:800;padding:4px 10px;border-radius:20px;flex:none;white-space:nowrap}.gxr>span.gxb{width:auto}.gxr em{white-space:nowrap}.gxb.g{background:#E6F3EC;color:#1E7A46}.gxb.m{background:#FFF0E3;color:#C2672B}
   .gres{border-radius:14px;padding:12px 14px;margin:8px 0 6px;font-weight:800;font-size:15px;background:#E6F3EC;color:#1E7A46}.gres.rest{background:#F4F1ED;color:#6E6660}.gres.again{background:#FFF4E5;color:#94550B}
   .gwait{text-align:center;padding:18px 8px 8px}.gwait .gico{font-size:34px}.gwait b{display:block;margin-top:6px;font-size:15px}.gwait p{color:var(--muted);font-size:13px;line-height:1.6;margin:6px 0 0}
   .att-kid .grow-go{margin-left:auto}
@@ -1462,7 +1466,7 @@
     $('pBody').onclick = e => { const f = e.target.closest('[data-open]'); if (f) { const [tt, id] = f.dataset.open.split(':'); const x = (news[tt] || []).find(y => y.id === +id); if (x) openPost(x); } };
   }
   // ═════════ 📈 성장 리포트 (2026-11-14 사용자 요청: 성장 측정지를 인바디 앱처럼 리포트로 — 출석 · 성장 측정 · 심사(업무 앱 🏅 심사를 마감한 달)) ═════════
-  let growF = '요약', growD = null, growP = {};
+  let growF = '요약', growD = null, growP = {}, growX = {};
   const GLV = { '성장 중이에요': 1, '잘해요': 2, '아주 잘해요': 3 };
   const G5 = ['몸의 기초', '집중과 자기조절', '끈기와 꾸준함', '자신감과 표현력', '배려와 리더십'];
   const gNum = v => v != null && typeof v !== 'object' && !isNaN(+v);
@@ -1510,11 +1514,12 @@
       return '<rect x="' + (bx + 4) + '" y="' + (H - 26 - h) + '" width="' + (bw - 8) + '" height="' + Math.max(2, h) + '" rx="5" fill="' + (cur ? 'var(--brand)' : '#C9C2BA') + '"/>' + (v[i] ? '<text x="' + (bx + bw / 2) + '" y="' + (H - 32 - h) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="' + (cur ? 'var(--brand)' : '#4A4440') + '">' + v[i] + '</text>' : '') +
         '<text x="' + (bx + bw / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#8A827C">' + (+x.slice(5)) + '월</text>'; }).join('') + '</svg>';
   }
-  function gBody(ev, st) { // 몸의 기초: 그 분기 종목 기록으로
-    if (!ev || !st) return { lv: 1, t: '기록 없음' };
-    if (st.best && st.d > 0) return { lv: 3, t: (ev.lower ? '−' : '+') + gFmt(st.d) + ev.unit + ' ▲' };
-    if (st.best) return { lv: 2, t: (st.sc.length === 1 ? '첫 기록 ' : '') + gFmt(st.best.v) + ev.unit };
-    return { lv: 2, t: st.ms.length + '번 도전' };
+  function gBody(ev, st) { // 몸의 기초: 그 분기 종목 기록으로 (src = 어디서 정했는지, 2026-11-15)
+    const where = ev ? '🏆 기네스 기록 · ' + ev.name + ' (' + ev.months[0] + '~' + ev.months[ev.months.length - 1] + '월 종목)' : '';
+    if (!ev || !st) return { lv: 1, t: '기록 없음', src: ev ? where + ' · 아직 잰 기록이 없어요' : '이번 분기 기네스 종목이 아직 없어요' };
+    if (st.best && st.d > 0) return { lv: 3, t: (ev.lower ? '−' : '+') + gFmt(st.d) + ev.unit + ' ▲', src: where + ' · 첫 기록 ' + gFmt(st.first.v) + ev.unit + ' → 최고 ' + gFmt(st.best.v) + ev.unit };
+    if (st.best) return { lv: 2, t: (st.sc.length === 1 ? '첫 기록 ' : '') + gFmt(st.best.v) + ev.unit, src: where + ' · ' + (st.sc.length === 1 ? '첫 기록 ' : '최고 ') + gFmt(st.best.v) + ev.unit };
+    return { lv: 2, t: st.ms.length + '번 도전', src: where + ' · ' + st.ms.length + '번 도전' };
   }
   async function drawGrow() {
     const s = me() || {}, k = curKid();
@@ -1539,38 +1544,51 @@
       const ev = evAt(per.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null), vals = [b.lv, ...per.att.map(x => GLV[x] || 1)], labels = [b.t, ...per.att];
       return '<section class="gcard"><div class="gch"><b>성장에 영향을 주는 5가지 요소</b>' + (P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>') + '</div>' +
         gRadar(vals, labels) + '<div class="glv">' + G5.map((t, i) => '<div><span>' + t + '</span><b class="l' + vals[i] + '">' + esc(labels[i]) + '</b></div>').join('') + '</div>' +
-        (per.exam ? '<p class="note" style="margin:8px 2px 0">집중과 자기조절·자신감과 표현력은 이번 분기 승급 심사 점수로 정해져요.</p>' : '') + (per.pct != null ? '<p class="note" style="margin:8px 2px 0">끈기와 꾸준함은 출석률 ' + per.pct + '%' + (per.an != null && per.at ? ' (' + per.an + '/' + per.at + '회)' : '') + '로 정해져요.</p>' : '') +
+        '<p class="note" style="margin:8px 2px 0">5가지 요소는 기록·출석·심사로 저절로 정해져요. <a data-gf="성장 측정" style="color:var(--brand);font-weight:800">어디서 정했는지 보기 ›</a></p>' +
         '<div class="gcm"><b>사범님 한마디</b><p>' + esc(per.cm) + '</p></div></section>';
     };
-    const factorLines = () => { // 성장 측정 탭: 5가지 요소를 하나씩 달마다 꺾은선 (최근 6달)
-      if (!P.length) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>';
-      const L = P.slice(-6).map(q => { const ev = evAt(q.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null); return { m: +q.month.slice(5), v: [b.lv, ...q.att.map(x => GLV[x] || 1)], t: [b.t, ...q.att] }; });
-      return '<section class="gcard"><div class="gch"><b>5가지 요소 · 달마다</b><small>' + L[0].m + '~' + L[L.length - 1].m + '월</small></div>' + G5.map((g, i) => '<div class="gfl"><b>' + g + '</b>' + gLv(L.map(x => ({ m: x.m, v: x.v[i], t: x.t[i] }))) + '</div>').join('') +
-        '<p class="note" style="margin:6px 2px 0">초록 = 아주 잘해요 · 파랑 = 잘해요 · 주황 = 성장 중이에요</p></section>';
+    const factorLines = () => { // 성장 측정 탭 (2026-11-15 사용자 요청): 5가지 요소를 하나씩 — 단계 · 어디서 정했는지 · 달마다 꺾은선, 몸의 기초에는 종목 기록
+      if (!per) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>';
+      const L = P.slice(Math.max(0, pi - 5), pi + 1).map(q => { const ev = evAt(q.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null); return { m: +q.month.slice(5), v: [b.lv, ...q.att.map(x => GLV[x] || 1)], t: [b.t, ...q.att], s: [b.src, ...(q.src || [])] }; });
+      const cur = L[L.length - 1], ev = evAt(per.month), nav = P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>';
+      return '<div class="gch" style="margin:12px 4px 0"><b>' + (+per.month.slice(5)) + '월 5가지 요소</b>' + nav + '</div>' + G5.map((g, i) => '<section class="gcard"><div class="gch"><b>' + String(i + 1).padStart(2, '0') + ' ' + g + '</b><span class="glvb l' + cur.v[i] + '">' + esc(cur.t[i]) + '</span></div>' +
+        '<div class="gsrc"><b>📍 어디서 정했나요</b><br>' + esc(cur.s[i] || '기록이 아직 없어서 기본으로 정했어요') + '</div>' + (L.length > 1 ? gLv(L.map(x => ({ m: x.m, v: x.v[i], t: x.t[i] }))) : '') +
+        (i === 0 && ev && gEvStat(ev, kid.rec) ? evCards(ev, true) : '') + '</section>').join('') +
+        '<p class="note" style="margin:6px 4px 0">초록 = 아주 잘해요 · 파랑 = 잘해요 · 주황 = 성장 중이에요</p>';
     };
-    const evCards = only => { const L = (only ? [only] : evs).map(e => ({ e, st: gEvStat(e, kid.rec) })).filter(x => x.st);
-      return L.length ? L.map(({ e, st }) => '<section class="gcard"><div class="gch"><b>' + esc(e.name) + ' <small>(' + esc(e.unit) + ')</small></b><small>' + e.months[0] + '~' + e.months[e.months.length - 1] + '월</small></div>' + gLine(e, st) +
+    const evCards = (only, inner) => { const L = (only ? [only] : evs).map(e => ({ e, st: gEvStat(e, kid.rec) })).filter(x => x.st);
+      return L.length ? L.map(({ e, st }) => '<section class="gcard"' + (inner ? ' style="box-shadow:none;border:1px solid #EEE9E4;margin:10px 0 0"' : '') + '><div class="gch"><b>' + esc(e.name) + ' <small>(' + esc(e.unit) + ')</small></b><small>' + e.months[0] + '~' + e.months[e.months.length - 1] + '월</small></div>' + gLine(e, st) +
         '<div class="gsum">' + (st.best ? '<span>첫 기록 <b>' + gFmt(st.first.v) + e.unit + '</b></span><span>최고 <b>' + gFmt(st.best.v) + e.unit + '</b></span>' + (st.d > 0 ? '<span class="up">' + (e.lower ? '−' : '+') + gFmt(st.d) + e.unit + ' ' + (e.lower ? '단축' : '성장') + '</span>' : '') : '<span>' + st.ms.length + '번 도전 · 다음엔 첫 성공!</span>') + '</div></section>').join('')
         : '<div class="calm" style="margin-top:12px"><span>아직 성장 측정 기록이 없어요. 매달 첫째 주 금요일 수업에서 재요.</span></div>'; };
     const attSecG = '<section class="gcard"><div class="gch"><b>달마다 출석</b><small>최근 12달</small></div>' + gBars(D.att, k) + '</section>';
     const XW = ['', '다시 해 봐요', '조금 더 노력해요', '보통이에요', '잘해요', '아주 잘해요'];
-    const exam = !X.length ? '<section class="gcard gexam"><div class="gch"><b>승급 심사</b></div><div class="gwait"><div class="gico">🥋</div><b>아직 나온 심사 결과가 없어요</b><p>매달 심사가 끝나면 과목마다 점수와 결과가 여기에 쌓여요.</p></div></section>'
-      : [...X].reverse().map((x, xi, A) => { const prev = A[xi + 1];
-        const res = x.absent ? '<div class="gres rest">이번 달 심사는 쉬었어요</div>' : x.nb ? '<div class="gres">🎉 합격 · ' + esc(x.nb) + '로 올라가요</div>' : x.pass ? '<div class="gres">합격' + (x.cur ? ' · ' + esc(x.cur) : '') + '</div>' : '<div class="gres again">다음 심사에서 다시 도전해요 💪</div>';
-        const rows = x.subj.map(t => { const pv = prev && !prev.absent ? (prev.subj.find(y => y.k === t.k) || {}).v : null, d = pv ? t.v - pv : 0;
-          return '<div class="gxr"><span>' + esc(t.n) + '</span><span class="gxd">' + [1, 2, 3, 4, 5].map(n => '<i class="' + (n <= t.v ? 'on' : '') + '"></i>').join('') + '</span><b>' + XW[t.v] + (t.note ? '<small>' + esc(t.note) + '</small>' : '') + '</b>' + (d > 0 ? '<em>▲ ' + d + '</em>' : d < 0 ? '<em class="dn">지난달 ' + pv + '</em>' : '') + '</div>'; }).join('');
-        return '<section class="gcard"><div class="gch"><b>' + (+x.month.slice(5)) + '월 승급 심사</b><small>' + (x.date ? (+x.date.slice(5, 7)) + '/' + (+x.date.slice(8)) : '') + '</small></div>' + res + (rows ? '<div class="gx">' + rows + '</div>' : '') + '</section>'; }).join('') +
-      '<p class="note" style="margin:10px 4px 0">점수는 5점 만점이에요. 심사 점수는 성장 측정지의 집중과 자기조절(품새), 자신감과 표현력(웅변·영어)에도 쓰여요.</p>';
+    const xi = Math.max(0, Math.min(growX[k] ?? X.length - 1, X.length - 1)), x = X[xi], xp = X[xi - 1] && !X[xi - 1].absent ? X[xi - 1] : null; // 심사는 한 달씩 넘겨 봄 (2026-11-15: 지난달로 갈 수 있게)
+    const examRows = () => {
+      if (x.v !== 2) return x.subj.map(t => { const pv = xp && xp.subj ? (xp.subj.find(y => y.k === t.k) || {}).v : null, d = pv ? t.v - pv : 0;
+        return '<div class="gxr"><span>' + esc(t.n) + '</span><span class="gxd">' + [1, 2, 3, 4, 5].map(n => '<i class="' + (n <= t.v ? 'on' : '') + '"></i>').join('') + '</span><b>' + XW[t.v] + (t.note ? '<small>' + esc(t.note) + '</small>' : '') + '</b>' + (d > 0 ? '<em>▲ ' + d + '</em>' : '') + '</div>'; }).join('');
+      let lastG = null, o = '';
+      x.items.forEach(t => { if ((t.g || '') !== lastG) { lastG = t.g || ''; if (t.g) o += '<div class="gxh">' + esc(t.g) + (t.g === '웅변' && x.topic ? ' <small>· 주제 ' + esc(x.topic) + '</small>' : '') + '</div>'; }
+        const pv = xp && xp.v === 2 ? (xp.items || []).find(y => y.k === t.k) : null;
+        o += '<div class="gxr"><span' + (t.g ? ' style="width:auto;font-weight:600"' : '') + '>' + esc(t.n) + '</span><b>' + (t.tx ? '<small>' + esc(t.tx) + '</small>' : t.note ? '<small>' + esc(t.note) + '</small>' : '') + '</b>' +
+          (pv && !pv.good && t.good ? '<em>▲ 좋아졌어요</em>' : '') + '<span class="gxb ' + (t.good ? 'g' : 'm') + '">' + (t.good ? '👍 훌륭해요' : '💪 연습이 필요해요') + '</span></div>'; });
+      return o;
+    };
+    const exam = !X.length ? '<section class="gcard gexam"><div class="gch"><b>승급 심사</b></div><div class="gwait"><div class="gico">🥋</div><b>아직 나온 심사 결과가 없어요</b><p>매달 심사가 끝나면 과목마다 결과가 여기에 쌓여요.</p></div></section>'
+      : '<section class="gcard"><div class="gch"><b>' + (+x.month.slice(5)) + '월 승급 심사' + (x.grp ? ' <small>' + esc(x.grp) + '</small>' : '') + '</b>' + (X.length > 1 ? '<span class="gnav"><button data-gx="-1"' + (xi <= 0 ? ' disabled' : '') + '>‹</button>' + (+x.month.slice(5)) + '월<button data-gx="1"' + (xi >= X.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (x.date ? (+x.date.slice(5, 7)) + '/' + (+x.date.slice(8)) : '') + '</small>') + '</div>' +
+        (x.absent ? '<div class="gres rest">이번 달 심사는 쉬었어요</div>' : x.nb ? '<div class="gres">🎉 합격 · ' + esc(x.nb) + '로 올라가요</div>' : x.pass ? '<div class="gres">합격' + (x.cur ? ' · ' + esc(x.cur) : '') + '</div>' : '<div class="gres again">다음 심사에서 다시 도전해요 💪</div>') +
+        (x.absent ? '' : '<div class="gx">' + examRows() + '</div>') + '</section>' +
+        '<p class="note" style="margin:10px 4px 0">' + (x.v === 2 ? '과목마다 훌륭해요 / 연습이 필요해요로 평가해요. ' : '점수는 5점 만점이에요. ') + '심사 결과는 5가지 요소의 집중과 자기조절(품새·서기동작·기본동작), 자신감과 표현력(웅변·영어·특기), 배려와 리더십(인사)에 쓰여요.</p>';
     let h = kidSel + head + chips;
     if (growF === '요약') h += tiles + factors() + attSecG + (lastEv ? evCards(lastEv) : '');
     if (growF === '출석') h += attSecG + '<p class="note" style="margin:10px 4px 0">태블릿에서 등원 번호를 누른 날을 세요.</p>';
-    if (growF === '성장 측정') h += factorLines() + evCards();
+    if (growF === '성장 측정') { const ev0 = per ? evAt(per.month) : null, oth = evs.filter(e => e !== ev0 && gEvStat(e, kid.rec)); h += factorLines() + (oth.length ? '<div class="gch" style="margin:14px 4px 0"><b>다른 기네스 종목 기록</b></div>' + oth.map(e => evCards(e)).join('') : ''); }
     if (growF === '심사') h += exam;
     if (D.growErr && growF !== '출석') h += '<p class="note" style="margin:10px 4px 0">성장 측정 기록을 지금 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>';
     body(h);
     $('pBody').onclick = e => {
       const f = e.target.closest('[data-gf]'); if (f) { growF = f.dataset.gf; $('v-page').scrollTop = 0; return drawGrow(); }
       const g = e.target.closest('[data-gp]'); if (g && !g.disabled) { growP[k] = pi + +g.dataset.gp; return drawGrow(); }
+      const gx = e.target.closest('[data-gx]'); if (gx && !gx.disabled) { growX[k] = xi + +gx.dataset.gx; return drawGrow(); }
       const c = e.target.closest('[data-gk]'); if (c) { store.set(LS, { ...me(), kid: +c.dataset.gk }); renderHome(); return drawGrow(); }
     };
   }
