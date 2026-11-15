@@ -725,7 +725,7 @@
 
   // ═════════ 앱 화면 (아래 탭 4개: 홈 · 수련 계획 · 소식 · 우리 아이) ═════════
   // 2026-11-13: '일정' 탭 → '수련 계획' (수련 계획·행사 신청·알림장을 한 화면에서 분류로 나눠 봄)
-  const TABS = { home: '홈', schedule: '수련 계획', news: '소식', kid: '우리 아이' };
+  const TABS = { home: '홈', schedule: '수련 계획', news: '소식', kid: '제자 정보' }; // 2026-11-15 사용자 결정: '우리 아이' → '제자 정보'
   // 예전 알림 주소(#journal 등)도 그대로 열리게
   const LEGACY = { journal: ['news', '알림장'], notice: ['news', '공지'], album: ['news', '앨범'], attendance: ['kid'], me: ['kid'], schedule: ['schedule'], news: ['news'], kid: ['kid'], home: ['home'] };
   const TYPE_OF = { 공지: 'notice', 알림장: 'journal', 앨범: 'album' };
@@ -1547,7 +1547,7 @@
       (lastX ? '<button data-gf="심사"><small>' + (+lastX.month.slice(5)) + '월 심사</small><b class="sm">' + (lastX.absent ? '쉬었어요' : lastX.nb ? esc(lastX.nb) : lastX.pass ? '합격' : '다시 도전') + '</b><em class="' + (lastX.absent ? 'wait' : lastX.pass ? 'up' : 'ok') + '">' + (lastX.absent ? '다음 달에' : lastX.nb ? '새 띠 🎉' : lastX.pass ? '합격' : '응원해요') + '</em></button></div>'
         : '<button data-gf="심사"><small>심사</small><b class="sm">심사 전</b><em class="wait">곧 나와요</em></button></div>');
     const factors = () => {
-      if (!per) return '<div class="calm" style="margin-top:12px"><span>아직 완성된 성장 측정지가 없어요. 도장에서 결과지를 마치면 여기에 나와요.</span></div>';
+      if (!per) return '<div class="calm" style="margin-top:12px"><span>측정·출석·심사 기록이 쌓이면 여기에 바로 나와요.</span></div>'; // 2026-11-15: 성장 측정지 없앰 → 서버가 달마다 자동으로 만듦
       const ev = evAt(per.month), b = gBody(ev, ev ? gEvStat(ev, kid.rec) : null), vals = [b.lv, ...per.att.map(x => GLV[x] || 1)], labels = [b.t, ...per.att];
       return '<section class="gcard"><div class="gch"><b>성장에 영향을 주는 5가지 요소</b>' + (P.length > 1 ? '<span class="gnav"><button data-gp="-1"' + (pi <= 0 ? ' disabled' : '') + '>‹</button>' + (+per.month.slice(5)) + '월<button data-gp="1"' + (pi >= P.length - 1 ? ' disabled' : '') + '>›</button></span>' : '<small>' + (+per.month.slice(5)) + '월</small>') + '</div>' +
         gRadar(vals, labels) + '<div class="glv">' + G5.map((t, i) => '<div><span>' + t + '</span><b class="l' + vals[i] + '">' + esc(labels[i]) + '</b></div>').join('') + '</div>' +
@@ -1569,7 +1569,7 @@
       '<p class="note" style="margin:10px 4px 0">점수는 5점 만점이에요. 심사 점수는 성장 측정지의 집중과 자기조절(품새), 자신감과 표현력(웅변·영어)에도 쓰여요.</p>';
     let h = kidSel + head + chips;
     if (growF === '요약') h += tiles + factors() + attSecG + (lastEv ? evCards(lastEv) : '');
-    if (growF === '출석') h += attSecG + '<p class="note" style="margin:10px 4px 0">태블릿에서 등원 번호를 누른 날을 세요. 날짜별 등원·하원 시각은 \'우리 아이\'에서 볼 수 있어요.</p>';
+    if (growF === '출석') h += attSecG + '<p class="note" style="margin:10px 4px 0">태블릿에서 등원 번호를 누른 날을 세요. 날짜별 등원·하원 시각은 \'제자 정보\'에서 볼 수 있어요.</p>';
     if (growF === '성장 측정') h += factors() + evCards();
     if (growF === '심사') h += exam;
     if (D.growErr && growF !== '출석') h += '<p class="note" style="margin:10px 4px 0">성장 측정 기록을 지금 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>';
