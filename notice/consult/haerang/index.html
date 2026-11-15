@@ -65,7 +65,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 .dk .copy{color:#555}
 
 /* 1 Q&A */
-.qa{margin-top:70px;display:flex;flex-direction:column;gap:56px}
+.qa{margin-top:40px;display:flex;flex-direction:column;gap:46px}
 .qa p{font-size:42px;font-weight:500}
 .qa p b{font-weight:800}
 
@@ -76,6 +76,46 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 @keyframes blink{50%{opacity:0}}
 .sbox svg{margin-left:auto;width:34px;height:34px;stroke:#03C75A;stroke-width:3;fill:none}
 .stag{display:inline-block;margin-top:26px;background:#E9F9EF;border:2px solid #03C75A;color:#036B32;font-size:30px;font-weight:800;padding:12px 26px;border-radius:6px}
+
+/* 2 소개 */
+.intro{display:flex;align-items:center;justify-content:center;gap:50px;margin-top:0}
+.intro img.l{width:170px;animation:spinin 1.2s cubic-bezier(.2,.8,.2,1) both .2s}
+.s:not(.on) .intro img.l{animation:none}
+@keyframes spinin{from{transform:rotate(-200deg) scale(.3);opacity:0}}
+.intro h3{font-size:58px;font-weight:900;letter-spacing:-.03em}
+.intro p{font-size:28px;font-weight:600;color:var(--red);margin-top:6px}
+.ex4{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:40px}
+.ex4 div{border-top:5px solid #111;padding-top:14px;font-size:21px;color:#444;line-height:1.45}
+.ex4 b{display:block;font-size:26px;font-weight:900;color:#111;margin-bottom:4px}
+.three.sm .ic{width:110px;height:110px}.three.sm .ic svg{width:54px;height:54px}
+.three.sm figcaption{font-size:30px;margin:16px 0 12px}
+.three.sm ul{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px}
+.three.sm li{font-size:20px;padding:6px 16px}
+/* 성장 확인 */
+.grow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;margin-top:6px}
+.grow>div{border:2px solid #4A4A4A;padding:26px;position:relative}
+.grow h4{font-size:30px;font-weight:800;margin-bottom:6px}
+.grow h4 span{color:var(--hi);margin-right:10px}
+.grow p{font-size:20px;color:#CFCFCF;line-height:1.55}
+.grow ol{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.grow ol li{font-size:20px;color:#E4E4E4}.grow ol li b{color:var(--hi);margin-right:8px}
+.steps4{display:flex;gap:10px;margin-top:14px}
+.steps4 i{flex:1;font-style:normal;text-align:center;font-size:17px;font-weight:700;background:#3A3A3A;padding:10px 4px;position:relative}
+.s.on .steps4 i{animation:lit 4s ease-in-out infinite;animation-delay:calc(var(--k) * 1s)}
+@keyframes lit{0%,20%{background:var(--red)}30%,100%{background:#3A3A3A}}
+/* 소통 */
+.app{display:grid;grid-template-columns:360px 1fr;gap:70px;align-items:center;margin-top:0}
+.phone{width:300px;height:560px;border-radius:44px;background:#111;padding:16px;margin:0 auto;box-shadow:0 30px 60px rgba(0,0,0,.18)}
+.phone .scr{width:100%;height:100%;border-radius:30px;background:#F6F4F1;overflow:hidden;padding:22px 16px;display:flex;flex-direction:column;gap:12px}
+.phone .ttl{font-size:18px;font-weight:800}
+.noti{background:#fff;border-radius:14px;padding:12px 14px;font-size:15px;box-shadow:0 4px 12px rgba(0,0,0,.06);opacity:0;transform:translateY(-14px)}
+.noti b{display:block;font-size:13px;color:var(--red);margin-bottom:2px}
+.s.on .noti{animation:drop .6s cubic-bezier(.3,1.4,.5,1) forwards;animation-delay:calc(var(--k) * .9s + .6s)}
+@keyframes drop{to{opacity:1;transform:none}}
+.appl{list-style:none;display:flex;flex-direction:column;gap:26px}
+.appl li{display:flex;gap:22px;align-items:flex-start;font-size:22px;color:#444;line-height:1.5}
+.appl li .ic{width:76px;height:76px;flex:none;box-shadow:none}.appl li .ic svg{width:38px;height:38px}
+.appl li b{display:block;font-size:28px;color:#111;font-weight:900}
 
 /* 3 생각 (검정) */
 .big-list{display:flex;flex-direction:column;gap:46px;margin-top:20px}
@@ -167,7 +207,8 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 .badge .core b{font-size:42px;font-weight:900;margin-top:8px;letter-spacing:.08em}
 .badge .core small{font-size:15px;color:#FFD9A0;font-weight:700;letter-spacing:.2em}
 .num{list-style:none;width:880px;display:flex;flex-direction:column;gap:30px}
-.num li{font-size:30px;font-weight:600;line-height:1.45}
+.num li{font-size:27px;font-weight:600;line-height:1.45}
+.num li b.k{color:var(--hi);margin-right:10px}
 .num li small{display:block;font-size:20px;color:#BDBDBD;font-weight:500;margin-top:6px;line-height:1.55}
 
 /* 12 시간표 (검정) */
@@ -222,6 +263,10 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
   <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16.2 7.8-2.1 6.3-6.3 2.1 2.1-6.3z"/></symbol>
   <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
 </svg>
 <div class="stage" id="st">
@@ -233,6 +278,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
     <p data-a style="--d:200">Q1. 태권도를 <b class="u" style="--d:200">시작하려는 이유</b>가 무엇인가요?</p>
     <p data-a style="--d:400">Q2. 지금까지 해 본 <b class="u" style="--d:400">운동이나 수련 경험</b>이 있나요? 얼마나 해 보셨나요?</p>
     <p data-a style="--d:600">Q3. 아이의 <b class="u" style="--d:600">성향이나 건강</b>에서 미리 알아 두어야 할 점이 있나요?</p>
+    <p data-a style="--d:800">Q4. 태권도를 통해 아이가 <b class="u" style="--d:800">어떤 모습으로 성장</b>했으면 좋겠다고 생각하세요?</p>
   </div>
   <img class="mg" src="../../../img/brand/magnolia-black.png" alt="" style="right:80px;bottom:60px;width:170px;opacity:.35" data-a="r">
 </section>
@@ -240,22 +286,22 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 <!-- 2. 해랑경희란? -->
 <section class="s" data-n="해랑경희란">
   <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>해랑경희란?</span></div>
-  <div class="search" data-a style="--d:150">
-    <div class="sbox"><span id="typed"></span><span class="cur"></span><svg viewBox="0 0 24 24"><use href="#i-search"/></svg></div>
-    <div class="stag" id="stag" style="opacity:0;transition:opacity .5s">해랑경희 : 나를 이기고 세상을 이롭게 한다</div>
+  <div class="intro">
+    <img class="l" src="../../../img/brand/lion-red.png" alt="">
+    <div><h3 data-a style="--d:500">해랑경희 태권도장</h3><p data-a style="--d:700">나를 이기고 세상을 이롭게 한다</p></div>
   </div>
   <div class="icons">
-    <figure data-a="pop" style="--d:1700"><div class="ic r" style="--d:1700"><svg><use href="#i-flag"/></svg></div><figcaption>대한태권도협회<br>등록 도장</figcaption></figure>
-    <figure data-a="pop" style="--d:1900"><div class="ic n" style="--d:1900"><svg><use href="#i-award"/></svg></div><figcaption>공인 6단<br>대표 사범</figcaption></figure>
-    <figure data-a="pop" style="--d:2100"><div class="ic g" style="--d:2100"><svg><use href="#i-book"/></svg></div><figcaption>경희대학교<br>태권도학과</figcaption></figure>
-    <figure data-a="pop" style="--d:2300"><div class="ic t" style="--d:2300"><svg><use href="#i-star"/></svg></div><figcaption>서울특별시<br>대표 시범단 출신</figcaption></figure>
+    <figure data-a="pop" style="--d:600"><div class="ic r" style="--d:600"><svg><use href="#i-flag"/></svg></div><figcaption>대한태권도협회<br>등록 도장</figcaption></figure>
+    <figure data-a="pop" style="--d:750"><div class="ic n" style="--d:750"><svg><use href="#i-award"/></svg></div><figcaption>공인 6단<br>대표 사범</figcaption></figure>
+    <figure data-a="pop" style="--d:900"><div class="ic g" style="--d:900"><svg><use href="#i-book"/></svg></div><figcaption>경희대학교<br>태권도학과</figcaption></figure>
+    <figure data-a="pop" style="--d:1050"><div class="ic t" style="--d:1050"><svg><use href="#i-star"/></svg></div><figcaption>서울특별시<br>대표 시범단 출신</figcaption></figure>
   </div>
 </section>
 
 <!-- 3. 이 생각에서 시작됩니다 -->
 <section class="s dk" data-n="교육의 시작">
   <img class="wm" src="../../../img/brand/wordmark-white.png" alt="">
-  <div class="dh" data-a="l"><small>OUR QUESTION</small><h2>해랑경희의 교육은 이 생각에서 시작됩니다</h2></div>
+  <div class="dh" data-a="l"><small>WHY · 왜 가르치나요?</small><h2>해랑경희의 교육은 이 생각에서 시작됩니다</h2></div>
   <div class="big-list bar-l">
     <p data-a style="--d:300">1. 수련생들이 태권도를 <em class="h">운동으로써 매력</em>을 느끼게 하려면,<br>&nbsp;&nbsp;&nbsp;&nbsp;나는 어떤 교육을 제공해야 하는가?</p>
     <p data-a style="--d:600">2. 수련생들이 복잡하게 다가오는 미래를 <em class="h">성숙한 사람으로서</em><br>&nbsp;&nbsp;&nbsp;&nbsp;헤쳐 나가게 도와주려면, 나는 어떤 교육을 제공해야 하는가?</p>
@@ -265,7 +311,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 
 <!-- 4. 수련의 목적 -->
 <section class="s" data-n="수련의 목적">
-  <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>해랑경희 교육</span><span class="sub">1. 태권도 수련의 목적</span></div>
+  <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>해랑경희 교육</span><span class="sub">1. 무엇을 기르나요?</span></div>
   <div class="icons" style="margin-top:20px">
     <figure data-a="pop" style="--d:200"><div class="ic r" style="--d:200"><svg><use href="#i-act"/></svg></div><figcaption>건강한 신체발달</figcaption></figure>
     <figure data-a="pop" style="--d:400"><div class="ic n" style="--d:400"><svg><use href="#i-zap"/></svg></div><figcaption>강인한 정신력</figcaption></figure>
@@ -281,13 +327,18 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 
 <!-- 5. 무엇을 가르치나요 -->
 <section class="s" data-n="교육 내용">
-  <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>해랑경희 교육</span><span class="sub">2. 무엇을 가르치나요?</span></div>
-  <div class="three">
+  <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>해랑경희 교육</span><span class="sub">2. 어떻게 가르치나요?</span></div>
+  <div class="three sm">
     <figure data-a style="--d:200"><div class="ic o" style="--d:200"><svg><use href="#i-target"/></svg></div><figcaption>태권도 기술</figcaption><ul><li>품새</li><li>겨루기</li><li>격파 · 시범</li><li>태권호신술</li></ul></figure>
-    <figure data-a style="--d:400"><div class="ic t" style="--d:400"><svg><use href="#i-heart"/></svg></div><figcaption>인성 발달</figcaption><ul><li>정신건강</li><li>라이프 스킬</li><li>사회 발달</li></ul></figure>
-    <figure data-a style="--d:600"><div class="ic n" style="--d:600"><svg><use href="#i-act"/></svg></div><figcaption>체력 · 운동능력</figcaption><ul><li>운동기능 발달</li><li>체력 향상</li><li>건강 생활습관</li></ul></figure>
+    <figure data-a style="--d:350"><div class="ic t" style="--d:350"><svg><use href="#i-heart"/></svg></div><figcaption>인성 발달</figcaption><ul><li>정신건강</li><li>라이프 스킬</li><li>사회 발달</li></ul></figure>
+    <figure data-a style="--d:500"><div class="ic n" style="--d:500"><svg><use href="#i-act"/></svg></div><figcaption>체력 · 운동능력</figcaption><ul><li>운동기능 발달</li><li>체력 향상</li><li>건강 생활습관</li></ul></figure>
   </div>
-  <p class="foot" data-a style="--d:900">신체적·정신적·사회적으로 <b class="u" style="--d:900">외면과 내면이 균형 있게</b> 자라도록 돕습니다.</p>
+  <div class="ex4">
+    <div data-a style="--d:750"><b>자신감</b>작은 기술 하나를 성공하며 성취감을 느껴요</div>
+    <div data-a style="--d:850"><b>사회성</b>친구와 짝을 이뤄 연습하고 서로 도와요</div>
+    <div data-a style="--d:950"><b>책임감</b>준비물을 챙기고 정해진 규칙을 지켜요</div>
+    <div data-a style="--d:1050"><b>자기 조절력</b>차례를 기다리고 감정을 다스리며 수련해요</div>
+  </div>
 </section>
 
 <!-- 6. 마음을 키우는 방법 -->
@@ -309,12 +360,12 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
   <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>태권도만의 매력</span></div>
   <div class="charm-n" data-a style="--d:200">
     <div class="n"><span class="cnt" data-to="30">0</span><small>여 개</small></div>
-    <p>대학·대학원 태권도 관련 전공<span>품·단증은 입시에서 공식 인정 → 체육 특기자 · 전공 점수로 반영</span></p>
+    <p>대학·대학원 태권도 관련 전공<span>품·단증을 체육 특기자나 전공 점수로 인정하는 대학·전형이 있어요 (학교마다 다름)</span></p>
   </div>
   <div class="icons" style="margin-top:50px">
     <figure data-a="pop" style="--d:600"><div class="ic r" style="--d:600"><svg><use href="#i-flag"/></svg></div><figcaption>대한민국 국기<small>법령으로 지정된<br>유일한 무술</small></figcaption></figure>
     <figure data-a="pop" style="--d:800"><div class="ic g" style="--d:800"><svg><use href="#i-award"/></svg></div><figcaption>올림픽 정식종목<small>전 세계가<br>인정하는 스포츠</small></figcaption></figure>
-    <figure data-a="pop" style="--d:1000"><div class="ic n" style="--d:1000"><svg><use href="#i-star"/></svg></div><figcaption>군인·공무원 가산점<small>단증이<br>가산점으로 인정</small></figcaption></figure>
+    <figure data-a="pop" style="--d:1000"><div class="ic n" style="--d:1000"><svg><use href="#i-star"/></svg></div><figcaption>군인·공무원 가산점<small>시험·직렬에 따라<br>단증 가산점</small></figcaption></figure>
     <figure data-a="pop" style="--d:1200"><div class="ic t" style="--d:1200"><svg><use href="#i-compass"/></svg></div><figcaption>넓어지는 진로<small>진로 선택의 폭을<br>넓히는 데 유리</small></figcaption></figure>
   </div>
 </section>
@@ -367,13 +418,46 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 <section class="s dk" id="c11" data-n="선범단">
   <img class="wm" src="../../../img/brand/wordmark-white.png" alt="">
   <div class="dh" data-a="l"><small>HAERANG LEADERS</small><h2>해랑경희 교육의 정수, 선범단</h2></div>
-  <ul class="num bar-l">
-    <li data-a style="--d:200">선범단이란?<small>품행이 모범이 되고, 태권도 실력이 준비되었으며, 다른 수련생을 잘 도울 수 있다고 지도진으로부터 공인받은 수련생</small></li>
-    <li data-a style="--d:400">1. 선발 — 유품(단)자로서 <em class="h">50번 이상</em> 다른 수련생을 도와준 경험 + 지도진 심의</li>
-    <li data-a style="--d:600">2. 특전 — <em class="h">특별한 패치</em>, 명예의 전당 등극, 도장에서 가장 높은 띠의 대우</li>
-    <li data-a style="--d:800">3. 의무 — <em class="h">한 달에 5번 이상</em> 다른 수련생을 돕고 모범을 보이며, 지도진에게 실력 검증</li>
+  <ul class="num bar-l" id="ldr">
+    <li data-a style="--d:200">선범단(先範團)이란?<small>먼저 선 · 모범 범 · 모일 단. 다른 사람에게 모범이 되고, 실력과 인성을 인정받아 자신이 가진 지식으로 다른 사람들에게 선한 영향력을 줄 수 있다고 인정된 수련생들입니다.</small></li>
+    <li data-a style="--d:400"><b class="k">선발</b>실력, 인성, 평소 생활 태도가 모범적이라고 지도진에게 만장일치로 인정되어야 임명됩니다.</li>
+    <li data-a style="--d:600"><b class="k">임명</b>자신의 이름이 새겨진 키링과 임명장 · 도복 왼팔에 붙이는 선범단 패치</li>
+    <li data-a style="--d:800"><b class="k">좋은 점</b>가르치기 위해 자신의 지식을 점검하고, 하나의 지식을 다양하게 설명하는 연습을 해요</li>
   </ul>
   <div class="badge" data-a="pop" style="--d:300"><div class="ring"></div><div class="core"><img src="../../../img/brand/lion-red.png" alt=""><b>선범단</b><small>HAERANG LEADERS</small></div></div>
+</section>
+
+<!-- 성장 확인 -->
+<section class="s dk" data-n="성장 확인">
+  <img class="wm" src="../../../img/brand/wordmark-white.png" alt="">
+  <div class="dh" data-a="l"><small>GROWTH</small><h2>아이의 성장을 어떻게 확인하나요?</h2></div>
+  <div class="grow">
+    <div data-a style="--d:200"><h4><span>01</span>해랑 기네스</h4><p>매월 첫째 금요일 수업에서 기록을 재요. 3개월마다 종목이 바뀌어요.</p>
+      <div class="steps4"><i style="--k:0">왕복달리기</i><i style="--k:1">스피드 줄넘기</i><i style="--k:2">위력격파</i><i style="--k:3">스피드 발차기</i></div></div>
+    <div data-a style="--d:400"><h4><span>02</span>분기별 성장 측정지</h4><p>3개월마다 기네스 기록과 사범님의 관찰을 한 장에 담아 학부모님께 보내드려요.</p>
+      <p style="margin-top:6px;font-size:17px">사범님 관찰은 '성장 중이에요 · 잘해요 · 아주 잘해요' 3단계</p><ol><li><b>·</b>몸의 기초 — 기네스 기록</li><li><b>·</b>집중과 자기조절</li><li><b>·</b>끈기와 꾸준함</li><li><b>·</b>자신감과 표현력</li><li><b>·</b>배려와 리더십</li></ol></div>
+    <div data-a style="--d:600"><h4><span>03</span>승급심사</h4><p>매달 마지막 주 '승급심사 주간'에 수업 시간 중 진행해요.</p><p style="margin-top:10px">띠마다 정해진 목표를 통과하면서, 아이가 무엇을 해냈는지 눈으로 확인할 수 있어요.</p></div>
+  </div>
+</section>
+
+<!-- 학부모 소통 -->
+<section class="s" data-n="학부모 소통">
+  <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>학부모님과의 소통</span><span class="sub">해랑경희 학부모 앱</span></div>
+  <div class="app">
+    <div class="phone" data-a="pop" style="--d:200"><div class="scr">
+      <div class="ttl">해랑경희</div>
+      <div class="noti" style="--k:0"><b>등원</b>김해랑 제자가 도장에 도착했어요</div>
+      <div class="noti" style="--k:1"><b>알림장</b>오늘은 품새 태극 2장을 배웠어요</div>
+      <div class="noti" style="--k:2"><b>사진</b>오늘 수업 사진 12장이 올라왔어요</div>
+      <div class="noti" style="--k:3"><b>하원</b>김해랑 제자가 수업을 마쳤어요</div>
+    </div></div>
+    <ul class="appl">
+      <li data-a style="--d:400"><div class="ic r"><svg><use href="#i-bell"/></svg></div><div><b>등원 · 하원 알림</b>도장 입구 태블릿에 번호를 누르면 바로 휴대폰으로 알려 드려요</div></li>
+      <li data-a style="--d:550"><div class="ic n"><svg><use href="#i-image"/></svg></div><div><b>알림장 · 공지 · 사진</b>수업 내용과 도장 소식, 아이 사진을 앱에서 봐요</div></li>
+      <li data-a style="--d:700"><div class="ic g"><svg><use href="#i-cal"/></svg></div><div><b>일정 · 행사 신청</b>승급심사, 행사 일정을 확인하고 앱에서 바로 신청해요</div></li>
+      <li data-a style="--d:850"><div class="ic t"><svg><use href="#i-chart"/></svg></div><div><b>출석 기록</b>우리 아이의 출석 달력과 등·하원 시각을 확인해요</div></li>
+    </ul>
+  </div>
 </section>
 
 <!-- 12. 시간표 -->
@@ -458,14 +542,6 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
   }
   document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { e.stopPropagation(); drawTab(+b.dataset.t); } });
 
-  // 검색창 타이핑
-  let typeT = null;
-  function typing() {
-    const el = document.getElementById('typed'), tag = document.getElementById('stag'), word = '해랑경희 태권도장';
-    clearTimeout(typeT); el.textContent = ''; tag.style.opacity = 0; let n = 0;
-    const step = () => { el.textContent = word.slice(0, ++n); if (n < word.length) typeT = setTimeout(step, 120); else typeT = setTimeout(() => { tag.style.opacity = 1; }, 300); };
-    typeT = setTimeout(step, 500);
-  }
   // 숫자 올라가기
   function count(el) { const to = +el.dataset.to, t0 = performance.now() + 400; el.textContent = 0; const f = n => { const p = Math.max(0, Math.min(1, (n - t0) / 1300)); el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(f); }; requestAnimationFrame(f); }
 
@@ -478,6 +554,16 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
     document.getElementById('mName').textContent = (L.role || '대표 사범').replace(' 사범', '') + ' ' + L.name + ' 사범';
     if (L.career && L.career.length) document.getElementById('mCar').innerHTML = L.career.map(c => '<li>' + esc(c) + '</li>').join('');
     if (ms.length > 1) document.getElementById('others').innerHTML = ms.slice(1).map((m, k) => '<div data-a="r" style="--d:' + (600 + k * 150) + '"><h5><small>' + esc(m.role) + '</small>' + esc(m.name) + '</h5><p>' + (m.career || []).slice(0, 4).map(esc).join(' · ') + '</p></div>').join('');
+  }
+  function leaders(l) {
+    if (!l || !l.groups) return;
+    const g = t => (l.groups.find(x => x.t === t) || {}).items || [];
+    const sel = g('선발'), im = g('임명'), good = g('좋은 점');
+    let h = '<li data-a style="--d:200">선범단(先範團)이란?<small>' + esc((l.lead || '').replace(/\n/g, ' ')) + '</small></li>';
+    if (sel.length) h += '<li data-a style="--d:400"><b class="k">선발</b>' + sel.map(esc).join(' ') + '</li>';
+    if (im.length) h += '<li data-a style="--d:600"><b class="k">임명</b>' + im.map(esc).join(' · ') + '</li>';
+    if (good.length) h += '<li data-a style="--d:800"><b class="k">좋은 점</b>' + good.slice(1, 3).map(esc).join(', ') + '</li>';
+    document.getElementById('ldr').innerHTML = h;
   }
   function fee(f) {
     if (!f || !f.plans || !f.plans.length) return;
@@ -498,12 +584,11 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
     document.getElementById('nx').style.visibility = i < S.length - 1 ? 'visible' : 'hidden';
     if (i > 0) document.getElementById('hint').hidden = true;
     s.querySelectorAll('.cnt').forEach(count);
-    if (s.querySelector('#typed')) typing();
     clearTimeout(tabT); if (s.id === 'c9') drawTab(0);
   }
   fetch(ROOT + 'data.json', { cache: 'no-store' }).then(r => r.json()).then(d => {
-    staff(d.staff); fee(d.fee);
-    const s = S[i]; if (s && (s.id === 'c8' || s.dataset.n === '교육비')) { s.classList.remove('on'); void s.offsetWidth; s.classList.add('on'); }
+    staff(d.staff); fee(d.fee); leaders(d.leaders);
+    const s = S[i]; if (s && (s.id === 'c8' || s.id === 'c11' || s.dataset.n === '교육비')) { s.classList.remove('on'); void s.offsetWidth; s.classList.add('on'); }
   }).catch(() => {});
 
   document.getElementById('pv').onclick = e => { e.stopPropagation(); go(i - 1); };
