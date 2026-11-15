@@ -170,7 +170,7 @@ async function renameMember(env, id, from, to) {
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
   // 2026-11-13: 하나가 실패해도 나머지는 돌게 각각 따로, 시간이 정해진 알림(runTimed)을 먼저
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -274,19 +274,20 @@ async function route(path, req, env, ctx) {
     }
     if (path === '/sync/kmode') { // 제자 모드 (2026-11-14): 내 띠·다음 띠까지(%)·선범단 여부 + 선범단 명단(모두) + 내 성장 측정 기록 — 📈 성장(gdocs)이 기준
       const name = str(b.name, 20), gd = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
-      const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {}, belts = st.belts || {}, sb = st.sb || {}, status = st.status || {};
+      const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {}, sb = st.sb || {}, status = st.status || {}, AB = await attBelts(env), belts = {};
       const L = data && Array.isArray(data.students) ? data.students.filter(k => k && k.name) : [], id = k => k.name + '|' + k.birth;
+      L.forEach(k => { belts[id(k)] = (k.sid && AB[k.sid]) || (st.belts || {})[id(k)] || ''; }); // 띠 = 출석부 원생 정보 (없으면 예전 📈 성장 띠)
       const me = L.find(k => k.name === name), mid = me ? id(me) : '';
       let pct = null; if (me) { const per = await all(env, "SELECT path, data FROM gdocs WHERE path LIKE 'inputs/P%' ORDER BY path DESC"); for (const r of per) { const x = ((J(r.data, {}) || {}).kids || {})[mid]; if (x && x.beltPct != null && x.beltPct !== '') { pct = Math.max(0, Math.min(100, +x.beltPct)); break; } } }
       // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번): 유치부 여부 · 목표 띠(업무 앱 원생 상세) · 심사 결과 · 이번 달 심사 준비 · 선 모으기(모두 봄)
       const kv = async k => J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, null), mon = kstDay().slice(0, 7);
       const goals = (await kv('kgoal')) || {}, goal = me ? (goals[me.sid] || goals['n:' + name] || '') : '';
       const ex = me ? await examClosed(env) : {}, exams = me ? examList(ex, { sid: me.sid, name }) : [];
-      const em = (await kv('exam:' + mon)) || {}, vids = (await kv('examvid')) || {}, myBelt = me ? (belts[mid] || me.belt0 || '') : '';
+      const em = (await kv('exam:' + mon)) || {}, vids = (await kv('examvid')) || {}, myBelt = me ? (belts[mid] || me.belt0 || '') : (AB['n:' + name] || '');
       const prep = { month: mon, date: em.date || '', closed: !!em.closed, notes: em.notes || {}, vid: vids[myBelt] || '' };
       const sun = ((await kv('sun:' + mon)) || []).map(x => ({ name: x.name, text: x.text, at: x.at }));
       return json({ ok: true, sid: me ? me.sid || '' : '', kinder: !!(me && String(me.grade || '').includes('유치')), goal, exams, prep, sun,
-        belt: me ? (belts[mid] || me.belt0 || '') : '', beltPct: pct, sb: !!(me && sb[mid]),
+        belt: me ? (belts[mid] || me.belt0 || '') : (AB['n:' + name] || ''), beltPct: pct, sb: !!(me && sb[mid]),
         sbList: L.filter(k => sb[id(k)] && status[id(k)] !== '퇴관').map(k => ({ name: k.name, belt: belts[id(k)] || k.belt0 || '' })),
         events: data ? (data.events || []).map(e => ({ name: e.name, unit: e.unit, lower: !!e.lower, months: e.months, pf: !!e.pf })) : [], rec: me ? (me.rec || {}) : {} });
     }
@@ -495,9 +496,10 @@ async function route(path, req, env, ctx) {
       const rows = (await all(env, 'SELECT sid, name, data, upd, mid FROM exam WHERE month = ?', month)).map(r => ({ sid: r.sid, name: r.name, data: J(r.data, {}), upd: r.upd, mid: r.mid }));
       const out = { ok: true, cfg, meta, rows, vid: (await kg('examvid')) || {} };
       if (b.full) { // 지금 띠: 📈 성장(gdocs app/data·app/settings)의 띠를 출석부 원생 번호(sid)로 찾아 줌
-        const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {}, belts = {};
+        const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {}, belts = {}, r = await attSync(env, '/sync/roster', { all: true }), y = +kstDay().slice(0, 4);
         ((data && data.students) || []).forEach(k => { if (k && k.sid) belts[k.sid] = { belt: (st.belts || {})[k.name + '|' + k.birth] || '', kinder: String(k.grade || '').includes('유치') }; });
-        out.belts = belts; const r = await attSync(env, '/sync/roster', { all: true });
+        if (r.ok) (r.students || []).forEach(s => { if (!s.id) return; const o = belts[s.id] || (belts[s.id] = { belt: '', kinder: s.birth ? y - +s.birth <= 6 : false }); if (s.belt) o.belt = s.belt; }); // 띠 = 출석부 원생 정보 (2026-11-15)
+        out.belts = belts;
         out.roster = r.ok ? r.students.filter(s => (s.status || '재원') !== '퇴관').map(s => ({ id: s.id, name: s.name, birth: s.birth || '', status: s.status || '재원' })) : []; if (!r.ok) out.rosterErr = r.error || '출석부를 불러오지 못했어요';
         const ms = await all(env, 'SELECT id, name FROM members'); out.names = Object.fromEntries(ms.map(m => [m.id, m.name]));
       }
@@ -527,22 +529,25 @@ async function route(path, req, env, ctx) {
       await ks(mk, meta); return json({ ok: true, cfg, meta, vid: (await kg('examvid')) || {} });
     }
     if (path === '/api/exam-close' || path === '/api/exam-reopen') { // 마감 = 합격한 제자의 새 띠를 📈 성장에 넣음 / 마감 풀기 = 그때 바꾼 띠를 되돌림(그 뒤 손으로 바꾼 띠는 그대로)
-      const sd = await gd('app/settings'), data = await gd('app/data');
-      if (!sd || !data || !Array.isArray(data.students)) return json({ ok: false, error: '📈 성장 기록이 없어요. 성장 화면을 한 번 열어 주세요' });
-      const st = sd.settings || (sd.settings = {}); st.belts = st.belts || {}; const bySid = {}; data.students.forEach(k => { if (k && k.sid) bySid[k.sid] = k; });
+      const sd = (await gd('app/settings')) || { settings: {} }, data = (await gd('app/data')) || { students: [] }; if (!Array.isArray(data.students)) data.students = []; // 띠는 출석부 원생 정보가 기준 (2026-11-15) — 📈 성장이 없어도 마감됨
+      const st = sd.settings || (sd.settings = {}); st.belts = st.belts || {}; const bySid = {}; data.students.forEach(k => { if (k && k.sid) bySid[k.sid] = k; }); const AB = await attBelts(env);
       const ym = (+month.slice(5)) + '월';
       if (path === '/api/exam-close') {
         if (meta.closed) return json({ ok: false, error: '이미 마감했어요' });
         const rows = await all(env, 'SELECT sid, name, data FROM exam WHERE month = ?', month), applied = [], miss = [];
-        rows.forEach(r => { const d = J(r.data, {}); if (d.absent || d.pass === false || !d.nb) return; const k = bySid[r.sid]; if (!k) { miss.push(r.name); return; }
-          const id = k.name + '|' + k.birth, prev = st.belts[id] || ''; if (prev === d.nb) return; st.belts[id] = d.nb; applied.push([id, prev, d.nb, r.name]); });
+        rows.forEach(r => { const d = J(r.data, {}); if (d.absent || d.pass === false || !d.nb) return; const k = bySid[r.sid], id = k ? k.name + '|' + k.birth : '';
+          const prev = (r.sid && AB[r.sid]) || (id && st.belts[id]) || ''; if (prev === d.nb) return; if (id) st.belts[id] = d.nb; else if (!r.sid || !(r.sid in AB)) { miss.push(r.name); return; }
+          applied.push([id, prev, d.nb, r.name, r.sid || '']); });
+        const bs = await attSync(env, '/sync/belt-set', { items: applied.filter(a => a[4]).map(a => ({ sid: a[4], belt: a[2], why: ym + ' 심사 합격' })), who: me.name });
+        if (!bs.ok) return json({ ok: false, error: '출석부에 띠를 넣지 못했어요. 잠시 후 다시 마감해 주세요' });
         await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', 'app/settings', JSON.stringify(sd), Date.now(), me.id);
         meta.closed = { at: Date.now(), by: me.name, applied, miss }; await ks(mk, meta);
         await addLog(env, me.id, 'exam', ym + ' 승급 심사를 마감했어요 · 띠 바뀐 제자 ' + applied.length + '명', month).catch(() => {});
         return json({ ok: true, meta, n: applied.length, miss });
       }
       if (!meta.closed) return json({ ok: false, error: '마감하지 않은 심사예요' });
-      let back = 0; (meta.closed.applied || []).forEach(([id, prev, nb]) => { if (st.belts[id] !== nb) return; if (prev) st.belts[id] = prev; else delete st.belts[id]; back++; });
+      let back = 0; const AP = meta.closed.applied || []; AP.forEach(([id, prev, nb, nm, sid]) => { if (!id || st.belts[id] !== nb) return; if (prev) st.belts[id] = prev; else delete st.belts[id]; if (!sid) back++; });
+      const rb = await attSync(env, '/sync/belt-set', { items: AP.filter(a => a[4]).map(a => ({ sid: a[4], belt: a[1] || '', ifBelt: a[2], why: ym + ' 심사 마감 풀기' })), who: me.name }); back += (rb && rb.n) || 0; // 그 뒤 손으로 바꾼 띠는 그대로
       await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', 'app/settings', JSON.stringify(sd), Date.now(), me.id);
       delete meta.closed; await ks(mk, meta);
       await addLog(env, me.id, 'exam', ym + ' 승급 심사 마감을 풀었어요 · 띠 ' + back + '명 되돌림', month).catch(() => {});
@@ -695,7 +700,7 @@ async function route(path, req, env, ctx) {
     let got = [];
     if (b.sid) { // 원생 정보의 빈 칸을 서류로 채움 (성별·생년월일·주소·학교·반·번호·연락처, 2026-11-14)
       const c = await one(env, 'SELECT data FROM contracts WHERE id = ?', str(b.id, 30)), rec = J(c && c.data, {}), v = rec.raw || {};
-      const fill = { gender: v.sex, bday: v.birth, lunar: v.lunar === '음력', addr: v.addr, inst: v.school, cls: v.cls, sno: v.num, phone: String(v.phone || '').replace(/\D/g, '').length >= 10 ? v.phone : '' };
+      const fill = { belt: v.tkd === '네' ? (v.tkdBelt || '') : '흰띠', gender: v.sex, /* 띠 (2026-11-15): 처음 배우면 흰띠, 배운 적 있으면 그때 띠 */ bday: v.birth, lunar: v.lunar === '음력', addr: v.addr, inst: v.school, cls: v.cls, sno: v.num, phone: String(v.phone || '').replace(/\D/g, '').length >= 10 ? v.phone : '' };
       const f = await attSync(env, '/sync/student-fill', { sid: str(b.sid, 60), fill, who: me.name }).catch(() => null); got = (f && f.got) || [];
       await addLog(env, me.id, 'doc', '📝 ' + r.name + ' 등록 서류를 원생과 연결했어요' + (got.length ? ' · 원생 정보 채움: ' + got.join(', ') : ''), str(b.id, 30));
     }
@@ -1396,8 +1401,8 @@ async function pickupMark(env, day, kid, act, memo, by) {
 }
 async function sbNames(env) { // 📈 성장 설정의 선범단 (퇴관 빼고)
   const g = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
-  const data = await g('app/data'), st = ((await g('app/settings')) || {}).settings || {}, sb = st.sb || {}, status = st.status || {}, belts = st.belts || {};
-  return ((data && data.students) || []).filter(k => k && k.name && sb[k.name + '|' + k.birth] && status[k.name + '|' + k.birth] !== '퇴관').map(k => ({ name: k.name, sid: k.sid || '', belt: belts[k.name + '|' + k.birth] || k.belt0 || '' }));
+  const data = await g('app/data'), st = ((await g('app/settings')) || {}).settings || {}, sb = st.sb || {}, status = st.status || {}, belts = st.belts || {}, AB = await attBelts(env);
+  return ((data && data.students) || []).filter(k => k && k.name && sb[k.name + '|' + k.birth] && status[k.name + '|' + k.birth] !== '퇴관').map(k => ({ name: k.name, sid: k.sid || '', belt: (k.sid && AB[k.sid]) || belts[k.name + '|' + k.birth] || k.belt0 || '' }));
 }
 async function hwFor(env, kids) {
   const day = kstDay(), out = []; let sbs = null;
@@ -1469,6 +1474,17 @@ async function bumpKv(env) { await run(env, "INSERT INTO kv (k, v) VALUES ('kvup
 // ─────────── 정해진 시각 알림 (5분 크론에서, 하루 한 번씩) ───────────
 // ─────────── 원생 한 명단 (2026-11-13): 출석부에서 이름이 바뀌면 업무 앱도 따라감 (10분마다) ───────────
 // 출석부 원생 id → 이름을 kv 'rosterIds'에 두고, 바뀐 이름을 등원·픽업 기본 명단·시간, 오늘부터의 픽업표, 학부모 연락·행사 신청·미션 체크, 안 끝난 하원 할 일에 반영. 지우는 것은 없음.
+async function attBelts(env) { // 띠는 출석부 원생 정보가 기준 (2026-11-15 사용자 결정) — sid → 띠
+  const r = await attSync(env, '/sync/roster', { all: true }); const m = {}; if (r.ok) for (const s of r.students || []) if (s.id) { m[s.id] = s.belt || ''; if (s.name) m['n:' + s.name] = s.belt || ''; } return m;
+}
+async function beltMigrate(env) { // 한 번만: 예전 📈 성장(gdocs) 띠 → 출석부 원생 정보 띠 (출석부에 띠가 비어 있는 제자만)
+  if (await one(env, "SELECT v FROM kv WHERE k = 'beltmig1'")) return;
+  const g = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
+  const data = await g('app/data'), st = ((await g('app/settings')) || {}).settings || {}, belts = st.belts || {};
+  const items = ((data && data.students) || []).filter(k => k && k.sid).map(k => ({ sid: k.sid, belt: belts[k.name + '|' + k.birth] || k.belt0 || '' })).filter(x => x.belt);
+  const r = items.length ? await attSync(env, '/sync/belt-set', { items, onlyEmpty: true, who: '📈 성장에서 옮김', quiet: false }) : { ok: true, n: 0 }; if (!r.ok) return;
+  await run(env, "INSERT INTO kv (k, v) VALUES ('beltmig1', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ at: Date.now(), n: r.n || 0, of: items.length }));
+}
 async function rosterFollow(env) {
   const at = await one(env, "SELECT v FROM kv WHERE k = 'rosterAt'"); if (at && Date.now() - Number(at.v) < 600000) return;
   await run(env, "INSERT INTO kv (k, v) VALUES ('rosterAt', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(Date.now()));
