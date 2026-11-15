@@ -49,6 +49,7 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ask INTEGER DEFAULT 0').run(); } catch (_) {}    // '확인했어요' 받기
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN env INTEGER DEFAULT 0').run(); } catch (_) {}   // 📩 봉투로 보낸 글 (고른 제자만 · 참가/불참 답장)
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN ev TEXT').run(); } catch (_) {}
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN kmsg TEXT').run(); } catch (_) {} // 📩 봉투를 제자 앱에 보일 말 (2026-11-15)
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN dend TEXT').run(); } catch (_) {}                // 일정 끝나는 날 (여러 날 일정, 2026-11-13)
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN img TEXT').run(); } catch (_) {}                 // 일정 사진 (홈페이지에서 옮겨 온 photos/… 경로)                  // 일정 ↔ 업무 앱 행사 신청표 id (2026-11-13)
   try { await env.DB.prepare('ALTER TABLE parents ADD COLUMN inv TEXT').run(); } catch (_) {}               // 가입할 때 쓴 초대번호
@@ -155,11 +156,14 @@ async function route(path, req, env) {
       const hw = await teamSync(env, '/sync/hw', { kids: [name] });
       return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [], dl: days.filter(d => d >= kstAdd(today, -400)), nth: Object.fromEntries([1, 10, 30, 50, 100, 200, 300, 500].filter(n => days.length >= n).map(n => [n, days[n - 1]])) }, // 월간 도전·수련 로그 (2026-11-15)
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
-        hw: hw.ok ? (hw.hw || []) : [], best: mergeBest(t.ok ? t.gbest : [], km.best).slice(-36), bestProf: await bestProfiles(env, mergeBest(t.ok ? t.gbest : [], km.best)), // 최우수 수련생 매달 + 프로필 (2026-11-15) comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
+        hw: hw.ok ? (hw.hw || []) : [], best: mergeBest(t.ok ? t.gbest : [], km.best).slice(-36), bestProf: await bestProfiles(env, mergeBest(t.ok ? t.gbest : [], km.best)), // 최우수 수련생 매달 + 프로필 (2026-11-15)
+        comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
         mile: t.ok && t.mile != null ? t.mile : null, // 💰 마일리지 (상점 1개 = 100원, 2026-11-15)
         kids: viaP || null, kinder: !!(t.ok && t.kinder), goal: t.ok ? t.goal || '' : '', exams: t.ok ? t.exams || [] : [], prep: t.ok ? t.prep : null, sun: t.ok ? t.sun || [] : [],
-        prof: (await kvj(env, 'kprof:' + name)) || {}, qr: await kidQr(env, name), dc: (await kvj(env, 'kday:' + name)) || {}, // 매일 체크 (집에서 연습 p · 바른 생활 m, 2026-11-15) sbCard: t.ok && t.sb ? await sbCard(env, name) : null,
+        prof: (await kvj(env, 'kprof:' + name)) || {}, qr: await kidQr(env, name), dc: (await kvj(env, 'kday:' + name)) || {}, // 매일 체크 (집에서 연습 p · 바른 생활 m, 2026-11-15)
+        sbCard: t.ok && t.sb ? await sbCard(env, name) : null,
+        envs: await kidEnvs(env, name), // 📩 봉투 (제자 앱엔 '준비가 되었어요! 가족과 상담해 보세요!' + 부모님 답장)
         evs: (await all(env, "SELECT title, kind, date FROM posts WHERE type = 'schedule' AND kind IN ('행사', '대회', '심사') AND date >= ? AND date <= ? ORDER BY date LIMIT 5", today, kstAdd(today, 30))),
         // 🎉 이벤트 탭 (2026-11-15): 도장 일정 (지난 60일 ~ 앞으로 180일) + 지금 신청 받는 행사 (신청은 학부모 앱에서)
         sched: (await all(env, "SELECT title, kind, date, dend, body FROM posts WHERE type = 'schedule' AND date >= ? AND date <= ? ORDER BY date LIMIT 80", kstAdd(today, -60), kstAdd(today, 180))).map(x => ({ title: x.title, kind: x.kind || '', date: x.date, dend: x.dend || '', body: String(x.body || '').slice(0, 300) })),
@@ -399,11 +403,7 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const cut = (x, n) => String(x || '').slice(0, n), M = new Map((Array.isArray(b.items) ? b.items : []).slice(0, 400).map(x => [cut(x.name, 20), { title: cut(x.title, 60), body: cut(x.body, 200) }]).filter(([n, x]) => n && x.title));
     const A = b.all && b.all.title ? { title: cut(b.all.title, 60), body: cut(b.all.body, 200) } : null, ex = new Set(A && Array.isArray(b.all.except) ? b.all.except.map(x => cut(x, 20)) : []);
-    const L = (await all(env, 'SELECT tok, name, ep, p256, auth FROM ksess WHERE ep IS NOT NULL ORDER BY name, tok')).filter(x => M.has(x.name) || (A && !ex.has(x.name)));
-    const off = Math.max(0, b.offset | 0), part = L.slice(off, off + 6); let sent = 0;
-    if (part.length) { const vapid = await getVapid(env);
-      for (const x of part) { const m = M.get(x.name) || A; try { const res = await webPush({ endpoint: x.ep, p256dh: x.p256, auth: x.auth }, JSON.stringify({ title: m.title, body: m.body, kind: '제자', url: SITE + '/kids/', tag: 'kid-' + Date.now() + '-' + sent }), await vapidHeader(x.ep, vapid)); if (res.status === 404 || res.status === 410) await run(env, 'UPDATE ksess SET ep = NULL WHERE tok = ?', x.tok); else if (res.ok) sent++; } catch (_) {} } }
-    return json({ ok: true, sent, total: L.length, next: off + 6 < L.length ? off + 6 : 0 });
+    return json(await kidPushSome(env, M, A, ex, b.offset | 0));
   }
   if (path === '/sync/best-merge') { // 이달의 최우수 발표용: 기네스 1등(업무 서버) + 알림 관리에서 직접 넣은 이름
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
@@ -660,6 +660,7 @@ async function route(path, req, env) {
         type, String(b.kind || '').slice(0, 10), title, String(b.body || '').slice(0, 3000), date, JSON.stringify(target), JSON.stringify(photos), b.pin ? 1 : 0, Date.now(), urgent, envl ? 0 : ask, envl);
       const pid = r.meta && r.meta.last_row_id;
       if (envEv && pid) await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', envEv, pid);
+      if (envl && pid) await run(env, 'UPDATE posts SET kmsg = ? WHERE id = ?', String(b.kmsg || '').slice(0, 120).trim() || ENV_KMSG, pid); // 제자 앱: 봉투 대신 '준비가 되었어요! 가족과 상담해 보세요!'
       if (dend && pid) await run(env, 'UPDATE posts SET dend = ? WHERE id = ?', dend, pid);
       if (envl) return json({ ok: true, id: pid, envEv, evError: envErr || undefined });
       if (type === 'schedule' && b.mkEv && pid) { // 🎟 신청표도 만들기 (2026-11-13 사용자 결정: 도장 일정은 알림 관리에서, 신청표는 여기서 같이)
@@ -681,6 +682,11 @@ async function route(path, req, env) {
       if (!p.ev && b.mkEv) { const e = await teamSync(env, '/sync/ev-from-sched', { sp: p.id, title, date, body: body.slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '' }); if (e.ok && e.id) { await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', String(e.id).slice(0, 40), p.id); out.ev = e.id; } else out.evError = e.error || '업무 앱에 신청표를 만들지 못했어요'; }
       if (b.notify) { const md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8)); out.notify = { title: '[일정 변경] ' + title, body: (p.date !== date ? md(p.date) + ' → ' + md(date) + ' · ' : '') + (body || '일정이 바뀌었어요').slice(0, 100) }; } // 보내기는 화면이 pushAll로 나눠서
       return json(out);
+    }
+    if (path === '/admin/env-kid') { // 📩 봉투 → 제자 앱에도 알림 (봉투 대신 '준비가 되었어요! 가족과 상담해 보세요!', 2026-11-15 사용자 요청)
+      const p = await one(env, 'SELECT title, target, kmsg FROM posts WHERE id = ? AND env = 1', b.id | 0); if (!p) return json({ ok: false, error: '봉투를 찾지 못했어요' });
+      const m = { title: '📩 도장에서 봉투가 왔어요!', body: String(p.kmsg || ENV_KMSG).slice(0, 200) };
+      return json(await kidPushSome(env, new Map(J(p.target, []).map(n => [String(n).slice(0, 20), m])), null, new Set(), b.offset | 0));
     }
     if (path === '/admin/post-delete') {
       const p = await one(env, 'SELECT photos, ev, title FROM posts WHERE id = ?', b.id | 0);
@@ -1083,6 +1089,19 @@ async function send(env, b) {
   return { ok: true, total, sent, failed, removed, next: nextAt < total - removed ? nextAt : null };
 }
 
+async function kidPushSome(env, M, A, ex, offset) { // 제자 앱 여러 명 (M: 이름 → {title, body} / A: 모두에게) — 6대씩, next 로 이어서
+  const L = (await all(env, 'SELECT tok, name, ep, p256, auth FROM ksess WHERE ep IS NOT NULL ORDER BY name, tok')).filter(x => M.has(x.name) || (A && !ex.has(x.name)));
+  const off = Math.max(0, offset | 0), part = L.slice(off, off + 6); let sent = 0;
+  if (part.length) { const vapid = await getVapid(env);
+    for (const x of part) { const m = M.get(x.name) || A; try { const res = await webPush({ endpoint: x.ep, p256dh: x.p256, auth: x.auth }, JSON.stringify({ title: m.title, body: m.body, kind: '제자', url: SITE + '/kids/', tag: 'kid-' + Date.now() + '-' + sent }), await vapidHeader(x.ep, vapid)); if (res.status === 404 || res.status === 410) await run(env, 'UPDATE ksess SET ep = NULL WHERE tok = ?', x.tok); else if (res.ok) sent++; } catch (_) {} } }
+  return { ok: true, sent, total: L.length, next: off + 6 < L.length ? off + 6 : 0 };
+}
+async function kidEnvs(env, name) { // 제자 앱: 나에게 온 봉투 60일 (답장은 부모님이 학부모 앱에서)
+  const L = (await all(env, "SELECT id, title, target, kmsg, created FROM posts WHERE env = 1 AND created > ? ORDER BY created DESC LIMIT 30", Date.now() - 60 * 864e5)).filter(x => J(x.target, []).includes(name)).slice(0, 5);
+  const out = []; for (const x of L) { const r = await one(env, 'SELECT ans, at FROM replies WHERE post = ? AND kid = ?', x.id, name); out.push({ id: x.id, title: x.title, msg: x.kmsg || ENV_KMSG, at: x.created, ans: r ? r.ans : '', rat: r ? r.at : 0 }); }
+  return out;
+}
+const ENV_KMSG = '심사를 보러 갈 준비가 되었어요! 가족과 상담해 보세요!';
 async function kidPush(env, name, title, body) {
   const L = name ? await all(env, 'SELECT tok, ep, p256, auth FROM ksess WHERE name = ? AND ep IS NOT NULL ORDER BY seen DESC LIMIT 4', name) : [];
   if (!L.length) return { ok: true, sent: 0, total: 0 };
