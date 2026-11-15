@@ -54,6 +54,11 @@
   .sub{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.5}
   .fire{font-size:30px;display:inline-block;animation:flick 1.2s infinite alternate}
   @keyframes flick{from{transform:scale(1) rotate(-4deg)}to{transform:scale(1.15) rotate(4deg)}}
+  /* 봉투 닫힌 카드 · 미션 상태 (2026-11-16) */
+  .kenvC{display:flex;align-items:center;gap:10px;width:100%;margin:10px 0 0;padding:14px 16px;border:1.5px solid #A40F16;border-radius:16px;background:linear-gradient(135deg,#2a0b0d,#120809);color:#fff;text-align:left;animation:kpulse 1.6s ease-in-out infinite}
+  .kenvC span{font-size:28px}.kenvC b{flex:1;font-size:16px}.kenvC small{color:#E3B341;font-weight:700}
+  @keyframes kpulse{50%{box-shadow:0 0 0 4px rgba(227,179,65,.25)}}
+  .hwst{flex:none;font-size:13px;font-weight:800;border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.08);color:#aaa}.hwst.on{background:#1f5f3a;color:#bff0cf}
   /* 미션 */
   .hw{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}.hw:first-of-type{border-top:0}
   .hw .t{flex:1;min-width:0}.hw .t b{display:block;font-size:16px}.hw .t small{color:var(--muted);font-size:12.5px}
@@ -478,7 +483,10 @@
     h += '<div class="news" id="newsB"><i>🔔</i><span>' + esc(N[newsI] || ('안녕, ' + nm + '! 오늘도 기합 크게!')) + '</span><b>' + (N.length > 1 ? '⌄' : '') + '</b></div>' +
       (newsOpen && N.length > 1 ? '<div class="newsL">' + N.map(x => '<div>' + esc(x) + '</div>').join('') + '</div>' : '');
     // 📩 봉투 (2026-11-15): 부모님께는 봉투, 제자에게는 '준비가 되었어요! 가족과 상담해 보세요!' — 답장 안 했거나 답장 3일 안
-    (D.envs || []).filter(x => !x.ans || Date.now() - (x.rat || 0) < 3 * 864e5).forEach(x => {
+    (D.envs || []).filter(x => !envRead().includes(x.id)).forEach(x => { // 2026-11-16: 누르면 읽고, 읽은 봉투는 더보기 → 📩 받은 봉투로 (홈에서 사라짐)
+      h += '<button class="kenvC" data-env="' + x.id + '"><span>📩</span><b>도장에서 봉투가 왔어요!</b><small>눌러서 열어 봐요 ›</small></button>';
+    });
+    if (0) (D.envs || []).forEach(x => {
       h += '<section class="kenv"><div class="kef">To live a life of confidence in<br>new challenges through Taekwondo.</div><div class="keb"><small>📩 도장에서 봉투가 왔어요!</small><b>' + esc(x.msg) + '</b><span class="ket">' + esc(x.title) + '</span>' +
         '<div class="kea' + (x.ans ? ' ' + x.ans : '') + '">' + (x.ans === 'yes' ? '🎉 부모님이 <b>참가</b>로 답장했어요. 열심히 준비해요!' : x.ans === 'no' ? '부모님이 <b>불참</b>으로 답장했어요. 다음 기회에 도전해요 💪' : '👨‍👩‍👧 부모님 앱에 봉투가 갔어요. 가족과 이야기하고 부모님이 답장해요') + '</div></div></section>';
     });
@@ -506,8 +514,7 @@
     h += '<div id="prepCard">' + prepCard() + '</div>';
     // 미션 (학부모와 같이 해요 / 제자 혼자 해요 / 선범단)
     const td = today;
-    h += '<section class="card" id="hwCard"><h2>✅ 미션</h2>' + (hw.length ? hw.map(x => { const daily = x.mode === 'daily', can = !daily || (td >= x.start && td <= x.end), mc = (x.chk || []).filter(c => c.kid === D.name), done = mc.some(c => daily ? c.day === td : true), byDojo = mc.find(c => /^도장/.test(c.rel || ''));
-      return '<div class="hw"><div class="t"><b>' + (x.sb ? '<span class="tag g">⭐ 선범단</span>' : '') + '<span class="tag ' + (x.who === 'self' ? 's">🙋 혼자 해요' : 'w">👨‍👩‍👧 학부모와 같이') + '</span>' + esc(x.title) + '</b><small>' + (daily ? '매일 · ' + mc.length + '일 했어요' : x.end ? md(x.end) + '까지' : '') + (byDojo ? ' · 도장에서 확인 ✓' : '') + '</small></div>' + (can ? '<button data-hw="' + esc(x.id) + '" class="' + (done ? 'on' : '') + '">' + (done ? '✓ 했어요!' : daily ? '오늘 했어요' : '했어요') + '</button>' : '') + '</div>'; }).join('') : '<div class="empty">지금은 미션이 없어요 😊</div>') + '</section>';
+    h += '<section class="card" id="hwCard"><h2 class="lnk" id="hwAll">✅ 미션<small>' + (hw.length > 2 ? '모두 ' + hw.length + '개 ›' : '보기 ›') + '</small></h2>' + (hw.length ? hw.slice(0, 2).map(hwRow).join('') : '<p class="sub">지금 미션이 없어요</p>') + '</section>'; // 2026-11-16: 홈엔 두 개만, 누르면 새 창
     return h;
   }
   // 수련 로그 — 매일 하는 것 3개 (2026-11-15 사용자: 매달 말고 매일): 도장 출석(태블릿·출석부 저절로) · 집에서 연습 · 바른 생활(제자가 직접 체크)
@@ -553,6 +560,18 @@
   const MONTH_NEED = 12, MCOL = ['#E5484D', '#F08A24', '#F2B705', '#8BC34A', '#2E9E4F', '#1FB5A8', '#29B6F6', '#2F6FDE', '#7B4FB8', '#F07AA8', '#E9682B', '#C0A355'];
   const hexB = (m, on, sz) => { const c = on ? MCOL[(m - 1) % 12] : '#3A3A3D'; return '<svg class="hex" viewBox="0 0 100 100" width="' + sz + '" height="' + sz + '"><defs><linearGradient id="hg' + m + (on ? 'o' : 'f') + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="' + c + '"/><stop offset="1" stop-color="' + c + '"/></linearGradient></defs><polygon points="50,4 91,27 91,73 50,96 9,73 9,27" fill="url(#hg' + m + (on ? 'o' : 'f') + ')" stroke="' + (on ? '#D9D9DC' : '#55555A') + '" stroke-width="5"/><text x="50" y="66" text-anchor="middle" font-size="46" font-weight="900" fill="' + (on ? '#fff' : '#77777C') + '" font-family="system-ui">' + m + '</text></svg>'; };
   const monthsBack = n => { const t = D.today, L = []; for (let i = 0; i < n; i++) { const d = new Date(Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1 - i, 1)); L.push(d.toISOString().slice(0, 7)); } return L; };
+  const ENVK = 'haerang-kenv-read', envRead = () => { try { return JSON.parse(localStorage.getItem(ENVK)) || []; } catch (_) { return []; } };
+  const envHtml = x => '<section class="kenv"><div class="kef">To live a life of confidence in<br>new challenges through Taekwondo.</div><div class="keb"><small>📩 도장에서 봉투가 왔어요! · ' + md(new Date(x.at + 9 * 3600e3).toISOString().slice(0, 10)) + '</small><b>' + esc(x.msg) + '</b><span class="ket">' + esc(x.title) + '</span>' +
+    '<div class="kea' + (x.ans ? ' ' + x.ans : '') + '">' + (x.ans === 'yes' ? '🎉 부모님이 <b>참가</b>로 답장했어요. 열심히 준비해요!' : x.ans === 'no' ? '부모님이 <b>불참</b>으로 답장했어요. 다음 기회에 도전해요 💪' : '👨‍👩‍👧 부모님 앱에 봉투가 갔어요. 가족과 이야기하고 부모님이 답장해요') + '</div></div></section>';
+  function envOpen(id) { const x = (D.envs || []).find(y => String(y.id) === String(id)); if (!x) return; const r = envRead(); if (!r.includes(x.id)) { r.push(x.id); try { localStorage.setItem(ENVK, JSON.stringify(r.slice(-50))); } catch (_) {} }
+    page('📩 도장에서 온 봉투', envHtml(x)); fx(900); draw(); }
+  function envList() { const L = D.envs || []; page('📩 받은 봉투', L.length ? L.map(envHtml).join('') : '<p class="sub" style="text-align:center;padding:30px 0">받은 봉투가 없어요</p>'); }
+  function hwPage() { // 미션은 새 창 (2026-11-16) — 체크는 부모님이 학부모 앱에서
+    const hw = (D.hw || []).filter(x => (x.kids || []).includes(D.name));
+    page('✅ 나의 미션', '<p class="sub" style="margin:4px 2px 10px">미션 체크는 부모님이 학부모 앱에서 해요. 다 하면 부모님께 말씀드려요!</p>' + (hw.length ? hw.map(hwRow).join('') : '<p class="sub" style="text-align:center;padding:30px 0">지금 미션이 없어요</p>'));
+  }
+  function hwRow(x) { const daily = x.mode === 'daily', td = D.today, mc = (x.chk || []).filter(c => c.kid === D.name), done = mc.some(c => daily ? c.day === td : true), byDojo = mc.find(c => /^도장/.test(c.rel || ''));
+    return '<div class="hw"><div class="t"><b>' + (x.sb ? '<span class="tag g">⭐ 선범단</span>' : '') + esc(x.title) + '</b><small>' + (x.body ? esc(x.body) + ' · ' : '') + (daily ? '매일 · ' + mc.length + '일 했어요' : x.end ? md(x.end) + '까지' : '') + (byDojo ? ' · 도장에서 확인 ✓' : '') + '</small></div><span class="hwst' + (done ? ' on' : '') + '">' + (done ? '✓ 했어요' : '아직') + '</span></div>'; }
   function page(title, html, onClick) { // 꽉 찬 화면 (뒤로 ‹)
     const el = document.createElement('div'); el.className = 'pg'; el.innerHTML = '<header><button data-back>‹</button><b>' + esc(title) + '</b><span></span></header><div class="pgb">' + html + '</div>';
     el.onclick = e => { if (e.target.closest('[data-back]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el;
@@ -672,7 +691,7 @@
   }
   // ── ☰ 더보기: 선범단 · 뱃지 · 마일리지 · 꾸미기 · 목표 · QR · 칼럼 · 바로가기 ──
   function moreView() {
-    const av = profAv(), M = [['sb', '⭐', '선범단'], ['badge', '🏅', '뱃지'], ['mile', '💰', '마일리지'], ['qr', '▦', '내 출석 QR'], ['deco', '✏️', '꾸미기'], ['goal', '🎯', '나의 목표'], ['cal', '🗓', '수련 달력'], ['all', '📋', '전체 뱃지']];
+    const av = profAv(), M = [['sb', '⭐', '선범단'], ['badge', '🏅', '뱃지'], ['mile', '💰', '마일리지'], ['qr', '▦', '내 출석 QR'], ['deco', '✏️', '꾸미기'], ['goal', '🎯', '나의 목표'], ['cal', '🗓', '수련 달력'], ['all', '📋', '전체 뱃지'], ['env', '📩', '받은 봉투']];
     let h = '<div class="hi"><span class="av" style="background:' + esc(av.bg) + ';overflow:hidden">' + avHtml(av.e) + '</span><div><b>' + esc(D.name) + '</b><small>' + esc(D.belt || '') + (D.sb ? ' · ⭐ 선범단' : '') + '</small></div></div>';
     h += '<div class="mgr">' + M.map(([k, ic, t]) => '<button data-act="' + k + '"><i>' + ic + '</i>' + t + '</button>').join('') + '</div>';
     const C = ((SITE || {}).columns || []).slice(0, 6);
@@ -752,11 +771,12 @@
     const bi = e.target.closest('[data-bi]'); if (bi && !bi.disabled) { bestI += +bi.dataset.bi; $('bestC').innerHTML = bestCard(); return; }
     const ac = e.target.closest('[data-act]'); if (ac) { const k = ac.dataset.act;
       if (k === 'sb') { view = 'sb'; scrollTo(0, 0); return draw(); } if (k === 'badge') return badgePage(); if (k === 'mile') return milePage(); if (k === 'qr') return qrSheet(); if (k === 'deco') return profSheet();
-      if (k === 'goal') return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!'); if (k === 'cal') return logCal(); if (k === 'all') return allBadgeSheet(); }
+      if (k === 'goal') return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!'); if (k === 'cal') return logCal(); if (k === 'all') return allBadgeSheet(); if (k === 'env') return envList(); }
     if (e.target.closest('#mileB')) return milePage();
     if (e.target.closest('#badgeB,#badgeB2')) return badgePage();
     const bd = e.target.closest('[data-bd]'); if (bd) return badgeOne(bd.dataset.bd);
-    if (e.target.closest('#hwB')) { const c = $('hwCard'); return c && c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    if (e.target.closest('#hwB,#hwAll')) return hwPage();
+    const en = e.target.closest('[data-env]'); if (en) return envOpen(en.dataset.env);
     if (e.target.closest('#prepB')) { const c = $('prepCard'); if (c && c.innerHTML.trim()) return c.scrollIntoView({ behavior: 'smooth', block: 'start' }); return alert('이번 달 심사 준비가 아직 올라오지 않았어요'); }
     if (e.target.closest('#goalB')) return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!');
     if (e.target.closest('#pledB')) return textSheet('⭐ 나의 선범단 다짐', 'pledge', 200, '예: 동생들에게 먼저 인사하고, 모르는 친구를 도와줄게요');
