@@ -172,7 +172,7 @@ async function renameMember(env, id, from, to) {
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
   // 2026-11-13: 하나가 실패해도 나머지는 돌게 각각 따로, 시간이 정해진 알림(runTimed)을 먼저
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate, sbMigrate, recRollover]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate, sbMigrate, recRollover, runKidAlerts]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -530,7 +530,10 @@ async function route(path, req, env, ctx) {
       if (sid && !k.sid) k.sid = sid; k.rec = k.rec || {}; k.rec[ev] = k.rec[ev] || {};
       if (v == null) delete k.rec[ev][m]; else k.rec[ev][m] = v;
       const now = Date.now(), w = await env.DB.prepare('UPDATE gdocs SET data = ?, upd = ?, mid = ? WHERE path = ? AND upd = ?').bind(JSON.stringify(d), now, me.id, 'app/data', r.upd).run();
-      if (w.meta && w.meta.changes) return json({ ok: true, upd: now });
+      if (w.meta && w.meta.changes) {
+        if (typeof v === 'number') { const E = d.events.find(e => e.name === ev), prev = (E.months || []).filter(x => x < m).map(x => k.rec[ev][x]).filter(x => typeof x === 'number'), best = !prev.length || (E.lower ? v < Math.min(...prev) : v > Math.max(...prev));
+          ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name: k.name, title: best && prev.length ? '🏆 최고 기록 갱신! 🎉' : '🏆 기네스 기록이 들어왔어요', body: ev + ' ' + v + (E.unit || '') + (best && prev.length ? ' · 지난 최고보다 좋아졌어요' : prev.length ? '' : ' · 첫 기록이에요') }).catch(() => {})); } // 🥋 제자 앱에도
+        return json({ ok: true, upd: now }); }
     }
     return json({ ok: false, error: '잠깐 뒤에 다시 저장해 주세요' });
   }
@@ -602,6 +605,8 @@ async function route(path, req, env, ctx) {
         await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', 'app/settings', JSON.stringify(sd), Date.now(), me.id);
         meta.closed = { at: Date.now(), by: me.name, applied, miss }; meta.topicAt = topicOf(cfg, month, meta); await ks(mk, meta);
         await addLog(env, me.id, 'exam', ym + ' 승급 심사를 마감했어요 · 띠 바뀐 제자 ' + applied.length + '명', month).catch(() => {});
+        ctx.waitUntil(kidPushMany(env, rows.map(r => { const d = J(r.data, {}); if (d.absent) return null; const nb = d.pass !== false && d.nb && d.nb !== d.cur ? d.nb : '';
+          return { name: r.name, title: nb ? '🎉 ' + nb + ' 축하축하!' : d.pass === false ? '💪 ' + ym + ' 심사 결과가 나왔어요' : '🏅 ' + ym + ' 심사 합격!', body: nb ? ym + ' 승급 심사 합격 · 제자 앱에서 결과를 확인해 봐요' : d.pass === false ? '다음 심사에서 다시 도전해요 · 제자 앱에서 결과를 확인해 봐요' : '제자 앱에서 과목마다 결과를 확인해 봐요' }; }).filter(Boolean)).catch(() => {})); // 🥋 제자 앱에도
         return json({ ok: true, meta, n: applied.length, miss });
       }
       if (!meta.closed) return json({ ok: false, error: '마감하지 않은 심사예요' });
@@ -784,6 +789,8 @@ async function route(path, req, env, ctx) {
     if (v.mode === 'daily' && !v.end) return json({ ok: false, error: '매일 체크는 끝나는 날을 정해 주세요' });
     await run(env, 'INSERT INTO hw (id, data, upd, del, mid) VALUES (?, ?, ?, 0, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, upd = excluded.upd', id, JSON.stringify(v), Date.now(), me.id);
     notify(me.name + ' · 미션', '🎯 미션 ' + (d.id ? '수정' : '올림') + ': ' + v.title, 'home');
+    if (!d.id && v.start <= kstDay()) ctx.waitUntil((async () => { const msg = { title: '🎯 새 미션이 왔어요!', body: v.title + (v.mode === 'daily' ? ' · ' + v.end.slice(5).replace('-', '/') + '까지 매일' : '') + ' · 제자 앱에서 했어요를 눌러요' }; // 🥋 제자 앱에도
+      const names = v.sb ? (await sbNames(env)).map(x => x.name) : v.kids; if (v.sb || names.length) await kidPushMany(env, names.map(n => ({ name: n, ...msg }))); else await kidPushMany(env, [], msg); })().catch(() => {}));
     return json({ ok: true, id });
   }
   if (path === '/api/hw-notify') { // 학부모님께 미션 알림 (6명씩 나눠서, 화면이 next 로 이어서 부름)
@@ -1666,6 +1673,37 @@ async function recRollover(env) {
     await addLog(env, '', 'home', '🏆 새해가 되어 ' + old + '년 기네스 기록을 따로 보관했어요 (학부모 앱 성장 → 지난 기록)', '');
   }
   await run(env, "UPDATE kv SET v = ? WHERE k = 'recyear'", String(yr));
+}
+// ═════════ 🥋 제자 앱 알림 (2026-11-15 사용자: 알림이 필요한 순간은 다) — 제자 앱에서 '도장 알림 켜기'한 기기만 ═════════
+async function kidPushMany(env, items, allMsg) { let off = 0, sent = 0; for (let t = 0; t < 25; t++) { const r = await noticeSync(env, '/sync/kid-push-many', { items, all: allMsg || null, offset: off }); if (!r.ok) return r; sent += r.sent || 0; if (!r.next) break; off = r.next; } return { ok: true, sent }; }
+async function runKidAlerts(env, now = Date.now()) {
+  const k = new Date(now + 9 * 3600e3), day = k.toISOString().slice(0, 10), m = k.getUTCHours() * 60 + k.getUTCMinutes(), tmr = addDays(day, 1), md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8));
+  let RO = null; const roster = async () => RO || (RO = ((await attSync(env, '/sync/roster', { bday: true })).students || []).filter(x => x.status !== '퇴관'));
+  // ① 새 행사 신청 시작 → 신청 대상 제자에게 (행사마다 한 번)
+  try { const rows = await all(env, "SELECT id, data FROM items WHERE type = 'event' AND del = 0");
+    for (const r of rows) { const d = J(r.data, {}); if (!d.pub || d.closed || d.kind === 'goods' || (d.date && d.date < day) || !evWindow(d, day).open) continue;
+      if (!(await onceAt(env, 'kidev:' + r.id))) continue;
+      const grps = await egrpGet(env), yr = +(d.date || day).slice(0, 4), names = (await roster()).filter(x => eligOk(d.elig, x.birth, yr, grps, x.name)).map(x => x.name);
+      if (names.length) await kidPushMany(env, names.map(n => ({ name: n, title: '🎉 새 행사 신청이 열렸어요', body: str(d.title, 60) + (d.date ? ' · ' + md(d.date) : '') + ' · 부모님께 말씀드려 보세요' }))); } } catch (_) {}
+  // ② 심사 전날 18시 → 모두
+  if (m >= 18 * 60) try { const meta = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'exam:' + tmr.slice(0, 7)) || {}).v, null);
+    if (meta && meta.date === tmr && !meta.closed && await onceAt(env, 'kidal:exam:' + tmr)) await kidPushMany(env, [], { title: '📝 내일은 승급 심사 날이에요!', body: '제자 앱 심사 준비에서 웅변·영어·품새를 한 번 더 연습해 봐요' }); } catch (_) {}
+  // ③ 쉬는 날 전날 18시 → 모두 (알림 관리 일정표 '휴관')
+  if (m >= 18 * 60) try { const sc = await noticeSync(env, '/sync/schedule', { from: tmr, to: tmr }); const off = (sc.items || []).find(x => x && x.kind === '휴관' && x.date === tmr); // 쉬는 날이 시작되는 전날만
+    if (off && await onceAt(env, 'kidal:off:' + tmr)) await kidPushMany(env, [], { title: '🏖 내일은 도장 쉬는 날이에요', body: str(off.title, 60) + ' · 집에서 연습·바른 생활 체크는 잊지 마요' }); } catch (_) {}
+  // ④ 생일 아침 9시 → 그 제자 (양력 생년월일만)
+  if (m >= 9 * 60) try { const bd = (await roster()).filter(x => x.bday && x.bday.slice(5) === day.slice(5));
+    if (bd.length && await onceAt(env, 'kidal:bday:' + day)) await kidPushMany(env, bd.map(x => ({ name: x.name, title: '🎂 생일 축하해, ' + x.name + '!', body: '해랑경희 사범님들이 축하해요. 오늘 제자 앱을 열어 봐요 🎉' }))); } catch (_) {}
+  // ⑤ 매달 1일 12시: 지난달 최우수 수련생 발표 → 뽑힌 제자는 축하, 나머지는 발표 소식
+  if (k.getUTCDate() === 1 && m >= 12 * 60) try { const q = monAdd(day.slice(0, 7), -1);
+    if (await onceAt(env, 'kidal:best:' + q)) { const g = async p => J((await one(env, 'SELECT data FROM gdocs WHERE path = ?', p) || {}).data, null);
+      const ro = await attSync(env, '/sync/roster', { all: true }), auto = [...J((await one(env, "SELECT v FROM kv WHERE k = 'gbestArch'") || {}).v, []), ...guinBest(await g('app/data'), ro.ok ? ro.students : [])].find(x => x.q === q) || null;
+      const mb = await noticeSync(env, '/sync/best-merge', { q, auto }), b = mb.ok && mb.best; if (b) { const win = [], items = [];
+        Object.entries(b.g || {}).forEach(([grp, ns]) => [].concat(ns).forEach(n => { if (n && !win.includes(n)) { win.push(n); items.push({ name: n, title: '👑 ' + (+q.slice(5)) + '월 최우수 수련생이 되었어요!', body: grp + ' 최우수 · 명예의 전당에서 확인해 봐요 🎉' }); } }));
+        await kidPushMany(env, items, { title: '🏆 ' + (+q.slice(5)) + '월 최우수 수련생 발표!', body: '명예의 전당에서 누가 뽑혔는지 확인해 봐요', except: win }); } } } catch (_) {}
+  // ⑥ 선범단 임명 → 그 제자 (sunStatus 가 새로 본 선범단)
+  try { const r0 = await one(env, "SELECT v FROM kv WHERE k = 'sunSince'"); if (r0) { const before = Object.keys(J(r0.v, {}) || {}); const st = await sunStatus(env);
+    const nw = Object.keys(st).filter(n => !before.includes(n)); if (nw.length) await kidPushMany(env, nw.map(n => ({ name: n, title: '⭐ 선범단이 되었어요!', body: '다른 수련생에게 모범이 되는 선범단원 · 제자 앱에서 내 학생증을 확인해 봐요' }))); } } catch (_) {}
 }
 async function sbMigrate(env) { // 한 번만: 예전 📈 성장 선범단 → 출석부 원생 정보 sb (2026-11-15)
   if (await one(env, "SELECT v FROM kv WHERE k = 'sbmig1'")) return;

@@ -72,7 +72,7 @@ async function route(path, req, env) {
     if (path === '/sync/roster') {
       const list = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) }))
         .filter(s => s.name && (b.all || s.status !== '퇴관')) // all: 퇴관까지 (알림 앱 알림 멈춤·기네스 회원 상태용)
-        .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', belt: s.belt || '', sb: !!s.sb, gender: s.gender || '', ...(b.phones ? { phones: [s.phone, s.phone2].map(v => String(v || '').replace(/\D/g, '')).filter(Boolean) } : {}), ...(b.fam ? { famId: s.famId || '' } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
+        .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', belt: s.belt || '', sb: !!s.sb, gender: s.gender || '', ...(b.phones ? { phones: [s.phone, s.phone2].map(v => String(v || '').replace(/\D/g, '')).filter(Boolean) } : {}), ...(b.fam ? { famId: s.famId || '' } : {}), ...(b.bday ? { bday: s.lunar ? '' : (s.bday || '') } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
       return json({ ok: true, students: list });
     }
     if (path === '/sync/kid-info') { // 학부모 앱 '정보 확인': 이름으로 출생연도·수련 요일·임시변경(오늘 이후) (2026-11-13)

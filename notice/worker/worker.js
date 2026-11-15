@@ -395,6 +395,21 @@ async function route(path, req, env) {
 
   // ═════════ 출석부 서버에서 부름 (서비스 바인딩, SYNC_KEY 확인) ═════════
   if (path === '/sync/kqr-who') { const name = await qrName(env, b.qr); return json(name ? { ok: true, name } : { ok: false, error: '해랑경희 제자 QR이 아니에요' }); } // 업무 앱 마일리지에서 QR 찍기 (2026-11-15)
+  if (path === '/sync/kid-push-many') { // 🥋 제자 앱 여러 명에게 (2026-11-15): items [{name,title,body}] 이름마다 다른 글 / all {title,body,except} 알림 켠 제자 모두 — 6대씩, next 로 이어서
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const cut = (x, n) => String(x || '').slice(0, n), M = new Map((Array.isArray(b.items) ? b.items : []).slice(0, 400).map(x => [cut(x.name, 20), { title: cut(x.title, 60), body: cut(x.body, 200) }]).filter(([n, x]) => n && x.title));
+    const A = b.all && b.all.title ? { title: cut(b.all.title, 60), body: cut(b.all.body, 200) } : null, ex = new Set(A && Array.isArray(b.all.except) ? b.all.except.map(x => cut(x, 20)) : []);
+    const L = (await all(env, 'SELECT tok, name, ep, p256, auth FROM ksess WHERE ep IS NOT NULL ORDER BY name, tok')).filter(x => M.has(x.name) || (A && !ex.has(x.name)));
+    const off = Math.max(0, b.offset | 0), part = L.slice(off, off + 6); let sent = 0;
+    if (part.length) { const vapid = await getVapid(env);
+      for (const x of part) { const m = M.get(x.name) || A; try { const res = await webPush({ endpoint: x.ep, p256dh: x.p256, auth: x.auth }, JSON.stringify({ title: m.title, body: m.body, kind: '제자', url: SITE + '/kids/', tag: 'kid-' + Date.now() + '-' + sent }), await vapidHeader(x.ep, vapid)); if (res.status === 404 || res.status === 410) await run(env, 'UPDATE ksess SET ep = NULL WHERE tok = ?', x.tok); else if (res.ok) sent++; } catch (_) {} } }
+    return json({ ok: true, sent, total: L.length, next: off + 6 < L.length ? off + 6 : 0 });
+  }
+  if (path === '/sync/best-merge') { // 이달의 최우수 발표용: 기네스 1등(업무 서버) + 알림 관리에서 직접 넣은 이름
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const q = String(b.q || ''), km = J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {};
+    return json({ ok: true, best: mergeBest(b.auto && b.auto.q === q ? [b.auto] : [], (km.best || []).filter(x => x.q === q))[0] || null });
+  }
   if (path === '/sync/kid-push') { // 🥋 제자 앱 기기에만 알림 (2026-11-15: 선범단 도장 → 그 제자만)
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     return json(await kidPush(env, String(b.name || ''), String(b.title || '').slice(0, 60), String(b.body || '').slice(0, 200)));
@@ -877,6 +892,10 @@ async function checkIn(env, name, act, kiosk) {
   if (repeat) await teamSync(env, '/sync/kiosk-repeat', { name, act, time: t, day });
   const body = act === 'in' ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.' : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
   const r = await send(env, { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name], view: 'attendance' });
+  try { // 🥋 제자 앱에도 (2026-11-15 사용자: 알림이 필요한 순간은 다)
+    const n = act === 'in' ? ((await one(env, 'SELECT COUNT(*) AS n FROM att WHERE name = ? AND day LIKE ? AND tin IS NOT NULL', name, day.slice(0, 7) + '%')) || {}).n || 0 : 0;
+    await kidPush(env, name, act === 'in' ? '🥋 출석 완료!' : '👋 오늘도 수고했어요!', act === 'in' ? t + ' 도착 · 이번 달 ' + n + '일째 출석이에요' : t + ' 하원 · 집에서 연습·바른 생활 체크도 잊지 마요');
+  } catch (_) {}
   return { ok: true, time: t, at: now.getTime(), sent: r.sent || 0, total: r.total || 0 };
 }
 // ─────────── 출석부 서버 연동 (서비스 바인딩 ATT) ───────────
