@@ -26,6 +26,7 @@
     adult: [{ n: '입관비', p: 20000 }, { n: '도복비', p: 40000 }, { n: '아디다스 도복비', p: 90000 }, { n: '수강료 (주5 이하)', p: 175000, g: '수강료' }],
   };
   const KIND = { kid: { label: '초등부', color: '#4E8A3E', soft: '#EEF5EA' }, adult: { label: '중고등·성인', color: '#2F5D9A', soft: '#EAF0F8' } };
+  const BELTS = ['흰띠', '노란줄띠', '노란띠', '초록줄띠', '초록띠', '초록검은띠', '보라띠', '보라검은띠', '파란띠', '파란검은띠', '주황띠', '주황검은띠', '분홍띠', '밤띠', '빨간띠', '1품', '2품', '3품', '4품', '5품', '6품']; // 띠 (2026-11-15): 수련 경험 '네'면 그때 띠 → 원생 정보 띠, '아니오'면 흰띠
   const ROUTE = ['자녀', '지인', '보호자', '인터넷', '홍보물'];
   const HEALTH = ['건강', '가끔 아픔', '자주 아픔', '현재도 아픔'];
   // 기본정보 칸 (sec: 묶음 제목)
@@ -40,7 +41,7 @@
       { sec: '가족사항', id: 'sib', label: '형제 (몇 남 몇 녀 중 몇째)', type: 'text', ph: '예: 1남 1녀 중 첫째' },
       { id: 'family', label: '가족 (관계·성명·연락처는 꼭, 생년월일·특이사항은 선택)', type: 'family', cols: ['관계', '성명', '생년월일', '연락처', '특이사항'], need: 1 },
       { id: 'receipt', label: '현금영수증', type: 'receipt', opts: ['○', '×'] }, { id: 'receiptNo', label: '현금영수증 번호', type: 'hidden' },
-      { sec: '제자를 알아가기 위한 필수 질문', id: 'tkd', label: '태권도를 수련한 경험이 있나요?', type: 'yn', more: [{ id: 'tkdUntil', label: '언제까지 (년 월 일, 띠·품)' }, { id: 'tkdWhere', label: '어디서' }, { id: 'tkdWhy', label: '그만둔 이유' }] },
+      { sec: '제자를 알아가기 위한 필수 질문', id: 'tkd', label: '태권도를 수련한 경험이 있나요?', type: 'yn', more: [{ id: 'tkdBelt', label: '그때 받은 띠·품', opts: BELTS }, { id: 'tkdUntil', label: '언제까지 (년 월 일, 띠·품)' }, { id: 'tkdWhere', label: '어디서' }, { id: 'tkdWhy', label: '그만둔 이유' }] },
       { id: 'want', label: '자녀가 태권도를 배우고 싶어 하나요?', type: 'yn', more: [{ id: 'wantWhy', label: '이유', always: 1 }] },
       { id: 'route', label: '도장을 알게 된 경로', type: 'pick', opts: ROUTE, more: [{ id: 'routeWho', label: '추천인', always: 1 }] },
       { id: 'sport', label: '다른 운동을 배운 적이 있나요?', type: 'yn', more: [{ id: 'sportWhat', label: '종목' }, { id: 'sportLong', label: '기간' }] },
@@ -63,7 +64,7 @@
       { id: 'addr', label: '주소', type: 'text', need: 1 },
       { id: 'phone', label: '제자전화', type: 'tel', mob: 1 }, { id: 'home', label: '자택전화 (선택)', type: 'tel' },
       { sec: '가족사항', id: 'family', label: '가족 (선택)', type: 'family', cols: ['관계', '성명', '생년월일', '연락처', '직업'] },
-      { sec: '잘 알아야 잘 지도할 수 있다! 솔직하게 답변 부탁드립니다', id: 'tkd', label: '태권도를 수련한 경험이 있나요?', type: 'yn', more: [{ id: 'tkdUntil', label: '가장 최근 언제까지 배우셨나요?' }, { id: 'tkdDan', label: '유급자 / 1단~5단' }] },
+      { sec: '잘 알아야 잘 지도할 수 있다! 솔직하게 답변 부탁드립니다', id: 'tkd', label: '태권도를 수련한 경험이 있나요?', type: 'yn', more: [{ id: 'tkdBelt', label: '그때 받은 띠·품', opts: BELTS }, { id: 'tkdUntil', label: '가장 최근 언제까지 배우셨나요?' }, { id: 'tkdDan', label: '유급자 / 1단~5단' }] },
       { id: 'sport', label: '다른 운동을 배운 적이 있나요?', type: 'yn', more: [{ id: 'sportWhat', label: '종목' }, { id: 'sportLong', label: '기간' }] },
       { id: 'want', label: '운동을 하고 싶은가요?', type: 'yn', more: [{ id: 'wantWhy', label: '이유', always: 1 }] },
       { id: 'route', label: '도장을 알게 된 경로', type: 'pick', opts: ROUTE, more: [{ id: 'routeWho', label: '추천인', always: 1 }] },
