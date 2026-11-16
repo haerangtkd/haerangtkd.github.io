@@ -80,6 +80,8 @@
   .tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--chip);color:#6E625D;margin:2px 4px 0 0;font-weight:500}
   .tag.red{background:#FBE3E1;color:var(--no)} .tag.grn{background:var(--okbg);color:var(--ok)} .tag.blue{background:#E5ECF5;color:#1E3A5F} .tag.yel{background:#F8F0DA;color:#7A5A10}
   .acts{display:flex;gap:6px;flex:none}
+  /* 2026-11-16 사용자: 원생 명단 — 왼쪽 이름 칸을 없애고, 휴대폰에서는 버튼 3개를 이름 아래 한 줄로 (이름이 '권…'으로 잘리던 것) */
+  @media (max-width: 640px) { .st.rs{flex-wrap:wrap;row-gap:8px} .st.rs .nm{flex:1 1 100%} .st.rs .acts{flex:1 1 100%} .st.rs .acts .ab{flex:1} }
   .note{display:block;font-size:13.5px;line-height:1.4;color:#8A2A00;background:#FFF0E3;border-radius:8px;padding:4px 9px;margin-top:5px;font-weight:600;white-space:normal}
   .nrow{padding:0 14px 12px 48px}.offrow .nrow{background:#F6F2F0}
   .note.tmp{background:#FBF3D5;color:#6B5000}
@@ -662,7 +664,7 @@ function renderStudents() {
     if (tempOn(s, today())) tg.push('<span class="tag yel">임시변경 중</span>');
     if (s.status === '재원' && S.months.has(ymNow)) { const r = monthStats(s, ymNow, today()).rate; if (r != null) tg.push('<span class="tag ' + (r < 80 ? 'red' : 'grn') + '" title="' + (+ymNow.slice(5)) + '월 출석률">출석 ' + Math.round(r) + '%</span>'); } // 2026-11-14: 월별 기록 탭 대신 여기에
     const nN = (s.notes || []).filter(n => !notePast(n, today())).length; if (nN) tg.push('<span class="tag" style="background:#FFF0E3;color:#8A2A00">📌 중요사항 ' + nN + '</span>');
-    return '<li class="st" data-id="' + s.id + '"><div class="av">' + esc(s.name.length > 2 ? s.name.slice(-2) : s.name) + '</div><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc([gr.label, daysLabel(s.days), s.no].filter(Boolean).join(' · ')) + '</small>' + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><div class="acts"><button class="ab" data-a="n">중요사항</button><button class="ab" data-a="st">회원상태</button><button class="ab" data-a="t">임시변경</button></div></li>';
+    return '<li class="st rs" data-id="' + s.id + '"><div class="nm"><b>' + esc(s.name) + '</b><small>' + esc([gr.label, daysLabel(s.days), s.no].filter(Boolean).join(' · ')) + '</small>' + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><div class="acts"><button class="ab" data-a="n">중요사항</button><button class="ab" data-a="st">회원상태</button><button class="ab" data-a="t">임시변경</button></div></li>';
   }).join('') : '<li class="empty"><b>원생이 없어요</b>원생 등록은 업무 앱 → 더보기 → 🥋 원생에서 해요.</li>';
 }
 $('sQ').oninput = renderStudents; $('sLeave').onchange = renderStudents;
