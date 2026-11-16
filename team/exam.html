@@ -152,13 +152,17 @@ function engGuide(belt) { const p = pumOf(belt); return p >= 4 ? '영어로 자�
 const GUIDE = { kickH: '눈높이까지 차는지 봐요', kickP: '발차기의 힘', poom: '품새의 연결 · 힘의 완급 · 동작의 완성', voice: '또렷하고 큰 목소리로 전달하는지', recite: '원고를 외워서 하는지' };
 
 const S = { month: thisMonth, cfg: null, meta: {}, topic: '', topicAuto: '', rows: {}, belts: {}, roster: [], names: {}, view: 'list', sid: null, f: 'all', g: '', q: '', pend: {}, timers: {}, err: '' };
-const grpOfKid = k => { const r = S.rows[k.id]; return (r && r.data && r.data.v === 2 && r.data.grp) || GKEY[k.group]; };
+// 2026-11-16 사용자: 심사 항목(유치부·초등부·입시부)은 출석부(생년)대로 저절로. 아직 점수가 하나도 없으면 늘 출석부대로(이 화면에서 직접 고른 것만 예외),
+// 점수를 넣기 시작한 뒤에는 그때 부를 그대로 둠(항목이 바뀌면 넣은 점수가 안 보이니까)
+const scored = d => !!(d && d.sc && Object.keys(d.sc).some(x => d.sc[x]));
+const effGrp = (k, d) => scored(d) ? (d.grp || GKEY[k.group]) : ((S.grpMan || {})[k.id] || GKEY[k.group]);
+const grpOfKid = k => { const r = S.rows[k.id]; return r && r.data && r.data.v === 2 ? effGrp(k, r.data) : effGrp(k, null); };
 const itemsFor = grp => { const G = (S.cfg && S.cfg.groups[grp]) || S.cfg.groups.elem; return G.items.concat(S.cfg.manner ? [S.cfg.mannerItem] : []); };
 const kids = () => S.roster.filter(k => k.status !== '퇴관').map(k => { const g = gradeOf(k.birth), b = S.belts[k.id]; return Object.assign({}, k, { grade: g, group: groupOf(g), kinder: b ? b.kinder || /유치/.test(g) : /유치/.test(g), cur: b ? b.belt : '' }); })
   .sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.name.localeCompare(b.name, 'ko'));
 const kidBy = sid => kids().find(k => k.id === sid);
 function dataOf(k) { const r = S.rows[k.id]; if (r && r.data.v === 2) return r.data; return { v: 2, grp: GKEY[k.group], sc: {}, tx: {}, pass: true, nb: nextBelt(k.cur, k.kinder), cur: k.cur, absent: false, memo: '' }; }
-function stateOf(k) { const r = S.rows[k.id]; if (!r) return 'todo'; const d = r.data; if (d.absent) return 'abs'; if (d.fin) return 'done'; if (d.v !== 2) return 'half'; const its = itemsFor(d.grp), n = its.filter(x => d.sc && d.sc[x.k]).length; return n >= its.length ? 'done' : n ? 'half' : 'todo'; }
+function stateOf(k) { const r = S.rows[k.id]; if (!r) return 'todo'; const d = r.data; if (d.absent) return 'abs'; if (d.fin) return 'done'; if (d.v !== 2) return 'half'; const its = itemsFor(effGrp(k, d) || d.grp), n = its.filter(x => d.sc && d.sc[x.k]).length; return n >= its.length ? 'done' : n ? 'half' : 'todo'; }
 const SLBL = { todo: '아직', half: '하는 중', done: '끝남', abs: '안 봄' };
 const closed = () => !!S.meta.closed;
 const finOf = k => !!(S.rows[k.id] && S.rows[k.id].data.fin); // 오늘만 마감으로 확정한 제자 (2026-11-16)
@@ -237,11 +241,13 @@ function visible(L) { const q = S.q.trim(); return L.filter(k => (!S.g || k.grou
 function drawCard() {
   const k = kidBy(S.sid), d = JSON.parse(JSON.stringify(dataOf(k))), ro = closed() || finOf(k), notes = S.meta.notes || {};
   if (!S.rows[k.id]) d.cur = k.cur; d.sc = d.sc || {}; d.tx = d.tx || {};
-  const r = S.rows[k.id], by = r && r.data && r.data.by, cur = d.cur || k.cur, grp = d.grp || GKEY[k.group], its = itemsFor(grp), dis = ro ? ' disabled' : '';
+  const r = S.rows[k.id], by = r && r.data && r.data.by, cur = d.cur || k.cur, grp = effGrp(k, d), its = itemsFor(grp), dis = ro ? ' disabled' : '';
+  if (!ro) d.grp = grp; // 점수를 처음 넣을 때 지금 보이는 부로 저장
   let h = (ro ? '<div class="banner ok">' + (closed() ? '마감한 심사라 볼 수만 있어요' : '결과를 확정(오늘 마감)한 제자라 볼 수만 있어요') + '</div>' : '') + (r && r.data.v !== 2 && !ro ? '<div class="banner warn">예전 방식(1~5점)으로 채점한 기록이 있어요. 새로 누르면 새 방식으로 바뀌어요.</div>' : '') + '<div class="card' + (d.absent ? ' dim' : '') + '" id="card">';
   h += '<div class="who"><h2>' + esc(k.name) + '</h2><small>' + esc(k.grade || '') + (k.status === '휴원' ? ' · 휴원' : '') + '</small><span style="flex:1"></span>' + beltTag(cur) + '</div>';
   if (!cur) h += '<p class="help">지금 띠를 몰라요. 업무 앱 원생 정보에서 띠를 넣어 주세요.</p>';
-  h += '<div class="chips" id="grpc">' + [['kinder', '유치부'], ['elem', '초등부'], ['ipsi', '입시부']].map(([g, t]) => '<button data-gr="' + g + '" class="' + (grp === g ? 'on' : '') + '"' + dis + '>' + t + '</button>').join('') + '</div>';
+  h += '<div class="chips" id="grpc">' + [['kinder', '유치부'], ['elem', '초등부'], ['ipsi', '입시부']].map(([g, t]) => '<button data-gr="' + g + '" class="' + (grp === g ? 'on' : '') + '"' + dis + '>' + t + '</button>').join('') + '</div>' +
+    '<p class="help" style="margin:-2px 0 8px">' + (grp === GKEY[k.group] ? (k.birth ? '출석부(' + esc(String(k.birth).slice(0, 4)) + '년생)대로 저절로 골랐어요' : '출석부에 생년이 없어서 초등부로 골랐어요 · 출석부에 생년을 넣어 주세요') : '직접 고른 부예요' + (scored(d) ? '' : ' · 출석부대로는 ' + esc(k.group))) + '</p>';
   let lastG = null;
   its.forEach(x => {
     if ((x.g || '') !== lastG) { lastG = x.g || '';
@@ -279,7 +285,7 @@ function drawCard() {
   if (ro) return;
   const upd = () => { save(k, d); const y = scrollY; drawCard(); scrollTo(0, y); };
   $('#main').querySelectorAll('.sc2').forEach(row => row.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; const v = +b.dataset.v, s = row.dataset.s; if (d.sc[s] === v) delete d.sc[s]; else d.sc[s] = v; if (navigator.vibrate) navigator.vibrate(10); upd(); });
-  $('#grpc').onclick = e => { const b = e.target.closest('[data-gr]'); if (!b || b.dataset.gr === grp) return; d.grp = b.dataset.gr; upd(); };
+  $('#grpc').onclick = e => { const b = e.target.closest('[data-gr]'); if (!b || b.dataset.gr === grp) return; S.grpMan = S.grpMan || {}; if (b.dataset.gr === GKEY[k.group]) delete S.grpMan[k.id]; else S.grpMan[k.id] = b.dataset.gr; d.grp = b.dataset.gr; upd(); };
   $('#main').querySelectorAll('.tx').forEach(inp => inp.oninput = inp.onchange = () => { d.tx[inp.dataset.t] = inp.value.trim(); if (!d.tx[inp.dataset.t]) delete d.tx[inp.dataset.t]; save(k, d); }); // 적는 동안에도 저장 (2026-11-16)
   $('#pf').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; d.pass = b.dataset.p === '1'; if (d.pass && (!d.nb || d.nb === cur)) d.nb = nextBelt(cur, k.kinder); upd(); };
   if ($('#nb')) $('#nb').onchange = e => { d.nb = e.target.value || (cur || ''); upd(); };
