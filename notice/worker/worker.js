@@ -149,11 +149,12 @@ async function route(path, req, env) {
     const t = await teamSync(env, '/sync/kmode', { name });
     if (path === '/k/home') {
       if (!viaP) await run(env, 'UPDATE ksess SET seen = ? WHERE tok = ?', Date.now(), String(b.tok));
-      const today = kstDay(new Date()), rows = await all(env, 'SELECT day FROM att WHERE name = ? AND tin IS NOT NULL ORDER BY day', name);
-      const days = rows.map(r => r.day), wk = d => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - (x.getUTCDay() + 6) % 7); return x.toISOString().slice(0, 10); };
+      // 2026-11-16 사용자: 출석·출석 뱃지는 출석부(사범님이 누른 출석) 기준 — 출석부를 못 부르면 예전처럼 태블릿 등원 기록
+      const today = kstDay(new Date()), info = await attSync(env, '/sync/kid-info', { names: [name], att: true }).catch(() => null), kid = info && info.ok ? (info.kids || [])[0] : null;
+      const days = kid && Array.isArray(kid.odays) ? [...new Set(kid.odays)].sort() : (await all(env, 'SELECT day FROM att WHERE name = ? AND tin IS NOT NULL ORDER BY day', name)).map(r => r.day), wk = d => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - (x.getUTCDay() + 6) % 7); return x.toISOString().slice(0, 10); };
       const weeks = new Set(days.map(wk)); let streak = 0, w = wk(today); if (!weeks.has(w)) { const x = new Date(w + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - 7); w = x.toISOString().slice(0, 10); }
       while (weeks.has(w) && streak < 520) { streak++; const x = new Date(w + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() - 7); w = x.toISOString().slice(0, 10); }
-      const info = await attSync(env, '/sync/kid-info', { names: [name] }).catch(() => null), kid = info && info.ok ? (info.kids || [])[0] : null, birth = kid ? String(kid.bday || kid.birth || '') : ''; // 생년월일(양력)이 있으면 생일 축하 (2026-11-14)
+      const birth = kid ? String(kid.bday || kid.birth || '') : ''; // 생년월일(양력)이 있으면 생일 축하 (2026-11-14)
       const hw = await teamSync(env, '/sync/hw', { kids: [name] });
       return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [], dl: days.filter(d => d >= kstAdd(today, -400)), nth: Object.fromEntries([1, 10, 30, 50, 100, 200, 300, 500].filter(n => days.length >= n).map(n => [n, days[n - 1]])) }, // 월간 도전·수련 로그 (2026-11-15)
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
