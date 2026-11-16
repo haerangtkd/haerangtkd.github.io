@@ -211,4 +211,5 @@ if (matchMedia('(display-mode: standalone)').matches && !sessionStorage.getItem(
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !S.err && S.tab !== 'timer' && !document.activeElement.matches('input')) load(); });
 if (!tok()) { S.err = 'login'; draw(); } else load();
 </script>
+<script src="/fresh.js"></script>
 </body></html>
