@@ -1336,7 +1336,7 @@ HL.statusEffect = (m, c, ctx) => {
   } else if (c.action === '퇴관') {
     if (cur === '퇴관') return { error: '이미 퇴관한 회원이에요.' };
     HL.paidPlan(m, c, ctx, eff, d, '퇴관');
-    const owed = HL.overdueList(ctx).filter((x) => x.m.id === m.id);
+    const owed = HL.overdueList(ctx).filter((x) => x.m.id === m.id && !eff.cancels.some((c) => c.ym === x.ym)); // 2026-11-16: 이번에 취소되는 회비는 미수로 세지 않음 (사용자: 안 낸 게 없는데 미수로 나옴)
     if (owed.length) eff.notes.push(`밀린 회비 ${owed.length}건 ${HL.fmt(owed.reduce((s, x) => s + x.st.outstanding, 0))}원은 미수로 계속 표시돼요.`);
     if (m.familyId) {
       if (othersActive.length === 1) { eff.famEnd = true; eff.notes.push('가족 중 재원이 1명만 남아 가족 할인이 끝나요.'); }
