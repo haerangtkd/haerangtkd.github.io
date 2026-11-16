@@ -708,7 +708,7 @@ function setBadge() {
 }
 // 화면을 보고 있을 때만 새 내용 받기 (채팅방 4초, 다른 화면 15초)
 let pollT; function poll() { clearTimeout(pollT); pollT = setTimeout(async () => { if (!document.hidden && S.tok) { await sync(); if (S.tab === 'home') loadCneed(); } poll(); }, S.tab === 'room' || S.tab === 'chat' ? 4000 : 15000); }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && S.tok) { sync(); poll(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.tok) { sync(); poll(); pushResync(); } });
 if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'push') sync(); });
 
 // ───── 항목 저장 ─────
@@ -2772,12 +2772,28 @@ function settingsSheet() {
     g('sDefSave').onclick = async () => { const j = await api('/api/pickup-default', { def, times: tms }); if (j.ok) { S.pickupDefault = def; S.pickupTimes = tms; render(); toast('저장했어요'); } else toast(j.error); };
     if (g('sOn')) g('sOn').onclick = async () => { closeSheet(); await enablePush(); };
     if (g('sOff')) g('sOff').onclick = async () => { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) { await api('/api/push', { endpoint: sub.endpoint }); await sub.unsubscribe(); } localStorage.removeItem('haerang-team-push'); closeSheet(); render(); toast('알림을 껐어요'); };
-    if (g('sTest')) g('sTest').onclick = async () => { const j = await api('/api/push-test'); toast(j.sent ? '시험 알림을 보냈어요' : '보내지 못했어요. 알림을 다시 켜 주세요'); };
+    if (g('sTest')) g('sTest').onclick = async () => { // 2026-11-16: 안 가면 이 기기 주소를 다시 알리고 → 그래도 안 가면 주소를 새로 받아서 한 번 더
+      let j = await api('/api/push-test'); if (!j.sent) { await pushResync(true); j = await api('/api/push-test'); } if (!j.sent) { await pushResync(true, true); j = await api('/api/push-test'); }
+      toast(j.sent ? '시험 알림을 보냈어요' : '보내지 못했어요. 휴대폰 설정에서 이 앱(크롬) 알림이 켜져 있는지 확인해 주세요'); };
     staffBind(ov); dlBind(ov); cleanBind(ov); { const jb = ov.querySelector('#sJt'); if (jb) jb.onclick = () => jtplSheet(); const cb = ov.querySelector('#sCat'); if (cb) cb.onclick = () => catsSheet(); const eb = ov.querySelector('#sEg'); if (eb) eb.onclick = () => egrpSheet(); const pb = ov.querySelector('#sPs'); if (pb) pb.onclick = () => pushStatusSheet(); }
     if (g('sPin')) g('sPin').onclick = async () => { const old = prompt('지금 PIN'); if (!old) return; const pin = prompt('새 PIN (숫자 4~6자리)'); if (!pin) return; const j = await api('/api/member-pin', { old, pin }); toast(j.ok ? 'PIN을 바꿨어요' : j.error); };
     g('sOut').onclick = async () => { if (!confirm('로그아웃할까요?')) return; await api('/api/logout'); logoutLocal(); closeSheet(); };
   });
 }
+// 2026-11-16 사용자: 갤럭시는 알림이 잘 안 옴 → 구글이 기기 알림 주소를 만료시키면 서버가 지우는데, 앱은 '켜져 있어요'로 남아 다시 등록을 안 했던 것.
+// 앱을 열 때마다(10분에 한 번) 이 기기 알림 주소를 서버에 다시 알려 줌. fresh면 주소를 새로 받음(예전 주소가 죽었을 때)
+let pushSyncAt = 0;
+async function pushResync(force, fresh) {
+  try {
+    if (!S.tok || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || Notification.permission !== 'granted' || localStorage.getItem('haerang-team-push') !== '1') return false;
+    if (!force && Date.now() - pushSyncAt < 10 * 60e3) return true; pushSyncAt = Date.now();
+    const reg = await navigator.serviceWorker.ready; let sub = await reg.pushManager.getSubscription();
+    if (sub && fresh) { try { await sub.unsubscribe(); } catch (_) {} sub = null; }
+    if (!sub) { const v = await api('/api/vapid'); const key = Uint8Array.from(atob(v.publicKey.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((v.publicKey.length + 3) % 4)), c => c.charCodeAt(0)); sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); }
+    const j = await api('/api/push', { subscription: sub.toJSON() }); return !!(j && j.ok);
+  } catch (_) { return false; }
+}
+setTimeout(() => pushResync(), 3000);
 async function enablePush() {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return toast(/iPhone|iPad/.test(navigator.userAgent) ? 'Safari에서 홈 화면에 추가한 앱으로 열어 주세요' : '이 브라우저는 알림을 지원하지 않아요');
