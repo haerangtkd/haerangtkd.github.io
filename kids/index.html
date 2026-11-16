@@ -202,7 +202,7 @@
   .r2b i,.goalr i{font-style:normal}.r2b em{margin-left:auto;font-style:normal;color:var(--muted);font-size:18px}
   .song .sgw{display:flex;align-items:center;gap:14px;margin-top:4px}.sgp{flex:none;width:58px;height:58px;border:0;border-radius:50%;background:var(--acc);color:#fff;font-size:22px;font-weight:900;box-shadow:0 4px 16px rgba(229,72,77,.35)}
   .sgl{flex:1;min-width:0}.sgl b{display:block;font-size:20px;font-weight:900;line-height:1.35}.sgl b .w{color:#77736F;transition:color .12s}.sgl b .w.on{color:#fff}.sgl small{display:block;font-size:14px;color:var(--muted);margin-top:3px;min-height:1.2em}
-  .song .pb{height:9px;margin-top:14px;cursor:pointer}.sgall{border:0;background:none;color:var(--muted);font-size:14px;padding:10px 0 0}
+  .sgsk{margin-top:6px;padding:12px 0;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none}.song .sgsk .pb{height:9px;margin:0;overflow:visible;position:relative}.song .sgsk .pb b{position:relative}.song .sgsk .pb b::after{content:'';position:absolute;right:-9px;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.5);transition:transform .1s}.sgsk.drag .pb b::after{transform:scale(1.3)}.sgall{border:0;background:none;color:var(--muted);font-size:14px;padding:10px 0 0}
   .sgly{font-size:18px;line-height:1.9;text-align:center;font-weight:700;color:#CFCAC4;margin:6px 0 4px}.sgly .on{color:var(--gold)}
   .goalr{width:100%;margin-top:10px}.goalr span{color:#D6D2CD;flex:none}.goalr b{flex:1;font-weight:700;font-size:15.5px;margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goalr b.no{color:var(--muted)}.goalr i{color:var(--ink);font-size:17px}
   .log h2 .dr{font-size:11.5px;border:1px solid #3A3A3E;border-radius:6px;padding:2px 6px}
@@ -566,7 +566,14 @@
       const html = '<b>' + SONGW[k].map(w => '<span class="w' + (started && t >= w[0] ? ' on' : '') + '">' + esc(w[1]) + '</span>').join(' ') + '</b><small>' + esc(nx) + '</small>'; if (l._h !== html) { l._h = html; l.innerHTML = html; } }
     if (playing && !songRaf) songRaf = requestAnimationFrame(() => { songRaf = 0; songTick(); });
   }
-  function songCard() { setTimeout(songTick, 0); return '<section class="card song"><h2>🎵 해랑경희 노래<small>42초</small></h2><div class="sgw"><button id="songP" class="sgp" aria-label="노래 듣기">▶</button><div class="sgl" id="songL"></div></div><div class="pb" id="songSk"><b id="songBar" style="width:0"></b></div><button class="sgall" id="songAll">가사 모두 보기 ›</button></section>'; }
+  // 재생 막대를 손가락으로 끌면 그 자리로 (11/16 사용자)
+  let songDrag = null;
+  const songSeekX = (x, el) => { const au = songAu(), r = el.getBoundingClientRect(), f = Math.max(0, Math.min(1, (x - r.left) / r.width)), go = () => { au.currentTime = f * (au.duration || 42.9); songTick(); }; const bar = $('songBar'); if (bar) bar.style.width = f * 100 + '%'; if (au.readyState >= 1) go(); else { au.addEventListener('loadedmetadata', go, { once: true }); au.load(); } };
+  document.addEventListener('pointerdown', e => { const el = e.target.closest && e.target.closest('#songSk'); if (!el) return; e.preventDefault(); songDrag = el; try { el.setPointerCapture(e.pointerId); } catch (_) {} el.classList.add('drag'); songSeekX(e.clientX, el); });
+  document.addEventListener('pointermove', e => { if (songDrag) { e.preventDefault(); songSeekX(e.clientX, songDrag); } }, { passive: false });
+  const songUp = () => { if (songDrag) { songDrag.classList.remove('drag'); songDrag = null; } };
+  document.addEventListener('pointerup', songUp); document.addEventListener('pointercancel', songUp);
+  function songCard() { setTimeout(songTick, 0); return '<section class="card song"><h2>🎵 해랑경희 노래<small>42초</small></h2><div class="sgw"><button id="songP" class="sgp" aria-label="노래 듣기">▶</button><div class="sgl" id="songL"></div></div><div class="sgsk" id="songSk"><div class="pb"><b id="songBar" style="width:0"></b></div></div><button class="sgall" id="songAll">가사 모두 보기 ›</button></section>'; }
   function songLyrics() { const a = songA, i = a ? songIdx(a.currentTime + SONG_LEAD) : -1; sheet('<h3>🎵 해랑경희 노래</h3><div class="sgly">' + SONG.map((x, k) => (k === 8 ? '<br>' : '') + '<div' + (k === i && a && !a.paused ? ' class="on"' : '') + '>' + esc(x[1]) + '</div>').join('') + '</div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
   // 수련 로그 — 매일 하는 것 3개 (2026-11-15 사용자: 매달 말고 매일): 도장 출석(태블릿·출석부 저절로) · 집에서 연습 · 바른 생활(제자가 직접 체크)
   const DLG = [['a', '도장 출석', '#E5484D', '🥋'], ['p', '집에서 연습', '#4C8DF6', '🏃'], ['m', '바른 생활', '#E3B341', '🙇']];
@@ -920,7 +927,6 @@
       if (k === 'sb') { view = 'sb'; scrollTo(0, 0); return draw(); } if (k === 'badge') return badgePage(); if (k === 'mile') return milePage(); if (k === 'qr') return qrSheet(); if (k === 'deco') return profSheet();
       if (k === 'goal') return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!'); if (k === 'cal') return logCal(); if (k === 'all') return allBadgeSheet(); if (k === 'env') return envList(); }
     if (e.target.closest('#songP')) { const au = songAu(); if (au.paused) au.play().catch(() => alert('노래를 틀지 못했어요. 무음 모드를 끄고 다시 눌러 주세요')); else au.pause(); return; }
-    const sk = e.target.closest('#songSk'); if (sk) { const au = songAu(), r = sk.getBoundingClientRect(); const go = () => { au.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (au.duration || 42.9); songTick(); }; if (au.readyState >= 1) go(); else { au.addEventListener('loadedmetadata', go, { once: true }); au.load(); } return; }
     if (e.target.closest('#songAll')) return songLyrics();
     if (e.target.closest('#mileB')) return milePage();
     if (e.target.closest('#badgeB,#badgeB2')) return badgePage();
