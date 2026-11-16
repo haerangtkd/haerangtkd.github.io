@@ -2244,8 +2244,9 @@ async function kidFamily(el, s) {
   };
 }
 // 가족 초대번호 QR: 사진(QR+번호) 한 장 + 안내 문구를 카톡으로 (2026-11-13)
-const INV_TPL0 = '안녕하세요, 해랑경희 태권도장입니다 😊\n{이름} 학부모 앱 가입 안내드려요.\n\n① 아래 주소를 누르거나, 함께 보낸 QR을 휴대폰 카메라로 찍어 주세요.\n② 가입 화면에서 초대번호 {번호}를 확인하고 정보를 넣어 주세요.\n   (아이폰은 \'홈 화면에 추가\'로 앱을 설치한 뒤 초대번호를 넣어 주세요)\n③ 가입하시면 도장에서 확인 후 승인해 드려요.\n\n{주소}\n\n등원·하원 알림, 공지, 알림장을 앱으로 받아 보실 수 있어요.';
-const invText = (tpl, code, kid) => (tpl || INV_TPL0).replace(/\{이름\}/g, kid || '').replace(/\{번호\}/g, code).replace(/\{주소\}/g, INV_URL(code));
+const INV_TPL0 = '안녕하세요, 해랑경희 태권도장입니다 😊\n{이름} 학부모 앱 가입 안내드려요.\n\n① 아래 주소를 누르거나, 함께 보낸 QR을 휴대폰 카메라로 찍어 주세요.\n② 가입 화면에서 초대번호 {번호}를 확인하고 정보를 넣어 주세요.\n   (아이폰은 Safari에서 \'홈 화면에 추가\'로 앱을 설치한 뒤 초대번호를 넣어 주세요)\n   (안드로이드는 Chrome으로 열어 \'앱 설치\' 또는 \'홈 화면에 추가\'를 한 뒤 초대번호를 넣어 주세요)\n③ 가입하시면 도장에서 확인 후 승인해 드려요.\n\n{주소}\n\n등원·하원 알림, 공지, 알림장을 앱으로 받아 보실 수 있어요.';
+const invFix = t => /안드로이드/.test(t) ? t : t.replace(/\(아이폰은 '홈 화면에 추가'로 앱을 설치한 뒤 초대번호를 넣어 주세요\)\n?/, "(아이폰은 Safari에서 '홈 화면에 추가'로 앱을 설치한 뒤 초대번호를 넣어 주세요)\n   (안드로이드는 Chrome으로 열어 '앱 설치' 또는 '홈 화면에 추가'를 한 뒤 초대번호를 넣어 주세요)\n");
+const invText = (tpl, code, kid) => invFix(tpl || INV_TPL0).replace(/\{이름\}/g, kid || '').replace(/\{번호\}/g, code).replace(/\{주소\}/g, INV_URL(code));
 function copyNow(text) { // 누른 그 순간에 바로 복사 (아이폰에서 공유 창과 같이 쓰려고 동기 방식)
   const t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px';
   document.body.appendChild(t); t.select(); t.setSelectionRange(0, text.length); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} t.remove();
