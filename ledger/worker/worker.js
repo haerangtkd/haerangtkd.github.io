@@ -116,6 +116,7 @@ async function route(path, req, env) {
     const docs = rows.filter(r => canRead(r.coll)).map(r => {
       let d = r.del ? null : J(r.data, null);
       if (!owner && r.coll === 'config' && d) { d = { ...d }; for (const k of Object.keys(d)) if (/Hash$|Salt$/.test(k)) delete d[k]; }
+      if (!owner && r.coll === 'members' && d) { d = { ...d }; delete d.receipt; delete d.receiptNo; } // 현금영수증은 관리자만 (2026-11-16)
       if (!owner && r.coll === 'ledger' && d) { const e = {}; for (const [id, x] of Object.entries(d.entries || {})) if (x && x.kind === 'fee') e[id] = x; d = { ...d, entries: e }; } // 직원: 회비 기록만
       return { path: r.path, data: d, upd: r.upd };
     });
@@ -126,6 +127,7 @@ async function route(path, req, env) {
     const r = await one(env, 'SELECT data, del FROM docs WHERE path = ?', p);
     let d = r && !r.del ? J(r.data, null) : null;
     if (!owner && d && p.startsWith('ledger/')) { const e = {}; for (const [id, x] of Object.entries(d.entries || {})) if (x && x.kind === 'fee') e[id] = x; d = { ...d, entries: e }; }
+    if (!owner && d && p.startsWith('members/')) { d = { ...d }; delete d.receipt; delete d.receiptNo; } // 현금영수증은 관리자만
     if (!owner && d && p.startsWith('config/')) { d = { ...d }; for (const k of Object.keys(d)) if (/Hash$|Salt$/.test(k)) delete d[k]; }
     return json({ ok: true, exists: !!d, data: d });
   }
@@ -555,6 +557,7 @@ HL.billLine = (st) => {
 HL.nextFeeMonth = (m, ym) => { let n = HL.addMonths(ym, 1); for (let i = 0; i < 24 && m.skip && m.skip[n]; i++) n = HL.addMonths(n, 1); return n; };
 
 /** 처음 결제 방식을 기준으로 채운다: 신규는 가입 당시, 기존 회원은 장부에 처음 입력된 회비 (금액이 다르면 마지막 수단에서 맞춘다) */
+HL.receiptNoFmt = (v) => { const p = String(v || ''); return /^01\d{8,9}$/.test(p) ? `${p.slice(0, 3)}-${p.slice(3, -4)}-${p.slice(-4)}` : p; };
 HL.methodName = (m) => (m.payMethod === '기타' ? (m.payMethodOther ? `기타:${m.payMethodOther}` : '') : (m.payMethod || ''));
 HL.payTemplate = (m, ctx, amount) => {
   const last = (ctx.entries || []).filter((e) => e.kind === 'fee' && e.memberId === m.id && !e.cancelled && (e.methods || []).length)
@@ -1342,6 +1345,7 @@ HL.newMemberDoc = (d, ctx, id) => {
     id, name: d.name, birthYear: d.birthYear || null, birthYearOther: d.birthYearOther || '', days: d.days || [], weeklyCount: d.weeklyCount || null, weeklyCountOther: d.weeklyCountOther || '',
     payday: d.payday || null, feeMode: d.feeMode || 'auto', customFee: d.customFee || null, customFeeMemo: d.customFeeMemo || '', customFees: {}, payMethod: d.payMethod || '', payMethodOther: d.payMethodOther || '',
     gender: d.gender === '남' || d.gender === '여' ? d.gender : '', familyId: d.familyId || null, joinDate: d.joinDate || null, joinFeePaid: !!d.joinFeePaid, status: d.status || '신규', memo: d.memo || '', legacyNote: d.legacyNote || '',
+    receipt: d.receipt === '○' || d.receipt === '×' ? d.receipt : '', receiptNo: String(d.receiptNo || '').replace(/\D/g, '').slice(0, 20), // 현금영수증 (2026-11-16, 관리자만 보임)
     origin: d.origin || (/엑셀/.test(d.source || '') ? 'import' : 'app'), importBatch: d.importBatch || null, review: Array.isArray(d.review) ? d.review : Object.values(d.review || {}), fees: {}, skip: {}, statusLog: { s0: { status: d.status || '신규', from: '0000-00-00', at } }, log: { h0: { at, by: ctx.by || '대표', type: '등록', after: d.source || '회원 등록' } }, createdAt: at, updatedAt: at,
   };
   if (d.status === '휴원' && d.joinDate) doc.statusLog.s0.from = '0000-00-00';
