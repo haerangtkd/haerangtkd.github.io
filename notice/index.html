@@ -1113,7 +1113,7 @@
         (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>';
       h += homeTiles(k) + envSection(k) + contactSection(k) + evSection(k); // 2026-11-16: 봉투는 아이콘 밑 // 2026-11-15: 홈 미션 칸 뺌 (미션은 타일 → 새 창에서)
     }
-    const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장'], ['album', '새 사진이 올라왔어요', '앨범']].filter(([x]) => fresh(x));
+    const items = [['notice', '새 공지가 있어요', '공지'], ['journal', '새 알림장이 왔어요', '알림장']].filter(([x]) => fresh(x));
     const askRows = asks.filter(x => !x.urgent).map(x => '<button class="li" data-news="' + (x.type === 'journal' ? '알림장' : '공지') + '"><span class="lic i-ask">' + ICON.check + '</span><span class="lt"><b>' + esc(x.title) + '</b><small>읽고 \'확인했어요\'를 눌러 주세요</small></span><i class="new"></i>' + ICON.right + '</button>').join('');
     h += '<section class="sec"><h2>확인할 소식</h2>' + (items.length || askRows
       ? '<div class="list">' + askRows + items.map(([x, label, f]) => '<button class="li" data-news="' + f + '"><span class="lic i-' + x + '">' + IC[x] + '</span><span class="lt"><b>' + label + '</b><small>' + f + '에서 보기</small></span><i class="new"></i>' + ICON.right + '</button>').join('') + '</div>'
@@ -1199,7 +1199,7 @@
     const pinned = list.filter(top).sort((p, q) => (q.urgent - p.urgent) || (q.at - p.at));
     list = list.filter(x => !top(x)).sort((p, q) => q.at - p.at);
     if (newsF !== '사범님 연락') markSeen(t ? [t] : ['notice', 'journal', 'album']);
-    const chips = '<div class="chips sticky">' + ['전체', '공지', '알림장', '앨범', '사범님 연락'].map(k => '<button class="' + (k === newsF ? 'on' : '') + '">' + k + '</button>').join('') + '</div>';
+    const chips = '<div class="chips sticky">' + ['전체', '공지', '알림장', '사범님 연락'].map(k => '<button class="' + (k === newsF ? 'on' : '') + '">' + k + '</button>').join('') + '</div>';
     const card = feedRow; // 2026-11-13: 소식은 '○○이 올라왔어요' 한 줄 목록, 누르면 자세히
     let h = chips;
     if (newsF === '사범님 연락') { const M = ((contact && contact.msgs) || []).filter(x => x.kid === curKid()); h += M.length ? '<div class="msec">' + esc(curKid()) + ' · 사범님께 보낸 연락</div><div class="sec">' + M.map(cmsgRow).join('') + '</div>' : '<div class="empty">보낸 연락이 없어요</div>'; tbody(h); $('tBody').onclick = e => { const c = e.target.closest('.chips button'); if (c) { newsF = c.textContent; paintNews(); scrollTo(0, 0); } }; return; }
