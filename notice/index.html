@@ -1084,6 +1084,7 @@
     const again = name === tab;
     tab = name;
     if (opt.filter) newsF = opt.filter;
+    setTimeout(badgeSeen, 800);
     if (opt.plan) planF = opt.plan;
     history.replaceState(null, '', name === 'home' ? location.pathname : '#' + name);
     $('tHead').innerHTML = name === 'home' ? '' : '<h1>' + TABS[name] + '</h1>';
@@ -1472,7 +1473,7 @@
   function openPage(name, push = true) {
     if (!PAGES[name] || !me()) return;
     if (push) history.pushState({ p: name }, '', '#' + name);
-    $('pTitle').textContent = PAGES[name]; curPg = name;
+    $('pTitle').textContent = PAGES[name]; curPg = name; setTimeout(badgeSeen, 800);
     $('v-page').hidden = false; $('v-page').scrollTop = 0;
     $('pBody').onclick = null;
     $('pBody').innerHTML = '<div class="empty">불러오는 중…</div>';
@@ -1898,9 +1899,25 @@
       if (sub) post('/p/push', { subscription: sub.toJSON() }).catch(() => {});
     }
   }
-  // 앱을 열면 아이콘 숫자 지움 (서비스 워커가 알림을 받을 때마다 1씩 올림, 2026-11-16)
-  const badgeClear = () => { try { if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); caches.open('haerang-inbox').then(c => c.put('/notice/__badge', new Response('0'))).catch(() => {}); } catch (_) {} };
-  badgeClear(); document.addEventListener('visibilitychange', () => { if (!document.hidden) badgeClear(); });
+  // 앱 아이콘 숫자: 알림이 온 화면을 열어 보면 그 알림만 빠짐 (서비스 워커가 알림마다 화면 이름을 적어 둠, 2026-11-16)
+  const B_TAB = { home: ['', 'home', 'attendance', 'kid', 'me'], news: ['news', 'notice', 'journal', 'album'], kid: ['kid', 'me', 'attendance'], schedule: ['schedule'] };
+  const B_PG = { plan: ['plan', 'journal', 'hw', 'ev'], cal: ['cal', 'schedule', 'notice', 'attendance'], grow: ['grow', 'exam'] };
+  const B_KNOWN = new Set([...Object.values(B_TAB).flat(), ...Object.values(B_PG).flat(), ...Object.keys(PAGES)]);
+  function badgeSeen() {
+    if (document.hidden || !me() || !('caches' in window)) return;
+    const pg = !$('v-page').hidden && curPg;
+    const vs = new Set(pg ? (B_PG[pg] || [pg]) : (B_TAB[tab] || [tab]));
+    caches.open('haerang-inbox').then(async c => {
+      const r = await c.match('/notice/__badge');
+      let list = []; try { list = r ? JSON.parse(await r.text()) : []; } catch (_) {}
+      if (!Array.isArray(list)) list = [];
+      // 모르는 화면 이름의 알림은 홈을 볼 때 빠짐
+      const left = list.filter(x => !(vs.has(x.v) || (!pg && tab === 'home' && !B_KNOWN.has(x.v))));
+      if (left.length !== list.length || !r) await c.put('/notice/__badge', new Response(JSON.stringify(left)));
+      if (navigator.setAppBadge) (left.length ? navigator.setAppBadge(left.length) : navigator.clearAppBadge()).catch(() => {});
+    }).catch(() => {});
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(badgeSeen, 800); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && me() && !$('v-home').hidden && $('v-page').hidden) goHome(); });
   init().catch(e => { console.error(e); show('v-gate', 'g-unsupported'); });
 })();

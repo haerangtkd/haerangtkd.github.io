@@ -23,7 +23,7 @@ self.addEventListener('push', e => {
   e.waitUntil(Promise.all([
     self.registration.showNotification(title, opts),
     saveInbox({ title, body: d.body || '', kind: d.kind || '공지', at: Date.now() }),
-    badgeUp(), // 2026-11-16 사용자: 안 읽은 알림 수를 앱 아이콘에 숫자로
+    badgeUp(d.url), // 2026-11-16 사용자: 안 읽은 알림 수를 앱 아이콘에 숫자로
     self.clients.matchAll({ type: 'window' }).then(cs => cs.forEach(c => c.postMessage({ type: 'push' }))),
   ]));
 });
@@ -48,14 +48,19 @@ async function saveInbox(item) {
   } catch (_) {}
 }
 
-// 앱 아이콘 숫자 = 앱을 연 뒤로 받은 알림 수 (앱을 열면 0으로, 화면 쪽이 지움)
+// 앱 아이콘 숫자 = 아직 열어 보지 않은 알림 수. 알림마다 어느 화면 것인지(주소 # 뒤) 적어 두고,
+// 학부모 앱에서 그 화면을 열면 화면 쪽이 지움 (2026-11-16 사용자: 해당 부분을 열면 사라지게)
 const BADGE_KEY = '/notice/__badge';
-async function badgeUp() {
+async function badgeUp(url) {
   try {
     const cache = await caches.open(INBOX);
     const r = await cache.match(BADGE_KEY);
-    const n = (r ? +(await r.text()) || 0 : 0) + 1;
-    await cache.put(BADGE_KEY, new Response(String(n)));
-    if (self.navigator && self.navigator.setAppBadge) await self.navigator.setAppBadge(n);
+    let list = []; try { list = r ? JSON.parse(await r.text()) : []; } catch (_) {}
+    if (!Array.isArray(list)) list = [];
+    const v = String(url || '').split('#')[1] || '';
+    list.push({ v, at: Date.now() });
+    list = list.filter(x => Date.now() - x.at < 14 * 864e5).slice(-99);
+    await cache.put(BADGE_KEY, new Response(JSON.stringify(list)));
+    if (self.navigator && self.navigator.setAppBadge) await self.navigator.setAppBadge(list.length);
   } catch (_) {}
 }
