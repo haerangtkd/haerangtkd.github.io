@@ -258,7 +258,10 @@
 
   /* 아래 탭 5개 · 가운데 나의 수련 (2026-11-15) */
   .nav button{min-width:0;font-size:11.5px;padding:6px 2px}.nav button span{font-size:22px}
-  .nav button.mid{position:relative;top:-16px;flex:1.1}.nav button.mid .lc{width:58px;height:58px;border-radius:50%;background:linear-gradient(145deg,#E5484D,#A40F16 60%,#C0A355);display:grid;place-items:center;box-shadow:0 0 0 5px #121214,0 6px 18px rgba(229,72,77,.45)}.nav button.mid .lc img{width:34px;height:34px;object-fit:contain}
+  .nav button.mid{position:relative;top:-16px;flex:1.1}.nav button.mid .lc{width:58px;height:58px;border-radius:50%;background:linear-gradient(145deg,#E5484D,#A40F16 60%,#C0A355);display:grid;place-items:center;box-shadow:0 0 0 5px #121214,0 6px 18px rgba(229,72,77,.45)}.nav button.mid .lc img{width:34px;height:34px;object-fit:contain}.nav button.mid .lc{font-size:30px}
+  .stab{display:flex;gap:6px;background:#161618;border:1px solid var(--line);border-radius:999px;padding:4px;margin:0 0 14px}.stab button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-size:14.5px;font-weight:800;padding:10px 4px;border-radius:999px;cursor:pointer}.stab button.on{background:var(--brand);color:#fff}
+  .sbq{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.sbq>div{aspect-ratio:1;border:1px solid var(--line);background:#161618;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;padding:6px}.sbq .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:22px;color:#fff;font-weight:900;overflow:hidden}.sbq b{font-size:14px}.sbq small{color:var(--muted);font-size:11.5px}.sbq .me{border-color:var(--gold)}
+  .lkt{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 4px 0}.lkt a{color:var(--muted);font-size:14px;font-weight:700;text-decoration:none}.lkt a:hover,.lkt a:active{color:#fff;text-decoration:underline}
   .nav button.mid.on{background:none}.nav button.mid.on .lc{box-shadow:0 0 0 5px #121214,0 0 0 7px #E3B341,0 6px 18px rgba(229,72,77,.55)}
   .log h2 .dr{border:1px solid #3A3A3E;background:#1C1C1F;color:#C9C6C2;border-radius:999px;padding:4px 10px;font:inherit;font-size:11.5px;font-weight:700;margin-left:auto;cursor:pointer}
   .log .rg{border:0;background:none;padding:0;cursor:pointer}.log .ri button{border:0;background:none;color:inherit;font:inherit;text-align:left;padding:0;width:100%;cursor:pointer;display:block}
@@ -323,7 +326,7 @@
   <p class="lockt" id="inst" style="margin-top:18px;text-align:center"></p>
 </section>
 <div class="wrap" id="vApp" hidden><button class="big" id="pushB" hidden style="width:100%;max-width:none;margin:0 0 12px">🔔 도장 알림 켜기</button><div id="body"></div><button class="out" id="out">이 기기에서 나가기</button></div>
-<nav class="nav" id="nav" hidden><button data-v="event"><span>🎉</span>이벤트</button><button data-v="plan"><span>📅</span>수련 계획</button><button data-v="home" class="mid on"><span class="lc"><img src="../img/lion-white.png" alt=""></span>나의 수련</button><button data-v="fame"><span>🏆</span>명예의 전당</button><button data-v="more"><span>☰</span>더보기</button></nav>
+<nav class="nav" id="nav" hidden><button data-v="home" class="on"><span>🏠</span>홈</button><button data-v="sched"><span>📅</span>일정</button><button data-v="fame" class="mid"><span class="lc">🏆</span>명예의 전당</button><button data-v="fun"><span>🎵</span>즐기기</button><button data-v="more"><span>☰</span>더보기</button></nav>
 <canvas id="fx" hidden></canvas>
 <script src="../notice/config.js"></script>
 <script src="../notice/qr.js"></script>
@@ -338,7 +341,7 @@
   const firstName = n => { n = String(n || '').trim(); return n.length >= 3 ? n.slice(1) : n; };
   const mask = n => { n = String(n || ''); return n.length >= 3 ? n[0] + '○'.repeat(n.length - 2) + n[n.length - 1] : n.length === 2 ? n[0] + '○' : n; }; // 소식 줄: 김○랑
   const md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8));
-  let D = null, SITE = null, planM = '', view = 'home', plan = null, newsI = 0, newsT = null, newsOpen = false;
+  let D = null, SITE = null, planM = '', view = 'home', schedSub = 'event', fameSub = 'best', plan = null, newsI = 0, newsT = null, newsOpen = false;
   // ── 띠 (해랑경희 띠 순서, 사이 띠(줄띠·검은띠)는 유치부만) ──
   const BELTS = ['흰띠', '노란줄띠', '노란띠', '초록줄띠', '초록띠', '초록검은띠', '보라띠', '보라검은띠', '파란띠', '파란검은띠', '주황띠', '주황검은띠', '분홍띠', '밤띠', '빨간띠', '1품', '2품', '3품', '4품', '5품', '6품'];
   const STRIPE = ['노란줄띠', '초록줄띠', '초록검은띠', '보라검은띠', '파란검은띠', '주황검은띠'];
@@ -425,8 +428,11 @@
   }
   // ── 그리기 ──
   function draw() {
-    $('body').innerHTML = view === 'home' ? home() : view === 'fame' ? fame() : view === 'event' ? eventView() : view === 'plan' ? planView() : view === 'more' ? moreView() : sbView();
-    [...$('nav').children].forEach(b => b.classList.toggle('on', b.dataset.v === (view === 'sb' ? 'more' : view))); $('out').hidden = view !== 'more'; if (view === 'home') newsRun();
+    // 2026-11-16 사용자: 아래 메뉴 = 홈 · 일정(이벤트 | 수련 계획) · 명예의 전당(가운데, 최우수 수련생 | 선범단) · 즐기기 · 더보기
+    const hi = (bg, ic, t, sm) => '<div class="hi"><span class="av" style="background:' + bg + '">' + ic + '</span><div><b>' + t + '</b><small>' + sm + '</small></div></div>';
+    const tabs = (L, cur) => '<div class="stab">' + L.map(([k, t]) => '<button data-sub="' + k + '" class="' + (k === cur ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
+    $('body').innerHTML = view === 'home' ? home() : view === 'sched' ? hi('#2E9E4F', '📅', '일정', '도장 행사 · 대회 · 심사 · 수련 계획') + tabs([['event', '🎉 이벤트'], ['plan', '📅 수련 계획']], schedSub) + (schedSub === 'plan' ? planView() : eventView()) : view === 'fame' ? hi('var(--gold)', '🏆', '명예의 전당', '해랑경희의 멋진 제자들') + tabs([['best', '🏆 최우수 수련생'], ['sb', '⭐ 선범단']], fameSub) + (fameSub === 'sb' ? sbView() : fame()) : view === 'fun' ? funView() : moreView();
+    [...$('nav').children].forEach(b => b.classList.toggle('on', b.dataset.v === view)); $('out').hidden = view !== 'more'; if (view === 'home') newsRun();
   }
   $('nav').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; view = b.dataset.v; scrollTo(0, 0); draw(); };
   function evStat(ev, rec) {
@@ -537,7 +543,6 @@
       h += '<button class="kenvC" data-env="' + x.id + '"><span>📩</span><b>도장에서 봉투가 왔어요!</b><small>눌러서 열어 봐요 ›</small></button>';
     });
     // 🎵 해랑경희 노래 (2026-11-16 사용자)
-    h += songCard();
     // 🏅 나의 뱃지 (4칸, 누르면 뱃지 화면)
     // 2026-11-16 사용자: 최근에 받은 것 순서로 (받은 날 → 같으면 뒤쪽(더 높은 단계) 먼저). 대표 뱃지를 앞에 두던 것(같은 뱃지가 두 번 보이던 것)도 없앰
     const GOT = D.prof.got || {}, B = myBadges().map((b, i) => ({ b, i, d: GOT[b.k] || '' })).sort((x, y) => (y.d > x.d) - (y.d < x.d) || y.i - x.i).map(x => x.b), show = B.slice(0, 4);
@@ -639,9 +644,10 @@
     const past = monthsBack(12).slice(1).filter(k => (mm[k] || 0) >= MONTH_NEED);
     let h = '<section class="bx"><h3>월간 도전 목표</h3><div class="mch">' + hexB(cm, n >= MONTH_NEED, 150) + '<b>' + cm + '월 도전 목표</b><small>이번 달 ' + MONTH_NEED + '일 출석하기 · ' + Math.min(n, MONTH_NEED) + ' / ' + MONTH_NEED + '</small><div class="pb"><b style="width:' + Math.min(100, Math.round(n / MONTH_NEED * 100)) + '%"></b></div></div>' +
       '<div class="mrow">' + (past.length ? past.slice(0, 5).map(k => hexB(+k.slice(5), true, 30)).join('') : '<small class="sub" style="margin:0">지난 도전 목표를 이루면 여기에 모여요</small>') + '<button class="allb" data-mall>모두 보기 ›</button></div></section>';
+    h += '<button class="allb" data-ball style="display:block;margin:0 0 12px auto">📋 전체 뱃지 · 받는 방법 ›</button>';
     const cats = CATS.map(n => ({ n, L: B.filter(b => b.cat === n) })).filter(c => c.L.length);
     cats.forEach(c => { h += '<section class="bx"><h3>' + esc(c.n) + '<small>' + c.L.filter(b => b.on).length + ' / ' + c.L.length + '</small></h3><div class="bgrid">' + c.L.map(b => '<button class="bt' + (b.on ? '' : ' off') + '" data-bd="' + b.k + '"><span class="ic">' + bIc(b) + '</span><b>' + esc(b.t) + '</b>' + (!b.on && b.tgt ? '<i class="pg2"><em style="width:' + Math.min(100, Math.round(b.cur / b.tgt * 100)) + '%"></em></i><small>' + Math.min(b.cur, b.tgt) + ' / ' + b.tgt + '</small>' : '') + '</button>').join('') + '</div></section>'; });
-    page('뱃지', h, (e, el) => { const b = e.target.closest('[data-bd]'); if (b) return badgeOne(b.dataset.bd); if (e.target.closest('[data-mall]')) monthAll(); });
+    page('뱃지', h, (e, el) => { const b = e.target.closest('[data-bd]'); if (b) return badgeOne(b.dataset.bd); if (e.target.closest('[data-mall]')) monthAll(); if (e.target.closest('[data-ball]')) allBadgeSheet(); });
   }
   function monthAll() {
     const mm = (D.att || {}).months || {};
@@ -767,7 +773,7 @@
   }
   function fame() {
     const me = D.name;
-    let h = '<div class="hi"><span class="av" style="background:var(--gold)">🏆</span><div><b>명예의 전당</b><small>해랑경희의 멋진 제자들</small></div></div>';
+    let h = '';
     h += '<div id="bestC">' + bestCard() + '</div>';
     const C = [...(D.comps || [])].sort((a, b) => b.date.localeCompare(a.date)), mdl = { 금: '🥇', 은: '🥈', 동: '🥉', 참가: '🎽' };
     let cm = ''; h += '<section class="card"><h2>🥇 대회 기록</h2>' + (C.length ? C.map(c => { const m = c.date.slice(0, 7), head = m !== cm ? '<div class="mon">' + (+m.slice(5)) + '월</div>' : ''; cm = m;
@@ -793,13 +799,13 @@
     let g = ''; for (let i = 0; i < first; i++) g += '<div></div>';
     for (let d = 1; d <= last; d++) { const k = ymdOf(ym, d), L = by[k] || [], rest = L.length && L.every(x => x.kind === '휴관');
       g += '<button class="ecd' + (k === t ? ' td' : '') + (k < t ? ' ps' : '') + (rest ? ' rs' : '') + (L.length ? ' has' : '') + '"' + (L.length ? ' data-eday="' + k + '"' : ' disabled') + '><span>' + d + '</span><i>' + [...new Set(L.map(x => x.kind || '기타'))].slice(0, 3).map(kd => '<em style="background:' + (KCOL[kd] || KCOL.기타) + '"></em>').join('') + '</i></button>'; }
-    const ML = evItems().filter(x => x.date.slice(0, 7) === ym || ((x.dend || '').slice(0, 7) === ym && x.date.slice(0, 7) < ym));
+    const ML = evItems().filter(x => (x.date.slice(0, 7) === ym || ((x.dend || '').slice(0, 7) === ym && x.date.slice(0, 7) < ym)) && (x.dend || x.date) >= t); // 2026-11-16: 지난 일정은 목록에서 빼고 날짜를 누르면 창으로
     return '<section class="card ecal"><div class="pmn"><button data-em="-1"' + (ym <= R.min ? ' disabled' : '') + '>‹</button><b>' + yr + '년 ' + mon + '월</b><button data-em="1"' + (ym >= R.max ? ' disabled' : '') + '>›</button></div>' +
       '<div class="ecw">' + WD.map(x => '<i>' + x + '</i>').join('') + '</div><div class="ecg">' + g + '</div>' +
       '<div class="elg">' + ['행사', '대회', '심사', '휴관'].map(k => '<span><em style="background:' + KCOL[k] + '"></em>' + (k === '휴관' ? '쉬는 날' : k) + '</span>').join('') + '</div>' +
       (ym !== t.slice(0, 7) ? '<button class="etd" data-em="0">오늘로 ›</button>' : '') +
-      '<h4 class="ph4">' + mon + '월 일정 ' + ML.length + '개</h4>' + (ML.length ? ML.map(x => { const end = x.dend || x.date, past = end < t, dd = !past ? dday(x.date > t ? x.date : t) : '';
-        return '<button class="evr' + (past ? ' past' : '') + '" data-eday="' + (x.date.slice(0, 7) === ym ? x.date : ymdOf(ym, 1)) + '"><span class="evd" style="border-color:' + (KCOL[x.kind] || KCOL.기타) + '"><b>' + (+x.date.slice(8)) + '</b><small>' + WD[new Date(x.date + 'T00:00:00Z').getUTCDay()] + '</small></span><div><b>' + (KIC[x.kind] || '📌') + ' ' + esc(x.title) + '</b><small>' + md(x.date) + (x.dend && x.dend !== x.date ? ' ~ ' + md(x.dend) : '') + ' · ' + esc(x.kind || '일정') + (past ? ' · 끝났어요' : '') + '</small></div>' + (dd ? '<span class="dd">' + dd + '</span>' : '') + '</button>'; }).join('') : '<div class="empty">이 달에는 도장 일정이 없어요</div>') + '</section>';
+      '<h4 class="ph4">' + mon + '월 ' + (ym < t.slice(0, 7) ? '일정' : '남은 일정 ' + ML.length + '개') + '</h4>' + (ML.length ? ML.map(x => { const end = x.dend || x.date, past = end < t, dd = !past ? dday(x.date > t ? x.date : t) : '';
+        return '<button class="evr' + (past ? ' past' : '') + '" data-eday="' + (x.date.slice(0, 7) === ym ? x.date : ymdOf(ym, 1)) + '"><span class="evd" style="border-color:' + (KCOL[x.kind] || KCOL.기타) + '"><b>' + (+x.date.slice(8)) + '</b><small>' + WD[new Date(x.date + 'T00:00:00Z').getUTCDay()] + '</small></span><div><b>' + (KIC[x.kind] || '📌') + ' ' + esc(x.title) + '</b><small>' + md(x.date) + (x.dend && x.dend !== x.date ? ' ~ ' + md(x.dend) : '') + ' · ' + esc(x.kind || '일정') + (past ? ' · 끝났어요' : '') + '</small></div>' + (dd ? '<span class="dd">' + dd + '</span>' : '') + '</button>'; }).join('') : '<div class="empty">' + (Object.keys(by).length ? '지난 일정은 달력에서 날짜를 누르면 볼 수 있어요' : '이 달에는 도장 일정이 없어요') + '</div>') + '</section>';
   }
   function evDaySheet(k) {
     const L = evByDay(k.slice(0, 7))[k] || []; if (!L.length) return;
@@ -807,19 +813,27 @@
     el.classList.add('dk');
   }
   function eventView() {
-    let h = '<div class="hi"><span class="av" style="background:#E5484D">🎉</span><div><b>이벤트</b><small>도장 행사 · 대회 · 심사 소식</small></div></div>';
+    let h = '';
     const T = D.tev || [];
     if (T.length) h += '<section class="card"><h2>🎟 지금 신청 받는 행사</h2>' + T.map(e => '<div class="evc on"><div class="eh"><b>' + esc(e.title) + '</b>' + (e.date ? '<span class="dd">' + dday(e.date) + '</span>' : '') + '</div><small>' + (e.date ? md(e.date) + ' · ' : '') + (e.closeAt ? md(e.closeAt) + '까지 신청' : '신청 받는 중') + (e.free ? ' · 무료' : '') + '</small>' + (e.desc ? '<p>' + esc(e.desc) + '</p>' : '') + (e.prep ? '<p class="pp">🎒 준비물: ' + esc(e.prep) + '</p>' : '') + '<div class="ap">' + (e.mine ? '✅ 신청했어요' : '👨‍👩‍👧 부모님 앱에서 신청할 수 있어요') + '</div></div>').join('') + '</section>';
     h += '<div id="evCalC">' + evCalCard() + '</div>';
+    return h;
+  }
+  // ── 🎵 해랑경희 즐기기: 노래 · 소식 · 칼럼 (2026-11-16 사용자) ──
+  function funView() {
+    let h = '<div class="hi"><span class="av" style="background:#7B4FB8">🎵</span><div><b>해랑경희 즐기기</b><small>노래 부르고, 소식 보고, 이야기 읽기</small></div></div>';
+    h += songCard();
     const P = ((SITE || {}).press || []).slice(0, 4);
     if (P.length) h += '<section class="card"><h2>📰 해랑경희 소식</h2>' + P.map(x => '<a class="lnk2" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + (x.image ? '<img src="/' + esc(x.image) + '" alt="" loading="lazy">' : '') + '<div><b>' + esc(x.title) + '</b><small>' + esc(x.source || '') + ' · ' + esc((x.date || '').slice(0, 7).replace('-', '.')) + '</small></div></a>').join('') + '</section>';
+    const C = ((SITE || {}).columns || []).slice(0, 6);
+    if (C.length) h += '<section class="card"><h2>📖 해랑경희 칼럼<small>사범님이 쓴 글</small></h2>' + C.map(x => '<a class="lnk2" href="/' + esc(x.url) + '" target="_blank" rel="noopener">' + (x.image ? '<img src="/' + esc(x.image) + '" alt="" loading="lazy">' : '') + '<div><b>' + esc(x.title) + '</b><small>' + esc(x.summary || x.tag || '') + '</small></div></a>').join('') + '</section>';
     return h;
   }
   // ── 📅 수련 계획: 오늘의 운동 · 이 달 수련 주제 · 요일별 운동 · 이 달 공지 · 내 띠 품새 · 띠 제도 ──
   function planView() {
     const t = D.today, ym = planM || t.slice(0, 7), yr = +ym.slice(0, 4), mon = +ym.slice(5, 7), P = plan || {};
     const dow = WD[new Date(t + 'T00:00:00Z').getUTCDay()], th = (P.weekday || {})[dow] || [], fc = (P.focus || []).find(x => x.date <= t && t <= (x.end || x.date));
-    let h = '<div class="hi"><span class="av" style="background:#2E9E4F">📅</span><div><b>수련 계획</b><small>오늘 무엇을 배울까요?</small></div></div>';
+    let h = '';
     h += '<section class="card today"><h2>💪 오늘의 운동<small>' + md(t) + ' (' + dow + ')</small></h2>' + (th.length ? '<div class="tags">' + th.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '<div class="sub">' + (dow === '일' || dow === '토' ? '즐거운 주말! 월요일에 만나요 ☺' : '오늘의 운동을 준비 중이에요') + '</div>') +
       (fc ? '<div class="focus"><small>이번 주 수련 주제</small><b>' + esc(fc.title) + '</b></div>' : '') + '</section>';
     const F = (P.focus || []).filter(x => x.date.slice(0, 7) === ym), wk = d => Math.floor((+d.slice(8) + new Date(Date.UTC(yr, mon - 1, 1)).getUTCDay() - 1) / 7) + 1, NM = ['', '첫째', '둘째', '셋째', '넷째', '다섯째', '여섯째'];
@@ -831,8 +845,6 @@
     if (Object.keys(W).length) h += '<section class="card"><h2>🗓 요일별 운동 테마</h2><table class="ptb wd">' + ['월', '화', '수', '목', '금'].filter(d => W[d]).map(d => '<tr' + (d === dow ? ' class="now"' : '') + '><th>' + d + '</th><td>' + (W[d] || []).map(esc).join(' · ') + '</td></tr>').join('') + '</table></section>';
     const N = ((P.months || []).find(x => x.month === ym) || {}).notices || [];
     if (N.length) h += '<section class="card"><h2>📢 ' + mon + '월의 이야기</h2>' + N.map(x => '<p class="ntc">' + esc(x) + '</p>').join('') + '</section>';
-    const pv = D.prep && D.prep.vid;
-    h += '<section class="card"><h2>🥋 내 띠 · ' + esc(D.belt || '-') + '</h2>' + (pv ? '<a class="vid" href="' + esc(pv) + '" target="_blank" rel="noopener">▶ ' + esc(D.belt) + ' 품새 영상 보기</a>' : '') + beltInfo() + '</section>';
     return h;
   }
   function beltInfo() {
@@ -843,19 +855,17 @@
   }
   // ── ☰ 더보기: 선범단 · 뱃지 · 마일리지 · 꾸미기 · 목표 · QR · 칼럼 · 바로가기 ──
   function moreView() {
-    const av = profAv(), M = [['sb', '⭐', '선범단'], ['badge', '🏅', '뱃지'], ['mile', '💰', '마일리지'], ['qr', '▦', '내 출석 QR'], ['deco', '✏️', '꾸미기'], ['goal', '🎯', '나의 목표'], ['cal', '🗓', '수련 달력'], ['all', '📋', '전체 뱃지'], ['env', '📩', '받은 봉투']];
+    const av = profAv(), M = [['env', '📩', '받은 봉투'], ['qr', '▦', '내 QR'], ['badge', '🏅', '뱃지'], ['deco', '✏️', '꾸미기']]; // 2026-11-16 사용자: 4개만 (선범단은 명예의 전당, 마일리지·목표·수련 달력은 홈에 있음)
     let h = '<div class="hi"><span class="av" style="background:' + esc(av.bg) + ';overflow:hidden">' + avHtml(av.e) + '</span><div><b>' + esc(D.name) + '</b><small>' + esc(D.belt || '') + (D.sb ? ' · ⭐ 선범단' : '') + '</small></div></div>';
     h += '<div class="mgr">' + M.map(([k, ic, t]) => '<button data-act="' + k + '"><i>' + ic + '</i>' + t + '</button>').join('') + '</div>';
-    const C = ((SITE || {}).columns || []).slice(0, 6);
-    if (C.length) h += '<section class="card"><h2>📖 해랑경희 칼럼<small>사범님이 쓴 글</small></h2>' + C.map(x => '<a class="lnk2" href="/' + esc(x.url) + '" target="_blank" rel="noopener">' + (x.image ? '<img src="/' + esc(x.image) + '" alt="" loading="lazy">' : '') + '<div><b>' + esc(x.title) + '</b><small>' + esc(x.summary || x.tag || '') + '</small></div></a>').join('') + '</section>';
     const LK = ((SITE || {}).links || []).filter(x => /insta|blog|youtube/.test(x.icon));
-    h += '<section class="card"><h2>🔗 해랑경희 바로가기</h2><div class="lkg"><a href="/" target="_blank" rel="noopener">🏠 홈페이지</a>' + LK.map(x => '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + (x.icon === 'insta' ? '📸 ' : x.icon === 'youtube' ? '▶ ' : '📝 ') + esc(x.short || x.name) + '</a>').join('') + '</div></section>';
+    h += '<div class="lkt"><a href="/" target="_blank" rel="noopener">해랑경희 홈페이지</a>' + LK.map(x => '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.short || x.name) + '</a>').join('') + '</div>';
     return h;
   }
   // ── ⭐ 선범단: 내 카드(본인만) · 도장 모으기(모두 봄) · 명단 ──
   function sbView() {
     const me = D.name, c = D.sbCard, sun = D.sun || [], mon = +D.today.slice(5, 7), sm = (D.prep || {}).sunMe || null, warn = Math.max((c && c.warn) || 0, sm && sm.warn || 0);
-    let h = '<div class="hi"><span class="av" style="background:var(--gold)">⭐</span><div><b>선범단</b><small>다른 친구에게 모범이 되고 도와주는 제자</small></div></div>';
+    let h = '';
     if (D.sb && c) {
  const dk = c.date ? (+c.date.slice(0, 4)) + '년 ' + (+c.date.slice(5, 7)) + '월 ' + (+c.date.slice(8, 10)) + '일' : '';
       // 임명장 모양 (2026-11-15 사용자: 미리캔버스 임명장 따라 — 바탕은 선범단 그림)
@@ -877,10 +887,11 @@
     sun.forEach(x => { (by[x.name] = by[x.name] || []).push(x); });
     const stamps = L => { let o = ''; for (let i = 0; i < Math.max(need, L.length); i++) { const x = L[i], cc = x && SC[x.cat]; o += '<span class="st' + (x ? ' on' : '') + '" title="' + (cc ? cc[1] : '') + '">' + (x ? (cc ? cc[0] : '⭐') : '') + '</span>'; } return o; };
     if (D.sb && sm) { const k = (by[me] || []).length; h += '<section class="card"><h2>🔴 내 도장<small>' + k + ' / ' + need + '</small></h2><div class="stp">' + stamps(by[me] || []) + '</div><p class="sub">' + (k >= need ? '이번 달 도장을 다 모았어요! 🎉' : '이번 달 ' + (need - k) + '개 더 모으면 돼요. 친구를 가르쳐 주고, 모범을 보이고, 실력을 보여 줘요') + (sm.out ? '<br><b style="color:#C0392B">두 달 연속 못 채웠어요. 사범님과 이야기해요</b>' : sm.warn ? '<br><b style="color:#B07800">⚠ 경고 ' + sm.warn + ' · 이번 달 ' + need + '개를 채우면 없어져요</b>' : '') + '</p></section>'; }
+    const sq = '<section class="card"><h2>⭐ 선범단 단원<small>' + (D.sbList || []).length + '명</small></h2>' + ((D.sbList || []).length ? '<div class="sbq">' + D.sbList.map(x => { const p = (D.bestProf || {})[x.name] || {}; return '<div class="' + (x.name === me ? 'me' : '') + '"><span class="av" style="background:' + esc(p.bg || '#C9A227') + '">' + avHtml(p.av || firstName(x.name).slice(0, 1)) + '</span><b>' + esc(x.name) + '</b><small>' + beltDot(x.belt) + esc(x.belt || '') + '</small></div>'; }).join('') + '</div>' : '<div class="empty">곧 발표돼요</div>') + '</section>';
+    if (!D.sb) return h + sq; // 2026-11-16 사용자: 선범단이 아니면 단원들만 네모칸으로, 선범단이면 선범단끼리 (도장 모으기 등)
     const names = (D.sbList || []).map(x => x.name); Object.keys(by).forEach(n => { if (!names.includes(n)) names.push(n); });
     h += '<section class="card"><h2>🔴 ' + mon + '월 도장 모으기<small>' + sun.length + '개</small></h2>' + (names.length ? names.map(n => '<div class="stl' + (n === me ? ' me' : '') + '"><b>' + esc(n) + '</b><div class="stp">' + stamps(by[n] || []) + '</div></div>').join('') + '<p class="sub">🧑‍🏫 가르침 · 🌟 모범 · 🥋 실력 — 사범님이 도장을 찍어 줘요</p>' : '<div class="empty">이번 달 첫 도장을 기다려요! 친구를 도와주면 사범님이 찍어 줘요</div>') + '</section>';
-    h += '<section class="card"><h2>⭐ 선범단 명단<small>' + (D.sbList || []).length + '명</small></h2>' + ((D.sbList || []).length ? '<div class="sbl">' + D.sbList.map(x => '<div class="' + (x.name === me ? 'me' : '') + '">' + beltDot(x.belt) + '<b>' + esc(x.name) + '</b><small>' + esc(x.belt || '') + '</small></div>').join('') + '</div>' : '<div class="empty">곧 발표돼요</div>') + '</section>';
-    return h;
+    return h + sq;
   }
   // ── 아래에서 올라오는 창 ──
   function sheet(html, onClick) { const el = document.createElement('div'); el.className = 'sheet'; el.innerHTML = '<div class="box">' + html + '</div>'; el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el; }
@@ -913,6 +924,7 @@
     });
   }
   $('body').onclick = async e => {
+    const sub = e.target.closest('[data-sub]'); if (sub) { if (view === 'sched') schedSub = sub.dataset.sub; else fameSub = sub.dataset.sub; return draw(); }
     if (e.target.closest('#pEdit')) return profSheet();
     if (e.target.closest('#qrB')) return qrSheet();
     if (e.target.closest('#newsB')) { newsOpen = !newsOpen; return draw(); }
@@ -924,7 +936,7 @@
     const pm = e.target.closest('[data-pm]'); if (pm) { const b0 = planM || D.today.slice(0, 7), d = new Date(Date.UTC(+b0.slice(0, 4), +b0.slice(5, 7) - 1 + (+pm.dataset.pm), 1)); planM = d.toISOString().slice(0, 7); return draw(); }
     const bi = e.target.closest('[data-bi]'); if (bi && !bi.disabled) { bestI += +bi.dataset.bi; $('bestC').innerHTML = bestCard(); return; }
     const ac = e.target.closest('[data-act]'); if (ac) { const k = ac.dataset.act;
-      if (k === 'sb') { view = 'sb'; scrollTo(0, 0); return draw(); } if (k === 'badge') return badgePage(); if (k === 'mile') return milePage(); if (k === 'qr') return qrSheet(); if (k === 'deco') return profSheet();
+      if (k === 'sb') { view = 'fame'; fameSub = 'sb'; scrollTo(0, 0); return draw(); } if (k === 'badge') return badgePage(); if (k === 'mile') return milePage(); if (k === 'qr') return qrSheet(); if (k === 'deco') return profSheet();
       if (k === 'goal') return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!'); if (k === 'cal') return logCal(); if (k === 'all') return allBadgeSheet(); if (k === 'env') return envList(); }
     if (e.target.closest('#songP')) { const au = songAu(); if (au.paused) au.play().catch(() => alert('노래를 틀지 못했어요. 무음 모드를 끄고 다시 눌러 주세요')); else au.pause(); return; }
     if (e.target.closest('#songAll')) return songLyrics();
