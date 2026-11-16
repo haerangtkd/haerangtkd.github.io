@@ -1119,7 +1119,7 @@ async function route(path, req, env, ctx) {
       const sid = str(cur.id, 60), last = (b.student.statusLog || []).slice(-1)[0] || {};
       await run(env, "INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", 'outreq:' + sid, JSON.stringify({ sid, name: cur.name, from: cur.status, date: str(last.date, 10), why: str(last.why, 200), mid: me.id, who: me.name, at: Date.now() }));
       await addLog(env, me.id, 'kid', me.name + '님이 ' + cur.name + ' 퇴관을 요청했어요 (관리자 승인 대기)', '');
-      const subs = await all(env, 'SELECT s.* FROM subs s JOIN members m ON m.id = s.mid WHERE m.boss = 1 AND s.mid <> ?', me.id);
+      const subs = await all(env, 'SELECT s.* FROM subs s JOIN members m ON m.id = s.mid WHERE m.boss = 1 AND s.mid <> ?', (await selfToo(env, me.id)) ? '' : me.id);
       ctx.waitUntil(pushTo(env, subs, '해랑 업무 · 퇴관 승인', cur.name + ' 퇴관 요청 (' + me.name + ')', 'home').catch(() => {}));
       await bumpKv(env);
       return json({ ok: true, pending: true, id: sid });
@@ -1219,7 +1219,7 @@ async function route(path, req, env, ctx) {
       const id = str(b.id, 40), d = J(it.data, {});
       await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'delreq:' + id, JSON.stringify({ id, title: d.title || '', type: it.type, kind: d.kind || '', mid: me.id, who: me.name, at: Date.now() }));
       await addLog(env, me.id, it.type, me.name + '님이 \'' + (d.title || '') + '\' 삭제를 요청했어요 (관리자 승인 대기)', id);
-      const subs = await all(env, 'SELECT s.* FROM subs s JOIN members m ON m.id = s.mid WHERE m.boss = 1 AND s.mid <> ?', me.id);
+      const subs = await all(env, 'SELECT s.* FROM subs s JOIN members m ON m.id = s.mid WHERE m.boss = 1 AND s.mid <> ?', (await selfToo(env, me.id)) ? '' : me.id);
       ctx.waitUntil(pushTo(env, subs, '해랑 업무 · 삭제 승인', (d.title || '') + ' 삭제 요청 (' + me.name + ')', 'home').catch(() => {}));
       await bumpKv(env);
       return json({ ok: true, pending: true });
@@ -1415,8 +1415,10 @@ function cleanPickup(p) {
 }
 
 // ─────────── 알림 보내기 (나를 뺀 모두) ───────────
+// 🧪 시험 모드인 사람은 내가 한 일도 내 폰에 알림이 옴 (2026-11-16 사용자: 혼자 시험할 때 확인하려고)
+async function selfToo(env, myId) { const t = J((await one(env, "SELECT v FROM kv WHERE k = 'testOnly'") || {}).v, null); return !!(t && t.mid && t.mid === myId); }
 async function pushAll(env, myId, title, body, view) {
-  const subs = await all(env, 'SELECT * FROM subs WHERE mid <> ?', myId);
+  const subs = await all(env, 'SELECT * FROM subs WHERE mid <> ?', (await selfToo(env, myId)) ? '' : myId);
   return pushTo(env, subs, title, body, view);
 }
 async function pushTo(env, subs, title, body, view, now) {
