@@ -563,7 +563,7 @@
   // ═════ 소식 ═════
   const TYPES = {
     notice: { head: '공지사항 쓰기', hint: '모든 학부모님이 보는 공지입니다.', kinds: ['공지', '휴관', '행사', '심사'], target: false, date: false, photos: false, pin: true, notify: true, list: '올린 공지' },
-    journal: { head: '알림장 쓰기', hint: '전체 또는 고른 제자의 보호자에게만 보입니다. 수련 내용, 칭찬, 전달 사항을 적어 주세요.', kinds: null, target: true, date: false, photos: false, pin: false, notify: true, list: '올린 알림장' },
+    journal: { head: '알림장 쓰기', hint: '전체 또는 고른 제자의 보호자에게만 보입니다. 수련 내용, 칭찬, 전달 사항을 적어 주세요. 안내문 그림 같은 사진도 넣을 수 있어요(봉투도 같아요).', kinds: null, target: true, date: false, photos: true, photoOpt: true, pin: false, notify: true, list: '올린 알림장' },
     schedule: { head: '일정 추가', hint: '학부모님 앱 일정표·업무 앱 달력·홈페이지 일정에 모두 보입니다.', kinds: ['심사', '대회', '행사', '휴관', '기타'], target: false, date: true, photos: false, pin: false, notify: false, list: '이 달 일정' },
     album: { head: '앨범 올리기', hint: '사진은 자동으로 작게 줄여서 올립니다. 한 번에 30장까지.', kinds: null, target: true, date: false, photos: true, pin: false, notify: true, list: '올린 앨범' },
   };
@@ -700,7 +700,9 @@
   $('nFile').onchange = async e => {
     const files = [...e.target.files].slice(0, 30 - photos.length); e.target.value = '';
     for (const f of files) {
-      try { const full = await shrink(f, 1280, 0.76), thumb = await shrink(f, 400, 0.7); photos.push({ full, thumb }); drawPhotos(); }
+      try { // 2026-11-16: 알림장·봉투 사진(안내문 그림)은 글씨가 보이게 더 크게 (너무 크면 예전 크기)
+        let full = nType === 'journal' ? await shrink(f, 1800, 0.82) : await shrink(f, 1280, 0.76); if (full.length > 1800000) full = await shrink(f, 1280, 0.76);
+        const thumb = await shrink(f, 400, 0.7); photos.push({ full, thumb }); drawPhotos(); }
       catch (_) { toast('읽을 수 없는 사진이 있습니다'); }
     }
   };
@@ -736,7 +738,7 @@
       finally { btn.disabled = false; btn.textContent = editId ? '수정 저장' : '올리기'; }
       return;
     }
-    if (c.photos && !photos.length) return toast('사진을 골라 주세요');
+    if (c.photos && !c.photoOpt && !photos.length) return toast('사진을 골라 주세요');
     const target = c.target && nMode === 'pick' ? [...picked] : [];
     if (c.target && nMode === 'pick' && !target.length) return toast('제자를 골라 주세요');
     if (/○/.test(title + bodyT) && !confirm('○ 표시가 남아 있습니다. 그대로 올릴까요?')) return;

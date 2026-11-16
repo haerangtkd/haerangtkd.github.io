@@ -31,7 +31,7 @@
   .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
   .who2{display:flex;gap:6px;background:#F3EEE8;border-radius:14px;padding:4px;margin-bottom:14px}.who2 button{flex:1;border:0;border-radius:11px;padding:11px 0;font:inherit;font-weight:800;font-size:15px;background:none;color:var(--muted)}.who2 button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .btn:disabled{opacity:.5}
-  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1C1A19;color:#fff;font-size:14px;padding:11px 18px;border-radius:99px;z-index:90;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1C1A19;color:#fff;font-size:14px;padding:11px 18px;border-radius:99px;z-index:99;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
   .toast.show{opacity:1}
   .empty{font-size:14.5px;color:var(--muted);text-align:center;padding:40px 0}
 
@@ -163,7 +163,12 @@
   .phbar{display:flex;gap:8px;margin-top:12px;position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));z-index:3}.phbar button{flex:1;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 6px;font-size:15px;font-weight:700;color:var(--ink,#1C1A19);box-shadow:0 4px 14px rgba(0,0,0,.08)}
   .phbar button.pri{flex:1.6;background:var(--brand);border-color:var(--brand);color:#fff}.phbar button:disabled{opacity:.45}
   .ph-grid .more{position:absolute;inset:0;background:rgba(0,0,0,.45);color:#fff;font-size:22px;font-weight:700;display:grid;place-items:center}
-  .viewer{position:fixed;inset:0;background:#000;z-index:60;display:flex;flex-direction:column}
+  .viewer{position:fixed;inset:0;background:#000;z-index:95;display:flex;flex-direction:column}
+  /* 2026-11-16 알림장·봉투 사진: 크게, 옆으로 넘겨 보기 → 누르면 전체 화면 */
+  .phs{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:12px 0 4px}.phs::-webkit-scrollbar{display:none}
+  .phs button{flex:0 0 100%;scroll-snap-align:center;border:0;padding:0;background:#EFEAE4;border-radius:12px;overflow:hidden;aspect-ratio:2/3;max-height:70vh}
+  .phs img{display:block;width:100%;height:100%;object-fit:contain}
+  .phn{font-size:12px;color:#8A817A;text-align:center;margin-bottom:6px}
   .viewer .vt{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 10px 10px;color:#fff;font-size:15px}
   .viewer .vt button{border:0;background:none;color:#fff;width:44px;height:44px;display:grid;place-items:center}
   .viewer .vt svg{width:26px;height:26px}
@@ -815,7 +820,9 @@
     const x = envAll().find(y => y.id === id); if (!x) return toast('봉투를 찾지 못했어요. 새로고침해 주세요');
     sentReads.add(id); post('/p/read', { ids: [id] }).catch(() => {});
     const ov = document.createElement('div'); ov.className = 'envov';
-    const draw = () => '<div class="from">📩 해랑경희에서 온 봉투</div><h3>' + esc(x.title) + '</h3>' + (x.body ? '<div class="bd">' + esc(x.body) + '</div>' : '') +
+    let envPh = (x.photos && x.photos.length ? x.photos : (((news && [...(news.journal || []), ...(news.notice || [])]) || []).find(y => y.id === id) || {}).photos) || [];
+    const envBody = kidFill(x.body, (x.envKids || []).map(e => e.kid));
+    const draw = () => '<div class="from">📩 해랑경희에서 온 봉투</div><h3>' + esc(x.title) + '</h3>' + phStrip(envPh) + (envBody ? '<div class="bd">' + esc(envBody) + '</div>' : '') +
       (x.envKids || []).map(e => '<div class="ekid"><b>' + esc(e.kid) + '</b>참가 여부를 확인해 주세요<div class="yn"><button class="yes' + (e.ans === 'yes' ? ' on' : '') + '" data-yn="yes" data-k="' + esc(e.kid) + '">참가</button><button class="no' + (e.ans === 'no' ? ' on' : '') + '" data-yn="no" data-k="' + esc(e.kid) + '">불참</button></div>' + (e.at ? '<span class="help-l">' + dateText(e.at) + '에 답장했어요 · 바꿀 수 있어요</span>' : '') + '</div>').join('') +
       '<button class="cls">닫기</button>';
     ov.innerHTML = '<div class="envbx"><div class="bk"></div><div class="lt"><b>' + esc(x.title) + '</b><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="fr"></div>' +
@@ -828,6 +835,7 @@
     if (!seenE.includes(id)) try { localStorage.setItem('haerang-env-seen', JSON.stringify([...seenE, id].slice(-100))); } catch (_) {}
     if (fast) ov.classList.add('fast');
     document.body.appendChild(ov);
+    if (!x.photos && !envPh.length) post('/p/journal').then(j => { const it = ((j && j.items) || []).find(y => y.id === id); if (it && it.photos && it.photos.length && ov.isConnected) { envPh = x.photos = it.photos; ov.querySelector('.envrd').innerHTML = draw(); } }).catch(() => {}); // 서버가 봉투 사진 목록을 안 줄 때(예전 서버) 알림장에서 찾음
     if (fast) requestAnimationFrame(() => ov.classList.add('open', 'read'));
     else { setTimeout(() => ov.classList.add('open'), 120); setTimeout(() => ov.classList.add('read'), 850); }
     const close = () => { ov.remove(); if (tab === 'home') drawHome(); else if (tab === 'news' && news) paintNews(); };
@@ -1506,13 +1514,25 @@
     return false;
   };
 
+  // 2026-11-16 사용자: 봉투(공인단 심사 안내)에 그림을 넣고, 열면 크게 · 좌우로 넘겨 보기
+  function phStrip(list) {
+    if (!list || !list.length) return '';
+    return '<div class="phs" data-phs="' + esc(list.join(',')) + '">' + list.map((p, i) => '<button data-vp="' + i + '" aria-label="사진 ' + (i + 1) + ' 크게 보기"><img data-pf="' + esc(p) + '" alt=""></button>').join('') + '</div>' +
+      '<div class="phn">' + (list.length > 1 ? '옆으로 넘겨 보세요 · ' + list.length + '장 · ' : '') + '누르면 크게 보여요</div>';
+  }
+  function loadStrips() { document.querySelectorAll('.phs img[data-pf]:not([data-ld])').forEach(async img => { img.dataset.ld = 1; img.src = await photoUrl(img.dataset.pf, 'thumb'); const u = await photoUrl(img.dataset.pf, 'full'); if (u) img.src = u; }); }
+  new MutationObserver(() => { if (document.querySelector('.phs img[data-pf]:not([data-ld])')) loadStrips(); }).observe(document.body, { childList: true, subtree: true });
+  document.addEventListener('click', e => { const b = e.target.closest('.phs [data-vp]'); if (!b) return; e.stopPropagation(); openViewer(b.closest('.phs').dataset.phs.split(','), +b.dataset.vp); }, true);
+  // 글 속 {kid}는 그 가정 제자 이름으로 (휴대폰 알림만 바뀌고 앱 화면엔 {kid}가 그대로 보이던 것, 2026-11-16)
+  const kidFill = (t, names) => String(t || '').replace(/\{kid\}/g, (names || []).filter(Boolean).join('·') || '제자');
   function postCard(x, opts = {}) {
     const d = dayOf(x.at);
     const mine = (me().children || []);
+    const xb = kidFill(x.body, (x.target && x.target.length ? x.target : mine).filter(t => mine.includes(t)));
     const tags = (x.urgent ? '<span class="tag t-urgent">긴급</span>' : '') + (opts.type && x.t ? '<span class="tag t-' + x.t + '">' + TYPE_LABEL[x.t] + '</span>' : '') + (x.pin ? '<span class="tag pin">중요</span>' : '') + (x.kind ? '<span class="tag k-' + esc(x.kind) + '">' + esc(x.kind) + '</span>' : '') +
       (opts.kids && x.target && x.target.length ? x.target.filter(t => mine.includes(t)).map(t => '<span class="tag kid">' + esc(t) + '</span>').join('') : '');
     return '<article class="post" data-pid="' + (x.id | 0) + '"><div class="day"><b>' + d.d + '</b><small>' + d.w + '요일</small></div><div class="ct">' + (tags ? '<div class="tags">' + tags + '</div>' : '') +
-      '<h3>' + esc(x.title) + '</h3>' + (x.body ? '<p class="clip">' + esc(x.body) + '</p>' : '') + '<div class="meta">' + dateText(x.at) + '</div>' +
+      '<h3>' + esc(x.title) + '</h3>' + (xb ? '<p class="clip">' + esc(xb) + '</p>' : '') + (x.t !== 'album' ? phStrip(x.photos) : '') + '<div class="meta">' + dateText(x.at) + '</div>' +
       (x.ask ? (x.acked ? '<div class="acked">' + ICON.check + '확인했어요 · ' + dateText(x.acked) + '</div>' : (me().approved ? '<button class="ack-btn" data-ack="' + (x.id | 0) + '">' + ICON.check + '확인했어요</button>' : '')) : '') +
       (x.env ? envAnsLine(x) + '<button class="env-open" data-env="' + (x.id | 0) + '">📩 봉투 ' + ((x.envKids || []).every(e => e.ans) ? '다시 보기' : '열고 답장하기') + '</button>' : '') + '</div></article>';
   }

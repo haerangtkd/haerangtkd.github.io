@@ -316,7 +316,7 @@ async function route(path, req, env) {
         out.asks = asks.map(r => ({ id: r.id, type: r.type, kind: r.kind, title: r.title, body: r.body, urgent: !!r.urgent, at: r.created }));
         // 📩 답장을 기다리는 봉투 (60일 안, 내 제자가 받는 사람인 것)
         const envs = (await all(env, "SELECT * FROM posts WHERE env = 1 AND created > ? ORDER BY created DESC LIMIT 30", Date.now() - 60 * 864e5)).filter(r => J(r.target, []).some(x => myKids.includes(x)));
-        out.envs = (await withReplies(env, envs.map(r => ({ id: r.id, type: r.type, kind: r.kind, title: r.title, body: r.body, env: true, target: J(r.target, []), at: r.created })), myKids));
+        out.envs = (await withReplies(env, envs.map(r => ({ id: r.id, type: r.type, kind: r.kind, title: r.title, body: r.body, env: true, target: J(r.target, []), photos: J(r.photos, []), at: r.created })), myKids));
       }
       return json(out);
     }
