@@ -533,6 +533,10 @@ async function route(path, req, env) {
     return json({ ok: true, onKiosk: !!k, codes: k ? J(k.codes, []) : [], invites: await inviteList(env, name), parents });
   }
   // 출석부 로그인: 업무 앱 직원 이름·PIN 확인을 대신 전해 줌 (출석부에는 업무 서버 연결이 없음) 2026-11-13
+  if (path === '/sync/cneed-ping') { // 출석부 '연락 필요' → 업무 서버가 바로 직원 알림 (2026-11-16)
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    return json(await teamSync(env, '/sync/cneed-ping', {}));
+  }
   if (path === '/sync/staff-members' || path === '/sync/staff-pin' || path === '/sync/staff-tok') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     if (path === '/sync/staff-members') return json(await teamSync(env, '/sync/members', {}));

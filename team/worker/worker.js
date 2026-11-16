@@ -229,6 +229,7 @@ async function route(path, req, env, ctx) {
     const kids = (Array.isArray(b.kids) ? b.kids : []).map(x => str(x, 20)).filter(Boolean).slice(0, 10);
     // 다른 앱(알림 관리·태블릿·장부)이 업무 앱 PIN으로 사람 확인 (2026-11-12 사용자 결정: 각자 PIN, 공용 기기는 공용 PIN)
     if (path === '/sync/members') return json({ ok: true, members: (await all(env, 'SELECT id, name, boss, shared FROM members ORDER BY shared, name')).map(m => ({ id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared })) });
+    if (path === '/sync/cneed-ping') { await runCneed(env, kstDay()); return json({ ok: true }); } // 출석부 '연락 필요' 누르자마자 (알림 서버가 전해 줌)
     if (path === '/sync/pin-check') {
       let m = b.shared ? await one(env, 'SELECT * FROM members WHERE shared = 1 ORDER BY id LIMIT 1') : await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
       if (!m) return json({ ok: false });
@@ -1787,9 +1788,9 @@ async function onceAt(env, key) { const r = await one(env, 'SELECT v FROM kv WHE
 async function runTimed(env, now = Date.now()) {
   const k = new Date(now + 9 * 3600e3), day = k.toISOString().slice(0, 10), m = k.getUTCHours() * 60 + k.getUTCMinutes(), wd = k.getUTCDay();
   if (m >= 8 * 60 && m < 21 * 60) { const q2 = await all(env, 'SELECT id, text FROM pushq2 ORDER BY id LIMIT 30'); if (q2.length) { await run(env, 'DELETE FROM pushq2 WHERE id <= ?', q2[q2.length - 1].id); await pushAll(env, '', '💬 밤사이 학부모 연락 ' + q2.length + '건', q2.slice(0, 3).map(x => x.text).join('\n') + (q2.length > 3 ? '\n외 ' + (q2.length - 3) + '건' : ''), 'home'); } }
-  await runPickupAlerts(env, day);
+  try { await runCneed(env, day); } catch (_) {} // 연락 필요는 맨 먼저 (앞 단계가 실패해도 가게)
+  try { await runPickupAlerts(env, day); } catch (_) {}
   try { await runNoteAlerts(env, day); } catch (_) {}
-  try { await runCneed(env, day); } catch (_) {}
   // 매달 말일 12시: 관리자에게 '앱 전체 백업 받기' (주말이면 월요일 12시에 — 직원 알림 시간 규칙)
   if (m >= 12 * 60 && addDays(day, 1).slice(8) === '01' && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'bk:' + day.slice(0, 7))) && await onceAt(env, 'sent:' + day + ':bk')) {
     const ids = (await all(env, 'SELECT id FROM members WHERE boss = 1')).map(x => x.id);

@@ -399,7 +399,8 @@ async function route(path, req, env) {
     const sid = str(b.sid, 60), k = 'cneed:' + b.day, cur = await cneedGet(env, b.day); if (!sid) return json({ ok: false, error: '제자를 확인해 주세요' });
     if (b.on === false) delete cur[sid]; else cur[sid] = { at: Date.now(), who, why: str(b.why, 60) };
     await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify(cur));
-    return json({ ok: true, day: b.day, cneed: cur });
+    let pushed = null; if (b.on !== false) { const r2 = await noticeCall(env, '/sync/cneed-ping', {}); pushed = !!(r2 && r2.ok); } // 누르자마자 직원 알림 (예전엔 5분 크론만 — 2026-11-16)
+    return json({ ok: true, day: b.day, cneed: cur, pushed });
   }
   // '오늘만 안 보내기': 그날 그 제자는 '태블릿 안 누름' 표시를 하지 않음 (kv 'quiet:날짜' = [sid], 2026-11-13)
   if (path === '/api/quiet') {
