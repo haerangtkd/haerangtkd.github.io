@@ -72,7 +72,7 @@ async function route(path, req, env) {
     if (path === '/sync/roster') {
       const list = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) }))
         .filter(s => s.name && (b.all || s.status !== '퇴관')) // all: 퇴관까지 (알림 앱 알림 멈춤·기네스 회원 상태용)
-        .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', belt: s.belt || '', sb: !!s.sb, gender: s.gender || '', ...(b.phones ? { phones: [s.phone, s.phone2].map(v => String(v || '').replace(/\D/g, '')).filter(Boolean) } : {}), ...(b.fam ? { famId: s.famId || '' } : {}), ...(b.bday ? { bday: s.lunar ? '' : (s.bday || '') } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
+        .map(s => ({ id: s.id, name: s.name, no: s.no || '', status: s.status || '재원', birth: s.birth || '', belt: s.belt || '', sb: !!s.sb, gender: s.gender || '', ...(b.phones ? { phones: [s.phone, s.phone2].map(v => String(v || '').replace(/\D/g, '')).filter(Boolean) } : {}), ...(b.phones ? { phl: [[s.guardian, s.phone], [s.guardian2, s.phone2]].map(([r, v]) => ({ r: String(r || ''), v: String(v || '').replace(/\D/g, '') })).filter(x => x.v) } : {}), ...(b.fam ? { famId: s.famId || '' } : {}), ...(b.bday ? { bday: s.lunar ? '' : (s.bday || '') } : {}) })); // id: 다른 앱이 이름이 바뀌어도 같은 원생으로 알아봄 (2026-11-13)
       return json({ ok: true, students: list });
     }
     if (path === '/sync/kid-info') { // 학부모 앱 '정보 확인': 이름으로 출생연도·수련 요일·임시변경(오늘 이후) (2026-11-13)
@@ -590,6 +590,7 @@ function cleanStudent(s) {
     guardian: str(s.guardian, 10),
     phone: str(s.phone, 20).replace(/[^0-9]/g, ''),
     phone2: str(s.phone2, 20).replace(/[^0-9]/g, ''), // 다른 보호자 연락처 (학부모 앱 가입 확인용, 2026-11-13)
+    guardian2: str(s.guardian2, 10), // 연락처2가 누구 번호인지 (2026-11-16 사용자: 번호가 누구 것인지 안 나옴)
     famId: str(s.famId, 40), // 형제·자매 묶음 (업무 앱에서 묶음, 2026-11-13)
     inst: str(s.inst, 20),
     leavePeriods: (Array.isArray(s.leavePeriods) ? s.leavePeriods : []).slice(0, 20).map(p => ({ start: okDay(p.start), end: okDay(p.end) })).filter(p => p.start || p.end),
