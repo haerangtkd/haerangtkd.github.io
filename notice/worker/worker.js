@@ -22,8 +22,9 @@ const relRank = r => ({ 어머니: 0, 아버지: 1 })[relN(r)] ?? 2;
 function attPick(cands, chosen) { // 그 제자의 승인된 보호자 중 출결 알림 받을 한 분
   if (!cands.length) return null;
   const c = chosen && cands.find(p => p.id === chosen); if (c) return c; // 도장이 고른 분 (알림이 꺼져 있어도 다른 분께 안 감)
-  const L = cands.slice().sort((a, b) => relRank(a.rel) - relRank(b.rel) || (a.created || 0) - (b.created || 0));
-  return L.find(p => p.ep) || L[0]; // 기본: 어머니 → 아버지 → 먼저 가입한 분, 알림을 켠 분 먼저
+  // 2026-11-16 사용자: 저절로 다른 분께 넘기지 말고 도장이 고르게. 기본은 어머니, 어머니가 없으면 보호자가 한 분뿐일 때만 그분
+  const m = cands.filter(p => relN(p.rel) === '어머니').sort((a, b) => (a.created || 0) - (b.created || 0))[0]; if (m) return m;
+  return cands.length === 1 ? cands[0] : null;
 }
 async function attPicks(env, names) { // 이름 → 받는 보호자 id
   const at = (await kvj(env, 'attTo')) || {}, ps = await all(env, 'SELECT id, kids, rel, ep, created FROM parents WHERE ok = 1'), out = {};
@@ -463,7 +464,7 @@ async function route(path, req, env) {
     const name = cleanNames([b.name])[0];
     if (!name) return json({ ok: false, error: '이름' });
     const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: b.view === 'home' ? '' : b.view === 'plan' ? 'plan' : 'attendance', att: !b.view || b.view === 'attendance' }); // view 'home' = 학부모 연락 확인 알림, 'plan' = 행사 신청 취소 알림
-    if (r.ok && !r.total) return json({ ok: false, error: name + ' 학생은 알림 앱에 가입한 보호자가 없습니다' });
+    if (r.ok && !r.total) return json({ ok: false, error: (await all(env, 'SELECT kids FROM parents WHERE ok = 1')).some(p => J(p.kids, []).includes(name)) ? name + ' 학생은 출결 알림 받을 분이 정해지지 않았어요 (업무 앱 원생 정보에서 골라 주세요)' : name + ' 학생은 알림 앱에 가입한 보호자가 없습니다' });
     return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
   }
 
