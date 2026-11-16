@@ -62,7 +62,8 @@ async function setup(env) {
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
+    req._ctx = ctx; // 답을 먼저 보내고 뒤에서 할 일 (2026-11-16)
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
       await setup(env);
@@ -328,7 +329,12 @@ async function route(path, req, env) {
       if (!ans || !myKids.includes(kid) || !J(r.target, []).includes(kid)) return json({ ok: false, error: '답장할 수 없는 봉투예요' });
       const now = Date.now();
       await env.DB.batch([q(env, 'INSERT INTO replies (post, kid, parent, rel, ans, at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(post, kid) DO UPDATE SET parent = excluded.parent, rel = excluded.rel, ans = excluded.ans, at = excluded.at', id, kid, p.id, p.rel || '', ans, now), q(env, 'INSERT OR IGNORE INTO reads (post, parent, at) VALUES (?, ?, ?)', id, p.id, now)]);
-      if (r.ev) { try { await teamSync(env, '/sync/env-reply', { ev: r.ev, kid, ans, rel: p.rel || '' }); } catch (_) {} } // 참가 → 업무 앱 신청표 명단 (불참으로 바꾸면 빠짐)
+      // 2026-11-16 사용자: 봉투 답장이 느림 + 제자에게도 알림이 와야 함 → 업무 앱 신청표 반영·제자 앱 알림은 답을 보낸 뒤 뒤에서
+      const later = async () => {
+        if (r.ev) { try { await teamSync(env, '/sync/env-reply', { ev: r.ev, kid, ans, rel: p.rel || '' }); } catch (_) {} } // 참가 → 업무 앱 신청표 명단 (불참으로 바꾸면 빠짐)
+        try { await kidPush(env, kid, ans === 'yes' ? '📩 부모님이 참가로 답장했어요! 🎉' : '📩 부모님이 봉투에 답장했어요', String(r.title || '').slice(0, 60) + (ans === 'yes' ? ' · 열심히 준비해요!' : ' · 불참 · 다음 기회에 도전해요 💪')); } catch (_) {} // 🥋 제자 앱 (알림 켠 기기만)
+      };
+      if (req._ctx && req._ctx.waitUntil) req._ctx.waitUntil(later()); else await later();
       return json({ ok: true, at: now });
     }
     if (path === '/p/albums') return json({ ok: true, me, items: await listPosts(env, 'album', myKids, 60) });
