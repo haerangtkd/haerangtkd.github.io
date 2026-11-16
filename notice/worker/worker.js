@@ -15,6 +15,21 @@ const SITE = 'https://haerangtkd.github.io';
 const BATCH = 6;                // 무료 요금제 CPU 한도(요청당 10ms) 안에서 한 번에 보낼 기기 수 — 나머지는 관리 화면이 나눠서 다시 부름
 const MIN_STAY = 30 * 60 * 1000; // 등원 후 이 시간이 지나야 태블릿에서 하원 가능 (30분)
 const RELATIONS = ['어머니', '아버지', '할머니', '할아버지', '고모', '이모', '엄마', '아빠', '삼촌']; // 2026-11-16 사용자: 어머니·아버지… (예전 엄마·아빠·삼촌도 받음)
+// 2026-11-16 사용자: 어머니·아버지는 제자마다 한 분만 · 출결(등원·하원) 알림은 한 분에게만(기본 어머니, 도장이 바꿀 수 있음)
+const relN = r => r === '엄마' ? '어머니' : r === '아빠' ? '아버지' : String(r || '');
+const ONE_REL = ['어머니', '아버지'];
+const relRank = r => ({ 어머니: 0, 아버지: 1 })[relN(r)] ?? 2;
+function attPick(cands, chosen) { // 그 제자의 승인된 보호자 중 출결 알림 받을 한 분
+  if (!cands.length) return null;
+  const c = chosen && cands.find(p => p.id === chosen); if (c) return c; // 도장이 고른 분 (알림이 꺼져 있어도 다른 분께 안 감)
+  const L = cands.slice().sort((a, b) => relRank(a.rel) - relRank(b.rel) || (a.created || 0) - (b.created || 0));
+  return L.find(p => p.ep) || L[0]; // 기본: 어머니 → 아버지 → 먼저 가입한 분, 알림을 켠 분 먼저
+}
+async function attPicks(env, names) { // 이름 → 받는 보호자 id
+  const at = (await kvj(env, 'attTo')) || {}, ps = await all(env, 'SELECT id, kids, rel, ep, created FROM parents WHERE ok = 1'), out = {};
+  for (const k of names) { const p = attPick(ps.filter(x => J(x.kids, []).includes(k)), at[k]); if (p) out[k] = p.id; }
+  return out;
+}
 const POST_TYPES = ['notice', 'journal', 'schedule', 'album', 'fee'];
 
 const SCHEMA = [
@@ -158,7 +173,7 @@ async function route(path, req, env) {
       const hw = await teamSync(env, '/sync/hw', { kids: [name] });
       return json({ ok: true, name, today, birth: /^\d{4}-\d{2}-\d{2}$/.test(birth) ? birth.slice(5) : '', att: { month: days.filter(d => d.slice(0, 7) === today.slice(0, 7)).length, total: days.length, streak, last: days[days.length - 1] || '', months: days.reduce((m, d) => { const k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; return m; }, {}), days: kid && Array.isArray(kid.days) ? kid.days : [], dl: days.filter(d => d >= kstAdd(today, -400)), nth: Object.fromEntries([1, 10, 30, 50, 100, 200, 300, 500].filter(n => days.length >= n).map(n => [n, days[n - 1]])) }, // 월간 도전·수련 로그 (2026-11-15)
         belt: t.ok ? t.belt : '', beltPct: t.ok ? t.beltPct : null, sb: t.ok ? t.sb : false, sbList: t.ok ? t.sbList : [], events: t.ok ? t.events : [], rec: t.ok ? t.rec : {},
-        hw: hw.ok ? (hw.hw || []) : [], best: mergeBest(t.ok ? t.gbest : [], km.best).slice(-36), bestProf: await bestProfiles(env, mergeBest(t.ok ? t.gbest : [], km.best)), // 최우수 수련생 매달 + 프로필 (2026-11-15)
+        hw: hw.ok ? (hw.hw || []) : [], best: mergeBest(t.ok ? t.gbest : [], km.best).slice(-36), bestProf: await bestProfiles(env, mergeBest(t.ok ? t.gbest : [], km.best), t.ok ? (t.sbList || []).map(x => x.name) : []), // + 선범단 단원 꾸민 얼굴 (2026-11-16) // 최우수 수련생 매달 + 프로필 (2026-11-15)
         comps: (km.comps || []).filter(c => c.date >= String(Number(today.slice(0, 4)) - 1) + today.slice(4, 7)).slice(-30),
         // 제자 모드 홈 (2026-11-14, 의견 정리 4·5번)
         mile: t.ok && t.mile != null ? t.mile : null, // 💰 마일리지 (상점 1개 = 100원, 2026-11-15)
@@ -226,12 +241,22 @@ async function route(path, req, env) {
     // 2026-11-16 테스트: 뒷자리 확인은 초대번호(새 가입) 또는 로그인(정보 수정) 뒤에만 — 초대번호 없이 뒷자리가 맞는지 알아낼 수 없게, 틀리면 잠금 횟수에 넣음
     const phKey = 'ph:' + (req.headers.get('cf-connecting-ip') || 'x');
     const phCheck = async () => { const lu = await lockUntil(env, phKey); if (lu) return json({ ok: false, error: lockText(lu) }, 429);
-      const tails = await kidPhoneTails(env, kids); if (tails.size && !tails.has(ph)) return json({ ok: false, error: failText('도장에 등록된 보호자 휴대폰 번호 뒷자리와 달라요. 다른 번호라면 도장에 알려 주세요', await failAdd(env, phKey)) }, 400);
+      const L = await kidPhoneList(env, kids); tails = new Set(L.map(x => x.t)); if (tails.size && !tails.has(ph)) return json({ ok: false, error: failText('도장에 등록된 보호자 휴대폰 번호 뒷자리와 달라요. 다른 번호라면 도장에 알려 주세요', await failAdd(env, phKey)) }, 400);
+      // 번호 주인 (2026-11-16): 어머니·아버지를 골랐는데 그 뒷자리가 다른 분 번호로만 등록돼 있으면 막음. 두 분 뒷자리가 같으면 고른 관계대로
+      const rn = relN(rel), mine = L.filter(x => x.t === ph), lab = mine.map(x => relN(x.r)).filter(r => ONE_REL.includes(r));
+      if (ONE_REL.includes(rn) && mine.length && lab.length === mine.length && !lab.includes(rn)) return json({ ok: false, relBad: true, error: '이 번호는 도장에 ' + lab[0] + ' 번호로 등록돼 있어요. 관계를 다시 골라 주세요' }, 400);
       return null; };
+    const dupRel = async selfId => { // 어머니·아버지는 제자마다 한 분만 (2026-11-16 사용자: 엄마 2명·3명 안 되게)
+      const rn = relN(rel); if (!ONE_REL.includes(rn)) return null;
+      const o = (await all(env, 'SELECT id, kids, rel, ok FROM parents')).find(x => x.id !== selfId && relN(x.rel) === rn && J(x.kids, []).some(k => kids.includes(k)));
+      if (!o) return null; const k = J(o.kids, []).find(x => kids.includes(x));
+      return json({ ok: false, relDup: true, error: k + ' 제자는 이미 ' + rn + '로 가입한 분이 있어요' + (o.ok ? '' : '(도장 확인 기다리는 중)') + '. 다른 분이면 관계를 다시 골라 주세요. 휴대폰을 바꾸셨다면 도장에 말해 주세요' }, 400); };
+    let tails = new Set();
     const sub = b.subscription && b.subscription.endpoint && /^https:\/\//.test(b.subscription.endpoint) && b.subscription.keys ? b.subscription : null;
     let p = b.token ? await one(env, 'SELECT * FROM parents WHERE tok = ?', String(b.token)) : null;
     if (p) {
       const pe = await phCheck(); if (pe) return pe;
+      const de = await dupRel(p.id); if (de) return de;
       const same = p.rel === rel && p.ph === ph && sameList(J(p.kids, []), kids);
       await run(env, 'UPDATE parents SET kids = ?, rel = ?, ph = ?, ok = ?, ep = COALESCE(?, ep), p256 = COALESCE(?, p256), auth = COALESCE(?, auth) WHERE id = ?',
         JSON.stringify(kids), rel, ph, same ? p.ok : 0, sub ? sub.endpoint : null, sub ? sub.keys.p256dh : null, sub ? sub.keys.auth : null, p.id);
@@ -250,6 +275,8 @@ async function route(path, req, env) {
       inv = code;
     }
     { const pe = await phCheck(); if (pe) return pe; }
+    if (sub) await run(env, 'DELETE FROM parents WHERE ep = ? AND ok = 0', sub.endpoint); // 같은 휴대폰이 다시 신청하면 승인 대기 자리는 먼저 비움 (중복 검사 전에)
+    { const de = await dupRel(sub ? (((await one(env, 'SELECT id FROM parents WHERE ep = ?', sub.endpoint)) || {}).id || '') : ''); if (de) return de; } // 같은 휴대폰의 예전 등록은 중복으로 안 셈
     if (sub) await run(env, 'DELETE FROM parents WHERE ep = ?', sub.endpoint); // 같은 휴대폰의 예전 등록 정리
     const id = rid(8), tok = rid(16);
     await run(env, 'INSERT INTO parents (id, tok, kids, rel, ph, ok, created, ep, p256, auth, inv) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)',
@@ -288,7 +315,8 @@ async function route(path, req, env) {
     if (path === '/p/kid-info') { // 우리 아이 '정보 확인' (2026-11-13): 출생연도·수련 요일(임시변경)·회비(장부)·관계·번호 뒷자리
       if (!p.ok) return json({ ok: false, error: '도장 확인 후에 볼 수 있어요' });
       const r = await attSync(env, '/sync/kid-info', { names: myKids }), fee = J((await one(env, "SELECT v FROM kv WHERE k = 'feeinfo'") || {}).v, {});
-      return json({ ok: true, rel: p.rel, ph: p.ph, kids: myKids.map(k => { const a = (r.kids || []).find(x => x.name === k) || {}; return { name: k, ...a, fee: (a.sid && (fee.sids || {})[a.sid]) || (fee.map || {})[k] || null }; }), feeAt: fee.at || 0 }); // 회비는 출석부 원생 번호로 먼저, 없으면 이름 (2026-11-13)
+      const apk = await attPicks(env, myKids), prel = {}; for (const k of myKids) if (apk[k] && apk[k] !== p.id) prel[k] = ((await one(env, 'SELECT rel FROM parents WHERE id = ?', apk[k])) || {}).rel || '다른 보호자';
+      return json({ ok: true, rel: p.rel, ph: p.ph, kids: myKids.map(k => { const a = (r.kids || []).find(x => x.name === k) || {}; return { name: k, ...a, attMe: apk[k] === p.id, attRel: prel[k] || '', fee: (a.sid && (fee.sids || {})[a.sid]) || (fee.map || {})[k] || null }; }), feeAt: fee.at || 0 }); // 회비는 출석부 원생 번호로 먼저, 없으면 이름 (2026-11-13)
     }
     if (path === '/p/schedule') return json({ ok: true, me, items: await listSchedule(env, b.month) });
     if (path === '/p/notices') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'notice', myKids, 100), p.id, myKids) }); // 아이를 정한 공지(회비 안내 등)는 그 가정만
@@ -434,7 +462,7 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const name = cleanNames([b.name])[0];
     if (!name) return json({ ok: false, error: '이름' });
-    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: b.view === 'home' ? '' : b.view === 'plan' ? 'plan' : 'attendance' }); // view 'home' = 학부모 연락 확인 알림, 'plan' = 행사 신청 취소 알림
+    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: b.view === 'home' ? '' : b.view === 'plan' ? 'plan' : 'attendance', att: !b.view || b.view === 'attendance' }); // view 'home' = 학부모 연락 확인 알림, 'plan' = 행사 신청 취소 알림
     if (r.ok && !r.total) return json({ ok: false, error: name + ' 학생은 알림 앱에 가입한 보호자가 없습니다' });
     return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
   }
@@ -529,8 +557,17 @@ async function route(path, req, env) {
     if (path === '/sync/invite-save') { await run(env, "DELETE FROM kv WHERE k = 'kidStatus'"); try { await kidStatus(env); } catch (_) {} return json(await inviteSave(env, b)); } // 방금 등록한 원생도 바로 명단에
     const name = cleanNames([b.name])[0]; if (!name) return json({ ok: false, error: '이름' });
     const k = await one(env, 'SELECT codes FROM kids WHERE name = ?', name);
-    const parents = (await all(env, 'SELECT rel, ok, created, inv, kids FROM parents')).filter(p => J(p.kids, []).includes(name)).map(p => ({ rel: p.rel, ok: !!p.ok, at: p.created, inv: p.inv || '' }));
-    return json({ ok: true, onKiosk: !!k, codes: k ? J(k.codes, []) : [], invites: await inviteList(env, name), parents });
+    const at = (await kvj(env, 'attTo')) || {}, pick = (await attPicks(env, [name]))[name] || '';
+    const parents = (await all(env, 'SELECT id, rel, ph, ok, created, inv, kids, ep FROM parents')).filter(p => J(p.kids, []).includes(name)).map(p => ({ id: p.id, rel: p.rel, ph: p.ph || '', ok: !!p.ok, push: !!p.ep, at: p.created, inv: p.inv || '', att: p.id === pick }));
+    return json({ ok: true, onKiosk: !!k, codes: k ? J(k.codes, []) : [], invites: await inviteList(env, name), parents, attSet: !!(at[name] && parents.some(p => p.id === at[name])) });
+  }
+  if (path === '/sync/kid-attto') { // 업무 앱 원생 정보: 출결 알림 받는 분 고르기 (id 비우면 기본 = 어머니) 2026-11-16
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const name = cleanNames([b.name])[0]; if (!name) return json({ ok: false, error: '이름' });
+    const id = String(b.id || ''), at = (await kvj(env, 'attTo')) || {};
+    if (id) { const p = await one(env, 'SELECT id, kids, ok FROM parents WHERE id = ?', id); if (!p || !p.ok || !J(p.kids, []).includes(name)) return json({ ok: false, error: '승인된 보호자만 고를 수 있어요' }); at[name] = id; } else delete at[name];
+    await run(env, "INSERT INTO kv (k, v) VALUES ('attTo', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(at));
+    return json({ ok: true });
   }
   // 출석부 로그인: 업무 앱 직원 이름·PIN 확인을 대신 전해 줌 (출석부에는 업무 서버 연결이 없음) 2026-11-13
   if (path === '/sync/cneed-ping') { // 출석부 '연락 필요' → 업무 서버가 바로 직원 알림 (2026-11-16)
@@ -606,12 +643,12 @@ async function route(path, req, env) {
       const parents = await all(env, 'SELECT id, kids, rel, ph, ok, created, ep, inv FROM parents ORDER BY created DESC');
       const kids = await all(env, 'SELECT name, codes FROM kids'), kst8 = await kidStatus(env);
       const att = await all(env, 'SELECT name, tin, tout FROM att WHERE day = ?', today);
-      const boss = !!(ses && ses.boss);
+      const boss = !!(ses && ses.boss), apk = await attPicks(env, kids.map(k => k.name));
       const list = kids.map(k => k.name).filter(n => boss || kst8[n] !== '퇴관').sort((a, c) => a.localeCompare(c, 'ko')).map(n => {
         const k = kids.find(x => x.name === n), a = att.find(x => x.name === n);
         return {
           name: n, codes: J(k.codes, []), today: a ? { in: a.tin, out: a.tout } : {}, status: kst8[n] || '',
-          guardians: parents.filter(p => p.ok && J(p.kids, []).includes(n)).map(p => ({ id: p.id, rel: p.rel, ph: p.ph, push: !!p.ep })),
+          guardians: parents.filter(p => p.ok && J(p.kids, []).includes(n)).map(p => ({ id: p.id, rel: p.rel, ph: p.ph, push: !!p.ep, att: apk[n] === p.id })),
         };
       });
       const freq = await all(env, 'SELECT kids, rel, ph FROM famreq WHERE at > ?', Date.now() - 60 * 86400e3);
@@ -947,7 +984,7 @@ async function checkIn(env, name, act, kiosk) {
   if (act === 'in') await attSync(env, '/sync/checkin', { name, at: now.getTime() }); // 출석부에 자동 출석 (연결 안 됐으면 그냥 넘어감)
   if (repeat) await teamSync(env, '/sync/kiosk-repeat', { name, act, time: t, day });
   const body = act === 'in' ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.' : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
-  const r = await send(env, { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name], view: 'attendance' });
+  const r = await send(env, { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name], view: 'attendance', att: true });
   try { // 🥋 제자 앱에도 (2026-11-15 사용자: 알림이 필요한 순간은 다)
     const n = act === 'in' ? ((await one(env, 'SELECT COUNT(*) AS n FROM att WHERE name = ? AND day LIKE ? AND tin IS NOT NULL', name, day.slice(0, 7) + '%')) || {}).n || 0 : 0;
     await kidPush(env, name, act === 'in' ? '🥋 출석 완료!' : '👋 오늘도 수고했어요!', act === 'in' ? t + ' 도착 · 이번 달 ' + n + '일째 출석이에요' : t + ' 하원 · 집에서 연습·바른 생활 체크도 잊지 마요');
@@ -978,8 +1015,8 @@ function mergeBest(auto, manual) { // 기네스 1등(자동) + 알림 관리에�
   (manual || []).forEach(x => { const o = M.get(x.q) || { q: x.q, g: {} }; Object.entries(x.g || {}).forEach(([k, n]) => { if (n) { o.g[k] = [].concat(n); if (o.v) delete o.v[k]; } }); M.set(x.q, o); });
   return [...M.values()].filter(x => Object.keys(x.g || {}).length).sort((a, c) => bestKey(a.q).localeCompare(bestKey(c.q)));
 }
-async function bestProfiles(env, best) { // 최우수 수련생 프로필 (꾸민 캐릭터·배경색·띠)
-  const names = [...new Set(best.slice(-36).flatMap(x => Object.values(x.g || {}).flat()))].slice(0, 120); if (!names.length) return {};
+async function bestProfiles(env, best, more) { // 최우수 수련생 프로필 (꾸민 캐릭터·배경색·띠)
+  const names = [...new Set(best.slice(-36).flatMap(x => Object.values(x.g || {}).flat()).concat(more || []))].slice(0, 150); if (!names.length) return {};
   const pr = await all(env, 'SELECT k, v FROM kv WHERE k IN (' + names.map(() => '?').join(',') + ')', ...names.map(n => 'kprof:' + n));
   const r = await attSync(env, '/sync/roster', { all: true }).catch(() => null), belt = Object.fromEntries(((r && r.students) || []).map(s => [s.name, s.belt || '']));
   return Object.fromEntries(names.map(n => { const p = J((pr.find(x => x.k === 'kprof:' + n) || {}).v, {}) || {}; return [n, { av: p.av || '', bg: p.bg || '', belt: belt[n] || '' }]; }));
@@ -1085,6 +1122,11 @@ async function kidRemove(env, name, dry) {
   await env.DB.batch(st);
   return out;
 }
+async function kidPhoneList(env, kids) { // [{t: 뒷자리, r: 누구 번호}] (2026-11-16)
+  const r = await attSync(env, '/sync/roster', { all: true, phones: true }), out = []; if (!r.ok) return out;
+  for (const s of r.students || []) if (kids.includes(s.name)) { const pl = s.phl || (s.phones || []).map(v => ({ r: '', v })); for (const x of pl) if (String(x.v || '').length >= 4) out.push({ t: String(x.v).slice(-4), r: x.r || '' }); }
+  return out;
+}
 async function kidPhoneTails(env, kids) {
   const r = await attSync(env, '/sync/roster', { all: true, phones: true });
   const out = new Set(); if (!r.ok) return out;
@@ -1117,6 +1159,7 @@ async function send(env, b) {
   let subs = await all(env, 'SELECT id, kids, ok, ep, p256, auth FROM parents WHERE ep IS NOT NULL ORDER BY id');
   subs = subs.filter(s => { const k = J(s.kids, []); return !k.length || k.some(c => !gone(c)); }); // 아이가 모두 퇴관인 보호자는 빼기
   if (targets.length) subs = subs.filter(s => s.ok && J(s.kids, []).some(c => targets.includes(c)));
+  if (b.att && targets.length) { const pk = new Set(Object.values(await attPicks(env, targets))); subs = subs.filter(s => pk.has(s.id)); } // 출결 알림은 제자마다 한 분 (2026-11-16)
   const total = subs.length;
   const slice = subs.slice(offset, offset + BATCH);
   const vapid = await getVapid(env);
