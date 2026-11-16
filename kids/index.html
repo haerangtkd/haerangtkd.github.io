@@ -267,6 +267,18 @@
   .evc{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}.evc.on{border-color:#E5484D66;background:rgba(229,72,77,.07)}.evc .eh{display:flex;align-items:center;gap:8px}.evc .eh b{flex:1;font-size:16px}
   .evc .dd{flex:none;background:#E5484D;color:#fff;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:900}.evc small{color:var(--muted);font-size:12.5px}.evc p{margin:8px 0 0;font-size:14px;line-height:1.55;white-space:pre-wrap}.evc .pp{color:#E9CF86}.evc .ap{margin-top:10px;font-size:13px;font-weight:800;color:#FF8A8F}
   .lnk2{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}.lnk2:first-of-type{border-top:0}.lnk2 img{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;background:#222}.lnk2 b{display:block;font-size:14.5px;line-height:1.35}.lnk2 small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+  .ecw,.ecg{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}.ecw i{font-style:normal;font-size:12.5px;color:#9A979C;padding-bottom:4px}.ecw i:first-child{color:#FF7A7F}
+  .ecd{border:0;background:none;color:#E9E6E1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 4px;min-height:46px;border-radius:12px;font:inherit;cursor:pointer}.ecd:disabled{cursor:default}.ecd span{font-size:14px;font-weight:700;padding:1px 6px;border-radius:8px}
+  .ecd.has{background:#1C1C1F}.ecd.td span{background:#E5484D;color:#fff}.ecd.ps{opacity:.55}.ecd.rs span{color:#8E8B90;text-decoration:line-through}.ecd i{display:flex;gap:3px;height:7px}.ecd i em{width:7px;height:7px;border-radius:50%}
+  .elg{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;margin-top:10px;font-size:12px;color:#C9C6C2}.elg em{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+  .etd{display:block;margin:10px auto 0;border:0;background:#232326;color:#fff;border-radius:999px;padding:7px 14px;font-weight:800;font-size:13px}
+  .evr{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:10px 0;border-top:1px dashed var(--line);cursor:pointer}.evr>div{flex:1;min-width:0}.evr>div b{display:block;font-size:15.5px}.evr>div small{color:var(--muted);font-size:12.5px}.evr.past{opacity:.55}
+  .evd{flex:none;width:44px;height:48px;border-radius:12px;border:2px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}.evd b{font-size:18px}.evd small{font-size:11px;color:var(--muted)}
+  .evr .dd{flex:none;background:#E5484D;color:#fff;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:900}
+  .lnk2c h2{cursor:pointer}.rgc{padding:12px 0;border-top:1px dashed var(--line)}.rgc:first-of-type{border-top:0}.rgh{display:flex;align-items:center;gap:8px}.rgh b{flex:1;font-size:16px}.rgh b small{font-size:12px;color:var(--muted);font-weight:500}.rgh span{background:#232326;border-radius:8px;padding:4px 9px;font-size:12.5px;color:#E3B341;font-weight:800}
+  .ibsc{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:6px;scrollbar-width:none}.ibsc::-webkit-scrollbar{display:none}
+  .exb{padding:12px 0;border-top:1px dashed var(--line)}.exb:first-of-type{border-top:0}.exh{display:flex;align-items:center;gap:8px}.exh b{flex:1;font-size:16.5px}.exg{margin:10px 0 2px;font-size:12.5px;font-weight:900;color:#E3B341}
+  .exi{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:6px 0}.exi b{flex:1;font-size:14.5px;font-weight:700}.exi span{font-size:13px;font-weight:800;border-radius:999px;padding:3px 10px}.exi span.g{background:rgba(46,158,79,.18);color:#5FD08A}.exi span.p{background:rgba(229,72,77,.15);color:#FF8A8F}.exi small{flex-basis:100%;color:var(--muted);font-size:12.5px}
   .pmn{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.pmn b{font-size:16px}.pmn button{border:0;background:#1C1C1F;color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer}
   .ptb{width:100%;border-collapse:collapse;font-size:14px}.ptb th{text-align:left;padding:9px 8px;width:96px;color:#9EE6B0;font-weight:800;border-top:1px solid var(--line);vertical-align:top}.ptb th small{display:block;color:var(--muted);font-weight:600;font-size:11.5px}.ptb td{padding:9px 8px;border-top:1px solid var(--line)}.ptb tr.now th,.ptb tr.now td{background:rgba(46,158,79,.14)}.ptb.wd th{width:44px;text-align:center}
   .ph4{margin:16px 0 4px;font-size:14px}.ntc{margin:8px 0 0;font-size:14px;line-height:1.6;padding-left:10px;border-left:3px solid #E3B341}
@@ -631,13 +643,45 @@
     const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el);
   }
   // ── 📝 이번 달 심사 준비 (웅변 원고 · 영어 문장 · 내 띠 품새 영상) ──
+  // 📊 나의 리포트 — 2026-11-16 사용자: 홈(나의 수련)에는 이번 달 것만, 누르면 새 창(기네스 = 학부모 앱처럼 그래프, 심사 = 결과 내용만)
+  const exGood = ex => (ex.items || []).filter(x => x.good).length, exPrac = ex => (ex.items || []).filter(x => !x.good).length;
+  const exT = ex => ex.absent ? '쉬었어요' : ex.pass ? (ex.nb ? esc(ex.nb) + ' 합격 🎉' : '합격 👏') : '다음에 다시 도전 💪';
   function reportCard() {
-    const EX = (D.exams || []).slice(-3).reverse(), RL = (D.events || []).map(e => ({ e, st: evStat(e, D.rec) })).filter(x => x.st && x.st.last);
-    if (!EX.length && !RL.length) return '';
-    const exT = ex => ex.absent ? '쉬었어요' : ex.pass ? (ex.nb ? esc(ex.nb) + ' 합격 🎉' : '합격 👏') : '다음에 다시 도전 💪';
-    return '<section class="card rep"><h2>📊 나의 리포트</h2>' +
-      (EX.length ? '<h3>🏅 심사 결과</h3>' + EX.map(ex => '<div class="rl"><b>' + (+ex.month.slice(5)) + '월 심사</b><span class="rv' + (ex.pass && !ex.absent ? ' ok' : '') + '">' + exT(ex) + '</span></div>').join('') : '') +
-      (RL.length ? '<h3>🏆 기네스 기록</h3>' + RL.map(({ e, st }) => '<div class="rl"><b>' + esc(e.name) + '</b><span class="v">' + f1(st.best ? st.best.v : st.last.v) + '<small>' + esc(e.unit) + '</small></span>' + (st.isBest ? '<span class="best">⭐</span>' : '') + '</div>').join('') + '<p class="sub">가장 좋은 기록이에요</p>' : '') + '</section>';
+    const ym = D.today.slice(0, 7), mon = +ym.slice(5), ex = (D.exams || []).find(x => x.month === ym), p = D.prep;
+    const EV = (D.events || []).filter(e => (e.months || []).includes(mon));
+    let h = '<section class="card rep lnk2c" id="repB"><h2>📊 나의 리포트<small>' + mon + '월 · 전체 보기 ›</small></h2><h3>🏅 ' + mon + '월 심사</h3>';
+    if (ex) h += '<div class="rl"><b>' + (ex.v === 2 ? '👍 훌륭해요 ' + exGood(ex) + ' · 💪 연습 ' + exPrac(ex) : '결과가 나왔어요') + '</b><span class="rv' + (ex.pass && !ex.absent ? ' ok' : '') + '">' + exT(ex) + '</span></div>';
+    else h += '<p class="sub" style="margin:2px 0 0">' + (p && p.date && p.date >= D.today ? md(p.date) + ' 심사 예정이에요. 화이팅! 💪' : '이번 달 심사 결과는 심사가 끝나고 사범님이 마감하면 나와요') + '</p>';
+    h += '<h3>🏆 ' + mon + '월 기네스</h3>';
+    if (EV.length) h += EV.map(e => { const r = (D.rec || {})[e.name] || {}, v = r[mon], st = evStat(e, D.rec), pv = st && st.sc.filter(x => +x.m < mon).slice(-1)[0];
+      const has = v != null && typeof v !== 'object', up = has && pv ? (e.lower ? +v < +pv.v : +v > +pv.v) : false;
+      return '<div class="rl"><b>' + esc(e.name) + '</b>' + (has ? '<span class="v">' + f1(v) + '<small>' + esc(e.unit) + '</small></span>' + (up ? '<span class="best">▲ 기록 갱신</span>' : '') : '<span class="rv">아직 측정 전</span>') + '</div>'; }).join('');
+    else h += '<p class="sub" style="margin:2px 0 0">이번 달 기네스 종목이 아직 없어요</p>';
+    return h + '</section>';
+  }
+  function chartDk(pts, lower) { // 학부모 앱 성장 그래프(인바디 변화 화면)와 같은 모양 · 어두운 화면용
+    pts = pts.filter(p => p.v != null && !isNaN(+p.v)); if (!pts.length) return '<p class="sub" style="margin:6px 2px">아직 기록이 없어요</p>';
+    const n = pts.length, GAP = 58, PX = 30, W = Math.max(300, PX * 2 + (n - 1) * GAP), H = 150, vs = pts.map(p => +p.v);
+    let lo = Math.min(...vs), hi = Math.max(...vs); if (lo === hi) { lo -= 1; hi += 1; } const pad = (hi - lo) * .35; lo -= pad; hi += pad;
+    const X = i => n === 1 ? W / 2 : PX + i * (W - PX * 2) / (n - 1), Y = v => 26 + (1 - (v - lo) / (hi - lo)) * (H - 58);
+    const better = (a, b) => lower ? a < b : a > b, col = i => { if (!i) return '#8E8B90'; const a = vs[i], b = vs[i - 1]; return better(a, b) ? '#2FAE7C' : a === b ? (i > 1 ? col(i - 1) : '#8E8B90') : '#E5484D'; };
+    const path = pts.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(vs[i]).toFixed(1)).join(' '), lx = X(n - 1);
+    return '<div class="ibsc"><svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="display:block"><line x1="' + lx + '" x2="' + lx + '" y1="8" y2="' + (H - 28) + '" stroke="#55545A" stroke-dasharray="3 3"/>' +
+      (n > 1 ? '<path d="' + path + '" fill="none" stroke="#3A393E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' : '') +
+      pts.map((p, i) => '<circle cx="' + X(i) + '" cy="' + Y(vs[i]) + '" r="5" fill="' + col(i) + '" stroke="#111113" stroke-width="1.5"/><text x="' + X(i) + '" y="' + (Y(vs[i]) - 11) + '" text-anchor="middle" font-size="12" font-weight="800" fill="#F2F0EC">' + esc(f1(p.v)) + '</text><text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11.5" fill="#8E8B90">' + esc(p.x) + '</text>').join('') + '</svg></div>';
+  }
+  function reportPage() {
+    const RL = (D.events || []).map(e => ({ e, st: evStat(e, D.rec) }));
+    let h = '<section class="card rep"><h2>🏆 기네스 기록</h2>' + (RL.length ? RL.map(({ e, st }) => '<div class="rgc"><div class="rgh"><b>' + esc(e.name) + ' <small>(' + esc(e.unit) + ' · ' + (e.lower ? '낮을수록 좋아요' : '높을수록 좋아요') + ')</small></b>' + (st && st.best ? '<span>최고 ' + f1(st.best.v) + esc(e.unit) + '</span>' : '') + '</div>' +
+      chartDk(e.months.map(m => { const v = ((D.rec || {})[e.name] || {})[m]; return { x: m + '월', v: v != null && typeof v !== 'object' ? v : null }; }), e.lower) + '</div>').join('') + '<p class="sub">초록 점 = 지난번보다 좋아졌어요 · 빨강 점 = 조금 아쉬워요</p>' : '<div class="empty">아직 기네스 종목이 없어요</div>') + '</section>';
+    const EX = (D.exams || []).slice().reverse();
+    h += '<section class="card rep"><h2>🏅 심사 결과</h2>' + (EX.length ? EX.map(ex => { const mon = +ex.month.slice(5), yr = ex.month.slice(0, 4);
+      let b = '<div class="exb"><div class="exh"><b>' + (yr !== D.today.slice(0, 4) ? yr + '년 ' : '') + mon + '월 심사</b><span class="rv' + (ex.pass && !ex.absent ? ' ok' : '') + '">' + exT(ex) + '</span></div>';
+      if (!ex.absent && ex.v === 2) { let g0 = null; b += (ex.topic ? '<p class="sub" style="margin:4px 0 0">🎤 웅변 주제 · ' + esc(ex.topic) + '</p>' : '') + (ex.items || []).map(x => { const gh = x.g && x.g !== g0 ? '<div class="exg">' + esc(x.g) + '</div>' : ''; g0 = x.g || g0;
+        return gh + '<div class="exi"><b>' + esc(x.n) + '</b><span class="' + (x.good ? 'g' : 'p') + '">' + (x.good ? '👍 훌륭해요' : '💪 연습이 필요해요') + '</span>' + (x.tx ? '<small>' + esc(x.tx) + '</small>' : '') + '</div>'; }).join(''); }
+      else if (!ex.absent && (ex.subj || []).length) b += ex.subj.map(x => '<div class="exi"><b>' + esc(x.n) + '</b><span class="g">' + '★'.repeat(Math.max(0, Math.min(5, +x.v || 0))) + '</span></div>').join('');
+      return b + '</div>'; }).join('') : '<div class="empty">아직 마감한 심사 결과가 없어요</div>') + '</section>';
+    page('📊 나의 리포트', h);
   }
   function prepCard() {
     const p = D.prep, ex = (D.exams || [])[(D.exams || []).length - 1];
@@ -673,14 +717,40 @@
   // ── 🎉 이벤트: 신청 받는 행사 · 다가오는 일정 · 쉬는 날 · 지난 행사 · 도장 소식 ──
   const dday = d => { const n = Math.round((new Date(d + 'T00:00:00Z') - new Date(D.today + 'T00:00:00Z')) / 864e5); return n === 0 ? 'D-DAY' : n > 0 ? 'D-' + n : ''; };
   const KIC = { 행사: '🎉', 대회: '🥇', 심사: '🏅', 휴관: '🛌', 기타: '📌' };
+  // 2026-11-16 사용자: 이벤트도 달력으로 · 이전 달도 (알림 서버가 지난 400일 ~ 180일 뒤 일정을 줌)
+  const KCOL = { 행사: '#E5484D', 대회: '#E3B341', 심사: '#4C8DF6', 휴관: '#77777C', 기타: '#2E9E4F' };
+  let evM = null;
+  const addDay = (d, n) => { const y = new Date(d + 'T00:00:00Z'); y.setUTCDate(y.getUTCDate() + n); return y.toISOString().slice(0, 10); };
+  const ymAdd = (ym, n) => new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + n, 1)).toISOString().slice(0, 7);
+  function evItems() { // 도장 일정 + 신청 받는 행사(일정에 없는 것만)
+    const S = (D.sched || []).slice(), T = (D.tev || []).filter(e => e.date && !S.some(x => x.title === e.title && x.date === e.date)).map(e => ({ title: e.title, kind: '행사', date: e.date, dend: '', body: e.desc || '', tev: 1 }));
+    return S.concat(T).sort((x, y) => x.date.localeCompare(y.date));
+  }
+  function evByDay(ym) { const by = {}; evItems().forEach(x => { let d = x.date; const e = x.dend && x.dend > x.date ? x.dend : x.date; for (let i = 0; d <= e && i < 62; i++) { if (d.slice(0, 7) === ym) (by[d] = by[d] || []).push(x); d = addDay(d, 1); } }); return by; }
+  function evRange() { const t = D.today.slice(0, 7), f = evItems()[0]; return { min: f && f.date.slice(0, 7) < t ? f.date.slice(0, 7) : ymAdd(t, -1), max: ymAdd(t, 6) }; }
+  function evCalCard() {
+    const t = D.today, ym = evM || t.slice(0, 7), yr = +ym.slice(0, 4), mon = +ym.slice(5, 7), last = new Date(Date.UTC(yr, mon, 0)).getUTCDate(), first = new Date(Date.UTC(yr, mon - 1, 1)).getUTCDay(), by = evByDay(ym), R = evRange();
+    let g = ''; for (let i = 0; i < first; i++) g += '<div></div>';
+    for (let d = 1; d <= last; d++) { const k = ymdOf(ym, d), L = by[k] || [], rest = L.length && L.every(x => x.kind === '휴관');
+      g += '<button class="ecd' + (k === t ? ' td' : '') + (k < t ? ' ps' : '') + (rest ? ' rs' : '') + (L.length ? ' has' : '') + '"' + (L.length ? ' data-eday="' + k + '"' : ' disabled') + '><span>' + d + '</span><i>' + [...new Set(L.map(x => x.kind || '기타'))].slice(0, 3).map(kd => '<em style="background:' + (KCOL[kd] || KCOL.기타) + '"></em>').join('') + '</i></button>'; }
+    const ML = evItems().filter(x => x.date.slice(0, 7) === ym || ((x.dend || '').slice(0, 7) === ym && x.date.slice(0, 7) < ym));
+    return '<section class="card ecal"><div class="pmn"><button data-em="-1"' + (ym <= R.min ? ' disabled' : '') + '>‹</button><b>' + yr + '년 ' + mon + '월</b><button data-em="1"' + (ym >= R.max ? ' disabled' : '') + '>›</button></div>' +
+      '<div class="ecw">' + WD.map(x => '<i>' + x + '</i>').join('') + '</div><div class="ecg">' + g + '</div>' +
+      '<div class="elg">' + ['행사', '대회', '심사', '휴관'].map(k => '<span><em style="background:' + KCOL[k] + '"></em>' + (k === '휴관' ? '쉬는 날' : k) + '</span>').join('') + '</div>' +
+      (ym !== t.slice(0, 7) ? '<button class="etd" data-em="0">오늘로 ›</button>' : '') +
+      '<h4 class="ph4">' + mon + '월 일정 ' + ML.length + '개</h4>' + (ML.length ? ML.map(x => { const end = x.dend || x.date, past = end < t, dd = !past ? dday(x.date > t ? x.date : t) : '';
+        return '<button class="evr' + (past ? ' past' : '') + '" data-eday="' + (x.date.slice(0, 7) === ym ? x.date : ymdOf(ym, 1)) + '"><span class="evd" style="border-color:' + (KCOL[x.kind] || KCOL.기타) + '"><b>' + (+x.date.slice(8)) + '</b><small>' + WD[new Date(x.date + 'T00:00:00Z').getUTCDay()] + '</small></span><div><b>' + (KIC[x.kind] || '📌') + ' ' + esc(x.title) + '</b><small>' + md(x.date) + (x.dend && x.dend !== x.date ? ' ~ ' + md(x.dend) : '') + ' · ' + esc(x.kind || '일정') + (past ? ' · 끝났어요' : '') + '</small></div>' + (dd ? '<span class="dd">' + dd + '</span>' : '') + '</button>'; }).join('') : '<div class="empty">이 달에는 도장 일정이 없어요</div>') + '</section>';
+  }
+  function evDaySheet(k) {
+    const L = evByDay(k.slice(0, 7))[k] || []; if (!L.length) return;
+    const el = sheet('<h2 style="margin:0 0 6px">' + (+k.slice(5, 7)) + '월 ' + (+k.slice(8)) + '일 (' + WD[new Date(k + 'T00:00:00Z').getUTCDay()] + ')</h2>' + L.map(x => '<div class="evc' + (x.tev ? ' on' : '') + '"><div class="eh"><b>' + (KIC[x.kind] || '📌') + ' ' + esc(x.title) + '</b>' + ((x.dend || x.date) >= D.today && dday(x.date > D.today ? x.date : D.today) ? '<span class="dd">' + dday(x.date > D.today ? x.date : D.today) + '</span>' : '') + '</div><small>' + md(x.date) + (x.dend && x.dend !== x.date ? ' ~ ' + md(x.dend) : '') + ' · ' + esc(x.kind || '일정') + (x.tev ? ' · 신청은 부모님 앱에서' : '') + '</small>' + (x.body ? '<p>' + esc(x.body) + '</p>' : '') + '</div>').join('') + '<button class="big" data-x style="margin-top:14px;width:100%;max-width:none">닫기</button>');
+    el.classList.add('dk');
+  }
   function eventView() {
-    const t = D.today, S = D.sched || [], up = S.filter(x => (x.dend || x.date) >= t && x.kind !== '휴관'), rest = S.filter(x => (x.dend || x.date) >= t && x.kind === '휴관').slice(0, 6), past = S.filter(x => (x.dend || x.date) < t && x.kind !== '휴관').reverse().slice(0, 8);
     let h = '<div class="hi"><span class="av" style="background:#E5484D">🎉</span><div><b>이벤트</b><small>도장 행사 · 대회 · 심사 소식</small></div></div>';
     const T = D.tev || [];
     if (T.length) h += '<section class="card"><h2>🎟 지금 신청 받는 행사</h2>' + T.map(e => '<div class="evc on"><div class="eh"><b>' + esc(e.title) + '</b>' + (e.date ? '<span class="dd">' + dday(e.date) + '</span>' : '') + '</div><small>' + (e.date ? md(e.date) + ' · ' : '') + (e.closeAt ? md(e.closeAt) + '까지 신청' : '신청 받는 중') + (e.free ? ' · 무료' : '') + '</small>' + (e.desc ? '<p>' + esc(e.desc) + '</p>' : '') + (e.prep ? '<p class="pp">🎒 준비물: ' + esc(e.prep) + '</p>' : '') + '<div class="ap">' + (e.mine ? '✅ 신청했어요' : '👨‍👩‍👧 부모님 앱에서 신청할 수 있어요') + '</div></div>').join('') + '</section>';
-    h += '<section class="card"><h2>📣 다가오는 도장 일정</h2>' + (up.length ? up.map(x => '<div class="evc"><div class="eh"><b>' + (KIC[x.kind] || '📌') + ' ' + esc(x.title) + '</b><span class="dd">' + dday(x.date > t ? x.date : t) + '</span></div><small>' + md(x.date) + (x.dend && x.dend !== x.date ? ' ~ ' + md(x.dend) : '') + ' · ' + esc(x.kind || '일정') + '</small>' + (x.body ? '<p>' + esc(x.body) + '</p>' : '') + '</div>').join('') : '<div class="empty">다가오는 일정이 아직 없어요</div>') + '</section>';
-    if (rest.length) h += '<section class="card"><h2>🛌 쉬는 날</h2>' + rest.map(x => '<div class="rl"><b>' + esc(x.title) + '</b><span class="sub" style="margin:0">' + md(x.date) + (x.dend && x.dend !== x.date ? ' ~ ' + md(x.dend) : '') + '</span></div>').join('') + '</section>';
-    if (past.length) h += '<section class="card"><h2>📷 지난 행사</h2>' + past.map(x => '<div class="rl"><b>' + (KIC[x.kind] || '📌') + ' ' + esc(x.title) + '</b><span class="sub" style="margin:0">' + md(x.date) + '</span></div>').join('') + '</section>';
+    h += '<div id="evCalC">' + evCalCard() + '</div>';
     const P = ((SITE || {}).press || []).slice(0, 4);
     if (P.length) h += '<section class="card"><h2>📰 해랑경희 소식</h2>' + P.map(x => '<a class="lnk2" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + (x.image ? '<img src="/' + esc(x.image) + '" alt="" loading="lazy">' : '') + '<div><b>' + esc(x.title) + '</b><small>' + esc(x.source || '') + ' · ' + esc((x.date || '').slice(0, 7).replace('-', '.')) + '</small></div></a>').join('') + '</section>';
     return h;
@@ -789,6 +859,8 @@
     if (e.target.closest('#logCal,#logCal2,[data-logc]')) return logCal();
     const dcb = e.target.closest('[data-dc]'); if (dcb) { const k = dcb.dataset.dc, day = D.today, on = !dayDone(day)[k]; D.dc = D.dc || {}; const x = Object.assign({}, D.dc[day] || {}); if (on) x[k] = 1; else delete x[k]; D.dc[day] = x; draw(); if (on) { fx(1200); newBadgeCheck(); }
       const j = await post('/k/day', { day, k, on }); if (j.ok) D.dc = j.dc; else { alert(j.error || '잠시 뒤에 다시 해 주세요'); start(); } return; }
+    const em = e.target.closest('[data-em]'); if (em && !em.disabled) { evM = em.dataset.em === '0' ? null : ymAdd(evM || D.today.slice(0, 7), +em.dataset.em); $('evCalC').innerHTML = evCalCard(); return; }
+    const eday = e.target.closest('[data-eday]'); if (eday) return evDaySheet(eday.dataset.eday);
     const pm = e.target.closest('[data-pm]'); if (pm) { const b0 = planM || D.today.slice(0, 7), d = new Date(Date.UTC(+b0.slice(0, 4), +b0.slice(5, 7) - 1 + (+pm.dataset.pm), 1)); planM = d.toISOString().slice(0, 7); return draw(); }
     const bi = e.target.closest('[data-bi]'); if (bi && !bi.disabled) { bestI += +bi.dataset.bi; $('bestC').innerHTML = bestCard(); return; }
     const ac = e.target.closest('[data-act]'); if (ac) { const k = ac.dataset.act;
@@ -799,6 +871,7 @@
     const bd = e.target.closest('[data-bd]'); if (bd) return badgeOne(bd.dataset.bd);
     if (e.target.closest('#hwB,#hwAll')) return hwPage();
     const en = e.target.closest('[data-env]'); if (en) return envOpen(en.dataset.env);
+    if (e.target.closest('#repB')) return reportPage();
     if (e.target.closest('#prepB')) { const p = D.prep; if (p && !p.closed && (p.topic || p.notes.speech || p.notes.eng || p.vid || p.date)) return page('📝 심사 준비', prepCard()); return alert('이번 달 심사 준비가 아직 올라오지 않았어요'); } // 2026-11-16: 홈 심사 칸을 없애서 새 창으로
     if (e.target.closest('#goalB')) return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!');
     if (e.target.closest('#pledB')) return textSheet('⭐ 나의 선범단 다짐', 'pledge', 200, '예: 동생들에게 먼저 인사하고, 모르는 친구를 도와줄게요');
