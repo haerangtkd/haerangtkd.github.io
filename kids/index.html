@@ -922,5 +922,29 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && store.get(TK) && D) start(); });
   start();
 </script>
+<script>
+// 2026-11-16: 홈 화면 앱이 예전 화면을 붙잡고 있을 때(아이폰은 앱을 닫아도 화면을 기억함) 새 화면이 올라와 있으면 바로 새로 불러옴
+(() => {
+  const mine = [...document.querySelectorAll('script:not([src]),style')].map(e => e.textContent).filter(t => t.length > 200);
+  let busy = false;
+  async function check() {
+    if (busy || document.hidden) return; busy = true;
+    try {
+      const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const t = (await r.text()).replace(/\r\n/g, '\n');
+      if (mine.every(s => t.includes(s))) return; // 같은 화면
+      const last = +sessionStorage.getItem('haerang-kid-upd') || 0;
+      if (Date.now() - last < 60000) return; // 1분 안에 두 번은 안 함 (계속 새로고침 막기)
+      sessionStorage.setItem('haerang-kid-upd', Date.now());
+      try { await fetch(location.pathname, { cache: 'reload' }); } catch (_) {}
+      location.reload();
+    } catch (_) {} finally { busy = false; }
+  }
+  check();
+  document.addEventListener('visibilitychange', check);
+  addEventListener('pageshow', e => { if (e.persisted) check(); });
+})();
+</script>
 </body>
 </html>
