@@ -749,6 +749,7 @@
   - `PUT /api/v4/accounts/<계정ID>/workers/scripts/<이름>` (multipart: `metadata` + `worker.js`, `main_module:'worker.js'`)
   - 코드만 바꿀 땐 metadata에 **`keep_bindings: ['secret_text','d1','service']`** 를 꼭 넣는다 (안 넣으면 비밀번호·DB 연결이 지워짐).
   - (2026-11-12 밤) 위 PUT이 403(HTML)으로 막힘 → 대신: 대시보드 탭 JS로 raw 코드를 `navigator.clipboard.writeText` → 편집 화면(`/workers/services/edit/<이름>/production`) 코드 칸 클릭 → Ctrl+A·Ctrl+V → Deploy. 바인딩·크론 그대로 유지됨 확인.
+  - (2026-11-16 저녁) 편집 화면 스크린샷이 멈춰서 대신 **코드만 바꾸는 API**를 씀: 대시보드 탭 JS로 `PUT /api/v4/accounts/<계정ID>/workers/scripts/<이름>/content` (multipart: `metadata` = `{main_module:'worker.js'}` + `worker.js` 파일) → 200. 바인딩·크론은 안 건드림(settings·schedules로 확인).
   - D1 직접 조회: `POST /api/v4/accounts/<계정ID>/d1/database/<DB id>/query {sql}`
   - Claude 앱 안 브라우저는 Cloudflare 로그인 확인(사람 확인)에서 막힘 → 크롬 확장 사용.
 - 학부모 앱 서버를 바꾸기 전엔 지금 돌아가는 코드가 저장소와 같은지 확인한다(`/workers/scripts/haerang-push/content/v2`).
@@ -788,7 +789,7 @@
 - 학부모 앱 홈 화면 아이콘에 **안 읽은 알림 수**: 서비스 워커(`notice/sw.js` `badgeUp`)가 알림을 받을 때마다 1씩 올려 `setAppBadge(n)`(수는 Cache Storage 'haerang-inbox' `/notice/__badge`), 그 알림이 온 화면을 열어 보면 그 알림만 빠짐(`badgeSeen`: 서비스 워커가 알림마다 주소 # 뒤 화면 이름을 [{v, at}]로 적어 두고, 화면이 홈·소식·제자 정보 탭이나 알림장·미션·행사 / 일정·공지·출석 / 성장 창을 열면 그 이름 것을 지움. 모르는 이름은 홈을 볼 때, 14일 지난 것은 저절로). 아이폰은 홈 화면에 추가한 앱 + 알림 허용일 때(iOS 16.4+), 안드로이드는 런처에 따라 숫자 또는 점. 화면만(서버 배포 없음).
 
 ### 2026-11-16 저녁 7시 반: 보호자 관계 = 어머니·아버지·할머니·할아버지·고모·이모 (사용자 요청)
-- 학부모 앱 가입 관계 버튼, 가족 추가 요청(+기타), 사범님께 연락 '누가'(업무 서버 `RELS`), 태블릿 등록 서류 서명하는 분(초등부 + 고모·이모)을 '엄마·아빠' → '어머니·아버지'로, 삼촌은 뺌. 알림 서버 `RELATIONS`는 예전 엄마·아빠·삼촌도 받음(이미 가입한 보호자는 그대로 보임). **알림·업무 서버 배포해야 가입·연락에 적용**(배포 전엔 새 이름으로 가입하면 관계가 빈칸으로 저장됨).
+- 학부모 앱 가입 관계 버튼, 가족 추가 요청(+기타), 사범님께 연락 '누가'(업무 서버 `RELS`), 태블릿 등록 서류 서명하는 분(초등부 + 고모·이모)을 '엄마·아빠' → '어머니·아버지'로, 삼촌은 뺌. 알림 서버 `RELATIONS`는 예전 엄마·아빠·삼촌도 받음(이미 가입한 보호자는 그대로 보임). 알림·업무 서버 배포 끝남(11/16 19:30, 깃허브 8084d1e, 바인딩·크론 그대로, 서버 응답 확인).
 
 ## 5. 컴퓨터에서 테스트
 
