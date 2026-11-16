@@ -377,16 +377,23 @@
     store.set(TK, j.tok); $('code').value = ''; $('err').textContent = ''; start();
   }
   $('go').onclick = login; $('code').onkeydown = e => { if (e.key === 'Enter') login(); };
-  $('out').onclick = async () => { store.set('haerang-kid-push', ''); if (!confirm('이 기기에서 나갈까요? 다시 들어오려면 도장에서 사범님께 코드를 받아야 해요.')) return; await post('/k/logout'); store.set(TK, ''); location.reload(); };
+  $('out').onclick = async () => { store.set('haerang-kid-push', ''); if (!confirm('이 기기에서 나갈까요? 다시 들어오려면 도장에서 사범님께 코드를 받아야 해요.')) return; await post('/k/logout'); store.set(TK, ''); store.set('haerang-kid-cache', ''); location.reload(); };
   function showLogin() { $('vLogin').hidden = false; $('vApp').hidden = true; $('nav').hidden = true; }
   async function start() {
     if (!store.get(TK)) return showLogin();
     $('vLogin').hidden = true; $('vApp').hidden = false; $('nav').hidden = false; pushUi();
-    if (!D) $('body').innerHTML = '<div class="empty">불러오는 중…</div>';
-    const [j] = await Promise.all([post('/k/home'), loadPlan(), loadSite()]);
-    if (!j.ok) { if (j.out) { store.set(TK, ''); return showLogin(); } $('body').innerHTML = '<div class="empty">' + esc(j.error || '불러오지 못했어요') + '</div>'; return; }
-    D = j; D.prof = D.prof || {}; draw(); bdayCheck(); newBadgeCheck();
+    // 2026-11-16 사용자: 들어가자마자 로딩이 오래 걸림 → 이 기기에 저장해 둔 지난 화면을 바로 보여 주고, 새 자료는 뒤에서 받아 바꿈.
+    // 홈은 수련 계획·홈페이지 자료(data.json)가 필요 없어서 그것들을 기다리지 않음 (다른 탭은 오면 다시 그림)
+    if (!D) { const c = cacheGet(); if (c) { D = c.D; plan = plan || c.plan || null; SITE = SITE || c.site || null; draw(); } else $('body').innerHTML = '<div class="empty">불러오는 중…</div>'; }
+    Promise.all([loadPlan(), loadSite()]).then(() => { if (D && view !== 'home' && !busyTyping()) draw(); cachePut(); });
+    const j = await post('/k/home');
+    if (!j.ok) { if (j.out) { store.set(CK, ''); store.set(TK, ''); D = null; return showLogin(); } if (!D) $('body').innerHTML = '<div class="empty">' + esc(j.error || '불러오지 못했어요') + '</div>'; return; }
+    D = j; D.prof = D.prof || {}; if (!busyTyping()) draw(); cachePut(); bdayCheck(); newBadgeCheck();
   }
+  // 지난 화면 저장 (이 기기에만, 들어온 코드(tok)가 같을 때만 씀)
+  const CK = 'haerang-kid-cache', busyTyping = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('body').contains(a)); };
+  function cacheGet() { try { const c = JSON.parse(store.get(CK) || 'null'); return c && c.tok === store.get(TK) && c.D ? c : null; } catch (_) { return null; } }
+  function cachePut() { if (!D) return; try { const S = SITE || {}; localStorage.setItem(CK, JSON.stringify({ tok: store.get(TK), D, plan, site: { press: S.press, belts: S.belts, columns: S.columns, links: S.links } })); } catch (_) {} }
   async function loadSite() { if (SITE) return; try { SITE = await (await fetch('/data.json?t=' + Date.now(), { cache: 'no-store' })).json(); } catch (_) { SITE = {}; } } // 홈페이지 자료 (칼럼·띠 제도·소식·바로가기)
   async function loadPlan() { // 수련 계획(오늘의 운동·이번 주 수련 주제): 알림 관리에서 고친 것 → 없으면 홈페이지 자료
     if (plan) return; let p = null; const r = await post('/pub/plan'); if (r && r.ok && r.plan) p = r.plan;
