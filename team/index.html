@@ -284,6 +284,7 @@
   .shead.srch .inp{flex:1;padding:8px 12px}.shead.srch .sbtn{background:var(--brand);color:#fff;font-weight:700;border-radius:12px;padding:8px 14px}
   .pksum{display:flex;gap:6px;margin:2px 0 8px}.pksum span{flex:1;text-align:center;background:var(--soft);color:var(--brand);border-radius:12px;padding:8px 4px;font-size:13px;font-weight:700}.pksum span b{display:block;font-size:22px;font-weight:900;line-height:1.1}.pksum span.ab{background:var(--nobg);color:var(--no)}
   .pkbar{display:flex;align-items:center;gap:6px;margin:2px 0 8px}.pkbar .pkn{flex:1;font-size:15px;font-weight:700}.pkbar .pkn b{font-size:20px;color:var(--brand)}.pkbar .pkn em{font-style:normal;color:var(--no);font-size:13px}
+  .kmg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.kmg .btn{padding:14px 4px;line-height:1.35}
   .kcl{max-height:236px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;margin-top:8px}
   .kcr{display:flex;align-items:center;gap:8px;width:100%;border:0;border-bottom:1px solid var(--line);background:#fff;padding:12px 14px;font:inherit;text-align:left}.kcr:last-child{border-bottom:0}
   .kcr b{font-size:16px}.kcr small{flex:1;color:var(--muted);font-size:12px}.kcr span{background:var(--brand,#A40F16);color:#fff;border-radius:10px;padding:6px 12px;font-weight:800;font-size:13px}
@@ -945,8 +946,43 @@ const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '
 function kidMenu() { // 🥋 제자 모드 (2026-11-15): 제자 앱에 쓰는 것 모아 두기
   sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🥋 제자 모드</h2></div><p class="help">제자 앱(따로 설치하는 앱)에 들어가는 코드를 만들고, 선범단 도장을 찍어요.</p>' +
     '<div class="row" style="gap:8px;margin-top:8px"><button class="btn g" data-km="kcode" style="flex:1;padding:16px 4px">🔑<br>제자 코드</button><button class="btn g" data-km="sun" style="flex:1;padding:16px 4px">⭐<br>도장 찍기</button><button class="btn g" data-km="mile" style="flex:1;padding:16px 4px">💰<br>마일리지</button><button class="btn" data-km="open" style="flex:1;padding:16px 4px">📱<br>제자 앱</button></div>' +
-    '<button class="btn g" data-km="note" style="width:100%;margin-top:8px;padding:14px 4px">📌 중요사항 넣기 <small style="color:var(--muted);font-weight:500">· 오늘 출석 화면 이름 밑에 보여요</small></button>', ov => {
-    ov.onclick = e => { const b = e.target.closest('[data-km]'); if (!b) return; const k = b.dataset.km; if (k === 'open') return window.open('/kids/', '_blank'); return k === 'kcode' ? kcodeSheet() : k === 'mile' ? mileSheet() : k === 'note' ? notePick() : sunSheet(); };
+    // 2026-11-16 사용자: 제자 관련 자주 쓰는 것도 여기서 바로 (제자를 고르면 그 화면으로)
+    '<div class="kmg"><button class="btn g" data-km="note">📌<br>중요사항</button><button class="btn g" data-km="days">📅<br>수련 요일 변경</button><button class="btn g" data-km="temp">🗓<br>임시변경</button><button class="btn g" data-km="pqr">📱<br>학부모 앱 QR</button><button class="btn" data-km="kid">🥋<br>원생 정보</button></div>', ov => {
+    ov.onclick = e => { const b = e.target.closest('[data-km]'); if (!b) return; const k = b.dataset.km; if (k === 'open') return window.open('/kids/', '_blank');
+      if (k === 'days') return kidPick('📅 수련 요일 변경', '누구의 수련 요일을 바꿀까요? 바꾸면 출석부·학부모 앱에 바로 반영돼요.', x => kDays(x.days) + (dayReqs(x.name).length ? ' · 📩 학부모 요청' : ''), daysSheet);
+      if (k === 'temp') return kidPick('🗓 등원요일 임시변경', '누구의 등원 요일을 잠깐 바꿀까요? 정한 기간이 끝나면 원래 요일로 돌아가요.', x => kTemp(x, today()) ? '임시변경 중' : '', x => kidTempSheet(x));
+      if (k === 'pqr') return kidPick('📱 학부모 앱 QR', '누구의 학부모 앱 가입 QR(가족 초대번호)을 볼까요?', () => '', x => sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(x.name) + '</h2></div><div id="pqF"></div>', o2 => kidFamily(o2.querySelector('#pqF'), x)));
+      if (k === 'kid') return kidPick('🥋 원생 정보', '누구의 원생 정보를 볼까요?', x => kDays(x.days), x => kidSheet(x.id));
+      return k === 'kcode' ? kcodeSheet() : k === 'mile' ? mileSheet() : k === 'note' ? notePick() : sunSheet(); };
+  });
+}
+// 제자 고르기 (2026-11-16): 제자 모드 버튼들이 같이 씀 — 이름 검색 → 누르면 then(제자)
+async function kidPick(title, help, sub, then) {
+  const draw = ov => { const el = ov.querySelector('#kpL'); if (!el) return; const qv = (ov.querySelector('#kpQ').value || '').trim();
+    if (!S.kids) { el.innerHTML = '<div class="help" style="padding:14px">' + esc(S.kidsErr || '불러오는 중…') + '</div>'; return; }
+    const L = S.kids.filter(x => x.status !== '퇴관' && (!qv || x.name.includes(qv))).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    el.innerHTML = L.length ? L.map(x => '<button class="kcr" data-kp="' + esc(x.id) + '"><b>' + esc(x.name) + '</b><small>' + esc(sub(x) || '') + (x.status === '휴원' ? ' · 휴원' : '') + '</small><span>›</span></button>').join('') : '<div class="help" style="padding:14px">찾는 이름이 없어요</div>'; };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(title) + '</h2></div><p class="help">' + esc(help) + '</p><input class="inp" id="kpQ" placeholder="이름 검색" autocomplete="off"><div id="kpL" class="kcl" style="max-height:340px"></div>', ov => {
+    draw(ov); ov.querySelector('#kpQ').oninput = () => draw(ov);
+    ov.querySelector('#kpL').onclick = e => { const b = e.target.closest('[data-kp]'); if (!b) return; const x = (S.kids || []).find(y => y.id === b.dataset.kp); if (x) then(x); };
+    loadKids(true).then(() => draw(ov));
+  });
+}
+// 📅 수련 요일 변경 (2026-11-16): 원래 요일을 바꿈 (잠깐만이면 임시변경). 원생 정보 저장과 같은 길(/api/student-save) + 바뀐 기록
+const dayReqs = name => [...S.pmsg.values()].filter(x => x.kid === name && x.label === '수련 요일 변경 요청' && !x.ack); // 학부모 앱에서 온 요청 (아직 확인 안 한 것)
+function daysSheet(s) {
+  let days = [...(s.days || [])]; const rq = dayReqs(s.name);
+  sheet('<h2>' + esc(s.name) + ' 수련 요일</h2><p class="help">지금 ' + esc(kDays(s.days) || '없음') + '. 바꾸면 출석부·학부모 앱·등원표에 바로 반영돼요. 잠깐만 바뀌면 \'임시변경\'을 써 주세요.</p>' +
+    rq.map(x => '<div class="notice" style="margin:8px 0"><b>📩 ' + esc(x.rel || '학부모') + ' 요청</b> ' + esc(x.text || '') + '<br><small>홈 \'학부모 연락\'에서 확인을 눌러 주세요</small></div>').join('') +
+    '<div class="chips" id="dyC">' + KWEEK.map(x => '<button data-v="' + x + '" class="' + (days.includes(x) ? 'on' : '') + '">' + x + '</button>').join('') + '</div>' +
+    '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="dyOk">저장</button></div>', ov => {
+    ov.querySelector('#dyC').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; const v = b.dataset.v; days = days.includes(v) ? days.filter(x => x !== v) : KWEEK.filter(x => x === v || days.includes(x)); b.classList.toggle('on', days.includes(v)); };
+    ov.querySelector('#dyOk').onclick = async () => {
+      if ((s.days || []).join('') === days.join('')) return closeSheet();
+      const n = JSON.parse(JSON.stringify(s)); n.days = days;
+      const r = await saveKid(n, ['수련요일 변경: ' + ((s.days || []).join('') || '없음') + ' → ' + (days.join('') || '없음')], s); if (!r) return;
+      closeSheet(); toast(s.name + ' 수련 요일을 ' + (days.join('·') || '없음') + '(으)로 바꿨어요');
+    };
   });
 }
 // 📌 중요사항 (2026-11-16 사용자: 업무 앱 대시보드 제자 모드에서도 넣기) — 출석부 '중요사항'과 같은 칸(원생 기록 notes), 저장은 원생 정보 저장(/api/student-save)
