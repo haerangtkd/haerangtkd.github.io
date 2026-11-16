@@ -192,6 +192,9 @@
   .mcard .mb{display:flex;align-items:flex-end;gap:10px;margin-top:12px}
   .mcard .pins{margin:0;flex:none;gap:8px}.mcard .pins button{flex:none;width:44px;height:44px;border-radius:50%;border:2px dashed #77777C;background:transparent;color:#C9C6C2;font-size:20px;display:grid;place-items:center;padding:0}.mcard .pins button.has{border:2px solid var(--gold);background:#232326;font-size:22px}.mcard .pins .pimg{width:34px;height:34px}
   .mcard .lg{flex:1;text-align:right;font-weight:900;letter-spacing:2px;font-size:12px;line-height:1.25;color:#55555A;align-self:center}
+  /* 2026-11-16 사용자: 뱃지는 여유 있게, 영어는 연한 글씨로 뱃지 위에 */
+  .mcard .mbl{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:12px;min-width:0}.mcard .mbl .lg{flex:none;text-align:left;align-self:auto;font-size:11px;letter-spacing:3.5px;color:rgba(255,255,255,.2);white-space:nowrap}
+  .mcard .mbl .pins{gap:14px}.mcard .mbl .pins button{width:52px;height:52px;font-size:22px}
   .mcard .qrm{margin:0;width:92px;height:92px;border-radius:10px;padding:4px}.mcard .qrm svg{width:84px;height:84px}
   .mpill{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;border:0;border-radius:999px;padding:12px 18px 12px 10px;background:var(--acc);color:#fff;font-size:19px;font-weight:900}
   .mpill i{width:32px;height:32px;border-radius:50%;background:#fff;color:#A40F16;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:17px}.mpill b{margin-left:auto;font-size:24px}
@@ -210,6 +213,7 @@
   .today .tags span{background:#2E2116;color:#F5B57D}.focus{background:linear-gradient(135deg,#12332A,#0E271F)}.focus small{color:#7FD9B0}
   .exr{background:#2A2416}.prep .vid{background:#26262A}.prep .it{border-top-color:var(--line)}.prep .it b{color:#FF8A8F}
   .rl{border-top-color:var(--line)}
+  .rep h3{margin:14px 0 2px;font-size:13px;color:var(--muted);font-weight:800}.rep h2+h3{margin-top:4px}.rep .rv{font-weight:800;font-size:15px;color:var(--muted)}.rep .rv.ok{color:#E3B341}
   .bestg div{background:#232326}.bestg small{color:#E3B341}.medals span{background:#232326}.medals span.me{background:#4A3A10}.mon{color:#FF8A8F}
   .sbl div{background:#232326}.comp,.stl,.sun{border-top-color:var(--line)}.st{border-color:#5A3A3A}.st.on{background:#3A1B1B;border-color:#E5484D}
   .nav{background:#121214;box-shadow:none;border-top:1px solid var(--line)}.nav button.on{background:rgba(229,72,77,.18);color:#FF8A8F}
@@ -370,6 +374,9 @@
     } catch (e) { alert('알림을 켜지 못했어요'); }
   }
   $('pushB').onclick = pushOn;
+  // 2026-11-16: 갤럭시는 알림 주소가 만료되면 서버가 지움 → 앱을 열 때마다 이 기기 주소를 서버에 다시 알림 (알림을 켠 기기만)
+  async function pushResync() { try { if (!canPush || !store.get(TK) || Notification.permission !== 'granted' || store.get('haerang-kid-push') !== '1') return; const r = reg || await navigator.serviceWorker.ready, sub = await r.pushManager.getSubscription(); if (sub) post('/k/sub', { sub: sub.toJSON() }); else { store.set('haerang-kid-push', ''); pushUi(); } } catch (_) {} }
+  setTimeout(pushResync, 3000);
   async function login() {
     const code = $('code').value.replace(/\D/g, ''); if (code.length < 6) { $('err').textContent = '코드를 끝까지 넣어 주세요'; return; }
     $('go').disabled = true; const j = await post('/k/login', { code }); $('go').disabled = false;
@@ -490,9 +497,6 @@
     h += '<div class="news" id="newsB"><i>🔔</i><span>' + esc(N[newsI] || ('안녕, ' + nm + '! 오늘도 기합 크게!')) + '</span><b>' + (N.length > 1 ? '⌄' : '') + '</b></div>' +
       (newsOpen && N.length > 1 ? '<div class="newsL">' + N.map(x => '<div>' + esc(x) + '</div>').join('') + '</div>' : '');
     // 📩 봉투 (2026-11-15): 부모님께는 봉투, 제자에게는 '준비가 되었어요! 가족과 상담해 보세요!' — 답장 안 했거나 답장 3일 안
-    (D.envs || []).filter(x => !envRead().includes(x.id)).forEach(x => { // 2026-11-16: 누르면 읽고, 읽은 봉투는 더보기 → 📩 받은 봉투로 (홈에서 사라짐)
-      h += '<button class="kenvC" data-env="' + x.id + '"><span>📩</span><b>도장에서 봉투가 왔어요!</b><small>눌러서 열어 봐요 ›</small></button>';
-    });
     if (0) (D.envs || []).forEach(x => {
       h += '<section class="kenv"><div class="kef">To live a life of confidence in<br>new challenges through Taekwondo.</div><div class="keb"><small>📩 도장에서 봉투가 왔어요!</small><b>' + esc(x.msg) + '</b><span class="ket">' + esc(x.title) + '</span>' +
         '<div class="kea' + (x.ans ? ' ' + x.ans : '') + '">' + (x.ans === 'yes' ? '🎉 부모님이 <b>참가</b>로 답장했어요. 열심히 준비해요!' : x.ans === 'no' ? '부모님이 <b>불참</b>으로 답장했어요. 다음 기회에 도전해요 💪' : '👨‍👩‍👧 부모님 앱에 봉투가 갔어요. 가족과 이야기하고 부모님이 답장해요') + '</div></div></section>';
@@ -502,7 +506,7 @@
     h += '<section class="mcard"><div class="mt">' + beltDot(D.belt) + '<b>' + esc(D.belt || '띠를 기다려요') + '</b><small>' + (bp && !bp.done && bp.goal ? esc(bp.goal) + '까지 ' + bp.left + '단계' : bp && bp.done ? '최고의 띠예요 👏' : '') + '</small>' + (D.sb ? '<span class="sbtag">⭐ 선범단</span>' : '') + '</div>' +
       '<div class="mn"><span class="av' + (av.fr ? ' fr-' + av.fr : '') + '" style="background:' + esc(av.bg) + '">' + avHtml(av.e) + '</span>' + (lv > 0 ? '<span class="lv">LV. ' + lv + '</span>' : '') + '<b>' + esc(D.name) + '</b><button class="ed" id="pEdit" aria-label="꾸미기">✎</button>' + (bp && !bp.done && bp.total ? '<small>' + bp.at + ' / ' + bp.total + '</small>' : '') + '</div>' +
       '<div class="pb"><b style="width:' + (bp && bp.total ? Math.round(bp.at / bp.total * 100) : bp && bp.done ? 100 : 0) + '%"></b></div>' +
-      '<div class="mb"><div class="pins">' + [0, 1, 2].map(i => pins[i] ? '<button class="has" data-pin="' + i + '">' + bIc(pins[i]) + '</button>' : '<button data-pin="' + i + '">＋</button>').join('') + '</div><span class="lg">HAERANG<br>KYUNGHEE</span>' +
+      '<div class="mb"><div class="mbl"><span class="lg">HAERANG KYUNGHEE</span><div class="pins">' + [0, 1, 2].map(i => pins[i] ? '<button class="has" data-pin="' + i + '">' + bIc(pins[i]) + '</button>' : '<button data-pin="' + i + '">＋</button>').join('') + '</div></div>' +
       (window.qrSvg && D.qr ? '<button class="qrm" id="qrB" aria-label="출석 QR 크게 보기">' + qrSvg(D.qr, 84) + '</button>' : '') + '</div></section>';
     // 💰 나의 마일리지
     h += '<button class="mpill" id="mileB"><i>M</i>나의 마일리지<b>' + (+(D.mile || 0)).toLocaleString() + '</b>›</button>';
@@ -512,13 +516,16 @@
     h += '<button class="goalr" id="goalB"><span>나의 목표</span><b' + (D.prof.mygoal ? '' : ' class="no"') + '>' + esc(D.prof.mygoal || '나의 목표 미입력') + '</b><i>✎</i></button>';
     // 🔄 이번 달 수련 로그 (출석 · 미션 · 기네스)
     h += monthLog();
+    // 📩 봉투 — 2026-11-16 사용자: 수련 로그 밑으로 (누르면 읽고, 읽은 봉투는 더보기 → 📩 받은 봉투로)
+    (D.envs || []).filter(x => !envRead().includes(x.id)).forEach(x => {
+      h += '<button class="kenvC" data-env="' + x.id + '"><span>📩</span><b>도장에서 봉투가 왔어요!</b><small>눌러서 열어 봐요 ›</small></button>';
+    });
     // 🏅 나의 뱃지 (4칸, 누르면 뱃지 화면)
-    const B = myBadges().slice().reverse(), show = [...pins, ...B.filter(b => !pins.includes(b))].slice(0, 4);
+    // 2026-11-16 사용자: 최근에 받은 것 순서로 (받은 날 → 같으면 뒤쪽(더 높은 단계) 먼저). 대표 뱃지를 앞에 두던 것(같은 뱃지가 두 번 보이던 것)도 없앰
+    const GOT = D.prof.got || {}, B = myBadges().map((b, i) => ({ b, i, d: GOT[b.k] || '' })).sort((x, y) => (y.d > x.d) - (y.d < x.d) || y.i - x.i).map(x => x.b), show = B.slice(0, 4);
     h += '<section class="card"><h2 class="lnk" id="badgeB">나의 뱃지<small>' + B.length + ' / ' + badges().length + ' ›</small></h2><div class="b4">' + [0, 1, 2, 3].map(i => show[i] ? '<button data-bd="' + show[i].k + '"><span class="ic">' + bIc(show[i]) + '</span>' + esc(show[i].t) + '</button>' : '<button id="badgeB2"><span class="ic lk">🔒</span>도전해요</button>').join('') + '</div></section>';
-    // 🏆 내 기네스 기록
-    const RL = (D.events || []).map(e => ({ e, st: evStat(e, D.rec) })).filter(x => x.st && x.st.last);
-    if (RL.length) h += '<section class="card"><h2>🏆 내 기네스 기록</h2>' + RL.map(({ e, st }) => '<div class="rl"><b>' + esc(e.name) + '<br><small class="sub" style="margin:0">' + st.sc.map(x => x.m + '월 ' + f1(x.v)).join(' → ') + '</small></b><span class="v">' + f1(st.best ? st.best.v : st.last.v) + '<small>' + esc(e.unit) + '</small></span>' + (st.isBest ? '<span class="best">⭐</span>' : '') + '</div>').join('') + '<p class="sub">가장 좋은 기록이에요</p></section>';
-    h += '<div id="prepCard">' + prepCard() + '</div>';
+    // 📊 나의 리포트 — 2026-11-16 사용자: 심사 칸을 없애고 리포트로. 심사 결과 + 기네스 측정 기록(달마다 세부는 빼고 가장 좋은 기록만)
+    h += reportCard();
     // 미션 (학부모와 같이 해요 / 제자 혼자 해요 / 선범단)
     const td = today;
     h += '<section class="card" id="hwCard"><h2 class="lnk" id="hwAll">✅ 미션<small>' + (hw.length > 2 ? '모두 ' + hw.length + '개 ›' : '보기 ›') + '</small></h2>' + (hw.length ? hw.slice(0, 2).map(hwRow).join('') : '<p class="sub">지금 미션이 없어요</p>') + '</section>'; // 2026-11-16: 홈엔 두 개만, 누르면 새 창
@@ -544,7 +551,7 @@
     return '<section class="card log"><h2>나의 ' + L.mon + '월 수련 로그<button class="dr" id="logCal">' + ymd + '.01 ~ ' + ymd + '.' + L.last + ' ›</button></h2><div class="lg2"><button class="rg" id="logCal2" aria-label="달력"><svg viewBox="0 0 120 120">' + ring(52, L.pct.a, DLG[0][2]) + ring(40, L.pct.p, DLG[1][2]) + ring(28, L.pct.m, DLG[2][2]) + '</svg><img src="../img/lion-white.png" alt=""></button>' +
       '<div class="ri">' + DLG.map(([k, n, c]) => '<button data-logc><b><i style="border-color:' + c + '">' + (td[k] ? '✓' : '') + '</i>' + n + ' ›</b><span class="ss' + (L.pct[k] >= 100 ? ' on' : '') + '">★ SUCCESS ★</span><em>' + L.pct[k] + '%</em><small>' + sub[k] + '</small></button>').join('') + '</div></div>' +
       '<div class="dck"><small>오늘 ' + md(D.today) + ' · 내가 체크해요</small>' + DLG.slice(1).map(([k, n, c, ic]) => '<button data-dc="' + k + '" class="' + (td[k] ? 'on' : '') + '" style="--c:' + c + '"><i>' + (td[k] ? '✓' : ic) + '</i><b>' + n + '</b><small>' + (td[k] ? '오늘 했어요! 🔥 ' + streakOf(k) + '일 연속' : DHOW[k]) + '</small></button>').join('') +
-      '<div class="dca' + (td.a ? ' on' : '') + '"><i>' + (td.a ? '✓' : '🥋') + '</i>' + (td.a ? '오늘 도장에 왔어요!' : '도장 출석은 태블릿에서 저절로 체크돼요') + '</div></div></section>';
+      '<div class="dca' + (td.a ? ' on' : '') + '"><i>' + (td.a ? '✓' : '🥋') + '</i>' + (td.a ? '오늘 도장에 왔어요!' : '도장 출석은 사범님이 출석부에 체크하면 저절로 돼요') + '</div></div></section>';
   }
   function logCal(ym) { // 달력 — 날마다 동그라미 3개 (출석 · 연습 · 바른 생활), 어제까지는 지난날도 체크 가능
     ym = ym || D.today.slice(0, 7);
@@ -624,6 +631,14 @@
     const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el);
   }
   // ── 📝 이번 달 심사 준비 (웅변 원고 · 영어 문장 · 내 띠 품새 영상) ──
+  function reportCard() {
+    const EX = (D.exams || []).slice(-3).reverse(), RL = (D.events || []).map(e => ({ e, st: evStat(e, D.rec) })).filter(x => x.st && x.st.last);
+    if (!EX.length && !RL.length) return '';
+    const exT = ex => ex.absent ? '쉬었어요' : ex.pass ? (ex.nb ? esc(ex.nb) + ' 합격 🎉' : '합격 👏') : '다음에 다시 도전 💪';
+    return '<section class="card rep"><h2>📊 나의 리포트</h2>' +
+      (EX.length ? '<h3>🏅 심사 결과</h3>' + EX.map(ex => '<div class="rl"><b>' + (+ex.month.slice(5)) + '월 심사</b><span class="rv' + (ex.pass && !ex.absent ? ' ok' : '') + '">' + exT(ex) + '</span></div>').join('') : '') +
+      (RL.length ? '<h3>🏆 기네스 기록</h3>' + RL.map(({ e, st }) => '<div class="rl"><b>' + esc(e.name) + '</b><span class="v">' + f1(st.best ? st.best.v : st.last.v) + '<small>' + esc(e.unit) + '</small></span>' + (st.isBest ? '<span class="best">⭐</span>' : '') + '</div>').join('') + '<p class="sub">가장 좋은 기록이에요</p>' : '') + '</section>';
+  }
   function prepCard() {
     const p = D.prep, ex = (D.exams || [])[(D.exams || []).length - 1];
     const res = ex ? '<div class="exr">🏅 ' + (+ex.month.slice(5)) + '월 심사 · ' + (ex.absent ? '쉬었어요' : ex.pass ? (ex.nb ? esc(ex.nb) + ' 축하축하! 🎉' : '합격! 잘했어요 👏') : '다음 심사에서 다시 도전해요 💪') + '</div>' : '';
@@ -784,7 +799,7 @@
     const bd = e.target.closest('[data-bd]'); if (bd) return badgeOne(bd.dataset.bd);
     if (e.target.closest('#hwB,#hwAll')) return hwPage();
     const en = e.target.closest('[data-env]'); if (en) return envOpen(en.dataset.env);
-    if (e.target.closest('#prepB')) { const c = $('prepCard'); if (c && c.innerHTML.trim()) return c.scrollIntoView({ behavior: 'smooth', block: 'start' }); return alert('이번 달 심사 준비가 아직 올라오지 않았어요'); }
+    if (e.target.closest('#prepB')) { const p = D.prep; if (p && !p.closed && (p.topic || p.notes.speech || p.notes.eng || p.vid || p.date)) return page('📝 심사 준비', prepCard()); return alert('이번 달 심사 준비가 아직 올라오지 않았어요'); } // 2026-11-16: 홈 심사 칸을 없애서 새 창으로
     if (e.target.closest('#goalB')) return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!');
     if (e.target.closest('#pledB')) return textSheet('⭐ 나의 선범단 다짐', 'pledge', 200, '예: 동생들에게 먼저 인사하고, 모르는 친구를 도와줄게요');
     if (e.target.closest('#allB')) return allBadgeSheet();
