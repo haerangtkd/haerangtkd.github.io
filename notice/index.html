@@ -158,6 +158,10 @@
   .ph-grid button{border:0;padding:0;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#EEE9E4;position:relative}
   .ph-grid.n1 button{aspect-ratio:4/3}
   .ph-grid img{width:100%;height:100%;object-fit:cover;display:block}
+  .ph-grid .pck{display:none;position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25);color:transparent;font-style:normal;font-size:14px;font-weight:900;place-items:center}
+  .ph-grid.picking .pck{display:grid}.ph-grid.picking button.on .pck{background:var(--brand);color:#fff}.ph-grid.picking button.on img{opacity:.75}
+  .phbar{display:flex;gap:8px;margin-top:12px;position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));z-index:3}.phbar button{flex:1;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 6px;font-size:15px;font-weight:700;color:var(--ink,#1C1A19);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .phbar button.pri{flex:1.6;background:var(--brand);border-color:var(--brand);color:#fff}.phbar button:disabled{opacity:.45}
   .ph-grid .more{position:absolute;inset:0;background:rgba(0,0,0,.45);color:#fff;font-size:22px;font-weight:700;display:grid;place-items:center}
   .viewer{position:fixed;inset:0;background:#000;z-index:60;display:flex;flex-direction:column}
   .viewer .vt{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 10px 10px;color:#fff;font-size:15px}
@@ -614,9 +618,9 @@
 </div>
 
 <div class="viewer" id="viewer" hidden>
-  <div class="vt"><button id="vClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button><span id="vCount"></span><span style="width:44px"></span></div>
+  <div class="vt"><button id="vClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button><span id="vCount"></span><button id="vSave" aria-label="저장" style="width:auto;padding:0 10px;font-size:15px;font-weight:700">저장</button></div>
   <div class="vi" id="vImgWrap"><img id="vImg" alt=""></div>
-  <div class="vh">옆으로 넘기면 다음 사진 · 길게 눌러 저장</div>
+  <div class="vh">옆으로 넘기면 다음 사진 · 위 '저장'으로 사진첩에 저장</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1211,10 +1215,11 @@
   }
   let curPost = null;
   function openPost(x) { curPost = x; PAGES.post = TYPE_LABEL[x.t] || '소식'; openPage('post'); }
-  function albumCard(a) {
-    const n = a.photos.length, shown = a.photos.slice(0, 6);
+  function albumCard(a, full) {
+    const n = a.photos.length, shown = full ? a.photos : a.photos.slice(0, 6);
     return '<section class="album" data-pid="' + (a.id | 0) + '"><div class="tags"><span class="tag t-album">앨범</span></div><h3>' + esc(a.title) + '</h3><div class="meta">' + dateText(a.at) + ' · 사진 ' + n + '장</div>' + (a.body ? '<p>' + esc(a.body) + '</p>' : '') +
-      '<div class="ph-grid n' + Math.min(n, 3) + '">' + shown.map((p, i) => '<button data-a="' + (a.id | 0) + '" data-i="' + i + '"><img data-ph="' + esc(p) + '" alt="">' + (i === 5 && n > 6 ? '<span class="more">+' + (n - 6) + '</span>' : '') + '</button>').join('') + '</div></section>';
+      '<div class="ph-grid n' + Math.min(n, 3) + '">' + shown.map((p, i) => '<button data-a="' + (a.id | 0) + '" data-i="' + i + '"><img data-ph="' + esc(p) + '" alt="">' + (!full && i === 5 && n > 6 ? '<span class="more">+' + (n - 6) + '</span>' : '') + (full ? '<i class="pck">✓</i>' : '') + '</button>').join('') + '</div>' +
+      (full && n ? '<div class="phbar" id="phBar"><button data-phsel>사진 고르기</button><button class="pri" data-phall>📥 모두 저장 (' + n + '장)</button></div>' : '') + '</section>';
   }
 
   // ── 수련 계획 탭(일정만) + 새 창 '알림장 · 행사 · 일정'(분류: 전체 · 알림장 · 행사 신청 · 일정) (2026-11-13) ──
@@ -1763,12 +1768,21 @@
     },
     post() { // 소식 자세히 (2026-11-13)
       const x = curPost; if (!x) return closePage();
-      body(x.t === 'album' ? albumCard(x) : postCard(x, { kids: x.t === 'journal', type: true }));
+      body(x.t === 'album' ? albumCard(x, true) : postCard(x, { kids: x.t === 'journal', type: true }));
+      let pick = null; // 2026-11-16 사용자: 앨범 사진을 골라서 한 번에 저장
+      const bar = () => { const b = $('phBar'), g = $('pBody').querySelector('.ph-grid'); if (!b || !g) return; g.classList.toggle('picking', !!pick);
+        g.querySelectorAll('button').forEach(el => el.classList.toggle('on', !!pick && pick.has(+el.dataset.i)));
+        b.innerHTML = pick ? '<button data-phcx>취소</button><button data-phpall>' + (pick.size === x.photos.length ? '모두 빼기' : '모두 고르기') + '</button><button class="pri" data-phsave' + (pick.size ? '' : ' disabled') + '>📥 ' + pick.size + '장 저장</button>' : '<button data-phsel>사진 고르기</button><button class="pri" data-phall>📥 모두 저장 (' + x.photos.length + '장)</button>'; };
       const p = $('pBody').querySelector('.post p.clip'); if (p) p.classList.remove('clip');
       loadThumbs();
       $('pBody').onclick = e => {
         const a = e.target.closest('[data-ack]'); if (a) return ackPost(+a.dataset.ack, a).then(() => { if (x.acked && curPost === x && !$('v-page').hidden) RENDER.post(); });
-        const ph = e.target.closest('.ph-grid button'); if (ph) openViewer(x.photos, +ph.dataset.i);
+        if (e.target.closest('[data-phsel]')) { pick = new Set(); return bar(); }
+        if (e.target.closest('[data-phcx]')) { pick = null; return bar(); }
+        if (e.target.closest('[data-phpall]')) { pick = pick.size === x.photos.length ? new Set() : new Set(x.photos.map((_, i) => i)); return bar(); }
+        if (e.target.closest('[data-phall]')) return savePhotos(x.photos, x.title);
+        const sv = e.target.closest('[data-phsave]'); if (sv) { const ids = [...pick].sort((a, b) => a - b).map(i => x.photos[i]); sv.disabled = true; return savePhotos(ids, x.title).then(() => { pick = null; bar(); }); }
+        const ph = e.target.closest('.ph-grid button'); if (ph) { if (pick) { const i = +ph.dataset.i; pick.has(i) ? pick.delete(i) : pick.add(i); return bar(); } openViewer(x.photos, +ph.dataset.i); }
       };
     },
     async fee() { // 2026-11-13 사용자 결정: 회비 납부 여부는 학부모 앱에 보이지 않음 (장부에서 관리, 매달 5일 미납 가정에만 안내 알림)
@@ -1785,6 +1799,19 @@
     return photoCache.get(key);
   }
   function loadThumbs() { document.querySelectorAll('img[data-ph]').forEach(async img => { img.src = await photoUrl(img.dataset.ph, 'thumb'); }); }
+  // 사진 저장 (2026-11-16): 휴대폰 = 공유 창 한 번에 → '이미지 n개 저장'(아이폰) / 갤러리·파일, 공유가 안 되면 하나씩 내려받기
+  let saving = false;
+  async function savePhotos(ids, title) {
+    if (saving || !ids.length) return; saving = true; toast('사진 ' + ids.length + '장을 준비하고 있어요…');
+    try {
+      const files = []; const base = String(title || '해랑경희').replace(/[\\/:*?"<>|]/g, '').slice(0, 30) || '해랑경희';
+      for (let i = 0; i < ids.length; i++) { const u = await photoUrl(ids[i], 'full'); if (!u) continue; const bin = atob(u.split(',')[1]), a = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) a[k] = bin.charCodeAt(k); files.push(new File([a], base + '_' + (i + 1) + '.jpg', { type: 'image/jpeg' })); }
+      if (!files.length) { toast('사진을 불러오지 못했어요. 잠시 뒤에 다시 해 주세요'); return; }
+      if (navigator.canShare && navigator.canShare({ files })) { try { await navigator.share({ files }); return; } catch (err) { if (err && err.name === 'AbortError') return; } }
+      for (const f of files) { const url = URL.createObjectURL(f), l = document.createElement('a'); l.href = url; l.download = f.name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000); await new Promise(r => setTimeout(r, 350)); }
+      toast('사진 ' + files.length + '장을 내려받았어요');
+    } finally { saving = false; }
+  }
   let vList = [], vIdx = 0;
   function openViewer(list, i) { vList = list; vIdx = i; $('viewer').hidden = false; showV(); }
   async function showV() {
@@ -1793,6 +1820,7 @@
     const u = await photoUrl(vList[i], 'full'); if (u && i === vIdx) $('vImg').src = u;
   }
   $('vClose').onclick = () => { $('viewer').hidden = true; };
+  $('vSave').onclick = () => savePhotos([vList[vIdx]], '해랑경희');
   let sx = 0;
   $('vImgWrap').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
   $('vImgWrap').addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) { const n = vIdx + (dx < 0 ? 1 : -1); if (n >= 0 && n < vList.length) { vIdx = n; showV(); } } });
