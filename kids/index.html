@@ -555,7 +555,7 @@
     [[17.5, '삼산의'], [18.0, '무인들']], [[20.2, '해!'], [20.6, '랑!'], [21.0, '경!'], [21.4, '희!']], [[21.8, '울산의'], [22.9, '자랑']], [[23.8, '해!'], [24.2, '랑!'], [24.6, '경!'], [25.0, '희!']], [[25.4, '다섯,'], [26.2, '여섯,'], [27.0, '일곱,'], [27.8, '여덟']], [[28.6, '안되면'], [29.3, '될때까지']], [[31.2, '땀'], [31.8, '흘려'], [32.5, '부딪쳐']], [[34.4, '우리는'], [35.4, '계속'], [36.1, '도전해']], [[38.2, '해!'], [38.6, '랑!'], [39.0, '경!'], [39.4, '희!']]];
   const SONG = SONGW.map(l => [l[0][0], l.map(w => w[1]).join(' ')]);
   let songA = null, songRaf = 0;
-  const SONG_LEAD = 0.4; // 영상 자막이 목소리보다 0.4초쯤 늦게 밝아져서 그만큼 앞당겨 보여 줌 (11/16 사용자)
+  const SONG_LEAD = 0.6; // 영상 자막이 목소리보다 0.4초쯤 늦게 밝아져서 그만큼 앞당겨 보여 줌 (11/16 사용자). 휴대폰에서 화면이 소리보다 0.2초쯤 늦어서(사용자 화면 녹화로 잼) 0.2초 더
   const songAu = () => { if (!songA) { songA = new Audio('song.m4a'); songA.preload = 'none'; songA.addEventListener('timeupdate', songTick); songA.addEventListener('play', songTick); songA.addEventListener('pause', songTick); songA.addEventListener('ended', () => { songA.currentTime = 0; songTick(); }); } return songA; };
   const songIdx = t => { let i = -1; SONG.forEach((x, k) => { if (t >= x[0]) i = k; }); return i; };
   function songTick() {
