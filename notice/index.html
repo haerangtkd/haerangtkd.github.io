@@ -598,6 +598,7 @@
       <button type="button">할머니</button><button type="button">할아버지</button>
       <button type="button">고모</button><button type="button">이모</button>
     </div>
+    <p class="note">어머니·아버지는 한 분씩만 가입할 수 있어요. 두 분 휴대폰 뒷자리가 같아도 본인 관계를 눌러 주세요.</p>
     <label class="f">휴대폰 번호 뒷자리 4자리</label>
     <input class="ph" id="ph" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="1234" autocomplete="off">
     <p class="note" id="phNote"><b class="must">도장에 등록된 보호자 휴대폰 번호의 뒷자리여야 가입돼요.</b> 제자가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원해요.</p>
@@ -753,6 +754,7 @@
       const subscription = s ? null : await subscribePush();
       const j = await post('/join', { children, relation: rel, phone4: ph, subscription, invite });
       if (!j.ok) { if (j.needInvite) { $('invMsg').className = 'note bad'; $('invMsg').textContent = j.error; $('inv').focus(); }
+        else if (j.relBad || j.relDup) { $('rel').scrollIntoView({ block: 'center', behavior: 'smooth' }); } // 관계를 다시 고르게 (2026-11-16)
         else if (/뒷자리/.test(j.error || '')) { $('ph').classList.add('bad'); $('phNote').className = 'note phbad'; $('phNote').textContent = j.error; $('ph').focus(); } // 등록된 번호와 다름 → 빨갛게
         throw new Error(j.error); }
       if (!s) store.set(INVK, null);
@@ -1759,6 +1761,7 @@
         return '<div class="kinfo"><h3>' + esc(k.name) + '</h3>' +
           '<div class="r"><span>출생연도</span><b>' + (by ? by + '년생' : '도장에 등록 전') + '</b></div>' +
           '<div class="r"><span>수련 요일</span><b>' + ((k.days || []).length ? esc(k.days.join('·')) : '도장에 등록 전') + (tmp ? '<small>임시 변경: ' + esc(tmp) + '</small>' : '') + '</b></div>' +
+          '<div class="r"><span>등원·하원 알림</span><b>' + (k.attMe ? '이 휴대폰으로 와요' : esc(k.attRel || '다른 보호자') + ' 휴대폰으로 가요') + '<small>한 분에게만 가요. 바꾸려면 도장에 말해 주세요</small></b></div>' +
           '<div class="r"><span>회비</span><b>' + (f ? won(f.base - (f.disc || 0)) + (f.disc ? '<small>가족 할인 ' + won(f.disc) + ' (기본 ' + won(f.base) + ')</small>' : '') : '도장에 확인해 주세요') + '</b></div>' +
           '<button class="dreq" data-dreq="' + esc(k.name) + '" data-days="' + esc((k.days || []).join(',')) + '">수련 요일 변경 요청하기 ›</button></div>';
       }).join('') +

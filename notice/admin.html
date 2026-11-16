@@ -1072,7 +1072,7 @@
   // ═════ 명단 ═════
   function renderRoster() {
     $('roster').innerHTML = kids.length ? kids.map((k, i) => '<li class="rs"><div class="rh"><b>' + esc(k.name) + '</b>' + (k.status ? ' <em class="kst' + (k.status === '퇴관' ? ' out' : '') + '">' + esc(k.status) + '</em>' : '') + '<span class="codes">출결번호 ' + (k.codes.length ? k.codes.map(esc).join(', ') : '없음') + '</span><button data-i="' + i + '">수정</button></div>' +
-      (k.guardians.length ? k.guardians.map(g => '<div class="gd"><span>' + esc(g.rel) + ' · ' + esc(g.ph) + (g.push ? '' : ' · 알림 꺼짐') + '</span><button data-g="' + g.id + '" data-n="' + esc(k.name) + '" data-r="' + esc(g.rel) + '">등록 해제</button></div>').join('') : '<div class="gd"><span class="hint">가입한 보호자 없음</span></div>') + '</li>').join('')
+      (k.guardians.length ? k.guardians.map(g => '<div class="gd"><span>' + esc(g.rel) + ' · ' + esc(g.ph) + (g.push ? '' : ' · 알림 꺼짐') + (g.att && k.guardians.length > 1 ? ' · 🔔 출결 알림' : '') + '</span><button data-g="' + g.id + '" data-n="' + esc(k.name) + '" data-r="' + esc(g.rel) + '">등록 해제</button></div>').join('') : '<div class="gd"><span class="hint">가입한 보호자 없음</span></div>') + '</li>').join('')
       : '<li class="empty">아직 명단이 없습니다. 학부모님 가입을 승인하면 자동으로 들어옵니다.</li>';
   }
   $('roster').onclick = async e => {
