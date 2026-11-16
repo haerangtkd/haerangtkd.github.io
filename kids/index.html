@@ -201,7 +201,7 @@
   .r2b{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.r2b button,.goalr{display:flex;align-items:center;gap:8px;border:1.5px solid rgba(229,72,77,.45);background:#121214;border-radius:14px;padding:13px 14px;font-size:15.5px;font-weight:700;text-align:left}
   .r2b i,.goalr i{font-style:normal}.r2b em{margin-left:auto;font-style:normal;color:var(--muted);font-size:18px}
   .song .sgw{display:flex;align-items:center;gap:14px;margin-top:4px}.sgp{flex:none;width:58px;height:58px;border:0;border-radius:50%;background:var(--acc);color:#fff;font-size:22px;font-weight:900;box-shadow:0 4px 16px rgba(229,72,77,.35)}
-  .sgl{flex:1;min-width:0}.sgl b{display:block;font-size:20px;font-weight:900;line-height:1.35;color:#CFCAC4;transition:color .2s,transform .2s}.sgl b.on{color:#fff;transform:scale(1.03);transform-origin:left}.sgl small{display:block;font-size:14px;color:var(--muted);margin-top:3px;min-height:1.2em}
+  .sgl{flex:1;min-width:0}.sgl b{display:block;font-size:20px;font-weight:900;line-height:1.35}.sgl b .w{color:#77736F;transition:color .12s}.sgl b .w.on{color:#fff}.sgl small{display:block;font-size:14px;color:var(--muted);margin-top:3px;min-height:1.2em}
   .song .pb{height:9px;margin-top:14px;cursor:pointer}.sgall{border:0;background:none;color:var(--muted);font-size:14px;padding:10px 0 0}
   .sgly{font-size:18px;line-height:1.9;text-align:center;font-weight:700;color:#CFCAC4;margin:6px 0 4px}.sgly .on{color:var(--gold)}
   .goalr{width:100%;margin-top:10px}.goalr span{color:#D6D2CD;flex:none}.goalr b{flex:1;font-weight:700;font-size:15.5px;margin-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goalr b.no{color:var(--muted)}.goalr i{color:var(--ink);font-size:17px}
@@ -550,19 +550,23 @@
     return h;
   }
   // 🎵 해랑경희 노래 (2026-11-16 사용자 영상): 누르면 노래 + 가사가 소리에 맞춰 한 줄씩. 화면을 다시 그려도 노래는 이어짐(audio는 화면 밖)
-  const SONG = [[0, '삼산의 무인들'], [2.5, '해! 랑! 경! 희!'], [4.5, '울산의 자랑'], [6.5, '해! 랑! 경! 희!'], [9, '하나, 둘, 셋, 넷'], [11, '지치지 않는 열정'], [13.5, '포기 없는 우리 오늘도 달린다'],
-    [18, '삼산의 무인들'], [20, '해! 랑! 경! 희!'], [22, '울산의 자랑'], [24, '해! 랑! 경! 희!'], [26, '다섯, 여섯, 일곱, 여덟'], [28.5, '안되면 될때까지 땀 흘려'], [32, '부딪쳐 우리는 계속 도전해'], [36.5, '해! 랑! 경! 희!']];
-  let songA = null;
+  // 시각은 사용자가 보내 준 영상 자막이 한 낱말씩 밝아지는 때를 0.1초 단위로 재서 맞춤 (11/16 '싱크가 안 맞아')
+  const SONGW = [[[0.3, '삼산의'], [1.0, '무인들']], [[2.6, '해! 랑! 경! 희!']], [[4.2, '울산의'], [5.4, '자랑']], [[6.6, '해! 랑! 경! 희!']], [[8.0, '하나,'], [8.2, '둘, 셋, 넷']], [[9.4, '지치지'], [10.4, '않는'], [11.2, '열정']], [[12.5, '포기'], [13.3, '없는'], [13.7, '우리']], [[16.0, '오늘도'], [17.2, '달린다']],
+    [[18.2, '삼산의'], [18.8, '무인들']], [[20.2, '해! 랑! 경! 희!']], [[21.8, '울산의'], [22.9, '자랑']], [[23.8, '해! 랑! 경! 희!']], [[25.4, '다섯,'], [26.2, '여섯,'], [27.0, '일곱,'], [27.8, '여덟']], [[28.6, '안되면'], [29.3, '될때까지']], [[30.8, '땀'], [31.8, '흘려'], [32.5, '부딪쳐']], [[34.4, '우리는'], [35.4, '계속'], [36.1, '도전해']], [[38.2, '해! 랑! 경! 희!']]];
+  const SONG = SONGW.map(l => [l[0][0], l.map(w => w[1]).join(' ')]);
+  let songA = null, songRaf = 0;
   const songAu = () => { if (!songA) { songA = new Audio('song.m4a'); songA.preload = 'none'; songA.addEventListener('timeupdate', songTick); songA.addEventListener('play', songTick); songA.addEventListener('pause', songTick); songA.addEventListener('ended', () => { songA.currentTime = 0; songTick(); }); } return songA; };
   const songIdx = t => { let i = -1; SONG.forEach((x, k) => { if (t >= x[0]) i = k; }); return i; };
   function songTick() {
     const a = songA, b = $('songP'); if (!b) return; const t = a ? a.currentTime : 0, playing = a && !a.paused, i = songIdx(t);
     b.textContent = playing ? '❚❚' : '▶'; b.setAttribute('aria-label', playing ? '멈추기' : '노래 듣기');
     const bar = $('songBar'); if (bar) bar.style.width = (a && a.duration ? t / a.duration * 100 : 0) + '%';
-    const l = $('songL'); if (l) { const cur = playing || t > 0 ? (i >= 0 ? SONG[i][1] : '♪') : SONG[0][1], nx = playing || t > 0 ? (SONG[i + 1] ? SONG[i + 1][1] : '') : SONG[1][1]; l.innerHTML = '<b' + (playing ? ' class="on"' : '') + '>' + esc(cur) + '</b><small>' + esc(nx) + '</small>'; }
+    const l = $('songL'); if (l) { const started = playing || t > 0, k = started ? Math.max(i, 0) : 0, nx = SONG[k + 1] ? SONG[k + 1][1] : '';
+      const html = '<b>' + SONGW[k].map(w => '<span class="w' + (started && t >= w[0] ? ' on' : '') + '">' + esc(w[1]) + '</span>').join(' ') + '</b><small>' + esc(nx) + '</small>'; if (l._h !== html) { l._h = html; l.innerHTML = html; } }
+    if (playing && !songRaf) songRaf = requestAnimationFrame(() => { songRaf = 0; songTick(); });
   }
   function songCard() { setTimeout(songTick, 0); return '<section class="card song"><h2>🎵 해랑경희 노래<small>42초</small></h2><div class="sgw"><button id="songP" class="sgp" aria-label="노래 듣기">▶</button><div class="sgl" id="songL"></div></div><div class="pb" id="songSk"><b id="songBar" style="width:0"></b></div><button class="sgall" id="songAll">가사 모두 보기 ›</button></section>'; }
-  function songLyrics() { const a = songA, i = a ? songIdx(a.currentTime) : -1; sheet('<h3>🎵 해랑경희 노래</h3><div class="sgly">' + SONG.map((x, k) => (k === 7 ? '<br>' : '') + '<div' + (k === i && a && !a.paused ? ' class="on"' : '') + '>' + esc(x[1]) + '</div>').join('') + '</div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
+  function songLyrics() { const a = songA, i = a ? songIdx(a.currentTime) : -1; sheet('<h3>🎵 해랑경희 노래</h3><div class="sgly">' + SONG.map((x, k) => (k === 8 ? '<br>' : '') + '<div' + (k === i && a && !a.paused ? ' class="on"' : '') + '>' + esc(x[1]) + '</div>').join('') + '</div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
   // 수련 로그 — 매일 하는 것 3개 (2026-11-15 사용자: 매달 말고 매일): 도장 출석(태블릿·출석부 저절로) · 집에서 연습 · 바른 생활(제자가 직접 체크)
   const DLG = [['a', '도장 출석', '#E5484D', '🥋'], ['p', '집에서 연습', '#4C8DF6', '🏃'], ['m', '바른 생활', '#E3B341', '🙇']];
   const DHOW = { p: '품새·발차기·스트레칭 중 하나라도 10분 했으면 체크해요', m: '부모님께 인사하기·정리정돈처럼 오늘의 예절을 지켰으면 체크해요' };
