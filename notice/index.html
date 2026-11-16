@@ -1898,6 +1898,9 @@
       if (sub) post('/p/push', { subscription: sub.toJSON() }).catch(() => {});
     }
   }
+  // 앱을 열면 아이콘 숫자 지움 (서비스 워커가 알림을 받을 때마다 1씩 올림, 2026-11-16)
+  const badgeClear = () => { try { if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); caches.open('haerang-inbox').then(c => c.put('/notice/__badge', new Response('0'))).catch(() => {}); } catch (_) {} };
+  badgeClear(); document.addEventListener('visibilitychange', () => { if (!document.hidden) badgeClear(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && me() && !$('v-home').hidden && $('v-page').hidden) goHome(); });
   init().catch(e => { console.error(e); show('v-gate', 'g-unsupported'); });
 })();
