@@ -168,7 +168,7 @@ async function route(path, req, env) {
         envs: await kidEnvs(env, name), // 📩 봉투 (제자 앱엔 '준비가 되었어요! 가족과 상담해 보세요!' + 부모님 답장)
         evs: (await all(env, "SELECT title, kind, date FROM posts WHERE type = 'schedule' AND kind IN ('행사', '대회', '심사') AND date >= ? AND date <= ? ORDER BY date LIMIT 5", today, kstAdd(today, 30))),
         // 🎉 이벤트 탭 (2026-11-15): 도장 일정 (지난 60일 ~ 앞으로 180일) + 지금 신청 받는 행사 (신청은 학부모 앱에서)
-        sched: (await all(env, "SELECT title, kind, date, dend, body FROM posts WHERE type = 'schedule' AND date >= ? AND date <= ? ORDER BY date LIMIT 80", kstAdd(today, -60), kstAdd(today, 180))).map(x => ({ title: x.title, kind: x.kind || '', date: x.date, dend: x.dend || '', body: String(x.body || '').slice(0, 300) })),
+        sched: (await all(env, "SELECT title, kind, date, dend, body FROM posts WHERE type = 'schedule' AND date >= ? AND date <= ? ORDER BY date LIMIT 300", kstAdd(today, -400), kstAdd(today, 180))).map(x => ({ title: x.title, kind: x.kind || '', date: x.date, dend: x.dend || '', body: String(x.body || '').slice(0, 300) })), // 2026-11-16: 제자 앱 이벤트 달력에서 지난달도 (예전 60일 → 400일)
         tev: viaP ? [] : await teamSync(env, '/sync/events', { kids: [name] }).then(r => r.ok ? (r.events || []).map(e => ({ title: e.title, date: e.date || '', closeAt: e.close || '', desc: String(e.desc || '').slice(0, 300), prep: e.prep || '', free: !e.base && !(e.products || []).some(x => x.p), mine: !!(e.mine || []).some(m => m.kid === name && m.applied) })) : []).catch(() => []) });
     }
     if (path === '/k/prof') { // 프로필 꾸미기 · 대표 뱃지 3개 · 본 뱃지 (사진 대신 정해진 것 중에서 고르기)
