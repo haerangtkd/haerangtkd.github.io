@@ -787,6 +787,7 @@ HL.billLine = (st) => {
 HL.nextFeeMonth = (m, ym) => { let n = HL.addMonths(ym, 1); for (let i = 0; i < 24 && m.skip && m.skip[n]; i++) n = HL.addMonths(n, 1); return n; };
 
 /** 처음 결제 방식을 기준으로 채운다: 신규는 가입 당시, 기존 회원은 장부에 처음 입력된 회비 (금액이 다르면 마지막 수단에서 맞춘다) */
+HL.receiptNoFmt = (v) => { const p = String(v || ''); return /^01\d{8,9}$/.test(p) ? `${p.slice(0, 3)}-${p.slice(3, -4)}-${p.slice(-4)}` : p; };
 HL.methodName = (m) => (m.payMethod === '기타' ? (m.payMethodOther ? `기타:${m.payMethodOther}` : '') : (m.payMethod || ''));
 HL.payTemplate = (m, ctx, amount) => {
   const last = (ctx.entries || []).filter((e) => e.kind === 'fee' && e.memberId === m.id && !e.cancelled && (e.methods || []).length)
@@ -1574,6 +1575,7 @@ HL.newMemberDoc = (d, ctx, id) => {
     id, name: d.name, birthYear: d.birthYear || null, birthYearOther: d.birthYearOther || '', days: d.days || [], weeklyCount: d.weeklyCount || null, weeklyCountOther: d.weeklyCountOther || '',
     payday: d.payday || null, feeMode: d.feeMode || 'auto', customFee: d.customFee || null, customFeeMemo: d.customFeeMemo || '', customFees: {}, payMethod: d.payMethod || '', payMethodOther: d.payMethodOther || '',
     gender: d.gender === '남' || d.gender === '여' ? d.gender : '', familyId: d.familyId || null, joinDate: d.joinDate || null, joinFeePaid: !!d.joinFeePaid, status: d.status || '신규', memo: d.memo || '', legacyNote: d.legacyNote || '',
+    receipt: d.receipt === '○' || d.receipt === '×' ? d.receipt : '', receiptNo: String(d.receiptNo || '').replace(/\D/g, '').slice(0, 20), // 현금영수증 (2026-11-16, 관리자만 보임)
     origin: d.origin || (/엑셀/.test(d.source || '') ? 'import' : 'app'), importBatch: d.importBatch || null, review: Array.isArray(d.review) ? d.review : Object.values(d.review || {}), fees: {}, skip: {}, statusLog: { s0: { status: d.status || '신규', from: '0000-00-00', at } }, log: { h0: { at, by: ctx.by || '대표', type: '등록', after: d.source || '회원 등록' } }, createdAt: at, updatedAt: at,
   };
   if (d.status === '휴원' && d.joinDate) doc.statusLog.s0.from = '0000-00-00';
@@ -3161,6 +3163,7 @@ function openMember(id) {
       <dt>현재 회비</dt><dd>${bf.base == null ? '미정' : `${fmt(bf.base)}원`}${m.feeMode === 'custom' ? ` (기타 수강료${m.customFeeMemo ? `: ${esc(m.customFeeMemo)}` : ''})` : ''}</dd>
       <dt>결제방법</dt><dd>${esc(m.payMethod === '기타' ? m.payMethodOther || '기타' : m.payMethod || '-')}</dd>
       ${ulsanOf(m) ? `<dt>울산페이</dt><dd>${esc(ulsanParent(ulsanOf(m)))} · 카드 ${esc(ulsanCard(ulsanOf(m)))}${ulsanOf(m).memo ? ` · ${esc(ulsanOf(m).memo)}` : ''}</dd>` : (m.payMethod === '울산페이' ? '<dt>울산페이</dt><dd>명단에 없어요 (회원 탭 → 울산페이 명단에서 등록)</dd>' : '')}
+      ${App.mode === 'owner' ? `<dt>현금영수증</dt><dd>${m.receipt === '○' ? `○ 발급${m.receiptNo ? ` · ${esc(HL.receiptNoFmt(m.receiptNo))}` : ' · 번호 없음'}` : m.receipt === '×' ? '× 안 함' : '모름'}</dd>` : ''}
       <dt>가족</dt><dd>${fam && famLive(fam) ? `${esc(fam.name)} (${esc(famMembers)})${fam.decision && fam.decision !== 'auto' ? ` · ${{ keep: '할인 유지', stop: '할인 종료', pending: '결정 대기' }[fam.decision]}` : ''}` : '-'}</dd>
       <dt>가입일</dt><dd>${m.joinDate || '미정'} · 가입비 ${m.joinFeePaid ? '납부' : '미납/모름'}</dd>
       <dt>메모</dt><dd>${esc(m.memo || '-')}</dd>
@@ -3386,6 +3389,10 @@ function openMemberForm(m, opts) {
   const pmSel = h('select', { id: 'mfMethod' }, opt('', '선택'), ...HL.METHODS.map((x) => opt(x, x, d.payMethod === x)), opt('기타', '기타 (직접 입력)', pmOther));
   const pmIn = h('input', { type: 'text', placeholder: '결제방법', value: d.payMethodOther || '', hidden: !pmOther });
   pmSel.addEventListener('change', () => { pmIn.hidden = pmSel.value !== '기타'; });
+  // 현금영수증 ○/× + 번호 (2026-11-16 사용자 결정: 장부에만, 관리자만 보임)
+  const rcSel = h('select', { id: 'mfReceipt' }, opt('', '모름', !d.receipt), opt('○', '○ 발급', d.receipt === '○'), opt('×', '× 안 함', d.receipt === '×'));
+  const rcIn = h('input', { type: 'tel', inputmode: 'numeric', id: 'mfReceiptNo', placeholder: '현금영수증 번호 (휴대폰·사업자번호)', value: d.receiptNo || '', hidden: d.receipt !== '○' });
+  rcSel.addEventListener('change', () => { rcIn.hidden = rcSel.value !== '○'; });
   const fams = Object.values(App.data.families).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   const famOthers = sortedMembers().filter((x) => (!m || x.id !== m.id) && !x.familyId && HL.currentStatus(x, c.today) !== '퇴관');
   const famSel = h('select', { id: 'mfFamily' }, opt('', '없음'),
@@ -3472,7 +3479,7 @@ function openMemberForm(m, opts) {
     F('이름 *', name), F('출생연도 *', bySel, byIn), F('성별', gSel),
     h('div', { class: 'span2' }, F('수련 요일 (월~금)', dayBox)), F('주 횟수 *', wcSel, wcIn), F('가입일', jd),
     h('div', { class: 'span2 f' }, h('span', { class: 'sub', text: '현재 회비' }), h('div', { class: 'radios' }, h('label', {}, feeAuto, autoTxt), h('label', {}, feeCustom, h('span', { text: '기타 수강료 (직접 입력)' }))), customBox),
-    F('결제방법 *', pmSel, pmIn), F('가족', famSel), F(isNew ? '정기결제일 * (가입일과 같게, 수정 가능)' : '정기결제일 *', pdSel), F(isNew ? '회원 상태 (이미 다니던 학생은 재원)' : (stFree ? '회원 상태 (신규↔재원)' : '회원 상태 (휴원·퇴관·복귀는 "상태 변경"으로)'), stSel),
+    F('결제방법 *', pmSel, pmIn), App.mode === 'owner' ? F('현금영수증', rcSel, rcIn) : null, F('가족', famSel), F(isNew ? '정기결제일 * (가입일과 같게, 수정 가능)' : '정기결제일 *', pdSel), F(isNew ? '회원 상태 (이미 다니던 학생은 재원)' : (stFree ? '회원 상태 (신규↔재원)' : '회원 상태 (휴원·퇴관·복귀는 "상태 변경"으로)'), stSel),
     famPlanBox,
     h('label', { class: 'check span2' }, jf, h('span', { text: '가입비 납부' })), h('div', { class: 'span2' }, jfBox),
     isNew ? h('label', { class: 'check span2' }, ff, h('span', { text: '이번 달 회비도 지금 받음' })) : null, isNew ? h('div', { class: 'span2' }, ffBox) : null,
@@ -3516,6 +3523,7 @@ function openMemberForm(m, opts) {
     out.payday = pdSel.value ? Number(pdSel.value) : null;
     out.gender = gSel.value;
     out.payMethod = pmSel.value; out.payMethodOther = pmSel.value === '기타' ? pmIn.value.trim() : '';
+    if (App.mode === 'owner') { out.receipt = rcSel.value; out.receiptNo = rcSel.value === '○' ? rcIn.value.replace(/\D/g, '').slice(0, 20) : ''; } else { out.receipt = d.receipt || ''; out.receiptNo = d.receiptNo || ''; }
     out.familyId = famSel.value.startsWith('f:') ? famSel.value.slice(2) : null;
     out.linkMemberId = famSel.value.startsWith('m:') ? famSel.value.slice(2) : null;
     out.newFamily = null;
@@ -3609,7 +3617,7 @@ function openMemberForm(m, opts) {
       return;
     }
     const upd = { updatedAt: at, log: {}, review: [] };
-    const LABEL = { name: '이름', gender: '성별', birthYear: '출생연도', days: '수련 요일', weeklyCount: '주 횟수', weeklyCountOther: '주 횟수(기타)', payday: '결제일', feeMode: '회비 방식', customFee: '기타 수강료', customFeeMemo: '수강료 메모', payMethod: '결제방법', payMethodOther: '결제방법(기타)', familyId: '가족', joinDate: '가입일', joinFeePaid: '가입비 납부', memo: '메모', legacyNote: '기존 특이사항' };
+    const LABEL = { name: '이름', gender: '성별', birthYear: '출생연도', days: '수련 요일', weeklyCount: '주 횟수', weeklyCountOther: '주 횟수(기타)', payday: '결제일', feeMode: '회비 방식', customFee: '기타 수강료', customFeeMemo: '수강료 메모', payMethod: '결제방법', payMethodOther: '결제방법(기타)', receipt: '현금영수증', receiptNo: '현금영수증 번호', familyId: '가족', joinDate: '가입일', joinFeePaid: '가입비 납부', memo: '메모', legacyNote: '기존 특이사항' };
     let i = 0;
     for (const k of Object.keys(LABEL)) {
       const nv = k === 'familyId' ? famId : out[k];
