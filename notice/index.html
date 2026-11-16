@@ -577,11 +577,11 @@
       <div style="display:flex;gap:8px"><input class="ph" id="inv" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="off" style="flex:1;min-width:0"><button class="btn ghost" id="invPaste" type="button" style="width:auto;margin:0;padding:0 14px;white-space:nowrap">붙여넣기</button></div>
       <p class="note" id="invMsg">도장에서 받은 초대번호(큐알)를 넣어 주세요. 한 번호로 가입할 수 있는 휴대폰 수가 정해져 있어요.</p>
     </div>
-    <label class="f">아이 이름</label>
+    <label class="f">제자 이름</label>
     <div id="kids"></div>
     <button class="add" id="addKid" type="button">+ 형제·자매 추가</button>
     <p class="note">도장에 등록된 이름 그대로 적어 주세요.</p>
-    <label class="f">아이와의 관계</label>
+    <label class="f">제자와의 관계</label>
     <div class="rel" id="rel">
       <button type="button">엄마</button><button type="button">아빠</button>
       <button type="button">할머니</button><button type="button">할아버지</button>
@@ -589,7 +589,7 @@
     </div>
     <label class="f">휴대폰 번호 뒷자리 4자리</label>
     <input class="ph" id="ph" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="1234" autocomplete="off">
-    <p class="note" id="phNote"><b class="must">도장에 등록된 보호자 휴대폰 번호의 뒷자리여야 가입돼요.</b> 아이가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원해요.</p>
+    <p class="note" id="phNote"><b class="must">도장에 등록된 보호자 휴대폰 번호의 뒷자리여야 가입돼요.</b> 제자가 도장 입구 태블릿에서 이 번호를 누르고 등원·하원해요.</p>
     <button class="btn" id="joinBtn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
       <span>가입하고 알림 켜기</span>
@@ -731,8 +731,8 @@
   $('joinBtn').onclick = async () => {
     const children = [...$('kids').querySelectorAll('input')].map(i => i.value.replace(/\s+/g, '')).filter(Boolean);
     const ph = $('ph').value.replace(/\D/g, '');
-    if (!children.length) { toast('아이 이름을 적어 주세요'); return; }
-    if (!rel) { toast('아이와의 관계를 골라 주세요'); return; }
+    if (!children.length) { toast('제자 이름을 적어 주세요'); return; }
+    if (!rel) { toast('제자와의 관계를 골라 주세요'); return; }
     if (!/^\d{4}$/.test(ph)) { toast('휴대폰 번호 뒷자리 4자리를 적어 주세요'); $('ph').focus(); return; }
     const invite = me() ? '' : $('inv').value;
     if (!me() && invOk === false) { toast($('invMsg').textContent); $('inv').focus(); return; }
@@ -1721,7 +1721,7 @@
           '<div class="r"><span>회비</span><b>' + (f ? won(f.base - (f.disc || 0)) + (f.disc ? '<small>가족 할인 ' + won(f.disc) + ' (기본 ' + won(f.base) + ')</small>' : '') : '도장에 확인해 주세요') + '</b></div>' +
           '<button class="dreq" data-dreq="' + esc(k.name) + '" data-days="' + esc((k.days || []).join(',')) + '">수련 요일 변경 요청하기 ›</button></div>';
       }).join('') +
-        '<div class="kinfo"><div class="r"><span>관계</span><b>' + esc(j.rel || '') + '</b></div><div class="r"><span>번호 뒷자리</span><b>' + esc(j.ph || '') + '<small>태블릿에서 아이가 누르는 번호예요</small></b></div></div>' +
+        '<div class="kinfo"><div class="r"><span>관계</span><b>' + esc(j.rel || '') + '</b></div><div class="r"><span>번호 뒷자리</span><b>' + esc(j.ph || '') + '<small>태블릿에서 제자가 누르는 번호예요</small></b></div></div>' +
         '<p class="note" style="margin:12px 4px">바꿀 것이 있으면 도장에 알려 주세요.</p>');
       $('pBody').onclick = e => { const b = e.target.closest('[data-dreq]'); if (b) dayReqSheet(b.dataset.dreq, (b.dataset.days || '').split(',').filter(Boolean)); };
     },

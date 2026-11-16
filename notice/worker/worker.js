@@ -221,11 +221,15 @@ async function route(path, req, env) {
     const ph = String(b.phone4 || '').replace(/\D/g, '');
     if (!kids.length || !rel || ph.length !== 4) return json({ ok: false, error: '아이 이름, 관계, 전화번호 뒷자리를 확인해 주세요' }, 400);
     // 2026-11-13 사용자 결정: 도장(업무 앱 원생 정보)에 등록된 보호자 번호 뒷자리와 같아야 가입 (등록된 번호가 없는 아이는 그대로 받고 관리자가 확인)
-    const tails = await kidPhoneTails(env, kids);
-    if (tails.size && !tails.has(ph)) return json({ ok: false, error: '도장에 등록된 보호자 휴대폰 번호 뒷자리와 달라요. 다른 번호라면 도장에 알려 주세요' }, 400);
+    // 2026-11-16 테스트: 뒷자리 확인은 초대번호(새 가입) 또는 로그인(정보 수정) 뒤에만 — 초대번호 없이 뒷자리가 맞는지 알아낼 수 없게, 틀리면 잠금 횟수에 넣음
+    const phKey = 'ph:' + (req.headers.get('cf-connecting-ip') || 'x');
+    const phCheck = async () => { const lu = await lockUntil(env, phKey); if (lu) return json({ ok: false, error: lockText(lu) }, 429);
+      const tails = await kidPhoneTails(env, kids); if (tails.size && !tails.has(ph)) return json({ ok: false, error: failText('도장에 등록된 보호자 휴대폰 번호 뒷자리와 달라요. 다른 번호라면 도장에 알려 주세요', await failAdd(env, phKey)) }, 400);
+      return null; };
     const sub = b.subscription && b.subscription.endpoint && /^https:\/\//.test(b.subscription.endpoint) && b.subscription.keys ? b.subscription : null;
     let p = b.token ? await one(env, 'SELECT * FROM parents WHERE tok = ?', String(b.token)) : null;
     if (p) {
+      const pe = await phCheck(); if (pe) return pe;
       const same = p.rel === rel && p.ph === ph && sameList(J(p.kids, []), kids);
       await run(env, 'UPDATE parents SET kids = ?, rel = ?, ph = ?, ok = ?, ep = COALESCE(?, ep), p256 = COALESCE(?, p256), auth = COALESCE(?, auth) WHERE id = ?',
         JSON.stringify(kids), rel, ph, same ? p.ok : 0, sub ? sub.endpoint : null, sub ? sub.keys.p256dh : null, sub ? sub.keys.auth : null, p.id);
@@ -239,8 +243,11 @@ async function route(path, req, env) {
       if (!code) return json({ ok: false, error: '도장에서 받은 초대번호를 넣어 주세요', needInvite: true });
       if (sub) await run(env, 'DELETE FROM parents WHERE ep = ? AND ok = 0', sub.endpoint); // 같은 휴대폰이 다시 신청하면 자리를 먼저 비움
       const r = await checkInvite(env, req, code); if (!r.ok) return json({ ...r, needInvite: true });
+      const ik = J(r.inv.kids, []); // 초대번호는 그 가정 제자만 (2026-11-16 테스트: 다른 가정 번호로 가입되던 것)
+      if (ik.length && kids.some(k => !ik.includes(k))) return json({ ok: false, error: '이 초대번호로는 ' + ik.join('·') + ' 제자만 가입할 수 있어요. 제자 이름을 확인해 주세요', needInvite: true });
       inv = code;
     }
+    { const pe = await phCheck(); if (pe) return pe; }
     if (sub) await run(env, 'DELETE FROM parents WHERE ep = ?', sub.endpoint); // 같은 휴대폰의 예전 등록 정리
     const id = rid(8), tok = rid(16);
     await run(env, 'INSERT INTO parents (id, tok, kids, rel, ph, ok, created, ep, p256, auth, inv) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)',
@@ -270,7 +277,8 @@ async function route(path, req, env) {
     if (path === '/p/ack') { // '확인했어요' (읽음도 같이 남김)
       if (!p.ok) return json({ ok: false, error: '도장 확인 후에 누를 수 있어요' });
       const id = b.id | 0, now = Date.now();
-      if (!(await one(env, 'SELECT id FROM posts WHERE id = ? AND ask = 1', id))) return json({ ok: false, error: '지워진 게시물이에요' });
+      const ap = await one(env, 'SELECT id, target FROM posts WHERE id = ? AND ask = 1', id); if (!ap) return json({ ok: false, error: '지워진 게시물이에요' });
+      { const tg = J(ap.target, []); if (tg.length && !tg.some(k => myKids.includes(k))) return json({ ok: false, error: '지워진 게시물이에요' }); } // 받는 가정만 (2026-11-16 테스트)
       await env.DB.batch([q(env, 'INSERT OR IGNORE INTO acks (post, parent, at) VALUES (?, ?, ?)', id, p.id, now), q(env, 'INSERT OR IGNORE INTO reads (post, parent, at) VALUES (?, ?, ?)', id, p.id, now)]);
       return json({ ok: true, at: now });
     }
@@ -311,7 +319,7 @@ async function route(path, req, env) {
       return json(out);
     }
     // 여기부터는 관장님 승인 후에만
-    if (!p.ok) return json({ ok: false, error: '관장님 승인 후에 볼 수 있습니다', pending: true, me });
+    if (!p.ok) return json({ ok: false, error: '도장에서 확인이 끝나면 볼 수 있어요', pending: true, me });
     if (path === '/p/journal') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'journal', myKids, 100), p.id, myKids) });
     if (path === '/p/reply') { // 📩 봉투 답장: 참가·불참 (바꿀 수 있음)
       const id = b.id | 0, kid = String(b.kid || ''), ans = b.ans === 'yes' ? 'yes' : b.ans === 'no' ? 'no' : '';
@@ -523,7 +531,7 @@ async function route(path, req, env) {
     if (path === '/sync/staff-members') return json(await teamSync(env, '/sync/members', {}));
     if (path === '/sync/staff-tok') return json(await teamSync(env, '/sync/tok-check', { tok: str(b.ttok, 64) })); // 출석부 자동 로그인 (2026-11-14)
     const r = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
-    return json(r.ok ? { ok: true, id: r.id, name: r.name, boss: !!r.boss, shared: !!r.shared } : { ok: false, error: r.error || 'PIN이 맞지 않아요' });
+    return json(r.ok ? { ok: true, id: r.id, name: r.name, boss: !!r.boss, shared: !!r.shared } : { ok: false, mustPin: !!r.mustPin, error: r.error || 'PIN이 맞지 않아요' });
   }
   // 🔑 업무 앱 더보기 → 제자 코드 만들기 (2026-11-14): 명단 + 새 코드 (예전 기기는 그대로 둠)
   if (path === '/sync/kcode-list' || path === '/sync/kcode-new') {
@@ -552,6 +560,7 @@ async function route(path, req, env) {
     const ip = 'stf:' + (req.headers.get('cf-connecting-ip') || 'x'), lu = await lockUntil(env, ip);
     if (lu) return json({ ok: false, error: lockText(lu) }, 429);
     const r = await teamSync(env, '/sync/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
+    if (r.mustPin) return json({ ok: false, error: r.error }, 403);
     if (!r.ok) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
     await failClear(env, ip);
     const tok = rid(24);
@@ -620,7 +629,13 @@ async function route(path, req, env) {
       // 승인됐다고 그 보호자 휴대폰에 알림 (2026-11-13 사용자 요청 · 문구 그대로)
       let pushed = false;
       if (p.ep) { try { pushed = await pushOne(env, p, '✅ 어플 인증이 완료되었습니다', '아직 승인 요청 중으로 뜬다면 어플을 완전히 종료 후 다시 이용해주세요!', ''); } catch (_) {} }
-      return json({ ok: true, pushed });
+      // 같은 제자의 기존 보호자에게도 알림 (2026-11-16 테스트: 체크리스트 '새 보호자 승인됨 → 기존 보호자') — 모르는 사람이 가입했을 때 바로 알 수 있게
+      let told = 0; const pk = J(p.kids, []);
+      for (const o of await all(env, 'SELECT * FROM parents WHERE ok = 1 AND id <> ? AND ep IS NOT NULL', p.id)) {
+        const same = J(o.kids, []).filter(k => pk.includes(k)); if (!same.length || told >= 6) continue;
+        try { if (await pushOne(env, o, '👪 새 보호자가 등록되었어요', same.join('·') + ' 보호자로 ' + (p.rel || '가족') + '(번호 뒷자리 ' + String(p.ph || '').slice(-4) + ')님이 학부모 앱에 등록되었어요. 모르는 분이면 도장에 알려 주세요', '')) told++; } catch (_) {}
+      }
+      return json({ ok: true, pushed, told });
     }
     // ── 초대번호 (가정마다 따로, 가입할 수 있는 휴대폰 수 제한) ──
     if (path === '/admin/invites') return json({ ok: true, items: await inviteList(env) });
@@ -903,7 +918,7 @@ async function photo(env, id, size) {
 // ─────────── 등원·하원 (태블릿·관리 화면 공통) ───────────
 async function checkIn(env, name, act, kiosk) {
   if (act !== 'in' && act !== 'out') return { ok: false, error: 'act' };
-  if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', String(name || '')))) return { ok: false, error: '명단에 없는 아이입니다' };
+  if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', String(name || '')))) return { ok: false, error: '명단에 없는 제자예요' };
   if (kiosk && (await kidStatus(env))[name] === '퇴관') return { ok: false, error: '퇴관으로 되어 있어요. 사범님께 말해 주세요' };
   const now = new Date(), t = kstTime(now), day = kstDay(now);
   if (act === 'out' && kiosk) { // 태블릿에서는 등원하고 30분이 지나야 하원 (관리 화면은 관장님이 언제든 가능)

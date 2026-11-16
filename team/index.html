@@ -1997,7 +1997,7 @@ async function kidDelete(s) {
     if (n.invitesGone || n.invitesKeep) L.push('· 가족 초대번호: ' + (n.invitesGone || 0) + '개 지움' + (n.invitesKeep ? ', ' + n.invitesKeep + '개는 이름만 빠짐' : ''));
     if (n.kcode) L.push('· 제자 모드 코드');
   } else L.push('· 학부모 앱 쪽을 확인하지 못했어요 (' + (n.error || '연결 안 됨') + ')');
-  L.push('· 등원·픽업 기본 명단·시간, 제자 모드 목표 띠');
+  L.push('· 등원·픽업 기본 명단·시간, 제자 모드 목표 띠, 학부모 앱 행사 신청, 심사 점수, 마일리지, 기네스 기록');
   if (!confirm(s.name + ' 원생을 지울까요? 되돌릴 수 없어요.\n\n같이 지워지는 것:\n' + L.join('\n') + '\n\n장부 회원은 장부에서 따로 정리해 주세요.')) return;
   const r = await api('/api/student-delete', { sid: s.id }); if (!r.ok) return toast(r.error || '지우지 못했어요');
   S.kids = (S.kids || []).filter(x => x.id !== s.id); closeSheet(); render(); toast(s.name + ' 원생을 지웠어요');

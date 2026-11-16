@@ -84,13 +84,14 @@ async function route(path, req, env) {
     if (lu) return json({ ok: false, error: lockText(lu) }, 429);
     const r = await team(env, '/ledger/pin-check', { mid: str(b.mid, 40), pin: str(b.pin, 12) });
     if (r.error) return json({ ok: false, error: r.error }, 503);
+    if (r.mustPin) return json({ ok: false, error: r.error }, 403); // 2026-11-16
     if (!r.ok || r.shared) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, k)) }, 401);
     await failClear(env, k);
     let role;
     if (b.as === 'owner') {
       if (!r.boss) return json({ ok: false, error: '관리자만 장부 전체를 열 수 있어요. 아래 \'직원이에요\'로 들어가 주세요' }, 403);
       const d = await one(env, 'SELECT tok FROM devices WHERE tok = ?', str(b.dev, 64));
-      if (!d) return json({ ok: false, error: '이 기기는 아직 등록되지 않았어요. 장부 비밀번호를 먼저 넣어 주세요', device: true }, 403);
+      if (!d) return json({ ok: false, error: '이 기기는 아직 등록되지 않았어요. 관리자 비밀번호를 먼저 넣어 주세요', device: true }, 403);
       await run(env, 'UPDATE devices SET used = ? WHERE tok = ?', Date.now(), d.tok); role = 'owner';
     } else {
       // 허락은 업무 앱 관리자 → 직원 수정의 '장부 직원 입력' 체크 (members.ledger)

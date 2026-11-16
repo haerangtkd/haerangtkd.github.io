@@ -741,7 +741,7 @@ function editStudent(s0) {
     '<label class="f">어린이집/유치원 (유치부만)</label><input class="inp" id="eInst" value="' + esc(s.inst) + '" placeholder="예: 남선미">' +
     '<label class="f">보호자</label><div class="chips" id="eGd">' + ['어머니', '아버지', '기타'].map(x => '<button data-v="' + x + '" class="' + (s.guardian === x ? 'on' : '') + '">' + x + '</button>').join('') + '</div>' +
     '<input class="inp" id="ePhone" inputmode="tel" placeholder="보호자 연락처" value="' + esc(s.phone) + '" style="margin-top:10px">' +
-    '<label class="f">출석번호 (연락처 뒤 4자리)</label><input class="inp" id="eNo" inputmode="numeric" maxlength="4" placeholder="예: 5016" value="' + esc(s.no) + '"><p class="help">연락처를 입력하면 뒤 4자리가 자동으로 들어가요. 직접 고칠 수도 있어요. 출결 태블릿에서 아이가 누르는 번호예요.</p>' +
+    '<label class="f">출석번호 (연락처 뒤 4자리)</label><input class="inp" id="eNo" inputmode="numeric" maxlength="4" placeholder="예: 5016" value="' + esc(s.no) + '"><p class="help">연락처를 입력하면 뒤 4자리가 자동으로 들어가요. 직접 고칠 수도 있어요. 출결 태블릿에서 제자가 누르는 번호예요.</p>' +
     '<label class="f">수련 요일</label><div class="chips" id="eDays">' + WEEK.map(x => '<button data-v="' + x + '" class="' + (s.days.includes(x) ? 'on' : '') + '">' + x + '</button>').join('') + '<button data-v="all">월~금</button></div>' +
     '<label class="f">회원 상태</label><div class="chips" id="eSt">' + ['재원', '휴원', '퇴관'].map(x => '<button data-v="' + x + '" class="' + (s.status === x ? 'on' : '') + '">' + x + '</button>').join('') + '<button data-v="tmp">임시변경</button></div><p class="help">기록을 남기려면 삭제 대신 퇴관으로 바꿔 주세요.</p>' +
     '<label class="f">휴원 기간 · 복귀일</label><p class="help">휴원 시작일부터 복귀일 전날까지 —로 표시해요. 복귀일부터 출석할 수 있어요. 예전 휴원 시작일을 모르면 비워 둘 수 있어요.</p><div id="eLp"></div><button class="big" id="eLpAdd">+ 휴원 기간 추가</button>' +
@@ -1122,7 +1122,7 @@ $('spaceBtn').onclick = () => {
     '<h3>내 PIN</h3><p class="help">PIN은 업무 앱과 같아요. 바꾸기·사범님 추가는 업무 앱 → 설정에서 해요.</p><button class="big" data-x="out">로그아웃</button>' +
     (S.me.boss ? '<h3>관리 (관리자만)</h3><button class="big" data-x="imp">백업 파일 불러오기 (예전 출석부 포함)</button><button class="big line" data-x="wipe">출석부 초기화</button>' +
     '<p class="help" style="margin-top:12px">초기화나 복원을 하기 전에 위의 백업 파일을 먼저 받아 두세요. 백업 파일에는 원생 명단, 모든 출결 기록, 결석 예약, 체험 수업, 휴관일, 변경 이력이 들어 있어요.</p>' : '') +
-    '<p class="help">출결 태블릿에서 아이가 번호를 누르면 이 출석부에 자동으로 출석이 찍혀요. 출석부에 새 원생을 넣으면 학부모 알림 앱 관리 화면의 명단 탭에서 한 번에 등록할 수 있어요.</p>' +
+    '<p class="help">출결 태블릿에서 제자가 번호를 누르면 이 출석부에 자동으로 출석이 찍혀요. 새 원생은 업무 앱에서 등록하면 태블릿 명단에도 자동으로 들어가요.</p>' +
     '<div class="foot"><span class="sp"></span><button data-close>닫기</button></div>', ov => {
     const ad = ov.querySelector('#adOk');
     if (ad) ad.onclick = async () => {

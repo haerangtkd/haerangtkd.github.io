@@ -218,6 +218,7 @@ async function route(path, req, env, ctx) {
       let m = await one(env, 'SELECT * FROM members WHERE id = ?', str(b.mid, 40));
       if (m && !(await sameText(await pinHash(m.salt, b.pin), m.pin))) { await importTeachers(env, true).catch(() => {}); m = await one(env, 'SELECT * FROM members WHERE id = ?', m.id); }
       if (!m || !(await sameText(await pinHash(m.salt, b.pin), m.pin))) return json({ ok: false });
+      if (m.mustpin && !m.shared) return json({ ok: false, mustPin: true, error: '업무 앱에서 처음 받은 PIN을 내 PIN으로 바꾼 뒤에 들어와 주세요' }); // 2026-11-16 테스트
       return json({ ok: true, id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared, ledger: !!m.ledger });
     }
     return json({ ok: false, error: 'not found' }, 404);
@@ -233,6 +234,7 @@ async function route(path, req, env, ctx) {
       if (!m) return json({ ok: false });
       if (!(await sameText(await pinHash(m.salt, b.pin), m.pin)) && !m.shared) { await importTeachers(env, true).catch(() => {}); m = await one(env, 'SELECT * FROM members WHERE id = ?', m.id); }
       if (!m || !(await sameText(await pinHash(m.salt, b.pin), m.pin))) return json({ ok: false });
+      if (m.mustpin && !m.shared) return json({ ok: false, mustPin: true, error: '업무 앱에서 처음 받은 PIN을 내 PIN으로 바꾼 뒤에 들어와 주세요' }); // 처음 받은 PIN으로 출석부·알림 관리에 들어가지 않게 (2026-11-16 테스트)
       return json({ ok: true, id: m.id, name: m.name, boss: !!m.boss, shared: !!m.shared });
     }
     if (path === '/sync/events') return json({ ok: true, events: await openEvents(env, kids) });
@@ -777,7 +779,8 @@ async function route(path, req, env, ctx) {
     let got = [];
     if (b.sid) { // 원생 정보의 빈 칸을 서류로 채움 (성별·생년월일·주소·학교·반·번호·연락처, 2026-11-14)
       const c = await one(env, 'SELECT data FROM contracts WHERE id = ?', str(b.id, 30)), rec = J(c && c.data, {}), v = rec.raw || {};
-      const fill = { belt: v.tkd === '네' ? (v.tkdBelt || '') : '흰띠', gender: v.sex, /* 띠 (2026-11-15): 처음 배우면 흰띠, 배운 적 있으면 그때 띠 */ bday: v.birth, lunar: v.lunar === '음력', addr: v.addr, inst: v.school, cls: v.cls, sno: v.num, phone: String(v.phone || '').replace(/\D/g, '').length >= 10 ? v.phone : '' };
+      const ph10 = x => { const d = String(x || '').replace(/\D/g, ''); return d.length >= 10 ? d : ''; }, gph = ph10(((Array.isArray(v.family) ? v.family : []).find(x => Array.isArray(x) && ph10(x[3])) || [])[3]);
+      const fill = { belt: v.tkd === '네' ? (v.tkdBelt || '') : '흰띠', gender: v.sex, /* 띠 (2026-11-15): 처음 배우면 흰띠, 배운 적 있으면 그때 띠 */ bday: v.birth, lunar: v.lunar === '음력', addr: v.addr, inst: v.school, cls: v.cls, sno: v.num, phone: ph10(rec.kind === 'adult' ? (ph10(v.phone) || gph) : (gph || ph10(v.phone))) }; // 연락처 = 보호자 번호 먼저 (초등부, 2026-11-16 테스트: 제자전화가 들어가 학부모 가입이 막히던 것) — '서류 → 원생 등록'과 같게
       const f = await attSync(env, '/sync/student-fill', { sid: str(b.sid, 60), fill, who: me.name }).catch(() => null); got = (f && f.got) || [];
       await addLog(env, me.id, 'doc', '📝 ' + r.name + ' 등록 서류를 원생과 연결했어요' + (got.length ? ' · 원생 정보 채움: ' + got.join(', ') : ''), str(b.id, 30));
     }
@@ -1098,8 +1101,14 @@ async function route(path, req, env, ctx) {
         await run(env, "INSERT INTO kv (k, v) VALUES ('pickupTimes', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(t));
       }
       const g = J((await one(env, "SELECT v FROM kv WHERE k = 'kgoal'") || {}).v, null); if (g && sid in g) { delete g[sid]; await run(env, "UPDATE kv SET v = ? WHERE k = 'kgoal'", JSON.stringify(g)); }
+      // 업무 서버에 남는 그 제자 기록도 같이 (2026-11-16 테스트: 학부모 앱 행사 신청이 남아 행사표에 다시 들어가던 것) — 심사·마일리지는 원생 번호로, 이름으로 찾는 것은 같은 이름이 없을 때만
+      const st2 = [q(env, 'DELETE FROM exam WHERE sid = ?', sid), q(env, 'DELETE FROM mile WHERE sid = ?', sid)];
+      if (!r.same) st2.push(q(env, 'DELETE FROM esign WHERE kid = ?', r.name), q(env, 'DELETE FROM hwchk WHERE kid = ?', r.name), q(env, "DELETE FROM mile WHERE (sid IS NULL OR sid = '') AND name = ?", r.name));
+      await env.DB.batch(st2);
+      const gdr = await one(env, 'SELECT data FROM gdocs WHERE path = ?', 'app/data'), gdd = gdr ? J(gdr.data, null) : null; // 🏆 기네스 기록 (원생 번호로만)
+      if (gdd && Array.isArray(gdd.students) && gdd.students.some(k => k && k.sid === sid)) { gdd.students = gdd.students.filter(k => !(k && k.sid === sid)); await run(env, 'UPDATE gdocs SET data = ?, upd = ? WHERE path = ?', JSON.stringify(gdd), Date.now(), 'app/data'); }
       await run(env, 'DELETE FROM kv WHERE k = ?', 'outreq:' + sid);
-      await addLog(env, me.id, 'kid', '🗑 ' + me.name + '님이 ' + r.name + ' 원생을 지웠어요 (출석부·학부모 앱·태블릿)', '');
+      await addLog(env, me.id, 'kid', '🗑 ' + me.name + '님이 ' + r.name + ' 원생을 지웠어요 (출석부·학부모 앱·태블릿·행사 신청·심사·마일리지·기네스 기록)', '');
       await bumpKv(env);
     }
     return json(r);
@@ -1175,7 +1184,7 @@ async function route(path, req, env, ctx) {
     const r = itemStmt(env, b.item || {}, me); if (!r) return json({ ok: false, error: '제목을 적어 주세요' });
     await r.stmt.run();
     if (r.type === 'event') { // 행사표에 들어간 학부모 신청은 '넣음'으로
-      const names = (Array.isArray(b.item.rows) ? b.item.rows : []).map(x => str(x && x.name, 20)).filter(Boolean).slice(0, 200);
+      const names = (Array.isArray(b.item.rows) ? b.item.rows : []).filter(x => x && !x.guest).map(x => str(x.name, 20)).filter(Boolean).slice(0, 200); // 비회원(guest)은 이름이 같아도 회원 신청과 섞지 않음 (2026-11-16 테스트)
       if (names.length) await run(env, "UPDATE esign SET state = 'in' WHERE ev = ? AND state = '' AND kid IN (" + names.map(() => '?').join(',') + ')', r.id, ...names);
       const nd = b.item || {}, od = old ? J(old.data, {}) : null; let sp = od ? od.sp : null, spErr = '';
       if (!sp && b.toParents && nd.date && nd.kind !== 'goods') { // 업무 앱에서 만든 신청표를 학부모님께 전달 → 날짜가 있으면 알림 관리 일정표에도 (2026-11-13)
@@ -1460,7 +1469,7 @@ async function openEvents(env, kids) {
     const d = J(r.data, {}); if (!d.pub || d.closed || d.kind === 'goods') continue;
     const yr = +(d.date || day).slice(0, 4), okKids = kids.filter(k => eligOk(d.elig, births[k], yr, grps, k)); if (!okKids.length) continue; // 신청 대상이 아닌 가정에는 안 보임 (2026-11-13)
     const w = evWindow(d, day); if (!w.open || (d.date && d.date < day)) continue;
-    const staff = new Set((d.rows || []).map(x => x.name));
+    const staff = new Set((d.rows || []).filter(x => x && !x.guest).map(x => x.name)); // 비회원 줄은 빼고 (회원과 이름이 같아도 '신청됨'으로 안 보이게, 2026-11-16)
     out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), prep: str(d.prep, 300), elig: okKids, eligText: eligText(d.elig, grps), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit,
       mine: kids.map(k => { const m0 = mine.find(x => x.ev === r.id && x.kid === k), m = m0 && m0.state === 'staff' && staff.has(k) ? null : m0; // 도장에서 뺐다가 다시 넣으면 다시 '도장에서 접수'
         return { kid: k, applied: !!(m && !m.cancel) || (!m && staff.has(k)), byStaff: !m && staff.has(k), cancel: !!(m && m.cancel), staffCx: !!(m && m.cancel && m.state === 'staff'), data: m ? J(m.data, {}) : null }; }) });
@@ -1498,7 +1507,7 @@ async function staffCancel(env, ev, oldD, newD, names, rm, me) {
   if (!gone.length) return;
   const now = Date.now(), title = str(newD.title || oldD.title, 100);
   for (const kid of gone) {
-    const row = (oldD.rows || []).find(x => x && x.name === kid);
+    const row = (oldD.rows || []).find(x => x && x.name === kid && !x.guest);
     if (row && (row.guest || row.wait || row.appCancel)) continue;
     const e = await one(env, 'SELECT cancel FROM esign WHERE ev = ? AND kid = ?', ev, kid);
     if (e && e.cancel) continue;

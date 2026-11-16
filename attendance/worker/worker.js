@@ -269,6 +269,7 @@ async function route(path, req, env) {
     if (tid.startsWith('m:')) { // 업무 앱 PIN으로
       const r = await noticeCall(env, '/sync/staff-pin', { mid: tid.slice(2), pin: str(b.pin, 12) });
       if (!r.ok && /연결/.test(r.error || '')) return json({ ok: false, error: r.error }, 503);
+      if (r.mustPin) return json({ ok: false, error: r.error }, 403); // 처음 받은 PIN이면 업무 앱에서 먼저 바꾸기 (2026-11-16)
       if (!r.ok || r.shared) return json({ ok: false, error: failText('PIN이 맞지 않아요', await failAdd(env, ip)) }, 401);
       await failClear(env, ip);
       await run(env, 'INSERT INTO teachers (id, name, salt, pin, created, boss) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, boss = excluded.boss', tid, str(r.name, 20), rid(8), rid(16), Date.now(), r.boss ? 1 : 0);
