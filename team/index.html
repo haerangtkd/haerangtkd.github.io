@@ -944,8 +944,60 @@ async function savePickup(p, what) {
 const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'], appKid: ['🥋', '제자 모드', ''] }; // 2026-11-15: 심사·기네스 다음에 제자 모드(제자 코드·도장 찍기·제자 앱) // 심사 채점 (2026-11-14)
 function kidMenu() { // 🥋 제자 모드 (2026-11-15): 제자 앱에 쓰는 것 모아 두기
   sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🥋 제자 모드</h2></div><p class="help">제자 앱(따로 설치하는 앱)에 들어가는 코드를 만들고, 선범단 도장을 찍어요.</p>' +
-    '<div class="row" style="gap:8px;margin-top:8px"><button class="btn g" data-km="kcode" style="flex:1;padding:16px 4px">🔑<br>제자 코드</button><button class="btn g" data-km="sun" style="flex:1;padding:16px 4px">⭐<br>도장 찍기</button><button class="btn g" data-km="mile" style="flex:1;padding:16px 4px">💰<br>마일리지</button><button class="btn" data-km="open" style="flex:1;padding:16px 4px">📱<br>제자 앱</button></div>', ov => {
-    ov.onclick = e => { const b = e.target.closest('[data-km]'); if (!b) return; const k = b.dataset.km; if (k === 'open') return window.open('/kids/', '_blank'); return k === 'kcode' ? kcodeSheet() : k === 'mile' ? mileSheet() : sunSheet(); };
+    '<div class="row" style="gap:8px;margin-top:8px"><button class="btn g" data-km="kcode" style="flex:1;padding:16px 4px">🔑<br>제자 코드</button><button class="btn g" data-km="sun" style="flex:1;padding:16px 4px">⭐<br>도장 찍기</button><button class="btn g" data-km="mile" style="flex:1;padding:16px 4px">💰<br>마일리지</button><button class="btn" data-km="open" style="flex:1;padding:16px 4px">📱<br>제자 앱</button></div>' +
+    '<button class="btn g" data-km="note" style="width:100%;margin-top:8px;padding:14px 4px">📌 중요사항 넣기 <small style="color:var(--muted);font-weight:500">· 오늘 출석 화면 이름 밑에 보여요</small></button>', ov => {
+    ov.onclick = e => { const b = e.target.closest('[data-km]'); if (!b) return; const k = b.dataset.km; if (k === 'open') return window.open('/kids/', '_blank'); return k === 'kcode' ? kcodeSheet() : k === 'mile' ? mileSheet() : k === 'note' ? notePick() : sunSheet(); };
+  });
+}
+// 📌 중요사항 (2026-11-16 사용자: 업무 앱 대시보드 제자 모드에서도 넣기) — 출석부 '중요사항'과 같은 칸(원생 기록 notes), 저장은 원생 정보 저장(/api/student-save)
+const NDOW = '일월화수목금토', nDow = d => NDOW[new Date(d + 'T00:00:00Z').getUTCDay()];
+const nPast = (n, d) => n.type === 'temp' && (n.rep === 'weekly' ? !!n.end && n.end < d : n.start < d);
+const nWhen = n => n.type !== 'temp' ? '지속 (늘)' : n.rep === 'weekly' ? '임시 · 매주 ' + nDow(n.start) + ' (' + mdS(n.start) + '~' + (n.end ? mdS(n.end) : '') + ')' : '임시 · ' + mdS(n.start) + ' 그날만';
+async function notePick() {
+  const draw = ov => { const el = ov.querySelector('#npL'); if (!el) return; const qv = (ov.querySelector('#npQ').value || '').trim();
+    if (!S.kids) { el.innerHTML = '<div class="help" style="padding:14px">' + esc(S.kidsErr || '불러오는 중…') + '</div>'; return; }
+    const t = today(), L = S.kids.filter(x => x.status !== '퇴관' && (!qv || x.name.includes(qv))).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    el.innerHTML = L.length ? L.map(x => { const n = (x.notes || []).filter(y => !nPast(y, t)).length; return '<button class="kcr" data-np="' + esc(x.id) + '"><b>' + esc(x.name) + '</b><small>' + (n ? '📌 ' + n + '개' : '') + '</small><span>' + (n ? '보기' : '넣기') + '</span></button>'; }).join('') : '<div class="help" style="padding:14px">찾는 이름이 없어요</div>'; };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📌 중요사항</h2></div><p class="help">누구에게 넣을까요? 넣은 중요사항은 출석부 오늘 출석 화면에서 이름 밑에 보여요.</p><input class="inp" id="npQ" placeholder="이름 검색" autocomplete="off"><div id="npL" class="kcl" style="max-height:340px"></div>', ov => {
+    draw(ov); ov.querySelector('#npQ').oninput = () => draw(ov);
+    ov.querySelector('#npL').onclick = e => { const b = e.target.closest('[data-np]'); if (b) noteSheet(b.dataset.np); };
+    loadKids(true).then(() => draw(ov));
+  });
+}
+function noteSheet(id) {
+  const s = (S.kids || []).find(x => x.id === id); if (!s) return;
+  const t = today(); let type = 'always', rep = 'once';
+  const save = async (notes, log) => { const n = JSON.parse(JSON.stringify(s)); n.notes = notes; const r = await saveKid(n, ['중요사항 ' + log], s); if (!r) return false; Object.assign(s, (S.kids || []).find(x => x.id === id) || n); return true; };
+  const draw = ov => {
+    const L = (s.notes || []).filter(n => !nPast(n, t));
+    ov.querySelector('#nL').innerHTML = L.length ? L.map(n => '<div class="kcr" style="cursor:default"><b style="font-size:15px;white-space:normal">' + esc(n.text) + (n.alarm ? ' 🔔' : '') + '</b><small style="flex:none;max-width:42%">' + esc(nWhen(n)) + (n.who ? ' · ' + esc(n.who) : '') + '</small><button class="btn" data-ndel="' + esc(n.id) + '" style="flex:none;padding:6px 10px;color:#C0392B">지우기</button></div>').join('') : '<div class="help" style="padding:14px">지금 중요사항이 없어요</div>';
+    ov.querySelectorAll('#nType button').forEach(b => b.classList.toggle('on', b.dataset.v === type));
+    ov.querySelectorAll('#nRep button').forEach(b => b.classList.toggle('on', b.dataset.v === rep));
+    ov.querySelector('#nTmp').hidden = type !== 'temp'; ov.querySelector('#nEndW').hidden = rep !== 'weekly';
+    const d = ov.querySelector('#nDay').value || t; ov.querySelector('#nRepW').textContent = '매주 ' + nDow(d) + '요일 계속';
+  };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📌 ' + esc(s.name) + ' 중요사항</h2></div><p class="help">출석부 오늘 출석 화면에서 이름 밑에 보여요. 🔔 알림을 켜면 그날 출석한 수업 시작 45분 뒤 업무 앱으로 알려 줘요.</p>' +
+    '<div id="nL" class="kcl" style="max-height:220px"></div>' +
+    '<label class="f">새로 넣기</label><textarea class="inp" id="nText" rows="2" maxlength="120" placeholder="예: 엄마가 4시 50분에 데리러 옴 / 무릎 다쳐서 점프 빼기"></textarea>' +
+    '<label class="f">종류</label><div class="chips" id="nType"><button data-v="always">지속 (늘)</button><button data-v="temp">임시</button></div>' +
+    '<div id="nTmp" hidden><label class="f">날짜</label><input type="date" class="inp" id="nDay" value="' + t + '">' +
+    '<label class="f">반복</label><div class="chips" id="nRep"><button data-v="once">이날만</button><button data-v="weekly" id="nRepW">매주 계속</button></div>' +
+    '<div id="nEndW" hidden><label class="f">끝나는 날 (비우면 지울 때까지)</label><input type="date" class="inp" id="nEnd"></div></div>' +
+    '<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="nAlarm" style="width:20px;height:20px"> 🔔 수업 시작 45분 뒤 알림</label>' +
+    '<div class="foot"><span class="sp"></span><button class="btn" data-close>닫기</button><button class="save" id="nSave">넣기</button></div>', ov => {
+    draw(ov);
+    ov.querySelector('#nType').onclick = e => { const b = e.target.closest('button'); if (b) { type = b.dataset.v; draw(ov); } };
+    ov.querySelector('#nRep').onclick = e => { const b = e.target.closest('button'); if (b) { rep = b.dataset.v; draw(ov); } };
+    ov.querySelector('#nDay').onchange = () => draw(ov);
+    ov.querySelector('#nL').onclick = async e => { const b = e.target.closest('[data-ndel]'); if (!b) return; const n = (s.notes || []).find(x => x.id === b.dataset.ndel); if (!n || !confirm('"' + n.text + '" 중요사항을 지울까요?')) return;
+      if (await save((s.notes || []).filter(x => x !== n), '지움: ' + n.text)) { draw(ov); toast('지웠어요'); } };
+    ov.querySelector('#nSave').onclick = async e => {
+      const text = ov.querySelector('#nText').value.trim(); if (!text) return toast('내용을 적어 주세요');
+      const n = { id: Math.random().toString(36).slice(2, 10), text, type, alarm: ov.querySelector('#nAlarm').checked, who: (S.me && S.me.name) || '', at: Date.now() };
+      if (type === 'temp') { n.start = ov.querySelector('#nDay').value || t; n.rep = rep; n.end = rep === 'weekly' ? ov.querySelector('#nEnd').value : ''; if (n.end && n.end < n.start) return toast('끝나는 날이 날짜보다 앞이에요'); }
+      e.target.disabled = true; const ok = await save([...(s.notes || []), n], '추가: ' + text + ' (' + nWhen(n) + ')'); e.target.disabled = false;
+      if (ok) { ov.querySelector('#nText').value = ''; ov.querySelector('#nAlarm').checked = false; draw(ov); toast('넣었어요'); }
+    };
   });
 }
 function openApp(k) { if (k === 'appKid') return kidMenu(); try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
