@@ -2816,7 +2816,7 @@ async function docView(id) {
     if (g('dvNew')) g('dvNew').onclick = () => {
       const r = d.raw || {}, ph = (r.phone || '').replace(/\D/g, ''), fam = (r.family || []).find(x => x && x[3]) || [], gp = (fam[3] || '').replace(/\D/g, '');
       const days = Object.entries(r.week || {}).filter(([, w]) => w && (w.t || w.car)).map(([k]) => k);
-      const rel = d.signerRel === '엄마' ? '어머니' : d.signerRel === '아빠' ? '아버지' : d.signerRel && d.signerRel !== '본인' ? '기타' : '';
+      const rel = d.signerRel === '엄마' || d.signerRel === '어머니' ? '어머니' : d.signerRel === '아빠' || d.signerRel === '아버지' ? '아버지' : d.signerRel && d.signerRel !== '본인' ? '기타' : '';
       const pre = { name: d.name, birth: +(String(d.birth || '').slice(0, 4)) || '', phone: d.kind === 'kid' ? (gp || ph) : (ph || gp), guardian: rel, days: KWEEK.filter(x => days.includes(x)), joined: r.start || today(), inst: r.school || '', gender: ['남', '여'].includes(r.sex) ? r.sex : '', bday: /^\d{4}-\d{2}-\d{2}$/.test(r.birth || '') ? r.birth : '', lunar: r.lunar === '음력', addr: r.addr || '', cls: r.cls || '', sno: String(r.num || '').replace(/\D/g, '').slice(0, 3), belt: r.tkd === '네' ? (KBELTS.includes(r.tkdBelt) ? r.tkdBelt : '') : '흰띠', /* 띠 (2026-11-15): 처음 배우면 흰띠, 배운 적 있으면 그때 띠 */ memo: ['등록 서류 ' + (d.date || ''), d.photoNo ? '사진·영상 업로드 원하지 않음' : ''].filter(Boolean).join(' · ') };
       pre.no = pre.phone ? pre.phone.slice(-4) : '';
       // 등록 서류 → (직원 확인) 원생 등록 → 가족 초대번호 바로 만들고 QR 화면 (2026-11-13 사용자 결정)

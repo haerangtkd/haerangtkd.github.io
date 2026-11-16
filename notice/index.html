@@ -594,9 +594,9 @@
     <p class="note">도장에 등록된 이름 그대로 적어 주세요.</p>
     <label class="f">제자와의 관계</label>
     <div class="rel" id="rel">
-      <button type="button">엄마</button><button type="button">아빠</button>
+      <button type="button">어머니</button><button type="button">아버지</button>
       <button type="button">할머니</button><button type="button">할아버지</button>
-      <button type="button">이모</button><button type="button">고모</button><button type="button">삼촌</button>
+      <button type="button">고모</button><button type="button">이모</button>
     </div>
     <label class="f">휴대폰 번호 뒷자리 4자리</label>
     <input class="ph" id="ph" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="1234" autocomplete="off">
@@ -945,7 +945,7 @@
   const todayK = () => dayOfMs(Date.now());
   // 도장에 가족 추가 요청 (보안: 주소를 아무에게나 보내지 않고 도장이 확인)
   function famSheet() {
-    const RL = ['엄마', '아빠', '할머니', '할아버지', '이모', '고모', '삼촌', '기타']; let rel = '';
+    const RL = ['어머니', '아버지', '할머니', '할아버지', '고모', '이모', '기타']; let rel = '';
     const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
     const draw = () => { sh.innerHTML = '<div class="in"><h3>도장에 가족 추가 요청</h3><p class="help-l">요청하시면 도장에서 그분께 앱 주소를 보내 드리고, 가입하면 확인해서 승인해요.</p><label class="f">누구를 추가할까요</label><div class="opts" data-g="rel">' + RL.map(r => '<button data-v="' + r + '" class="' + (rel === r ? 'on' : '') + '">' + r + '</button>').join('') + '</div><label class="f">그분 휴대폰 번호 뒷자리 4개</label><input class="m" id="fPh" inputmode="numeric" maxlength="4"><button class="btn" id="fGo">요청하기</button><button class="cx" id="fX">닫기</button></div>'; };
     sh.onclick = async e => {
@@ -1434,7 +1434,7 @@
     const settings = '<section class="sec"><h2>설정</h2><div class="list">' +
       (s.approved ? '<button class="li" data-x="info"><span class="lic">' + IC.edit + '</span><span class="lt"><b>정보 확인</b><small>출생연도 · 수련 요일 · 회비 · ' + esc(s.relation || '') + ' · 번호 뒷자리 ' + esc(s.phone4 || '') + '</small></span>' + ICON.right + '</button>' : '') +
       (canPush ? '<button class="li" data-x="push"><span class="lic">' + IC.bell + '</span><span class="lt"><b>알림</b><small>' + (pushOk ? '켜져 있어요 · 눌러서 확인' : '꺼져 있어요 · 눌러서 켜기') + '</small></span>' + ICON.right + '</button>' : '') +
-      (s.approved ? '<button class="li" data-x="fam"><span class="lic">' + IC.share + '</span><span class="lt"><b>도장에 가족 추가 요청하기</b><small>할머니·아빠 등 다른 가족도 알림을 받을 수 있게 도장에서 도와드려요</small></span>' + ICON.right + '</button>' : '') +
+      (s.approved ? '<button class="li" data-x="fam"><span class="lic">' + IC.share + '</span><span class="lt"><b>도장에 가족 추가 요청하기</b><small>할머니·아버지 등 다른 가족도 알림을 받을 수 있게 도장에서 도와드려요</small></span>' + ICON.right + '</button>' : '') +
       '</div><p class="note" style="margin:10px 4px 0">정보가 다르면 도장에 알려 주세요. 퇴관하면 이 휴대폰 등록도 함께 해제돼요.</p></section>';
     const head = kidSel + '<div class="att-kid"><span class="avatar">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장 · ' + (s.approved ? '확인 완료' : '도장 확인 중') + '</small></div><span class="cnt" id="attCnt"></span></div>'
       + ''; // 성장 리포트 = 아래 탭 가운데 '성장' 버튼 (2026-11-15 사용자 요청, 빨간 버튼 없앰)

@@ -58,7 +58,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS hwchk (hw TEXT, kid TEXT, day TEXT, at INTEGER, rel TEXT, PRIMARY KEY (hw, kid, day))',
 ];
 // 학부모 앱 연락 버튼 기본값 (이아빈 계정에서 추가·수정·삭제) — ask: who 누가 / why 사유 / '' 없음, act: 확인할 때 할 일
-const RELS = ['엄마', '아빠', '할머니', '할아버지', '이모', '고모', '삼촌', '기타'];
+const RELS = ['어머니', '아버지', '할머니', '할아버지', '고모', '이모', '기타'];
 // 알림장 양식 (2026-11-13): 업무 앱 설정에서 직원이 관리 → 알림 관리 '알림장 쓰기'에서 골라 씀. {날짜} = 오늘 날짜
 const JTPL0 = [
   { t: '오늘의 수련', title: '{날짜} 오늘의 수련', body: '오늘은 ○○을(를) 배웠어요.\n\n집에서도 한 번 해 보게 해 주세요.' },

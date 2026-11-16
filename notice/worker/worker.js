@@ -14,7 +14,7 @@
 const SITE = 'https://haerangtkd.github.io';
 const BATCH = 6;                // 무료 요금제 CPU 한도(요청당 10ms) 안에서 한 번에 보낼 기기 수 — 나머지는 관리 화면이 나눠서 다시 부름
 const MIN_STAY = 30 * 60 * 1000; // 등원 후 이 시간이 지나야 태블릿에서 하원 가능 (30분)
-const RELATIONS = ['엄마', '아빠', '할머니', '할아버지', '이모', '고모', '삼촌'];
+const RELATIONS = ['어머니', '아버지', '할머니', '할아버지', '고모', '이모', '엄마', '아빠', '삼촌']; // 2026-11-16 사용자: 어머니·아버지… (예전 엄마·아빠·삼촌도 받음)
 const POST_TYPES = ['notice', 'journal', 'schedule', 'album', 'fee'];
 
 const SCHEMA = [
