@@ -917,15 +917,16 @@
   async function loadContact() { if (!(me() || {}).approved) return; try { const j = await post('/p/contact'); if (j.ok) { contact = j; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {} }
   async function loadHw() { if (!(me() || {}).approved) return; try { const j = await post('/p/hw'); if (j.ok) { hws = j.hw || []; if (tab === 'home' && !$('v-home').hidden) drawHome(); } } catch (_) {} }
   const dShort = d => { const x = md(d); return x.m + '/' + x.d + '(' + x.w + ')'; };
-  // 홈 메뉴(2026-11-16 앨범 칸 뺌): 공지·알림장·일정·출석·숙제·행사·제휴·혜택 (새 소식은 빨간 점, 2026-11-13 '연락하기' 대신 제휴·혜택)
+  // 홈 메뉴(2026-11-16 앨범 칸 → 정보 확인): 공지·알림장·정보 확인·일정·출석·숙제·행사·제휴·혜택 (새 소식은 빨간 점, 2026-11-13 '연락하기' 대신 제휴·혜택)
   function homeTiles(k) {
     const hwN = (hws || []).filter(h => h.kids.includes(k)).length, evN = evFor(k).length;
-    const T = [['journal', '알림장', '#F4A63A', '#fff', fresh('journal')], ['notice', '공지', '#3D8BF2', '#fff', fresh('notice')], ['schedule', '일정', '#F05A3C', '#fff', false],
+    const T = [['journal', '알림장', '#F4A63A', '#fff', fresh('journal')], ['notice', '공지', '#3D8BF2', '#fff', fresh('notice')], ['info', '정보 확인', '#2BB3A3', '#fff', false], ['schedule', '일정', '#F05A3C', '#fff', false],
       ['kid', '출석', '#F6C21C', '#fff', false], ['hw', '미션', '#8B6CF0', '#fff', false, hwN], ['ev', '행사 신청', '#E2477B', '#fff', false, evN], ['perk', '제휴·혜택', '#A40F16', '#fff', false]];
-    return '<section class="sec"><div class="tcard"><div class="th">해랑경희 태권도장<small>' + esc(k) + '</small></div><div class="tiles">' + T.map(([key, label, bg, fg, isNew, n]) => '<button data-tile="' + key + '">' + (isNew ? '<i class="n"></i>' : '') + '<span class="ti" style="background:' + bg + ';color:' + fg + '">' + (IC[key] || IC[{ hw: 'edit', ev: 'schedule', ct: 'bell' }[key]] || '') + '</span>' + label + (n ? '<b class="tn">' + n + '</b>' : '') + '</button>').join('') + '</div></div></section>';
+    return '<section class="sec"><div class="tcard"><div class="th">해랑경희 태권도장<small>' + esc(k) + '</small></div><div class="tiles">' + T.map(([key, label, bg, fg, isNew, n]) => '<button data-tile="' + key + '">' + (isNew ? '<i class="n"></i>' : '') + '<span class="ti" style="background:' + bg + ';color:' + fg + '">' + (IC[key] || IC[{ hw: 'edit', ev: 'schedule', ct: 'bell', info: 'kid' }[key]] || '') + '</span>' + label + (n ? '<b class="tn">' + n + '</b>' : '') + '</button>').join('') + '</div></div></section>';
   }
   function onTile(key) {
     if (key === 'album') return openPage(key); // 앨범은 따로
+    if (key === 'info') return openPage('info'); // 2026-11-16: 앨범 자리에 정보 확인
     if (key === 'journal' || key === 'hw' || key === 'ev') { planF = { journal: '알림장', hw: '미션', ev: '행사 신청' }[key]; return openPage('plan'); } // 2026-11-14: 알림장 · 미션 · 행사
     if (key === 'schedule' || key === 'notice' || key === 'kid') { planF = { schedule: '일정', notice: '공지', kid: '출석' }[key]; return openPage('cal'); } // 2026-11-14: 일정 · 공지 · 출석 // 새 창 '알림장 · 행사 · 일정' (2026-11-13)
     if (key === 'kid') return showTab('kid');
