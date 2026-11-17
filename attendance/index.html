@@ -878,7 +878,7 @@ function absenceSheet(s, d0) {
 async function calendarSheet(s, ym) {
   await loadMonth(ym);
   const days = monthDays(ym), first = (dObj(days[0]).getUTCDay() + 6) % 7, t = today();
-  let html = '<h2>' + esc(s.name) + '</h2><p class="help">' + esc(grade(s).label) + ' · ' + esc(daysLabel(s.days)) + '. 오늘 이후 날짜를 누르면 결석 예정을 넣거나 뺄 수 있어요. 지난 날짜를 누르면 그날 출석으로 가요.</p>' +
+  let html = '<h2>' + esc(s.name) + '</h2><p class="help">' + esc(grade(s).label) + ' · ' + esc(daysLabel(s.days)) + '. 오늘까지 날짜를 누르면 그날 출석·결석을 바로 넣을 수 있어요. 내일부터는 결석 예정을 넣거나 빼요.</p>' +
     '<div class="row2" style="margin-top:12px"><button class="sbtn" id="cP">‹</button><b style="flex:1;text-align:center;font-size:17px">' + ymLabel(ym) + '</b><button class="sbtn" id="cN">›</button></div><div class="cal">' + '월화수목금토일'.split('').map(x => '<div>' + x + '</div>').join('') + '<div></div>'.repeat(first);
   let o = 0, x = 0, tot = 0;
   for (const d of days) {
@@ -895,11 +895,39 @@ async function calendarSheet(s, ym) {
     ov.querySelector('#cSend').onclick = () => sendParentSheet(s, ym);
     ov.querySelector('.cal').onclick = async e => {
       const b = e.target.closest('[data-d]'); if (!b) return; const d = b.dataset.d;
-      if (d < t) { closeSheet(); goDay(d); return; }
+      if (d <= t) return attDaySheet(s, d, ym); // 2026-11-17 사용자: 달력에서 그 날 출석을 바로 넣기
       const k = abKey(s.id, d);
       if (S.ab.has(k)) { if (!confirm(md(d) + ' 결석 예정을 지울까요?')) return; S.ab.delete(k); await api('/api/absence-set', { remove: [{ sid: s.id, date: d }] }); }
       else { const w = await askReason(s.name + ' ' + md(d) + ' 결석 예정', ''); if (w === null) return calendarSheet(s, ym); S.ab.set(k, w); await api('/api/absence-set', { add: [{ sid: s.id, date: d, why: w }] }); }
       render(); calendarSheet(s, ym);
+    };
+  });
+}
+
+// 달력에서 하루 출석 넣기 (2026-11-17)
+function attDaySheet(s, d, ym) {
+  const c = cell(s, d), sch = scheduled(s, d);
+  let ps = c.k === 'o' ? (c.p || '').split('/').filter(Boolean) : [], mode = c.k === 'o' ? 'o' : c.k === 'x' ? 'x' : '';
+  if (!ps.length) { const g = guessP(s, d); if (g) ps = [g]; }
+  const now = c.k === 'o' ? '출석' + (c.p ? ' · ' + c.p + '시부' : '') : c.k === 'x' ? '결석' + (c.w ? ' · ' + c.w : '') : c.k === 'closed' ? '휴관일' : c.k === 'leave' ? '휴원 중' : '아직 안 넣었어요';
+  const W = ['연락옴', '병결', '감기', '여행', '병원', '학원', '시험', '연락 없음'];
+  sheet('<h2>' + esc(s.name) + ' · ' + md(d) + '</h2><p class="help">지금: ' + esc(now) + (sch ? '' : ' · 수련 요일이 아니라 출석하면 보강으로 들어가요') + (c.r && c.r.tin ? ' · 태블릿 ' + esc(c.r.tin) : '') + '</p>' +
+    '<div class="row2" style="margin-top:14px;gap:8px"><button class="big' + (mode === 'o' ? ' red' : ' line') + '" id="dO" style="flex:1">출석</button><button class="big' + (mode === 'x' ? ' red' : ' line') + '" id="dX" style="flex:1">결석</button></div>' +
+    '<div id="dP"' + (mode === 'o' ? '' : ' hidden') + '><label class="f">시간부 (여러 개 가능)</label><div class="chips" id="dPc">' + PER.map(p => '<button data-v="' + p + '" class="' + (ps.includes(p) ? 'on' : '') + '">' + p + '시</button>').join('') + '</div></div>' +
+    '<div id="dW"' + (mode === 'x' ? '' : ' hidden') + '><label class="f">사유</label><div class="chips" id="dWc">' + W.map(x => '<button data-v="' + x + '" class="' + (c.w === x ? 'on' : '') + '">' + x + '</button>').join('') + '</div><input class="inp" id="dWt" placeholder="직접 적기 (비워도 돼요)" value="' + esc(c.k === 'x' ? c.w || '' : '') + '" style="margin-top:10px"></div>' +
+    '<div class="foot">' + (c.k === 'o' || c.k === 'x' ? '<button id="dDel">비우기</button>' : '') + '<span class="sp"></span><button id="dBack">‹ 달력</button><button class="save" id="dOk">저장</button></div>', ov => {
+    const g = id => ov.querySelector('#' + id);
+    const pick = m => { mode = m; g('dO').className = 'big' + (m === 'o' ? ' red' : ' line'); g('dX').className = 'big' + (m === 'x' ? ' red' : ' line'); g('dP').hidden = m !== 'o'; g('dW').hidden = m !== 'x'; };
+    g('dO').onclick = () => pick('o'); g('dX').onclick = () => pick('x');
+    g('dPc').onclick = e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v; ps = ps.includes(v) ? ps.filter(x => x !== v) : [...ps, v]; b.classList.toggle('on', ps.includes(v)); };
+    g('dWc').onclick = e => { const b = e.target.closest('button'); if (!b) return; g('dWt').value = b.dataset.v; g('dWc').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+    g('dBack').onclick = () => calendarSheet(s, ym);
+    if (g('dDel')) g('dDel').onclick = async () => { await setAtt([{ sid: s.id, del: true }], d); toast(md(d) + ' 출결을 비웠어요'); calendarSheet(s, ym); };
+    g('dOk').onclick = async () => {
+      if (!mode) return toast('출석이나 결석을 골라 주세요');
+      const p = PER.filter(x => ps.includes(x)).join('/');
+      const it = mode === 'o' ? { sid: s.id, r: 'o', p, mk: sch ? 0 : 1 } : { sid: s.id, r: 'x', w: g('dWt').value.trim() };
+      await setAtt([it], d); toast(s.name + ' ' + md(d) + (mode === 'o' ? ' 출석' : ' 결석') + '으로 넣었어요'); calendarSheet(s, ym);
     };
   });
 }
