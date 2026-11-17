@@ -273,6 +273,10 @@
   .cal .csum{text-align:center;margin-top:10px;font-size:13.5px;color:#C9C6C2}.cal .csum b{color:#fff}.cal .cnote{text-align:center;font-size:11.5px;color:#77777C;margin:6px 0 0}
   .evc{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}.evc.on{border-color:#E5484D66;background:rgba(229,72,77,.07)}.evc .eh{display:flex;align-items:center;gap:8px}.evc .eh b{flex:1;font-size:16px}
   .evc .dd{flex:none;background:#E5484D;color:#fff;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:900}.evc small{color:var(--muted);font-size:12.5px}.evc p{margin:8px 0 0;font-size:14px;line-height:1.55;white-space:pre-wrap}.evc .pp{color:#E9CF86}.evc .ap{margin-top:10px;font-size:13px;font-weight:800;color:#FF8A8F}
+  .playc{display:flex;align-items:center;gap:12px;margin-top:12px;padding:16px;border-radius:18px;background:linear-gradient(135deg,#F7E3C8,#F2C9A8);color:#5A4632;text-decoration:none}
+  .playc .pi{width:52px;height:52px;border-radius:16px;background:#fffaf2;display:grid;place-items:center;font-size:28px;flex:none}
+  .playc div{flex:1;min-width:0}.playc b{display:block;font-size:18px;font-weight:900}.playc small{display:block;font-size:12.5px;color:#8a6f55;margin-top:3px;line-height:1.4}
+  .playc i{font-style:normal;font-size:26px;color:#a08a72}
   .lnk2{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}.lnk2:first-of-type{border-top:0}.lnk2 img{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;background:#222}.lnk2 b{display:block;font-size:14.5px;line-height:1.35}.lnk2 small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
   .ecw,.ecg{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}.ecw i{font-style:normal;font-size:12.5px;color:#9A979C;padding-bottom:4px}.ecw i:first-child{color:#FF7A7F}
   .ecd{border:0;background:none;color:#E9E6E1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 4px;min-height:46px;border-radius:12px;font:inherit;cursor:pointer}.ecd:disabled{cursor:default}.ecd span{font-size:14px;font-weight:700;padding:1px 6px;border-radius:8px}
@@ -821,7 +825,9 @@
   }
   // ── 🎵 해랑경희 즐기기: 노래 · 소식 · 칼럼 (2026-11-16 사용자) ──
   function funView() {
-    let h = '<div class="hi"><span class="av" style="background:#7B4FB8">🎵</span><div><b>해랑경희 즐기기</b><small>노래 부르고, 소식 보고, 이야기 읽기</small></div></div>';
+    let h = '<div class="hi"><span class="av" style="background:#7B4FB8">🎵</span><div><b>해랑경희 즐기기</b><small>놀이하고, 노래 부르고, 소식 보기</small></div></div>';
+    // 2026-11-17 사용자: 🎮 우리 도장 놀이터 (play.html, 혼자 하는 놀이 7가지 · 캐릭터 띠 = 내 띠)
+    h += '<a class="playc" href="play.html?b=' + encodeURIComponent(D.belt || '') + '"><span class="pi">🎮</span><div><b>우리 도장 놀이터</b><small>줄넘기 · 태극 1장 · 격파 · 띠 순서 · 표적 치기 · 짝 맞추기 · 퀴즈</small></div><i>›</i></a>';
     h += songCard();
     const P = ((SITE || {}).press || []).slice(0, 4);
     if (P.length) h += '<section class="card"><h2>📰 해랑경희 소식</h2>' + P.map(x => '<a class="lnk2" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + (x.image ? '<img src="/' + esc(x.image) + '" alt="" loading="lazy">' : '') + '<div><b>' + esc(x.title) + '</b><small>' + esc(x.source || '') + ' · ' + esc((x.date || '').slice(0, 7).replace('-', '.')) + '</small></div></a>').join('') + '</section>';
