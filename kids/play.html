@@ -112,6 +112,10 @@
   .card.up .pic,.card.done .pic{visibility:visible;}
   .card.up::after,.card.done::after{display:none;}
   .card.done{opacity:.55;}
+  .qtime{position:relative;height:22px;background:#efe3d2;border-radius:999px;overflow:hidden;margin:6px 0 2px;}
+  .qtime i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:999px;transition:width .1s linear;}
+  .qtime b{position:absolute;right:10px;top:0;line-height:22px;font-size:13px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35);}
+  .qtime.hurry i{background:#d23b2b;}
   .qbox{background:var(--card);border-radius:18px;padding:16px;font-size:19px;line-height:1.45;text-align:center;}
   .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--soft);}
 </style>
@@ -168,7 +172,7 @@
     <div class="gwrap"><button class="game" data-game="belt"><i>🎗️</i><b>띠 순서</b><small id="pBelt"></small></button><div class="rk" id="rk-belt"></div></div>
     <div class="gwrap"><button class="game" data-game="whack"><i>🎯</i><b>표적 치기</b><small id="pWhack"></small></button><div class="rk" id="rk-whack"></div></div>
     <div class="gwrap"><button class="game" data-game="mem"><i>🃏</i><b>짝 맞추기</b><small id="pMem"></small></button><div class="rk" id="rk-mem"></div></div>
-    <div class="gwrap"><button class="game" data-game="quiz"><i>💡</i><b>태권도 퀴즈</b><small id="pQuiz"></small></button><div class="rk" id="rk-quiz"></div></div>
+    <div class="gwrap"><button class="game" data-game="quiz"><i>💡</i><b>해랑경희 퀴즈</b><small id="pQuiz"></small></button><div class="rk" id="rk-quiz"></div></div>
   </div>
 </div>
 
@@ -290,7 +294,7 @@ const GAMES = {
   belt: {n:'띠 순서', d:-1, f:v => (v/10).toFixed(1) + '초'},
   whack:{n:'표적 치기', d:1, f:v => v + '점'},
   mem:  {n:'짝 맞추기', d:-1, f:v => v + '번 만에'},
-  quiz: {n:'태권도 퀴즈', d:1, f:v => v + '/8'}
+  quiz: {n:'해랑경희 퀴즈', d:1, f:v => v + '/8'}
 };
 const nowYm = () => new Date(Date.now() + 9*3600e3).toISOString().slice(0,7);
 function monthRec(g, v){
@@ -694,7 +698,7 @@ document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click'
   if(g === 'belt') openPanel('띠 순서 맞추기', gameBelt);
   if(g === 'whack') openPanel('표적 치기', gameWhack);
   if(g === 'mem') openPanel('짝 맞추기', gameMem);
-  if(g === 'quiz') openPanel('태권도 퀴즈', gameQuiz);
+  if(g === 'quiz') openPanel('해랑경희 퀴즈', gameQuiz);
 }));
 function endMode(){
   P.mode = null; ropeG.visible = false; R.on = false; T.on = false;
@@ -1083,63 +1087,101 @@ function gameMem(body){
 }
 
 /* 태권도 퀴즈 (바른 행동 · 상식) */
-const QUIZ = [
-  {q:'도장에 들어갈 때 가장 먼저 할 일은?', a:['신발을 정리하고 인사해요','바로 매트로 뛰어가요','가방을 아무 데나 던져요'], e:'예절은 도장 문에서부터 시작해요.'},
-  {q:'수련하다 친구가 넘어졌어요. 나는?', a:['괜찮은지 묻고 일으켜 줘요','못 본 척 계속해요','웃으면서 놀려요'], e:'친구를 먼저 챙기는 게 진짜 태권도인이에요.'},
-  {q:'친구가 내 물건을 허락 없이 가져갔어요.', a:['돌려 달라고 말로 부탁해요','똑같이 친구 물건을 가져가요','발차기로 혼내 줘요'], e:'태권도는 친구를 때리는 데 쓰지 않아요.'},
-  {q:'사범님이 말씀하실 때 바른 자세는?', a:['바르게 서서 눈을 보고 들어요','친구와 장난쳐요','물 마시러 가요'], e:'잘 들어야 잘 배울 수 있어요.'},
-  {q:'수련 중에 물이 마시고 싶어요.', a:['사범님께 말씀드리고 마셔요','말없이 나가요','참다가 울어요'], e:'필요한 건 예의 바르게 말하면 돼요.'},
-  {q:'겨루기에서 진 친구에게 할 말은?', a:['수고했어! 다음에 또 하자','내가 이겼지롱','너 진짜 못한다'], e:'이겨도 져도 서로 인사하고 격려해요.'},
-  {q:'발차기 연습을 할 때 조심할 점은?', a:['주변 친구와 거리를 두어요','친구 바로 앞에서 차요','눈을 감고 차요'], e:'안전이 먼저예요.'},
-  {q:'태극 1장의 첫 동작은?', a:['아래막기','얼굴막기','앞차기'], e:'왼쪽으로 왼앞서기 아래막기로 시작해요.'},
-  {q:'태극 품새는 모두 몇 장까지 있을까요?', a:['8장','5장','10장'], e:'태극 1장부터 8장까지 있어요.'},
-  {q:'태권도가 올림픽 정식 종목이 된 대회는?', a:['2000년 시드니 올림픽','1988년 서울 올림픽','2020년 도쿄 올림픽'], e:'서울 올림픽 때는 시범 종목이었고, 시드니부터 정식 종목이에요.'},
-  {q:'15세 미만 어린이가 받는 검은띠 단계를 뭐라고 할까요?', a:['품','급','단'], e:'15세 미만은 품, 15세 이상은 단이라고 해요.'},
-  {q:'품새나 기술을 할 때 힘차게 내는 소리는?', a:['기합','박수','노래'], e:'기합은 힘과 마음을 모아 줘요.'},
-  {q:'수련을 시작하고 마칠 때 하는 것은?', a:['차렷, 경례','만세','하이파이브만'], e:'시작과 끝은 언제나 인사로!'},
-  {q:'도복 띠는 어떻게 해야 할까요?', a:['잘 접어서 소중히 보관해요','바닥에 던져 둬요','줄넘기로 써요'], e:'띠는 내가 노력한 증거예요.'}
-];
+/* 해랑경희 퀴즈 (2026-11-17 사용자: 태권도 퀴즈 → 해랑경희 퀴즈, 홈페이지 내용으로 · 제자 눈높이 · 한 문제 10초)
+   문제는 홈페이지 data.json(지도진·슬로건·선범단·시간표·기네스·약속 …)을 읽어서 만듦 → 홈페이지를 고치면 퀴즈도 따라 바뀜. 못 읽으면 아래 기본값. */
+const QZ_SEC = 10, QZ_N = 8;
+let SITE = null;
+async function loadSite(){ if(SITE) return SITE; try { SITE = await fetch('../data.json', {cache:'no-cache'}).then(r => r.json()); } catch(e){ SITE = {}; } return SITE; }
+function hkQuiz(D){
+  D = D || {}; const Q = [], add = (q, a, e) => { if(q && a && a.length >= 3 && a.every(Boolean) && new Set(a).size === a.length) Q.push({q, a: a.slice(0,3), e: e || ''}); };
+  const mem = ((D.staff || {}).members || []).filter(m => m && m.name && m.role);
+  const names = mem.length >= 3 ? mem.map(m => m.name) : ['이아빈','김병수','한채원'];
+  const who = (role, dflt) => (mem.find(m => m.role === role) || {}).name || dflt;
+  const other = (n, k) => shuffle(names.filter(x => x !== n)).slice(0, k || 2);
+  const boss = who('대표 사범','이아빈'), sub = who('지도 사범','김병수'), coach = who('코치','한채원');
+  add('해랑경희 대표 사범님의 이름은?', [boss, ...other(boss)], '대표 사범님은 ' + boss + ' 사범님이에요.');
+  add('해랑경희 지도 사범님의 이름은?', [sub, ...other(sub)], '지도 사범님은 ' + sub + ' 사범님이에요.');
+  add('해랑경희 코치 선생님의 이름은?', [coach, ...other(coach)], '코치 선생님은 ' + coach + ' 코치님이에요.');
+  { const c = (mem.find(m => m.name === boss) || {}).career || [], dan = (c.join(' ').match(/공인\s*(\d)단/) || [])[1] || '6';
+    add('대표 사범님은 태권도 공인 몇 단일까요?', [dan + '단', (+dan - 3) + '단', (+dan + 3) + '단'], '대표 사범님은 공인 ' + dan + '단이에요!'); }
+  add('해랑경희 슬로건: "멋을 추구하나 ○○하지 않고"', ['자만', '포기', '지각'], '멋을 추구하나 자만하지 않고, 여유가 있으나 교만하지 않은 해랑인!');
+  add('해랑경희 슬로건: "여유가 있으나 ○○하지 않은 해랑인"', ['교만', '친절', '조용'], '멋을 추구하나 자만하지 않고, 여유가 있으나 교만하지 않은 해랑인!');
+  add('선범단(先範團)의 "선(先)"은 무슨 뜻일까요?', ['먼저', '착하다', '줄'], '먼저 선(先) · 모범 범(範) · 모일 단(團)이에요.');
+  add('선범단(先範團)의 "범(範)"은 무슨 뜻일까요?', ['모범', '호랑이', '범위'], '다른 사람에게 모범이 되는 수련생들이에요.');
+  add('선범단이 되면 도복 왼팔에 붙이는 것은?', ['선범단 패치', '금메달', '스티커 별'], '자기 이름 키링·임명장과 함께 패치를 받아요.');
+  add('선범단원은 무엇을 할 수 있을까요?', ['친구들을 가르쳐 줄 수 있어요', '수업을 쉬어도 돼요', '간식을 먼저 먹어요'], '사범님께 다른 사람을 가르칠 수 있는 권한을 받아요.');
+  { const g = D.guinness || {}, it = Object.values(g.items || {}), ev = it.length >= 2 ? it : ['왕복달리기','스피드 줄넘기','위력격파','스피드 발차기'];
+    add('다음 중 해랑 기네스 종목이 아닌 것은?', ['노래 부르기', ...shuffle(ev.slice()).slice(0,2)], '기네스 종목: ' + ev.join(' · '));
+    add('해랑 기네스는 언제 잴까요?', [g.note || '금요일 수업 시간', '일요일 아침', '방학 때만'], '매달 금요일 수업 시간에 기록을 재요.'); }
+  { const pr = (D.program || {}).divisions || [], el = pr.find(d => d.name === '초등부'), kd = pr.find(d => d.name === '유치부'), j = x => (x || []).join('·');
+    const mo = el && el.days && el.days['월'], fr = el && el.days && el.days['금'], th = el && el.days && el.days['목'];
+    add('초등부는 월요일에 무엇을 할까요?', [mo ? j(mo.filter(x => !/줄넘기/.test(x))) : '인성교육·태권웅변', '겨루기·호신술', '수영·요리'], '월요일은 인성교육과 태권웅변을 해요.');
+    add('금요일 수업에서는 무엇을 할까요?', [fr ? j(fr) : '학교체육·레크레이션', '명상·태권체조', '품새 시험만'], '금요일은 학교체육과 레크레이션!');
+    if(!th || th.some(x => /영어/.test(x))) add('초등부 목요일은 무슨 날일까요?', ['영어 태권도하는 날', '노래하는 날', '쉬는 날'], '목요일은 영어로 태권도를 해요.');
+    const kw = kd && kd.days && kd.days['수']; add('유치부는 수요일에 무엇을 할까요?', [kw ? j(kw.slice(0,2)) : '명상·태권체조', '줄넘기·태권웅변', '겨루기·호신술'], '유치부 수요일은 명상과 태권체조를 해요.'); }
+  { const h = (D.location || {}).hours || {}, off = Object.keys(h).filter(k => /휴무|쉼/.test(h[k] || ''));
+    add('해랑경희가 쉬는 날은?', [off.length ? off.join('·') + '요일' : '토·일요일', '월요일', '수요일'], '주말에는 도장이 쉬어요.');
+    const fl = ((D.location || {}).address || '').match(/(\d)층/); add('해랑경희 도장은 몇 층에 있을까요?', [(fl ? fl[1] : '3') + '층', '1층', '6층'], '도장은 ' + (fl ? fl[1] : '3') + '층에 있어요.');
+    const lm = ((D.location || {}).landmark || '').match(/(\S+초)/); if(lm) add('해랑경희는 어느 학교 정문 옆에 있을까요?', [lm[1], '바다초', '하늘초'], (D.location || {}).landmark || ''); }
+  { const sc = String(D.since || '2023'); add('해랑경희는 몇 년에 문을 열었을까요?', [sc + '년', (+sc - 10) + '년', (+sc + 3) + '년'], sc + '년부터 함께하고 있어요.'); }
+  { const y = ((D.promise || {}).years || []).find(x => x.year === String(new Date().getFullYear())) || {year:'2026', text:'태권도를 통해 자신의 삶에 확신이 있는 삶을 살도록'}, m = (y.text || '').match(/(확신|도전|지혜)/);
+    if(m) add(y.year + '년 해랑경희의 약속: "태권도를 통해 … ' + ({확신:'○○이 있는 삶', 도전:'새로운 ○○에 자신 있는 삶', 지혜:'세상을 살아가는 ○○'})[m[1]] + '"', [m[1], m[1] === '확신' ? '걱정' : '숙제', '게임'], y.text); }
+  add('띠(유급자)는 한 띠마다 얼마 동안 수련할까요?', ['1개월', '1주일', '1년'], '띠마다 한 달씩 수련해요.');
+  add('수련을 시작하고 마칠 때 꼭 하는 것은?', ['사범님과 친구들에게 인사', '박수만 치기', '그냥 들어가기'], '해랑경희는 인사로 시작하고 인사로 끝나요.');
+  add('도장에서 친구가 힘들어하면?', ['도와주고 응원해요', '모른 척해요', '놀려요'], '서로 돕는 것이 해랑인의 마음이에요.');
+  return Q;
+}
 function gameQuiz(body){
-  const stat = el('div','stat','<span id="qNum">1 / 8</span><span id="qScore">맞힘 0</span>');
-  const qb = el('div','qbox');
+  const stat = el('div','stat','<span id="qNum">1 / ' + QZ_N + '</span><span id="qScore">맞힘 0</span>');
+  const tbar = el('div','qtime','<i id="qBar"></i><b id="qSec">' + QZ_SEC + '</b>');
+  const qb = el('div','qbox','문제를 불러오는 중…');
   const ch = el('div','choices');
   const msg = el('p','gMsg','');
   const btn = el('button','big','다음'); btn.style.visibility = 'hidden';
-  body.append(stat, qb, ch, msg, btn);
-  let list = [], i = 0, score = 0, answered = false;
-  function start(){
-    list = shuffle(QUIZ.slice()).slice(0, 8); i = 0; score = 0; $('qScore').textContent = '맞힘 0'; show();
+  body.append(stat, tbar, qb, ch, msg, btn);
+  let list = [], i = 0, score = 0, answered = false, tm = null, t0 = 0, alive = true;
+  const stopT = () => { if(tm){ clearInterval(tm); tm = null; } };
+  async function start(){
+    const D = await loadSite(); if(!alive) return;
+    list = shuffle(hkQuiz(D)).slice(0, QZ_N); i = 0; score = 0; $('qScore').textContent = '맞힘 0'; show();
   }
+  function reveal(){ [...ch.children].forEach(c => { if(c.dataset.ok) c.classList.add('ok'); }); }
+  function finishQ(txt){ stopT(); answered = true; $('qScore').textContent = '맞힘 ' + score; msg.textContent = txt; btn.textContent = i < list.length - 1 ? '다음' : '결과 보기'; btn.style.visibility = ''; }
   function show(){
     answered = false; const q = list[i];
-    $('qNum').textContent = (i+1) + ' / 8'; qb.textContent = q.q; msg.textContent = ''; btn.style.visibility = 'hidden';
+    $('qNum').textContent = (i+1) + ' / ' + list.length; qb.textContent = q.q; msg.textContent = ''; btn.style.visibility = 'hidden';
     ch.innerHTML = '';
     shuffle(q.a.map((t,k) => ({t, ok:k===0}))).forEach(o => {
-      const b = el('button','choice'); b.textContent = o.t;
+      const b = el('button','choice'); b.textContent = o.t; if(o.ok) b.dataset.ok = '1';
       b.onclick = () => {
-        audio(); if(answered) return; answered = true;
-        if(o.ok){ score++; b.classList.add('ok'); sfx.tick(); msg.textContent = '정답! ' + q.e; }
-        else { b.classList.add('no'); sfx.fail(); [...ch.children].forEach((c,k) => { if(c.textContent === q.a[0]) c.classList.add('ok'); }); msg.textContent = '아쉬워요. ' + q.e; }
-        $('qScore').textContent = '맞힘 ' + score;
-        btn.textContent = i < 7 ? '다음' : '결과 보기'; btn.style.visibility = '';
+        audio(); if(answered) return;
+        if(o.ok){ score++; b.classList.add('ok'); sfx.tick(); finishQ('정답! ' + q.e); }
+        else { b.classList.add('no'); sfx.fail(); reveal(); finishQ('아쉬워요. ' + q.e); }
       };
       ch.appendChild(b);
     });
+    // ⏱ 한 문제 10초
+    stopT(); t0 = performance.now(); $('qBar').style.width = '100%'; $('qSec').textContent = QZ_SEC; tbar.classList.remove('hurry');
+    tm = setInterval(() => {
+      const left = Math.max(0, QZ_SEC - (performance.now() - t0) / 1000);
+      $('qBar').style.width = (left / QZ_SEC * 100) + '%'; $('qSec').textContent = Math.ceil(left); tbar.classList.toggle('hurry', left <= 3);
+      if(left <= 0 && !answered){ sfx.fail(); reveal(); finishQ('⏰ 시간이 다 됐어요! ' + q.e); }
+    }, 100);
   }
   btn.onclick = () => {
     audio();
     if(btn.textContent === '다시 하기'){ start(); return; }
-    if(i < 7){ i++; show(); return; }
-    qb.textContent = '8문제 중 ' + score + '개 맞혔어요!'; ch.innerHTML = '';
-    let m = score === 8 ? '모두 맞혔어요! 🎉' : '잘했어요!';
-    if(score > S.bestQuiz){ S.bestQuiz = score; m = '새 기록! ' + m; }
+    if(i < list.length - 1){ i++; show(); return; }
+    stopT(); qb.textContent = list.length + '문제 중 ' + score + '개 맞혔어요!'; ch.innerHTML = ''; $('qBar').style.width = '0%'; $('qSec').textContent = '';
+    let m = score === list.length ? '해랑경희 박사! 🎉' : score >= 6 ? '해랑경희를 잘 아는군요!' : '다시 도전해 봐요!';
+    if(score > (S.bestQuiz || 0)){ S.bestQuiz = score; m = '새 기록! ' + m; }
     monthRec('quiz', score);
-    const st = score === 8 ? 2 : score >= 6 ? 1 : 0;
+    const st = score === list.length ? 2 : score >= 6 ? 1 : 0;
     if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
     msg.textContent = m; btn.textContent = '다시 하기';
   };
   start();
-  return null;
+  return () => { alive = false; stopT(); };
 }
 
 /* ---------- 누르기 ---------- */
