@@ -1431,8 +1431,7 @@ async function testOnlyGet(env) { // 🧪 시험 모드 — 고른 직원이 지
 // 🔔 '내가 한 일도 알림 받기' (2026-11-16 사용자: 나한테도 울리게, 채팅은 빼고) — kv selfPush = [직원 id]
 async function selfToo(env, myId, view) {
   const t = await testOnlyGet(env); if (t && t.mid === myId) return true;
-  if (view === 'chat' || !myId) return false;
-  return (J((await one(env, "SELECT v FROM kv WHERE k = 'selfPush'") || {}).v, []) || []).includes(myId);
+  return view !== 'chat'; // 2026-11-17 사용자: 모두에게 내가 한 것도 알림 (채팅만 빼고, 공용폰 포함) — 끄는 칸 없음
 }
 async function pushAll(env, myId, title, body, view) {
   const subs = await all(env, 'SELECT * FROM subs WHERE mid <> ?', (await selfToo(env, myId, view)) ? '' : myId);
