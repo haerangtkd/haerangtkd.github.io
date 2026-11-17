@@ -70,6 +70,18 @@
   .big.blue:active{box-shadow:0 1px 0 #436f9e;}
   .games{display:grid;grid-template-columns:1fr 1fr;gap:9px;max-height:62vh;overflow:auto;}
   .game{flex-direction:column;align-items:flex-start;gap:4px;}
+  .gwrap{display:flex;flex-direction:column;background:#f6eee2;border-radius:18px;min-width:0;}
+  .gwrap .game{background:none;}
+  .rk{padding:0 12px 10px;font-size:12px;color:var(--soft);}
+  .rk:empty{display:none;}
+  .rk .r{display:flex;justify-content:space-between;gap:4px;line-height:1.6;}
+  .rk .r span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rk .r.me,.rlist .r.me{color:var(--accent);}
+  .rk .more{border:none;background:none;font:inherit;font-size:12px;color:var(--ink);padding:2px 0 0;text-decoration:underline;}
+  .rlist{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto;}
+  .rlist .r{display:flex;align-items:center;gap:10px;background:#f6eee2;border-radius:12px;padding:9px 12px;font-size:16px;}
+  .rlist .r i{font-style:normal;width:30px;text-align:center;}
+  .rlist .r span{flex:1;}
   .choices{display:flex;flex-direction:column;gap:8px;}
   .choice{border:none;border-radius:16px;background:#f6eee2;padding:11px 14px;font:inherit;font-size:16px;color:var(--ink);text-align:left;line-height:1.35;}
   .choice b{font-weight:normal;color:var(--accent);}
@@ -145,14 +157,20 @@
 <div class="sheet" id="playSheet">
   <div class="sheetHead"><b>무엇을 할까요?</b><button class="x" data-close>닫기</button></div>
   <div class="games">
-    <button class="game" data-game="rope"><i>🪢</i><b>줄넘기</b><small id="pRope"></small></button>
-    <button class="game" data-game="tg"><i>🥋</i><b>태극 1장</b><small id="pTg"></small></button>
-    <button class="game" data-game="break"><i>🪵</i><b>격파 놀이</b><small id="pBreak"></small></button>
-    <button class="game" data-game="belt"><i>🎗️</i><b>띠 순서</b><small id="pBelt"></small></button>
-    <button class="game" data-game="whack"><i>🎯</i><b>표적 치기</b><small id="pWhack"></small></button>
-    <button class="game" data-game="mem"><i>🃏</i><b>짝 맞추기</b><small id="pMem"></small></button>
-    <button class="game" data-game="quiz"><i>💡</i><b>태권도 퀴즈</b><small id="pQuiz"></small></button>
+    <div class="gwrap"><button class="game" data-game="rope"><i>🪢</i><b>줄넘기</b><small id="pRope"></small></button><div class="rk" id="rk-rope"></div></div>
+    <div class="gwrap"><button class="game" data-game="tg"><i>🥋</i><b>태극 1장</b><small id="pTg"></small></button><div class="rk" id="rk-tg"></div></div>
+    <div class="gwrap"><button class="game" data-game="break"><i>🪵</i><b>격파 놀이</b><small id="pBreak"></small></button><div class="rk" id="rk-brk"></div></div>
+    <div class="gwrap"><button class="game" data-game="belt"><i>🎗️</i><b>띠 순서</b><small id="pBelt"></small></button><div class="rk" id="rk-belt"></div></div>
+    <div class="gwrap"><button class="game" data-game="whack"><i>🎯</i><b>표적 치기</b><small id="pWhack"></small></button><div class="rk" id="rk-whack"></div></div>
+    <div class="gwrap"><button class="game" data-game="mem"><i>🃏</i><b>짝 맞추기</b><small id="pMem"></small></button><div class="rk" id="rk-mem"></div></div>
+    <div class="gwrap"><button class="game" data-game="quiz"><i>💡</i><b>태권도 퀴즈</b><small id="pQuiz"></small></button><div class="rk" id="rk-quiz"></div></div>
   </div>
+</div>
+
+<div class="sheet" id="rankSheet">
+  <div class="sheetHead"><b id="rkTitle">이번 달 순위</b><button class="x" id="rkBack">‹ 놀이 목록</button></div>
+  <div class="rlist" id="rkList"></div>
+  <p class="note" id="rkMe"></p>
 </div>
 
 <div class="sheet" id="ropeSheet">
@@ -177,6 +195,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="../notice/config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
@@ -253,6 +272,78 @@ let toastT;
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),1600); }
 function updateStars(){ $('stars').textContent = '⭐ ' + S.stars; }
 updateStars();
+
+/* ---------- 🏆 이번 달 순위 (2026-11-17) ----------
+   서버는 판마다 안 부름: 한 판 끝나면 휴대폰에만 적어 두고(S.mb.q),
+   놀이 목록을 열 때(저장 + 순위) · 놀이터에서 나갈 때(저장) · 다음에 열 때(못 보낸 것 저장)만 부름 */
+const API = window.HAERANG_PUSH_API || '';
+let TOK = ''; try { TOK = localStorage.getItem('haerang-kid-tok') || ''; } catch(e){}
+const GAMES = {
+  rope: {n:'줄넘기', d:1, f:v => v + '번'},
+  tg:   {n:'태극 1장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
+  brk:  {n:'격파 놀이', d:1, f:v => v + '단계'},
+  belt: {n:'띠 순서', d:-1, f:v => (v/10).toFixed(1) + '초'},
+  whack:{n:'표적 치기', d:1, f:v => v + '점'},
+  mem:  {n:'짝 맞추기', d:-1, f:v => v + '번 만에'},
+  quiz: {n:'태권도 퀴즈', d:1, f:v => v + '/8'}
+};
+const nowYm = () => new Date(Date.now() + 9*3600e3).toISOString().slice(0,7);
+function monthRec(g, v){
+  if(!GAMES[g] || !(v >= 0)) return;
+  if(!S.mb || S.mb.ym !== nowYm()) S.mb = {ym: nowYm(), v:{}, q:{}};
+  const old = S.mb.v[g], d = GAMES[g].d;
+  if(old == null || (d > 0 ? v > old : v < old)){ S.mb.v[g] = v; S.mb.q[g] = v; save(); }
+}
+const pendQ = () => (S.mb && S.mb.ym === nowYm() && S.mb.q && Object.keys(S.mb.q).length) ? S.mb.q : null;
+let TOP = null, topAt = 0, openSheetFn = null;
+async function gameSync(wantTop){
+  if(!API || !TOK) return null;
+  const q = pendQ();
+  if(!q && !wantTop) return null;
+  try {
+    const r = await fetch(API + '/k/game', {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tok: TOK, recs: q || undefined, top: !!wantTop})}).then(x => x.json());
+    if(r && r.ok){
+      if(q && S.mb && S.mb.q === q){ S.mb.q = {}; save(); }
+      if(r.top){ TOP = r; topAt = Date.now(); }
+    }
+    return r;
+  } catch(e){ return null; }
+}
+let exitSig = '';
+function flushExit(){
+  const q = pendQ(); if(!API || !TOK || !q) return;
+  const sig = JSON.stringify(q); if(sig === exitSig) return; exitSig = sig;
+  try { fetch(API + '/k/game', {method:'POST', keepalive:true, headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tok: TOK, recs: q})}); } catch(e){}
+}
+addEventListener('pagehide', flushExit);
+document.addEventListener('visibilitychange', () => { if(document.hidden) flushExit(); });
+if(pendQ()) setTimeout(() => gameSync(false), 2500);
+const medal = i => ['🥇','🥈','🥉'][i] || (i+1) + '위';
+const escH = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function drawRanks(){
+  Object.keys(GAMES).forEach(g => {
+    const box = document.getElementById('rk-' + g); if(!box) return;
+    if(!TOP || !TOP.top || !TOP.top[g]){ box.innerHTML = ''; return; }
+    const t = TOP.top[g], L = t.list || [];
+    if(!L.length){ box.innerHTML = '<div class="r"><span>이번 달 1등이 되어 보세요!</span></div>'; return; }
+    box.innerHTML = L.slice(0,3).map((x,i) => '<div class="r' + (x.n === TOP.me ? ' me' : '') + '"><span>' + medal(i) + ' ' + escH(x.n) + '</span><span>' + GAMES[g].f(x.v) + '</span></div>').join('') +
+      (L.length > 3 || (t.me && t.me.rank > 3) ? '<button class="more" data-rank="' + g + '">더보기' + (t.me && t.me.rank > 3 ? ' · 나 ' + t.me.rank + '위' : '') + '</button>' : '');
+  });
+  document.querySelectorAll('[data-rank]').forEach(b => b.onclick = e => { e.stopPropagation(); showRank(b.dataset.rank); });
+}
+async function loadRanks(){
+  if(!API || !TOK) return;
+  if(TOP && Date.now() - topAt < 60000 && !pendQ()){ drawRanks(); return; }
+  drawRanks();
+  await gameSync(true); drawRanks();
+}
+function showRank(g){
+  const t = TOP && TOP.top && TOP.top[g]; if(!t) return;
+  if(openSheetFn) openSheetFn('rankSheet');
+  $('rkTitle').textContent = '🏆 ' + GAMES[g].n + ' · ' + (+TOP.ym.slice(5)) + '월 순위';
+  $('rkList').innerHTML = (t.list || []).map((x,i) => '<div class="r' + (x.n === TOP.me ? ' me' : '') + '"><i>' + medal(i) + '</i><span>' + escH(x.n) + (x.n === TOP.me ? ' (나)' : '') + '</span><b>' + GAMES[g].f(x.v) + '</b></div>').join('') || '<div class="r"><span>아직 기록이 없어요</span></div>';
+  $('rkMe').textContent = t.me ? '내 순위: ' + t.cnt + '명 중 ' + t.me.rank + '위 (' + GAMES[g].f(t.me.v) + ')' : '이번 달 내 기록이 아직 없어요. 한 판 해 볼까요?';
+}
 
 if(!window.THREE){ $('loading').textContent = '그림을 불러오지 못했어요. 다시 열어 주세요.'; return; }
 
@@ -565,7 +656,7 @@ document.querySelectorAll('.bar button').forEach(b => b.addEventListener('click'
 
 /* ---------- 창 ---------- */
 let openId = null;
-function openSheet(id){ closeSheets(); openId = id; $(id).classList.add('open'); if(id==='charSheet') fillChar(); if(id==='playSheet') fillPlay(); }
+function openSheet(id){ closeSheets(); openId = id; $(id).classList.add('open'); if(id==='charSheet') fillChar(); if(id==='playSheet'){ fillPlay(); loadRanks(); } }
 function closeSheets(){
   document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
   if(openId==='gameSheet') G.on = false;
@@ -605,6 +696,8 @@ function endMode(){
   P.jt = -1; P.root.position.y = .08; P.act = null;
 }
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
+$('rkBack').addEventListener('click', () => openSheet('playSheet'));
+openSheetFn = openSheet;
 
 function fillChar(){
   $('rStars').textContent = S.stars; $('rRope').textContent = S.bestRope + '번'; $('rBest').textContent = S.best + '단계'; $('rTg').textContent = S.bestTg < 0 ? '-' : (S.bestTg === 0 ? '만점' : S.bestTg + '번 틀림');
@@ -648,7 +741,7 @@ $('gBtn').addEventListener('click', () => {
     setTimeout(() => { if(!G.on) return; G.level++; newRound(); $('gMsg').textContent = '더 빨라져요. 집중!'; }, 900);
   } else {
     G.over = true; sfx.fail();
-    const done = G.level - 1;
+    const done = G.level - 1; if(done > 0) monthRec('brk', done);
     let msg = done > 0 ? '아깝다! ' + done + '단계까지 성공했어요' : '아깝다! 다시 해 봐요';
     if(done > S.best){ S.best = done; save(); msg = '새 기록! ' + done + '단계까지 성공했어요 🎉'; }
     $('gMsg').textContent = msg; $('gBtn').textContent = '다시 하기';
@@ -696,6 +789,7 @@ function ropeJump(){
 }
 $('ropeBtn').addEventListener('pointerdown', e => { e.preventDefault(); audio(); ropeJump(); });
 function ropeFail(){
+  if(R.count > 0) monthRec('rope', R.count);
   R.on = false; R.over = true; sfx.fail(); floatText('앗, 걸렸다!');
   let msg = R.count > 0 ? R.count + '번 넘었어요! 다시 해 볼까요?' : '앗, 걸렸어요! 다시 해 봐요';
   if(R.count > S.bestRope){ S.bestRope = R.count; save(); msg = '새 기록! ' + R.count + '번 넘었어요 🎉'; }
@@ -809,6 +903,7 @@ function playTg(st, done){
   run();
 }
 function finishTg(){
+  monthRec('tg', T.miss);
   T.on = false;
   const n = T.miss >= 0 && T.miss === 0 ? 3 : T.miss <= 3 ? 2 : 1;
   let msg = T.miss === 0 ? '한 번도 안 틀렸어요! 별 3개 ⭐⭐⭐' : T.miss + '번 틀렸어요. 별 ' + n + '개 받았어요';
@@ -870,7 +965,7 @@ function gameBelt(body){
   }
   function finish(){
     done = true; clearInterval(timer);
-    const sec = Math.round(((performance.now()-t0)/1000 + pen)*10)/10;
+    const sec = Math.round(((performance.now()-t0)/1000 + pen)*10)/10; monthRec('belt', Math.round(sec*10));
     $('bTime').textContent = sec.toFixed(1) + '초';
     let m = sec.toFixed(1) + '초 만에 성공!';
     if(!S.bestBelt || sec < S.bestBelt){ S.bestBelt = sec; m = '새 기록! ' + m; }
@@ -928,6 +1023,7 @@ function gameWhack(body){
         stop(); btn.style.visibility = ''; btn.textContent = '다시 하기';
         let m = score + '점!';
         if(score > S.bestWhack){ S.bestWhack = score; m = '새 기록! ' + m; }
+        if(score > 0) monthRec('whack', score);
         const st = Math.floor(score/10);
         if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
         msg.textContent = m;
@@ -964,6 +1060,7 @@ function gameMem(body){
           if(left === 0){
             let m = tries + '번 만에 다 찾았어요!';
             if(!S.bestMem || tries < S.bestMem){ S.bestMem = tries; m = '새 기록! ' + m; }
+            monthRec('mem', tries);
             const st = tries <= 12 ? 3 : tries <= 18 ? 2 : 1;
             addStars(st); msg.textContent = m + ' 별 ' + st + '개 ⭐'; again.style.display = '';
           }
@@ -1031,6 +1128,7 @@ function gameQuiz(body){
     qb.textContent = '8문제 중 ' + score + '개 맞혔어요!'; ch.innerHTML = '';
     let m = score === 8 ? '모두 맞혔어요! 🎉' : '잘했어요!';
     if(score > S.bestQuiz){ S.bestQuiz = score; m = '새 기록! ' + m; }
+    monthRec('quiz', score);
     const st = score === 8 ? 2 : score >= 6 ? 1 : 0;
     if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
     msg.textContent = m; btn.textContent = '다시 하기';
