@@ -104,8 +104,13 @@
   .hole.hit{background:radial-gradient(circle,#c9e7b5,#d9c3a2 70%);}
   .hole.bad{background:radial-gradient(circle,#f3b8ab,#d9c3a2 70%);}
   .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-  .card{aspect-ratio:1;border:none;border-radius:12px;font-size:32px;background:#e8a598;color:transparent;padding:0;}
-  .card.up,.card.done{background:#fff;color:inherit;}
+  .card{aspect-ratio:1;border:none;border-radius:12px;font-size:32px;background:#e8a598;color:var(--ink);padding:0;position:relative;display:flex;align-items:center;justify-content:center;}
+  /* 그림은 글자색이 아니라 따로 켜고 끔 (2026-11-17: 휴대폰에서 그림이 안 보이던 것) */
+  .card .pic{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;line-height:1;visibility:hidden;}
+  .card::after{content:'?';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:900 26px/1 system-ui,sans-serif;color:#fff;}
+  .card.up,.card.done{background:#fff;}
+  .card.up .pic,.card.done .pic{visibility:visible;}
+  .card.up::after,.card.done::after{display:none;}
   .card.done{opacity:.55;}
   .qbox{background:var(--card);border-radius:18px;padding:16px;font-size:19px;line-height:1.45;text-align:center;}
   .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--soft);}
@@ -1035,7 +1040,7 @@ function gameWhack(body){
 
 /* 짝 맞추기 */
 function gameMem(body){
-  const PICS = ['🥋','🦶','👊','🥇','🎯','🪵','🙇','⭐'];
+  const PICS = ['🥋','🦶','👊','🥇','🎯','🏆','🙇','⭐']; // 🪵은 예전 휴대폰에 없는 그림이라 바꿈
   const stat = el('div','stat','<span id="mTry">뒤집은 횟수 0</span><span id="mLeft">남은 짝 8</span>');
   const grid = el('div','cards');
   const msg = el('p','gMsg','같은 그림 두 장을 찾아요');
@@ -1047,7 +1052,7 @@ function gameMem(body){
     $('mTry').textContent = '뒤집은 횟수 0'; $('mLeft').textContent = '남은 짝 8';
     msg.textContent = '같은 그림 두 장을 찾아요'; again.style.display = 'none';
     shuffle(PICS.concat(PICS)).forEach(p => {
-      const c = el('button','card', p); c.dataset.p = p;
+      const c = el('button','card', '<span class="pic">' + p + '</span>'); c.dataset.p = p;
       c.onclick = () => {
         audio();
         if(lock || c.classList.contains('up') || c.classList.contains('done')) return;
