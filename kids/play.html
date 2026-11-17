@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f3e6d3">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>우리 도장 놀이터 · 해랑경희 제자</title>
+<title>레크리에이션 · 해랑경희 제자</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
@@ -116,7 +116,7 @@
 <canvas id="c"></canvas>
 
 <div class="top">
-  <div class="title"><a class="back" href="./" aria-label="제자 앱으로">‹</a><div><b>우리 도장 놀이터</b><span>해랑경희 태권도</span></div></div>
+  <div class="title"><a class="back" href="./" aria-label="제자 앱으로">‹</a><div><b>레크리에이션</b><span>해랑경희 태권도</span></div></div>
   <div class="right">
     <div class="pill" id="stars">⭐ 0</div>
     <button class="pill" id="soundBtn">소리 켜짐</button>
@@ -656,7 +656,7 @@ document.querySelectorAll('.bar button').forEach(b => b.addEventListener('click'
 
 /* ---------- 창 ---------- */
 let openId = null;
-function openSheet(id){ closeSheets(); openId = id; $(id).classList.add('open'); if(id==='charSheet') fillChar(); if(id==='playSheet'){ fillPlay(); loadRanks(); } }
+function openSheet(id){ closeSheets(); openId = id; $(id).classList.add('open'); if(id==='charSheet') fillChar(); if(id==='playSheet') fillPlay(); } /* 순위는 제자 앱 즐기기 화면에서 (2026-11-17 사용자) */
 function closeSheets(){
   document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
   if(openId==='gameSheet') G.on = false;

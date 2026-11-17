@@ -277,6 +277,12 @@
   .playc .pi{width:52px;height:52px;border-radius:16px;background:#fffaf2;display:grid;place-items:center;font-size:28px;flex:none}
   .playc div{flex:1;min-width:0}.playc b{display:block;font-size:18px;font-weight:900}.playc small{display:block;font-size:12.5px;color:#8a6f55;margin-top:3px;line-height:1.4}
   .playc i{font-style:normal;font-size:26px;color:#a08a72}
+  .rec .playc{margin-top:4px}
+  .rkg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.rkg>.sub{grid-column:1/-1}
+  .rkb{background:#1E1E21;border-radius:14px;padding:10px 12px;font-size:12.5px;min-width:0}.rkb b{display:block;font-size:13.5px;margin-bottom:4px}
+  .rkb .r{display:flex;justify-content:space-between;gap:6px;color:var(--muted);line-height:1.65}.rkb .r span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rkb .r em{font-style:normal;flex:none}
+  .rkb .r.me,.rkl .r.me{color:var(--gold)}.rkb button{border:0;background:none;color:var(--ink);font-size:12px;padding:4px 0 0;text-decoration:underline}
+  .rkl .r{display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--line);font-size:15px}.rkl .r:first-child{border-top:0}.rkl .r i{font-style:normal;width:32px;text-align:center}.rkl .r span{flex:1}
   .lnk2{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}.lnk2:first-of-type{border-top:0}.lnk2 img{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;background:#222}.lnk2 b{display:block;font-size:14.5px;line-height:1.35}.lnk2 small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
   .ecw,.ecg{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}.ecw i{font-style:normal;font-size:12.5px;color:#9A979C;padding-bottom:4px}.ecw i:first-child{color:#FF7A7F}
   .ecd{border:0;background:none;color:#E9E6E1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0 4px;min-height:46px;border-radius:12px;font:inherit;cursor:pointer}.ecd:disabled{cursor:default}.ecd span{font-size:14px;font-weight:700;padding:1px 6px;border-radius:8px}
@@ -825,15 +831,51 @@
   }
   // ── 🎵 해랑경희 즐기기: 노래 · 소식 · 칼럼 (2026-11-16 사용자) ──
   function funView() {
-    let h = '<div class="hi"><span class="av" style="background:#7B4FB8">🎵</span><div><b>해랑경희 즐기기</b><small>놀이하고, 노래 부르고, 소식 보기</small></div></div>';
-    // 2026-11-17 사용자: 🎮 우리 도장 놀이터 (play.html, 혼자 하는 놀이 7가지 · 캐릭터 띠 = 내 띠)
-    h += '<a class="playc" href="play.html?b=' + encodeURIComponent(D.belt || '') + '"><span class="pi">🎮</span><div><b>우리 도장 놀이터</b><small>줄넘기 · 태극 1장 · 격파 · 띠 순서 · 표적 치기 · 짝 맞추기 · 퀴즈</small></div><i>›</i></a>';
+    let h = '<div class="hi"><span class="av" style="background:#7B4FB8">🎵</span><div><b>해랑경희 즐기기</b><small>노래 부르고, 레크리에이션 하고, 소식 보기</small></div></div>';
     h += songCard();
+    h += recCard(); // 2026-11-17 사용자: 🎮 레크리에이션은 노래 밑, 이번 달 순위는 이 화면에 바로
     const P = ((SITE || {}).press || []).slice(0, 4);
     if (P.length) h += '<section class="card"><h2>📰 해랑경희 소식</h2>' + P.map(x => '<a class="lnk2" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + (x.image ? '<img src="/' + esc(x.image) + '" alt="" loading="lazy">' : '') + '<div><b>' + esc(x.title) + '</b><small>' + esc(x.source || '') + ' · ' + esc((x.date || '').slice(0, 7).replace('-', '.')) + '</small></div></a>').join('') + '</section>';
     const C = ((SITE || {}).columns || []).slice(0, 6);
     if (C.length) h += '<section class="card"><h2>📖 해랑경희 칼럼<small>사범님이 쓴 글</small></h2>' + C.map(x => '<a class="lnk2" href="/' + esc(x.url) + '" target="_blank" rel="noopener">' + (x.image ? '<img src="/' + esc(x.image) + '" alt="" loading="lazy">' : '') + '<div><b>' + esc(x.title) + '</b><small>' + esc(x.summary || x.tag || '') + '</small></div></a>').join('') + '</section>';
     return h;
+  }
+  // ── 🎮 레크리에이션 (play.html, 혼자 하는 놀이 7가지 · 캐릭터 띠 = 내 띠) + 이번 달 순위 1~3위 · 더보기 10위 (2026-11-17 사용자) ──
+  // 서버 부담 줄이기: 즐기기 화면을 열 때만 한 번(1분 안에 다시 열면 안 부름), 놀이터에서 못 보낸 기록이 있으면 같이 보냄
+  const RG = { rope: ['🪢', '줄넘기', v => v + '번'], tg: ['🥋', '태극 1장', v => v === 0 ? '만점' : v + '번 틀림'], brk: ['🪵', '격파 놀이', v => v + '단계'], belt: ['🎗️', '띠 순서', v => (v / 10).toFixed(1) + '초'], whack: ['🎯', '표적 치기', v => v + '점'], mem: ['🃏', '짝 맞추기', v => v + '번 만에'], quiz: ['💡', '태권도 퀴즈', v => v + '/8'] };
+  const MEDAL = ['🥇', '🥈', '🥉'];
+  let recTop = null, recAt = 0, recBusy = false;
+  function recCard() {
+    if (!recTop || Date.now() - recAt > 60000) setTimeout(recLoad, 0);
+    return '<section class="card rec"><h2>🎮 레크리에이션<small>' + (recTop ? (+recTop.ym.slice(5)) + '월 순위' : '이번 달 순위') + '</small></h2>' +
+      '<a class="playc" href="play.html?b=' + encodeURIComponent(D.belt || '') + '"><span class="pi">🎮</span><div><b>레크리에이션 하러 가기</b><small>줄넘기 · 태극 1장 · 격파 · 띠 순서 · 표적 치기 · 짝 맞추기 · 퀴즈</small></div><i>›</i></a>' +
+      '<div class="rkg" id="recRk">' + recRanks() + '</div></section>';
+  }
+  function recRanks() {
+    if (!recTop) return '<div class="sub">순위를 불러오는 중…</div>';
+    return Object.keys(RG).map(g => {
+      const t = (recTop.top || {})[g] || { list: [] }, L = t.list || [], [ic, nm, f] = RG[g];
+      return '<div class="rkb"><b>' + ic + ' ' + nm + '</b>' + (L.length ? L.slice(0, 3).map((x, i) => '<div class="r' + (x.n === recTop.me ? ' me' : '') + '"><span>' + MEDAL[i] + ' ' + esc(x.n) + '</span><em>' + f(x.v) + '</em></div>').join('') : '<div class="r"><span>이번 달 1등에 도전!</span></div>') +
+        (L.length > 3 || (t.me && t.me.rank > 3) ? '<button data-rkm="' + g + '">더보기' + (t.me && t.me.rank > 3 ? ' · 나 ' + t.me.rank + '위' : '') + ' ›</button>' : '') + '</div>';
+    }).join('');
+  }
+  async function recLoad() {
+    if (recBusy || !D) return; recBusy = true;
+    let q = null; const ym = D.today.slice(0, 7);
+    try { const S0 = JSON.parse(localStorage.getItem('haerang-dojang-v1') || 'null'); if (S0 && S0.mb && S0.mb.ym === ym && S0.mb.q && Object.keys(S0.mb.q).length) q = S0.mb.q; } catch (_) {}
+    let j = null;
+    try { j = await (await fetch(API + '/k/game', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ tok: store.get(TK), recs: q || undefined, top: true }) })).json(); } catch (_) {}
+    recBusy = false;
+    if (j && j.ok) {
+      recTop = j; recAt = Date.now();
+      if (q) try { const S1 = JSON.parse(localStorage.getItem('haerang-dojang-v1')); if (S1 && S1.mb && JSON.stringify(S1.mb.q) === JSON.stringify(q)) { S1.mb.q = {}; localStorage.setItem('haerang-dojang-v1', JSON.stringify(S1)); } } catch (_) {}
+    }
+    const el = $('recRk'); if (el) el.innerHTML = j && j.ok ? recRanks() : '<div class="sub">순위를 불러오지 못했어요</div>';
+  }
+  function recMore(g) {
+    const t = recTop && (recTop.top || {})[g]; if (!t) return; const [ic, nm, f] = RG[g];
+    sheet('<h3>' + ic + ' ' + nm + ' · ' + (+recTop.ym.slice(5)) + '월 순위</h3><div class="rkl">' + (t.list || []).map((x, i) => '<div class="r' + (x.n === recTop.me ? ' me' : '') + '"><i>' + (MEDAL[i] || (i + 1) + '위') + '</i><span>' + esc(x.n) + (x.n === recTop.me ? ' (나)' : '') + '</span><b>' + f(x.v) + '</b></div>').join('') + '</div>' +
+      '<p class="sub" style="margin-top:12px">' + (t.me ? '내 순위: ' + t.cnt + '명 중 ' + t.me.rank + '위 (' + f(t.me.v) + ')' : '이번 달 내 기록이 아직 없어요. 레크리에이션에서 한 판 해 볼까요?') + '</p><button class="big" data-x style="max-width:none">닫기</button>');
   }
   // ── 📅 수련 계획: 오늘의 운동 · 이 달 수련 주제 · 요일별 운동 · 이 달 공지 · 내 띠 품새 · 띠 제도 ──
   function planView() {
@@ -946,6 +988,7 @@
       if (k === 'goal') return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!'); if (k === 'cal') return logCal(); if (k === 'all') return allBadgeSheet(); if (k === 'env') return envList(); }
     if (e.target.closest('#songP')) { const au = songAu(); if (au.paused) au.play().catch(() => alert('노래를 틀지 못했어요. 무음 모드를 끄고 다시 눌러 주세요')); else au.pause(); return; }
     if (e.target.closest('#songAll')) return songLyrics();
+    const rkm = e.target.closest('[data-rkm]'); if (rkm) return recMore(rkm.dataset.rkm);
     if (e.target.closest('#mileB')) return milePage();
     if (e.target.closest('#badgeB,#badgeB2')) return badgePage();
     const bd = e.target.closest('[data-bd]'); if (bd) return badgeOne(bd.dataset.bd);
