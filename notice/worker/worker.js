@@ -53,6 +53,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS kcodes (name TEXT PRIMARY KEY, code TEXT UNIQUE, created INTEGER)', // 제자 모드 개인 코드 (관장님이 도장에서 넣어 줌, 2026-11-14)
   'CREATE TABLE IF NOT EXISTS ksess (tok TEXT PRIMARY KEY, name TEXT, created INTEGER, seen INTEGER)',
   'CREATE TABLE IF NOT EXISTS kposts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, body TEXT, at INTEGER, del INTEGER DEFAULT 0)', // 선범단 커뮤니티 (선범단만, 글만)
+  'CREATE TABLE IF NOT EXISTS kgame (ym TEXT, g TEXT, name TEXT, v INTEGER, at INTEGER, PRIMARY KEY (ym, g, name))', // 🎮 우리 도장 놀이터 이번 달 최고 기록 (2026-11-17)
   'CREATE TABLE IF NOT EXISTS invites (code TEXT PRIMARY KEY, name TEXT, kids TEXT, max INTEGER DEFAULT 2, off INTEGER DEFAULT 0, created INTEGER)', // 가정별 초대번호 (가입할 수 있는 휴대폰 수 제한)
 ];
 let ready = false;
@@ -161,6 +162,22 @@ async function route(path, req, env) {
       if (pk.length) { viaP = pk; ks = { name: pk.includes(String(b.kid || '')) ? String(b.kid) : pk[0] }; }
     }
     if (!ks) return json({ ok: false, error: '다시 도장에서 코드를 넣어 주세요', out: true });
+    // 🎮 우리 도장 놀이터 이번 달 순위 (2026-11-17 사용자) — 판마다 안 부름: 놀이터를 열 때·나갈 때·놀이 목록을 볼 때만 (기록 묶음 저장 + 순위)
+    if (path === '/k/game') {
+      const me = ks.name, ym = kstDay(new Date()).slice(0, 7);
+      if (!viaP && b.recs && typeof b.recs === 'object') for (const [g, v0] of Object.entries(b.recs).slice(0, 10)) {
+        const d = GAME_DIR[g], v = Math.round(Number(v0)); if (!d || !Number.isFinite(v) || v < 0 || v > 100000) continue;
+        const better = d > 0 ? 'excluded.v > kgame.v' : 'excluded.v < kgame.v';
+        await run(env, 'INSERT INTO kgame (ym, g, name, v, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(ym, g, name) DO UPDATE SET v = CASE WHEN ' + better + ' THEN excluded.v ELSE kgame.v END, at = CASE WHEN ' + better + ' THEN excluded.at ELSE kgame.at END', ym, g, me, v, Date.now());
+      }
+      if (!b.top) return json({ ok: true });
+      const rows = await all(env, 'SELECT g, name, v, at FROM kgame WHERE ym = ?', ym), top = {};
+      for (const g of Object.keys(GAME_DIR)) {
+        const L = rows.filter(r => r.g === g).sort((x, y) => GAME_DIR[g] * (y.v - x.v) || x.at - y.at), i = L.findIndex(r => r.name === me);
+        top[g] = { list: L.slice(0, 10).map(r => ({ n: r.name, v: r.v })), me: i >= 0 ? { rank: i + 1, v: L[i].v } : null, cnt: L.length };
+      }
+      return json({ ok: true, ym, me, top });
+    }
     const name = ks.name, km = J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {};
     const t = await teamSync(env, '/sync/kmode', { name });
     if (path === '/k/home') {
@@ -1000,6 +1017,7 @@ async function kidQr(env, name) { // 제자마다 내 출석 QR (2026-11-14) —
   let q = await kvj(env, 'kqr:' + name); if (q) return q;
   q = 'HRK1-' + rid(6).toUpperCase(); await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'kqr:' + name, JSON.stringify(q)); return (await kvj(env, 'kqr:' + name)) || q;
 }
+const GAME_DIR = { rope: 1, tg: -1, brk: 1, belt: -1, whack: 1, mem: -1, quiz: 1 }; // 🎮 놀이터 기록: 1 = 클수록 좋음, -1 = 작을수록 좋음 (태극 1장 틀린 수 · 띠 순서 0.1초 · 짝 맞추기 횟수)
 const KCODE_TTL = 5 * 60000; // 제자 코드 = 숫자 6자리, 5분 안에 한 번만 (2026-11-15)
 async function newKcode(env, name) {
   for (let t = 0; t < 20; t++) {
