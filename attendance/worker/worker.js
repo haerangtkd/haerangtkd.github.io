@@ -194,8 +194,8 @@ async function route(path, req, env) {
         await run(env, 'UPDATE att SET tin = ? WHERE day = ? AND sid = ?', tin, day, s.id);
         return json({ ok: true, day, period: per, mismatch: true });
       }
-      const p = cleanP([cur && cur.p, per].filter(Boolean).join('/'));
-      await run(env, "INSERT INTO att (day, sid, r, p, w, mk, who, at, tin) VALUES (?, ?, 'o', ?, '', 0, '태블릿', ?, ?) ON CONFLICT(day, sid) DO UPDATE SET r = 'o', p = excluded.p, w = '', who = '태블릿', at = excluded.at, tin = excluded.tin", day, s.id, p, Date.now(), tin);
+      // 2026-11-17 사용자: 자동 출석 끔 — 태블릿은 등원 알림용, 출석은 사범님이 출석부에서 누름 → 태블릿 시각(tin)만 남김 (출석부에 '태블릿 hh:mm' 표시)
+      await run(env, "INSERT INTO att (day, sid, r, p, w, mk, who, at, tin) VALUES (?, ?, '', '', '', 0, '', ?, ?) ON CONFLICT(day, sid) DO UPDATE SET tin = excluded.tin", day, s.id, Date.now(), tin);
       await cneedDrop(env, day, [s.id]); // 태블릿 등원도 출석이라 '연락 필요' 끝
       return json({ ok: true, day, period: per });
     }

@@ -1010,8 +1010,7 @@ async function checkIn(env, name, act, kiosk) {
   const body = act === 'in' ? name + ' 학생이 ' + t + '에 도장에 도착했습니다.' : name + ' 학생이 ' + t + '에 수련을 마치고 하원했습니다.';
   const r = await send(env, { kind: act === 'in' ? '등원' : '하원', title: (act === 'in' ? '등원 알림' : '하원 알림') + ' · ' + name, body, children: [name], view: 'attendance', att: true });
   try { // 🥋 제자 앱에도 (2026-11-15 사용자: 알림이 필요한 순간은 다)
-    const n = act === 'in' ? ((await one(env, 'SELECT COUNT(*) AS n FROM att WHERE name = ? AND day LIKE ? AND tin IS NOT NULL', name, day.slice(0, 7) + '%')) || {}).n || 0 : 0;
-    await kidPush(env, name, act === 'in' ? '🥋 출석 완료!' : '👋 오늘도 수고했어요!', act === 'in' ? t + ' 도착 · 이번 달 ' + n + '일째 출석이에요' : t + ' 하원 · 집에서 연습·바른 생활 체크도 잊지 마요');
+    await kidPush(env, name, act === 'in' ? '🥋 도장에 도착했어요!' : '👋 오늘도 수고했어요!', act === 'in' ? t + ' 도착 · 오늘도 힘차게 수련해요' : t + ' 하원 · 집에서 연습·바른 생활 체크도 잊지 마요'); // 2026-11-17: 출석은 출석부에서 사범님이 → '출석 완료' 대신 '도착'
   } catch (_) {}
   return { ok: true, time: t, at: now.getTime(), sent: r.sent || 0, total: r.total || 0 };
 }

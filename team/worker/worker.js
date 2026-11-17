@@ -897,6 +897,20 @@ async function route(path, req, env, ctx) {
       await run(env, 'DELETE FROM mile WHERE id = ?', x.id); await addLog(env, me.id, 'mile', '💰 ' + name + ' 마일리지 기록 지움 (' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '원)', ''); }
     return json({ ok: true, name, bal: await bal(), per: MILE_PER, list: await all(env, 'SELECT id, kind, n, amt, memo, by, at FROM mile WHERE name = ? ORDER BY id DESC LIMIT 30', name) });
   }
+  if (path === '/api/sun-import') { // ⭐ 지난달 종이 도장 수 넣기 (2026-11-17 사용자: 10월 경고인 제자도 넣어야 함) — 관리자만, 지난달까지만, 알림 없음
+    if (!me.boss) return json({ ok: false, error: '관리자만 넣을 수 있어요' });
+    const mon = /^\d{4}-\d{2}$/.test(str(b.month, 7)) ? str(b.month, 7) : '', cur = kstDay().slice(0, 7); if (!mon || mon >= cur) return json({ ok: false, error: '지난달까지만 넣을 수 있어요' });
+    const sb = await sbNames(env), ok = new Set(sb.map(x => x.name)), items = (Array.isArray(b.items) ? b.items : []).slice(0, 60).map(x => ({ name: str(x.name, 20), n: Math.max(0, Math.min(31, x.n | 0)) }));
+    const bad = items.filter(x => !ok.has(x.name)).map(x => x.name); if (bad.length) return json({ ok: false, error: '선범단 명단에 없는 이름: ' + bad.join(', ') });
+    const k = 'sun:' + mon; let L = J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, []); if (!Array.isArray(L)) L = [];
+    for (const it of items) { L = L.filter(x => !(x.name === it.name && x.paper)); for (let i = 0; i < it.n; i++) L.push({ id: rid(4), name: it.name, cat: '', text: '종이 기록', paper: 1, at: Date.parse(mon + '-01T03:00:00Z'), by: me.name }); }
+    await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', k, JSON.stringify(L));
+    await sunStatus(env, sb); // sunSince 먼저 채움
+    const since = J((await one(env, "SELECT v FROM kv WHERE k = 'sunSince'") || {}).v, {}) || {}, prev = monAdd(mon, -1); // 그 달에 도장이 있으면 그 달부터 셈 (선범단이 된 달은 그 전 달로)
+    items.forEach(it => { if (!since[it.name] || since[it.name] > prev) since[it.name] = prev; });
+    await run(env, "INSERT INTO kv (k, v) VALUES ('sunSince', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(since));
+    const st = await sunStatus(env, sb); return json({ ok: true, month: mon, st: Object.fromEntries(items.map(x => [x.name, st[x.name]])) });
+  }
   if (path === '/api/sun-list' || path === '/api/sun-add' || path === '/api/sun-del') { // ⭐ 선범단 도장 찍기 (2026-11-14 선 모으기 → 2026-11-15 도장): 사범님이 넣고, 제자 모드에서 모든 제자가 봄
     const mon = /^\d{4}-\d{2}$/.test(str(b.month, 7)) ? str(b.month, 7) : kstDay().slice(0, 7), k = 'sun:' + mon;
     let L = J((await one(env, 'SELECT v FROM kv WHERE k = ?', k) || {}).v, []); if (!Array.isArray(L)) L = [];
