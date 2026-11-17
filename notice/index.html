@@ -188,6 +188,13 @@
   .gcard{background:#fff;border-radius:18px;padding:14px 14px 12px;margin-top:12px}
   .gch{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.gch b{font-size:15.5px}.gch b small{font-weight:500;color:var(--muted)}.gch>small{color:var(--muted);font-size:12.5px}
   .gnav{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700}.gnav button{border:0;background:#F1ECE7;border-radius:8px;width:28px;height:28px;font-size:16px}.gnav button:disabled{opacity:.35}
+  /* 한 주씩 출석 (2026-11-17) */
+  .gwk{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid #F1ECE7}.gwk:first-of-type{border-top:0}
+  .gwk .d{flex:1;min-width:0}.gwk .d b{display:block;font-size:14.5px}.gwk .d small{color:var(--muted);font-size:12.5px}
+  .gwk .dots{display:flex;gap:4px}.gwk .dots i{width:11px;height:11px;border-radius:50%;background:#E6E0DA}.gwk .dots i.on{background:var(--brand)}
+  .gwk em{font-style:normal;font-size:12.5px;font-weight:800;border-radius:20px;padding:3px 9px;white-space:nowrap;background:#F4EFEA;color:#8A6A4A}.gwk em.all{background:#E5F4EA;color:#1E7A46}
+  .gwsum{display:flex;gap:8px;margin-top:4px}.gwsum div{flex:1;background:#F7F4F0;border-radius:14px;padding:10px 12px}.gwsum small{display:block;color:var(--muted);font-size:12px}.gwsum b{font-size:20px;font-weight:900}.gwsum b i{font-style:normal;font-size:13px;font-weight:700;color:var(--muted);margin-left:2px}
+  .gwmh{font-size:13px;font-weight:800;color:var(--muted);margin:12px 2px 2px}
   .gline,.gbars{width:100%;display:block}.gfl{border-top:1px dashed #EEE9E4;padding-top:8px;margin-top:8px}.gfl:first-of-type{border-top:0}.gfl>b{font-size:13.5px}.gradar{width:100%;max-width:330px;display:block;margin:0 auto}
   .gsum{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);margin-top:4px}.gsum b{color:var(--ink)}.gsum .up{color:var(--brand);font-weight:800}
   .glv{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}.glv div{background:#F7F4F0;border-radius:12px;padding:8px 10px}.glv span{display:block;font-size:11.5px;color:var(--muted)}.glv b{font-size:14px}
@@ -1557,7 +1564,7 @@
     $('pBody').onclick = e => { const f = e.target.closest('[data-open]'); if (f) { const [tt, id] = f.dataset.open.split(':'); const x = (news[tt] || []).find(y => y.id === +id); if (x) openPost(x); } };
   }
   // ═════════ 📈 성장 리포트 (2026-11-14 사용자 요청: 성장 측정지를 인바디 앱처럼 리포트로 — 출석 · 성장 측정 · 심사(업무 앱 🏅 심사를 마감한 달)) ═════════
-  let growF = '요약', growD = null, growP = {}, growX = {}, growAll = false, growYr = {};
+  let growF = '요약', growD = null, growP = {}, growX = {}, growAll = false, growYr = {}, growWkAll = false;
   const GLV = { '성장 중이에요': 1, '잘해요': 2, '아주 잘해요': 3 };
   const G5 = ['몸의 기초', '집중과 자기조절', '끈기와 꾸준함', '자신감과 표현력', '배려와 리더십'];
   // 예전 결과지(claude.ai 아티팩트)의 글을 그대로 (2026-11-15 사용자: 아티팩트 내용 다 불러와 줘)
@@ -1618,6 +1625,22 @@
     if (st.best && st.d > 0) return { lv: 3, t: (ev.lower ? '−' : '+') + gFmt(st.d) + ev.unit + ' ▲', src: where + ' · 첫 기록 ' + gFmt(st.first.v) + ev.unit + ' → 최고 ' + gFmt(st.best.v) + ev.unit };
     if (st.best) return { lv: 2, t: (st.sc.length === 1 ? '첫 기록 ' : '') + gFmt(st.best.v) + ev.unit, src: where + ' · ' + (st.sc.length === 1 ? '첫 기록 ' : '최고 ') + gFmt(st.best.v) + ev.unit };
     return { lv: 2, t: st.ms.length + '번 도전', src: where + ' · ' + st.ms.length + '번 도전' };
+  }
+  // 한 주씩 출석 (2026-11-17 사용자: 주 5일이면 5일 중 몇 번, 3일이면 3일 중 몇 번 · 끝난 주만) — 출석부 기준
+  const addDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+  function gWeeks(W, yr, all) {
+    const L = ((W && W.w) || []).filter(x => +x.w.slice(0, 4) === yr || +addDay(x.w, 6).slice(0, 4) === yr).slice().reverse();
+    if (!L.length) return '<p class="note" style="margin:6px 2px">아직 끝난 주가 없어요. 한 주(월~일)가 끝나면 여기에 들어가요.</p>';
+    const md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8)), sh = all ? L : L.slice(0, 8); let lastM = '', h = '';
+    sh.forEach(x => { const e = addDay(x.w, 6), m = e.slice(0, 7); if (m !== lastM) { lastM = m; h += '<div class="gwmh">' + (+m.slice(5)) + '월</div>'; }
+      const full = x.o >= x.tot, n = Math.min(x.tot, 7);
+      h += '<div class="gwk"><div class="d"><b>' + md(x.w) + ' ~ ' + md(e) + '</b><small>수련 ' + x.tot + '일 중 ' + x.o + '일 출석</small></div><span class="dots">' + Array.from({ length: n }, (_, i) => '<i class="' + (i < x.o ? 'on' : '') + '"></i>').join('') + '</span><em class="' + (full ? 'all' : '') + '">' + (full ? '다 왔어요 👍' : (x.tot - x.o) + '일 쉬었어요') + '</em></div>'; });
+    return h + (L.length > 8 && !all ? '<button class="more" data-gwall style="width:100%;margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px;font-weight:800">지난 주 더 보기 (' + (L.length - 8) + '주)</button>' : '');
+  }
+  function gWeekSum(W) {
+    const L = ((W && W.w) || []); if (!L.length) return '';
+    const last = L[L.length - 1], r4 = L.slice(-4), o = r4.reduce((t, x) => t + x.o, 0), t = r4.reduce((t2, x) => t2 + x.tot, 0);
+    return '<div class="gwsum"><div><small>지난주 출석</small><b>' + last.o + '<i>/ ' + last.tot + '일</i></b></div><div><small>최근 ' + r4.length + '주</small><b>' + (t ? Math.round(o / t * 100) : 0) + '<i>%</i></b></div></div>';
   }
   async function drawGrow() {
     const s = me() || {}, k = curKid();
@@ -1705,6 +1728,7 @@
         '<div class="gsum">' + (st.best ? '<span>첫 기록 <b>' + gFmt(st.first.v) + e.unit + '</b></span><span>최고 <b>' + gFmt(st.best.v) + e.unit + '</b></span>' + (st.d > 0 ? '<span class="up">' + (e.lower ? '−' : '+') + gFmt(st.d) + e.unit + ' ' + (e.lower ? '단축' : '성장') + '</span>' : '') : '<span>' + st.ms.length + '번 도전 · 다음엔 첫 성공!</span>') + '</div></section>').join('')
         : '<div class="calm" style="margin-top:12px"><span>아직 성장 측정 기록이 없어요. 매달 첫째 주 금요일 수업에서 재요.</span></div>'; };
     const attSecG = '<section class="gcard"><div class="gch"><b>달마다 출석</b><small>' + GY + '년</small></div>' + gBars(D.att, k, GY) + '</section>';
+    const WK = D.weeks ? D.weeks[k] : null, wkSec = D.weeks ? '<section class="gcard"><div class="gch"><b>한 주씩 출석</b><small>끝난 주만</small></div>' + (past ? '' : gWeekSum(WK)) + gWeeks(WK, GY, growWkAll) + '</section>' : '';
     const XW = ['', '다시 해 봐요', '조금 더 노력해요', '보통이에요', '잘해요', '아주 잘해요'];
     const xi = Math.max(0, Math.min(growX[gk] ?? X.length - 1, X.length - 1)), x = X[xi], xp = X[xi - 1] && !X[xi - 1].absent ? X[xi - 1] : null; // 심사는 한 달씩 넘겨 봄 (2026-11-15: 지난달로 갈 수 있게)
     const examRows = () => {
@@ -1723,8 +1747,8 @@
         (x.absent ? '' : '<div class="gx">' + examRows() + '</div>') + '</section>' +
         '<p class="note" style="margin:10px 4px 0">' + (x.v === 2 ? '과목마다 훌륭해요 / 연습이 필요해요로 평가해요. ' : '점수는 5점 만점이에요. ') + '심사 결과는 5가지 요소의 집중과 자기조절(품새·서기동작·기본동작), 자신감과 표현력(웅변·영어·특기), 배려와 리더십(인사)에 쓰여요.</p>';
     let h = kidSel + head + yrBar + chips;
-    if (growF === '요약') h += tiles + factors() + attSecG + (lastEv ? evCards(lastEv) : '');
-    if (growF === '출석') h += attSecG + '<p class="note" style="margin:10px 4px 0">태블릿에서 등원 번호를 누른 날을 세요.</p>';
+    if (growF === '요약') h += tiles + factors() + (WK && !past && WK.w.length ? '<section class="gcard"><div class="gch"><b>출석</b><a data-gf="출석" style="color:var(--brand);font-weight:800;font-size:13px">한 주씩 보기 ›</a></div>' + gWeekSum(WK) + '</section>' : '') + attSecG + (lastEv ? evCards(lastEv) : '');
+    if (growF === '출석') h += wkSec + attSecG + '<p class="note" style="margin:10px 4px 0">' + (D.weeks ? '출석부(사범님이 체크한 출석) 기준이에요. 한 주(월~일)가 끝나면 그 주 수련 요일 중 며칠 왔는지 들어가요. 휴관일·휴원 기간은 빼요.' : '태블릿에서 등원 번호를 누른 날을 세요.') + '</p>';
     if (growF === '성장 측정') { const ev0 = per ? evAt(per.month) : null, oth = evs.filter(e => e !== ev0 && gEvStat(e, REC)); h += gRows() + (oth.length ? '<div class="gch" style="margin:14px 4px 0"><b>다른 기네스 종목 기록</b></div>' + oth.map(e => evCards(e)).join('') : ''); }
     if (growF === '심사') h += exam;
     if (D.growErr && growF !== '출석') h += '<p class="note" style="margin:10px 4px 0">성장 측정 기록을 지금 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>';
@@ -1732,6 +1756,7 @@
     let shC = null; if (growF === '성장 측정' && per) { try { shC = gSheet(); const im = $('gShImg'); if (im) im.src = shC.toDataURL('image/png'); } catch (_) {} }
     document.querySelectorAll('#pBody .ibsc').forEach(el => { el.scrollLeft = el.scrollWidth; });
     $('pBody').onclick = e => {
+      if (e.target.closest('[data-gwall]')) { growWkAll = true; const y = $('v-page').scrollTop; drawGrow(); $('v-page').scrollTop = y; return; }
       if (e.target.closest('[data-gall]')) { growAll = !growAll; const y = $('v-page').scrollTop; drawGrow(); $('v-page').scrollTop = y; return; }
       if (e.target.closest('[data-gsheet]') && shC) return gSheetView(shC, k + '_' + per.month + '_성장측정.png');
       const f = e.target.closest('[data-gf]'); if (f) { growF = f.dataset.gf; $('v-page').scrollTop = 0; return drawGrow(); }

@@ -284,7 +284,7 @@ async function route(path, req, env, ctx) {
     }
     if (path === '/sync/kmode') { // 제자 모드 (2026-11-14): 내 띠·다음 띠까지(%)·선범단 여부 + 선범단 명단(모두) + 내 성장 측정 기록 — 📈 성장(gdocs)이 기준
       const name = str(b.name, 20), gd = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
-      const data = await gd('app/data'), st = ((await gd('app/settings')) || {}).settings || {}, sb = st.sb || {}, status = st.status || {}, AB = await attBelts(env), belts = {};
+      const data = recPubOnly(await gd('app/data'), await grecPub(env)), st = ((await gd('app/settings')) || {}).settings || {}, sb = st.sb || {}, status = st.status || {}, AB = await attBelts(env), belts = {}; // 올린 달 기록만 (2026-11-17)
       const L = data && Array.isArray(data.students) ? data.students.filter(k => k && k.name) : [], id = k => k.name + '|' + k.birth;
       L.forEach(k => { belts[id(k)] = (k.sid && AB[k.sid]) || (st.belts || {})[id(k)] || ''; }); // 띠 = 출석부 원생 정보 (없으면 예전 📈 성장 띠)
       const RL = AB.list, meR = RL ? RL.find(s => s.name === name) : null; // 선범단 = 출석부 원생 정보 (2026-11-15)
@@ -311,7 +311,7 @@ async function route(path, req, env, ctx) {
       // 달마다 5가지 요소 = 몸의 기초(🏆 기네스 기록) · 끈기(출석부 출석률) · 집중·자신감·배려(🏅 심사 평균) — 데이터가 없으면 '잘해요'. 사범님 한마디는 기록·출석·심사를 보고 문장 묶음에서 자동(예전에 손으로 쓴 한마디는 그대로)
       const names = (Array.isArray(b.names) ? b.names : []).map(x => str(x, 20)).filter(Boolean).slice(0, 10); if (!names.length) return json({ ok: true, events: [], kids: [] });
       const gd = async p => { const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', p); return r ? J(r.data, null) : null; };
-      const data = (await gd('app/data')) || {}, st = ((await gd('app/settings')) || {}).settings || {}, studs = Array.isArray(data.students) ? data.students : [], evs = Array.isArray(data.events) ? data.events : [];
+      const data = recPubOnly((await gd('app/data')) || {}, await grecPub(env)) || {}, st = ((await gd('app/settings')) || {}).settings || {}, studs = Array.isArray(data.students) ? data.students : [], evs = Array.isArray(data.events) ? data.events : [];
       const cmd = (await gd('app/comments')) || {}, bank = Array.isArray(cmd.comments) && cmd.comments.length ? cmd.comments.filter(c => c && c.text) : GROW_CM;
       const th = st.attTh || {}, hi = +(th.hi ?? 90), mid = +(th.mid ?? 75), lvA = p => p >= hi ? '아주 잘해요' : p >= mid ? '잘해요' : '성장 중이에요';
       const bat = c => { const k = c.charCodeAt(c.length - 1) - 0xAC00; return k >= 0 && k <= 11171 && k % 28 > 0; };
@@ -324,8 +324,9 @@ async function route(path, req, env, ctx) {
       const recOfY = (y, k, who) => { if (y === y0) return (k && k.rec) || {}; const S = snaps[y]; if (!S || !Array.isArray(S.students)) return {}; const x = S.students.find(z => (who.sid && z.sid === who.sid) || (k && z.name === k.name && String(z.birth) === String(k.birth)) || z.name === who.name); return (x && x.rec) || {}; };
       const evsOfY = y => y === y0 || !snaps[y] || !Array.isArray(snaps[y].events) ? evs : snaps[y].events;
       const qMonths = m => { const y = +m.slice(0, 4), q0 = Math.floor((+m.slice(5) - 1) / 3) * 3 + 1, L = []; for (let x = q0; x <= +m.slice(5); x++) L.push(y + '-' + String(x).padStart(2, '0')); return L; };
+      const td0 = kstDay(), lastSun = addDays(td0, -((new Date(Date.parse(td0 + 'T00:00:00Z')).getUTCDay() + 6) % 7) - 1); // 출석은 지난주 일요일까지 (2026-11-17 사용자: 한 주씩 평가)
       const AQ = {}; const attQ = async m => { const L = qMonths(m.slice(0, 5) + String(Math.floor((+m.slice(5) - 1) / 3) * 3 + 3).padStart(2, '0')).filter(x => x <= now), key = L[0]; // 분기 전체(이번 달까지)를 한 번만 불러옴
-        if (!(key in AQ)) { const q = await attQuarter(env, L).catch(() => null); AQ[key] = q && q.ok ? q : null; } return AQ[key]; };
+        if (!(key in AQ)) { const q = await attQuarter(env, L, lastSun).catch(() => null); AQ[key] = q && q.ok ? q : null; } return AQ[key]; };
       const hsh = t => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
       const kids = [];
       for (const n of names) {
@@ -344,7 +345,7 @@ async function route(path, req, env, ctx) {
           let pct = null, an = null, at = null; const q = who.sid ? await attQ(mo) : null, row = q && q.by[who.sid];
           if (row) { const L = qMonths(mo).map(m => row.m[m] || { o: 0, tot: 0 }); an = L.reduce((s, z) => s + z.o, 0); at = L.reduce((s, z) => s + z.tot, 0); if (at > 0) { an = Math.min(an, at); pct = Math.round(an / at * 100); } else { an = at = null; } }
           if (pct == null && x.an != null && x.an !== '' && +x.at > 0) { an = +x.an; at = +x.at; pct = Math.round(an / at * 100); } else if (pct == null && x.rate != null && x.rate !== '') pct = Math.round(+x.rate);
-          if (pct != null) { a[1] = lvA(pct); const ql = qMonths(mo); src[1] = '📋 출석부 출석률 ' + pct + '%' + (an != null && at ? ' (' + (ql.length > 1 ? +ql[0].slice(5) + '~' + (+mo.slice(5)) : +mo.slice(5)) + '월 ' + an + '/' + at + '회, 휴관일 빼고)' : ''); }
+          if (pct != null) { a[1] = lvA(pct); const ql = qMonths(mo); src[1] = '📋 출석부 출석률 ' + pct + '%' + (an != null && at ? ' (' + (ql.length > 1 ? +ql[0].slice(5) + '~' + (+mo.slice(5)) : +mo.slice(5)) + '월 ' + an + '/' + at + '회, 휴관일 빼고, 끝난 주까지)' : ''); }
           // 100점 성장 점수 (2026-11-15 사용자 결정): 90점 이상 아주 잘해요 · 70점 이상 잘해요 · 그 아래 성장 중이에요, 기록이 없으면 null(측정 전)
           const OLD = { '성장 중이에요': 60, '잘해요': 80, '아주 잘해요': 95 }, sc = [null, ...a.map(v => v ? OLD[v] || null : null)];
           [['v0', 1], ['v2', 3], ['v3', 4]].forEach(([k2, j]) => { if (au[k2] != null) sc[j] = au[k2]; });
@@ -518,7 +519,7 @@ async function route(path, req, env, ctx) {
   if (path === '/api/grec-get') {
     const r = await one(env, 'SELECT data, upd FROM gdocs WHERE path = ?', 'app/data'), d = r ? J(r.data, {}) : {};
     const at = await attSync(env, '/sync/students', {}); if (!at.ok) return json({ ok: false, error: at.error || '출석부를 불러오지 못했어요' });
-    return json({ ok: true, events: d.events || [], upd: r ? r.upd : 0,
+    return json({ ok: true, events: d.events || [], upd: r ? r.upd : 0, recYear: grecYear(d), pub: await grecPub(env), pubFrom: GREC_PUB_FROM,
       students: (d.students || []).filter(k => k && k.name).map(k => ({ sid: k.sid || '', name: k.name, birth: k.birth || '', grade: k.grade || '', gender: k.gender || '', rec: k.rec || {} })),
       roster: at.students.filter(x => x.name && x.status !== '퇴관').map(x => ({ id: x.id, name: x.name, birth: x.birth || '', gender: x.gender || '', status: x.status || '재원' })) });
   }
@@ -534,11 +535,33 @@ async function route(path, req, env, ctx) {
       if (v == null) delete k.rec[ev][m]; else k.rec[ev][m] = v;
       const now = Date.now(), w = await env.DB.prepare('UPDATE gdocs SET data = ?, upd = ?, mid = ? WHERE path = ? AND upd = ?').bind(JSON.stringify(d), now, me.id, 'app/data', r.upd).run();
       if (w.meta && w.meta.changes) {
-        if (typeof v === 'number') { const E = d.events.find(e => e.name === ev), prev = (E.months || []).filter(x => x < m).map(x => k.rec[ev][x]).filter(x => typeof x === 'number'), best = !prev.length || (E.lower ? v < Math.min(...prev) : v > Math.max(...prev));
+        // 올리기 전 달은 알림 없음 — 올릴 때 한꺼번에 (2026-11-17)
+        if (typeof v === 'number' && (grecKey(d, m) < GREC_PUB_FROM || (await grecPub(env))[grecKey(d, m)])) { const E = d.events.find(e => e.name === ev), prev = (E.months || []).filter(x => x < m).map(x => k.rec[ev][x]).filter(x => typeof x === 'number'), best = !prev.length || (E.lower ? v < Math.min(...prev) : v > Math.max(...prev));
           ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name: k.name, title: best && prev.length ? '🏆 최고 기록 갱신! 🎉' : '🏆 기네스 기록이 들어왔어요', body: ev + ' ' + v + (E.unit || '') + (best && prev.length ? ' · 지난 최고보다 좋아졌어요' : prev.length ? '' : ' · 첫 기록이에요') }).catch(() => {})); } // 🥋 제자 앱에도
         return json({ ok: true, upd: now }); }
     }
     return json({ ok: false, error: '잠깐 뒤에 다시 저장해 주세요' });
+  }
+  if (path === '/api/grec-pub') { // 🏆 그 달 기록 올리기 / 올리기 취소 (2026-11-17 사용자) — 처음 올릴 때만 제자 앱 알림(내 기록 + 최우수)
+    const m = b.m | 0; if (m < 1 || m > 12) return json({ ok: false, error: '잘못된 요청' });
+    const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', 'app/data'), d = r ? J(r.data, {}) : {}, key = grecKey(d, m), pub = await grecPub(env);
+    if (b.on) pub[key] = { at: Date.now(), by: me.name }; else delete pub[key];
+    await run(env, "INSERT INTO kv (k, v) VALUES ('grecPub', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(pub));
+    let sent = null;
+    if (b.on && await onceAt(env, 'grecpubsent:' + key)) {
+      const E = (d.events || []).find(e => (e.months || []).includes(m)), ro = await attSync(env, '/sync/roster', { all: true }), RL = ro.ok ? ro.students : [], items = [];
+      if (E) { const bySid = new Map(RL.filter(s => s.id).map(s => [s.id, s])), fmt = v => (Math.round(+v * 100) / 100) + (E.unit || '');
+        const best = guinBest(recPubOnly(d, pub), RL, grecYear(d), m).find(x => x.q === key), win = new Map();
+        if (best) Object.entries(best.g || {}).forEach(([grp, ns]) => [].concat(ns).forEach(n => { if (n && !win.has(n)) win.set(n, grp); }));
+        for (const k of d.students || []) { const v = ((k && k.rec || {})[E.name] || {})[m]; if (v == null || v === '') continue;
+          const ro1 = (k.sid && bySid.get(k.sid)) || RL.find(s => s.name === k.name); if (ro1 && ro1.status === '퇴관') continue; const name = ro1 ? ro1.name : k.name; if (!name || items.some(x => x.name === name)) continue;
+          if (win.has(name)) { items.push({ name, title: '👑 ' + m + '월 최우수 수련생이 되었어요!', body: win.get(name) + ' 최우수 · ' + E.name + ' ' + fmt(best.v[win.get(name)]) + ' · 명예의 전당에서 확인해 봐요 🎉' }); continue; }
+          const prev = (E.months || []).filter(x => x < m).map(x => k.rec[E.name][x]).filter(x => typeof x === 'number'), n = +v;
+          const up = typeof v === 'number' && prev.length && (E.lower ? n < Math.min(...prev) : n > Math.max(...prev));
+          items.push({ name, title: up ? '🏆 ' + m + '월 기네스 · 최고 기록 갱신! 🎉' : '🏆 ' + m + '월 기네스 결과가 나왔어요', body: E.name + ' ' + (typeof v === 'object' ? '도전 ' + (+v.f || 0) + '장' : fmt(v)) + (up ? ' · 지난 최고보다 좋아졌어요' : !prev.length && typeof v === 'number' ? ' · 첫 기록이에요' : '') + ' · 내 기록은 제자 앱에서 봐요' }); }
+        ctx.waitUntil(kidPushMany(env, items, { title: '🏆 ' + m + '월 기네스 결과가 나왔어요', body: '명예의 전당에서 이번 달 최우수 수련생을 확인해 봐요' }).catch(() => {})); sent = items.length; }
+    }
+    return json({ ok: true, pub, sent });
   }
   if (path === '/api/whoami') return json({ ok: true, id: me.id, name: me.name, boss: !!me.boss, shared: !!me.shared }); // 📈 성장 등 따로 열린 화면이 관리자인지 확인
   if (path === '/api/exam-closed') { // 📈 성장 화면: 마감한 심사 점수 (02·04·05 자동 채우기용, 점수만)
@@ -1674,13 +1697,25 @@ async function bumpKv(env) { await run(env, "INSERT INTO kv (k, v) VALUES ('kvup
 // ─────────── 정해진 시각 알림 (5분 크론에서, 하루 한 번씩) ───────────
 // ─────────── 원생 한 명단 (2026-11-13): 출석부에서 이름이 바뀌면 업무 앱도 따라감 (10분마다) ───────────
 // 출석부 원생 id → 이름을 kv 'rosterIds'에 두고, 바뀐 이름을 등원·픽업 기본 명단·시간, 오늘부터의 픽업표, 학부모 연락·행사 신청·미션 체크, 안 끝난 하원 할 일에 반영. 지우는 것은 없음.
-async function attQuarter(env, months) { // 분기 출석(출석부 month-stats) — 휴관 = 출석부 휴관일 + 알림 관리 일정표 '휴관' (📈 성장·학부모 앱 성장 리포트)
+async function attQuarter(env, months, upto) { // upto: 그날까지만 셈 (2026-11-17: 성장 리포트는 끝난 주까지) // 분기 출석(출석부 month-stats) — 휴관 = 출석부 휴관일 + 알림 관리 일정표 '휴관' (📈 성장·학부모 앱 성장 리포트)
   const from = months[0] + '-01', to = months[months.length - 1] + '-31', sc = await noticeSync(env, '/sync/schedule', { from, to }), closed = [];
   (sc.ok ? sc.items : []).filter(x => x.kind === '휴관').forEach(x => { let d = x.date; const e = x.end && x.end > d ? x.end : d; for (let n = 0; d <= e && n < 62; n++) { if (d >= from && d <= to) closed.push(d); d = new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10); } });
-  const r = await attSync(env, '/sync/month-stats', { months, closed }); if (!r.ok) return { ok: false, error: r.error || '출석부를 불러오지 못했어요' };
+  const r = await attSync(env, '/sync/month-stats', { months, closed, upto: upto || '' }); if (!r.ok) return { ok: false, error: r.error || '출석부를 불러오지 못했어요' };
   const kids = r.students.map(x => ({ id: x.id, name: x.name, m: x.m })); return { ok: true, closed: r.closed || [], schedOk: !!sc.ok, kids, by: Object.fromEntries(kids.map(x => [x.id, x])) };
 }
 const GROW_CM = [{"cat": "기록 우수", "text": "우리 ㅇㅇ이는 모든 종목에서 고르게 좋은 기록을 보여 주었으며, 도전하는 자세도 훌륭한 제자입니다."}, {"cat": "기록 우수", "text": "우리 ㅇㅇ이는 이번 성장 측정에서 눈에 띄는 기록을 세웠습니다. 도전에 도전을 거듭하며, 성취욕이 강한 모습이 아주 훌륭합니다."}, {"cat": "기록 우수", "text": "우리 ㅇㅇ이는 매 순간 최선을 다하며, 기록뿐 아니라 측정에 임하는 자세까지 친구들에게 좋은 모범이 됩니다."}, {"cat": "기록 우수", "text": "우리 ㅇㅇ이는 자신을 믿는 힘이 아주 좋으며, 매 순간 최선을 다하는 모습이 아주 훌륭합니다."}, {"cat": "기록 우수", "text": "우리 ㅇㅇ이는 지난 기록을 스스로 뛰어넘으며 한 단계 더 성장한 모습을 보여 주었습니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 매 수업 시간마다 최선을 다하는 제자로, 이번 기록 성장이 특히 돋보였습니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 저번 측정보다 기록이 성장되었습니다. 꾸준한 노력이 결과로 나타났습니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 처음보다 자세가 몰라보게 좋아졌고, 그만큼 기록도 함께 성장하고 있습니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 하나하나 차근차근 발전하는 제자입니다. 지금처럼만 하면 다음 기록이 더욱 기대됩니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 꾸준히 출석하며 실력을 쌓아 가고 있어, 기록에서도 그 성실함이 보입니다."}, {"cat": "기록 성장", "text": "우리 ㅇㅇ이는 약했던 종목에서도 기록이 좋아져 점점 더 균형 잡힌 실력을 갖춰 가고 있습니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 수업 시간에 집중할 줄 알고, 친구들을 배려하는 따뜻한 마음을 가진 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 수업 시간에 꾸준히 노력하고, 힘들어도 포기하지 않는 멋진 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 지도진의 설명을 귀 기울여 듣고 그대로 해내려고 노력하는 훌륭한 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 어려운 동작도 먼저 \"해 볼게요!\" 하며 도전하는 용기 있는 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 친구들의 도전도 진심으로 응원해 주는 마음이 따뜻한 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 기록이 아쉬워도 웃으며 다시 도전하는 긍정적인 마음을 가진 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 인사와 예절이 바르고, 수업에 임하는 태도가 늘 성실한 제자입니다."}, {"cat": "태도·예절", "text": "우리 ㅇㅇ이는 끝까지 최선을 다하는 모습으로 친구들에게 좋은 에너지를 주는 제자입니다."}, {"cat": "첫 참여·저학년", "text": "우리 ㅇㅇ이는 처음 참여한 성장 측정에서도 씩씩하게 도전하는 모습이 정말 훌륭했습니다."}, {"cat": "첫 참여·저학년", "text": "우리 ㅇㅇ이는 낯선 측정에도 긴장하지 않고 즐겁게 참여해 주었습니다. 앞으로가 더 기대됩니다."}, {"cat": "첫 참여·저학년", "text": "우리 ㅇㅇ이는 아직 어리지만 형, 누나들 사이에서도 당차게 도전하는 멋진 제자입니다."}, {"cat": "기록 아쉬움", "text": "우리 ㅇㅇ이는 이번 기록이 조금 아쉬웠지만, 끝까지 도전하는 모습이 무척 대견했습니다."}, {"cat": "기록 아쉬움", "text": "우리 ㅇㅇ이는 실력이 충분한 제자입니다. 컨디션을 잘 챙기면 다음 달에는 더 좋은 기록이 나올 것입니다."}, {"cat": "기록 아쉬움", "text": "우리 ㅇㅇ이는 기록이 잠시 머물러 있지만, 지금처럼 꾸준히 하면 곧 한 단계 올라설 것입니다."}, {"cat": "기록 아쉬움", "text": "우리 ㅇㅇ이는 자세를 조금 더 다듬으면 기록이 훨씬 좋아질 수 있는 제자입니다. 수업에서 함께 연습하겠습니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 가진 힘이 충분한 제자입니다. 수업 시간에 조금만 더 집중하면 훨씬 좋은 기록이 나올 것이라 기대합니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 에너지가 넘치는 제자입니다. 그 에너지를 수업에 조금 더 모으면 큰 성장이 기대됩니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 하고 싶은 마음이 큰 제자입니다. 차례를 기다리는 연습을 함께 하면 더 멋지게 성장할 것입니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 잘할 수 있는 힘이 충분합니다. 조금만 더 자기 자신을 믿는다면 훨씬 좋은 기록이 나올 것입니다."}, {"cat": "집중·자신감 필요", "text": "우리 ㅇㅇ이는 처음에는 망설였지만 용기를 내어 도전했습니다. 그 한 걸음을 많이 칭찬해 주세요."}, {"cat": "출석", "text": "우리 ㅇㅇ이는 수업에 조금 더 자주 나오면 실력이 훨씬 빠르게 성장될 수 있는 제자입니다."}, {"cat": "출석", "text": "우리 ㅇㅇ이는 꾸준한 출석이 큰 장점인 제자입니다. 그 성실함이 곧 실력이 될 것입니다."}, {"cat": "출석", "text": "우리 ㅇㅇ이는 운동을 즐길 줄 아는 제자입니다. 즐겁게 하다 보면 기록은 자연스럽게 따라올 것입니다."}]; // 사범님 한마디 기본 문장 묶음 (📈 성장의 DEFAULT_COMMENTS, app/comments가 없을 때)
+// 🏆 기네스 '기록 올리기' (2026-11-17 사용자: 올리기 버튼을 눌러야 그 달 기네스 기록·최우수·리포트가 학부모·제자 앱에) — kv 'grecPub' {'YYYY-MM': {at, by}}
+// 2026-10월까지 기록은 이미 앱에 보이던 것이라 올린 것으로 침. 직원 화면(기네스 기록장·📈 성장)은 그대로 다 보임.
+const GREC_PUB_FROM = '2026-11';
+async function grecPub(env) { return J((await one(env, "SELECT v FROM kv WHERE k = 'grecPub'") || {}).v, {}) || {}; }
+const grecYear = data => +((data && data.recYear) || kstDay().slice(0, 4));
+const grecKey = (data, m) => grecYear(data) + '-' + String(m).padStart(2, '0');
+function recPubOnly(data, pub) { // 올리지 않은 달 기록을 뺀 사본 (저장된 app/data 는 그대로)
+  if (!data || !Array.isArray(data.students)) return data;
+  const ok = m => { const k = grecKey(data, m); return k < GREC_PUB_FROM || !!(pub && pub[k]); };
+  return { ...data, students: data.students.map(k => { if (!k || !k.rec) return k; const rec = {};
+    Object.entries(k.rec).forEach(([ev, ms]) => { const o = {}; Object.entries(ms || {}).forEach(([m, v]) => { if (ok(+m)) o[m] = v; }); if (Object.keys(o).length) rec[ev] = o; }); return { ...k, rec }; }) };
+}
 // 🏆 이달의 최우수 수련생 = 그 달 기네스 1등 (2026-11-15 사용자: 기네스 기록으로) — 중고등부(남녀 하나) · 초등부 남·여 · 유치부 남·여, 같은 기록이면 함께
 function guinBest(data, RL, yr0, cm0) {
   const t = kstDay(), yr = yr0 || +t.slice(0, 4), cm = cm0 || +t.slice(5, 7), L = (data && data.students) || [], evs = (data && data.events) || [], R = RL || [];
@@ -1719,7 +1754,7 @@ async function recRollover(env) {
   if (data && Array.isArray(data.students)) {
     const snap = { year: old, events: data.events || [], students: data.students.map(x => ({ sid: x.sid || '', name: x.name, birth: x.birth, grade: x.grade || '', rec: x.rec || {} })).filter(x => Object.keys(x.rec).length) };
     await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO NOTHING', 'app/rec-' + old, JSON.stringify(snap), Date.now(), '');
-    try { const ro = await attSync(env, '/sync/roster', { all: true }), best = guinBest(data, ro.ok ? ro.students : [], old, 12);
+    try { const ro = await attSync(env, '/sync/roster', { all: true }), best = guinBest(recPubOnly(data, await grecPub(env)), ro.ok ? ro.students : [], old, 12);
       const a = J((await one(env, "SELECT v FROM kv WHERE k = 'gbestArch'") || {}).v, []).filter(x => !String(x.q).startsWith(old + '-'));
       await run(env, "INSERT INTO kv (k, v) VALUES ('gbestArch', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify([...a, ...best].slice(-60))); } catch (_) {}
     data.students.forEach(x => { x.rec = {}; }); data.recYear = yr;
@@ -1751,8 +1786,8 @@ async function runKidAlerts(env, now = Date.now()) {
     if (bd.length && await onceAt(env, 'kidal:bday:' + day)) await kidPushMany(env, bd.map(x => ({ name: x.name, title: '🎂 생일 축하해, ' + x.name + '!', body: '해랑경희 사범님들이 축하해요. 오늘 제자 앱을 열어 봐요 🎉' }))); } catch (_) {}
   // ⑤ 매달 1일 12시: 지난달 최우수 수련생 발표 → 뽑힌 제자는 축하, 나머지는 발표 소식
   if (k.getUTCDate() === 1 && m >= 12 * 60) try { const q = monAdd(day.slice(0, 7), -1);
-    if (await onceAt(env, 'kidal:best:' + q)) { const g = async p => J((await one(env, 'SELECT data FROM gdocs WHERE path = ?', p) || {}).data, null);
-      const ro = await attSync(env, '/sync/roster', { all: true }), auto = [...J((await one(env, "SELECT v FROM kv WHERE k = 'gbestArch'") || {}).v, []), ...guinBest(await g('app/data'), ro.ok ? ro.students : [])].find(x => x.q === q) || null;
+    if (!(await grecPub(env))[q] && await onceAt(env, 'kidal:best:' + q)) { const g = async p => J((await one(env, 'SELECT data FROM gdocs WHERE path = ?', p) || {}).data, null); // 기록을 올린 달은 올릴 때 이미 알림이 감 (2026-11-17)
+      const ro = await attSync(env, '/sync/roster', { all: true }), auto = [...J((await one(env, "SELECT v FROM kv WHERE k = 'gbestArch'") || {}).v, []), ...guinBest(recPubOnly(await g('app/data'), await grecPub(env)), ro.ok ? ro.students : [])].find(x => x.q === q) || null;
       const mb = await noticeSync(env, '/sync/best-merge', { q, auto }), b = mb.ok && mb.best; if (b) { const win = [], items = [];
         Object.entries(b.g || {}).forEach(([grp, ns]) => [].concat(ns).forEach(n => { if (n && !win.includes(n)) { win.push(n); items.push({ name: n, title: '👑 ' + (+q.slice(5)) + '월 최우수 수련생이 되었어요!', body: grp + ' 최우수 · 명예의 전당에서 확인해 봐요 🎉' }); } }));
         await kidPushMany(env, items, { title: '🏆 ' + (+q.slice(5)) + '월 최우수 수련생 발표!', body: '명예의 전당에서 누가 뽑혔는지 확인해 봐요', except: win }); } } } catch (_) {}

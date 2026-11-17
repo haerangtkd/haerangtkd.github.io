@@ -539,7 +539,7 @@
       '<div class="mn"><span class="av' + (av.fr ? ' fr-' + av.fr : '') + '" style="background:' + esc(av.bg) + '">' + avHtml(av.e) + '</span>' + (lv > 0 ? '<span class="lv">LV. ' + lv + '</span>' : '') + '<b>' + esc(D.name) + '</b><button class="ed" id="pEdit" aria-label="꾸미기">✎</button>' + (bp && !bp.done && bp.total ? '<small>' + bp.at + ' / ' + bp.total + '</small>' : '') + '</div>' +
       '<div class="pb"><b style="width:' + (bp && bp.total ? Math.round(bp.at / bp.total * 100) : bp && bp.done ? 100 : 0) + '%"></b></div>' +
       '<div class="mb"><div class="mbl"><span class="lg">HAERANG KYUNGHEE</span><div class="pins">' + [0, 1, 2].map(i => pins[i] ? '<button class="has" data-pin="' + i + '">' + bIc(pins[i]) + '</button>' : '<button data-pin="' + i + '">＋</button>').join('') + '</div></div>' +
-      (window.qrSvg && D.qr ? '<button class="qrm" id="qrB" aria-label="출석 QR 크게 보기">' + qrSvg(D.qr, 84) + '</button>' : '') + '</div></section>';
+      (window.qrSvg && D.qr ? '<button class="qrm" id="qrB" aria-label="마일리지 QR 크게 보기">' + qrSvg(D.qr, 84) + '</button>' : '') + '</div></section>';
     // 💰 나의 마일리지
     h += '<button class="mpill" id="mileB"><i>M</i>나의 마일리지<b>' + (+(D.mile || 0)).toLocaleString() + '</b>›</button>';
     // 미션 · 심사 준비 / 나의 목표
@@ -903,7 +903,7 @@
   }
   // ── ☰ 더보기: 선범단 · 뱃지 · 마일리지 · 꾸미기 · 목표 · QR · 칼럼 · 바로가기 ──
   function moreView() {
-    const av = profAv(), M = [['env', '📩', '받은 봉투'], ['qr', '▦', '내 QR'], ['badge', '🏅', '뱃지'], ['deco', '✏️', '꾸미기']]; // 2026-11-16 사용자: 4개만 (선범단은 명예의 전당, 마일리지·목표·수련 달력은 홈에 있음)
+    const av = profAv(), M = [['env', '📩', '받은 봉투'], ['qr', '▦', '마일리지 QR'], ['badge', '🏅', '뱃지'], ['deco', '✏️', '꾸미기']]; // 2026-11-16 사용자: 4개만 (선범단은 명예의 전당, 마일리지·목표·수련 달력은 홈에 있음)
     let h = '<div class="hi"><span class="av" style="background:' + esc(av.bg) + ';overflow:hidden">' + avHtml(av.e) + '</span><div><b>' + esc(D.name) + '</b><small>' + esc(D.belt || '') + (D.sb ? ' · ⭐ 선범단' : '') + '</small></div></div>';
     h += '<div class="mgr">' + M.map(([k, ic, t]) => '<button data-act="' + k + '"><i>' + ic + '</i>' + t + '</button>').join('') + '</div>';
     const LK = ((SITE || {}).links || []).filter(x => /insta|blog|youtube/.test(x.icon));
@@ -943,7 +943,7 @@
   }
   // ── 아래에서 올라오는 창 ──
   function sheet(html, onClick) { const el = document.createElement('div'); el.className = 'sheet'; el.innerHTML = '<div class="box">' + html + '</div>'; el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el; }
-  function qrSheet() { sheet('<h3>▦ ' + esc(D.name) + ' 출석 QR</h3><div class="qrbox">' + (window.qrSvg && D.qr ? qrSvg(D.qr, Math.min(300, innerWidth - 80)) : '<p class="sub">QR을 만들지 못했어요</p>') + '<p class="sub">나만의 출석 QR이에요. 도장 태블릿 카메라에 비추면 출석돼요.<br>번호를 눌러도 돼요.</p></div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
+  function qrSheet() { sheet('<h3>▦ ' + esc(D.name) + ' 마일리지 QR</h3><div class="qrbox">' + (window.qrSvg && D.qr ? qrSvg(D.qr, Math.min(300, innerWidth - 80)) : '<p class="sub">QR을 만들지 못했어요</p>') + '<p class="sub">나만의 마일리지 QR이에요. 상점(스티커)을 받을 때 사범님께 보여 주세요.</p></div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
   function textSheet(title, key, max, ph) { // 🎯 내 목표 · ⭐ 선범단 다짐 (제자가 직접)
     sheet('<h3>' + title + '</h3><textarea id="txI" maxlength="' + max + '" rows="4" placeholder="' + esc(ph) + '" style="width:100%;border:2px solid var(--line);border-radius:14px;padding:12px;font:inherit;font-size:17px;box-sizing:border-box">' + esc(D.prof[key] || '') + '</textarea><p class="lockt">' + max + '자까지 쓸 수 있어요</p><button class="big" id="txS" style="width:100%;max-width:none">저장</button><button class="out" data-x>닫기</button>', async (e, el) => {
       if (e.target.id !== 'txS') return; const v = el.querySelector('#txI').value.trim(); el.remove(); D.prof[key] = v; draw(); const j = await post('/k/prof', { [key]: v }); if (j.ok) D.prof = j.prof; else alert(j.error || '저장하지 못했어요'); });

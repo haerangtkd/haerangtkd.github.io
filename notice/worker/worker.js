@@ -394,9 +394,15 @@ async function route(path, req, env) {
     if (path === '/p/grow') { // 📈 성장 리포트 (2026-11-14): 달마다 출석 일수(최근 12달) + 성장 측정(업무 서버, 내 제자만)
       if (!p.ok) return json({ ok: false, error: '도장 확인 후에 볼 수 있어요' });
       const from = new Date(Date.now() + 9 * 3600e3); from.setUTCDate(1); from.setUTCMonth(0); from.setUTCFullYear(from.getUTCFullYear() - 2); // 올해 + 지난 2년 (2026-11-15: 한 해씩 보기)
-      const ks = myKids.slice(0, 10), rows = ks.length ? await all(env, 'SELECT substr(day, 1, 7) AS m, name, COUNT(*) AS n FROM att WHERE day >= ? AND tin IS NOT NULL AND name IN (' + ks.map(() => '?').join(',') + ') GROUP BY m, name', from.toISOString().slice(0, 10), ...ks) : [];
+      // 2026-11-17 사용자: 출석은 출석부(사범님이 누른 출석) 기준 · 한 주씩 평가 (태블릿은 등원 알림용) — 출석부를 못 부르면 예전처럼 태블릿 등원 기록
+      const ks = myKids.slice(0, 10), f0 = from.toISOString().slice(0, 10), closed = [];
+      (await all(env, "SELECT date, dend FROM posts WHERE type = 'schedule' AND kind = '휴관' AND COALESCE(dend, date) >= ?", f0)).forEach(r => { let d = r.date; const e = r.dend && r.dend > d ? r.dend : d; for (let n = 0; d <= e && n < 62; n++) { closed.push(d); d = new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10); } });
+      const ws = ks.length ? await attSync(env, '/sync/week-stats', { names: ks, from: f0, closed }).catch(() => null) : null;
+      let att = [], weeks = null;
+      if (ws && ws.ok) { weeks = {}; (ws.kids || []).forEach(x => { weeks[x.name] = { w: x.weeks || [], days: x.days || [] }; Object.entries(x.months || {}).forEach(([m, n]) => att.push({ month: m, name: x.name, n })); }); }
+      else att = (ks.length ? await all(env, 'SELECT substr(day, 1, 7) AS m, name, COUNT(*) AS n FROM att WHERE day >= ? AND tin IS NOT NULL AND name IN (' + ks.map(() => '?').join(',') + ') GROUP BY m, name', f0, ...ks) : []).map(r => ({ month: r.m, name: r.name, n: r.n }));
       const g = await teamSync(env, '/sync/grow', { names: ks });
-      return json({ ok: true, att: rows.map(r => ({ month: r.m, name: r.name, n: r.n })), events: g.ok ? g.events : [], kids: g.ok ? g.kids : [], growErr: g.ok ? '' : (g.error || '') });
+      return json({ ok: true, att, weeks, attSrc: weeks ? 'book' : 'tablet', upto: ws && ws.ok ? ws.upto : '', events: g.ok ? g.events : [], kids: g.ok ? g.kids : [], growErr: g.ok ? '' : (g.error || '') });
     }
     // 행사 신청 (업무 앱 행사표에서 '학부모 앱에 신청 받기'를 켠 행사만)
     // 사범님께 연락 (버튼은 업무 앱에서 관리) · 숙제 체크
@@ -433,7 +439,7 @@ async function route(path, req, env) {
     if (!tok || !(await one(env, 'SELECT tok FROM kiosks WHERE tok = ?', tok))) return json({ ok: false, error: '출결 태블릿 등록이 풀렸습니다. 공용 PIN으로 다시 등록해 주세요', relogin: true }, 401);
     if (path === '/kiosk/lookup') {
       const code = String(b.code || '').replace(/\D/g, ''), qn = b.qr ? await qrName(env, b.qr) : null; // 제자 QR로 출석 (2026-11-15) — 제자 앱의 내 출석 QR을 전면 카메라로
-      if (b.qr && !qn) return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: [] });
+      if (b.qr) return json({ ok: true, now: Date.now(), minStay: MIN_STAY, kids: [] }); // 2026-11-17 사용자: QR 출석 없앰 (QR은 마일리지용) — 예전 화면이 남은 태블릿도 막음
       const today = kstDay(new Date());
       const kst8 = await kidStatus(env), kids = (await all(env, 'SELECT name, codes FROM kids')).filter(k => (qn ? k.name === qn : J(k.codes, []).includes(code)) && kst8[k.name] !== '퇴관').map(k => k.name).sort((a, c) => a.localeCompare(c, 'ko'));
       const att = await all(env, 'SELECT name, tin, tout, tin_at FROM att WHERE day = ?', today);

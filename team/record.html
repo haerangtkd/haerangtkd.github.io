@@ -47,6 +47,11 @@ button{cursor:pointer;touch-action:manipulation}
 .pf{display:flex;gap:4px}.pf button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 8px;font-size:13px;font-weight:700}
 .pf button.on.y{background:var(--ok);border-color:var(--ok);color:#fff}.pf button.on.n{background:var(--brand);border-color:var(--brand);color:#fff}
 .help{font-size:13px;color:var(--muted);margin:6px 2px}
+/* 📤 기록 올리기 (2026-11-17) */
+.pub{margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pub.ok{background:var(--okbg);border-color:#BFE3CB}.pub b{font-size:15px}.pub small{display:block;color:var(--muted);font-size:12.5px}
+.pub .go{margin-left:auto;border:0;background:var(--brand);color:#fff;border-radius:12px;padding:11px 16px;font-weight:900;font-size:15px}
+.pub .go.sure{background:#7A0B10}.pub .un{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;color:var(--muted)}.pub .un.sure{color:var(--brand);border-color:var(--brand)}
 .empty{color:var(--muted);text-align:center;padding:30px 0}
 /* 순위 */
 .rk{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px}
@@ -92,12 +97,12 @@ function gradeOf(birth) { const y = +String(birth || '').slice(0, 4); if (!y) re
 const fmt = v => (Math.round(+v * 100) / 100).toString();
 const isFail = v => v != null && typeof v === 'object';
 
-const S = { tab: 'in', mo: now.getMonth() + 1, events: [], kids: [], f: 'all', q: '', st: {}, err: '' };
+const S = { tab: 'in', mo: now.getMonth() + 1, events: [], kids: [], f: 'all', q: '', st: {}, err: '', pub: {}, recYear: now.getFullYear(), pubFrom: '2026-11', sure: '' };
 const curEv = () => S.events.find(e => (e.months || []).includes(S.mo)) || null;
 async function load() {
   const j = await api('/api/grec-get');
   if (!j.ok) { S.err = j.relogin || /로그인/.test(j.error || '') ? 'login' : j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '불러오지 못했어요'); return draw(); }
-  S.err = ''; S.events = j.events || [];
+  S.err = ''; S.events = j.events || []; S.pub = j.pub || {}; S.recYear = j.recYear || now.getFullYear(); S.pubFrom = j.pubFrom || '2026-11';
   const gs = j.students || [];
   S.kids = j.roster.map(r => { const g = gs.find(x => x.sid && x.sid === r.id) || gs.find(x => !x.sid && x.name === r.name && String(x.birth).slice(0, 4) === String(r.birth).slice(0, 4)) || null; const gr = gradeOf(r.birth);
     return { sid: r.id, name: r.name, birth: r.birth, grade: gr, kinder: gr === '유치부', gender: r.gender || (g && g.gender) || '', status: r.status, rec: (g && g.rec) || {} }; })
@@ -114,9 +119,26 @@ function draw() {
   const head = '<div class="evbar"><div><small>' + (ev ? '이번 분기 종목 · ' + (ev.months.indexOf(S.mo) + 1) + '/' + ev.months.length + '개월차' : '이 달에는 종목이 없어요') + '</small><br><b>' + esc(ev ? ev.name : '–') + '</b>' + (ev ? ' <small>(' + esc(ev.unit) + (ev.lower ? ' · 낮을수록 좋아요' : '') + ')</small>' : '') + '</div>' +
     '<div class="mon"><button id="mP">‹</button><span style="padding:0 8px">' + S.mo + '월</span><button id="mN">›</button></div>' +
     (ev && S.tab === 'in' ? (() => { const L = S.kids.filter(k => k.status === '재원'), n = L.filter(k => valOf(k, ev, S.mo) != null).length; return '<div style="width:100%"><small>이번 달 기록 ' + n + ' / ' + L.length + '명</small><div class="prog"><i style="width:' + (L.length ? n / L.length * 100 : 0) + '%"></i></div></div>'; })() : '') + '</div>';
-  $('#main').innerHTML = head + (ev ? (S.tab === 'in' ? drawIn(ev) : drawRank(ev)) : '');
+  $('#main').innerHTML = head + (ev && S.tab === 'in' ? pubHtml(ev) : '') + (ev ? (S.tab === 'in' ? drawIn(ev) : drawRank(ev)) : '');
+  if (ev && S.tab === 'in') bindPub();
   $('#mP').onclick = () => { S.mo = S.mo === 1 ? 12 : S.mo - 1; draw(); }; $('#mN').onclick = () => { S.mo = S.mo === 12 ? 1 : S.mo + 1; draw(); };
   if (S.tab === 'in' && ev) bindIn(ev);
+}
+// 📤 그 달 기록 올리기 (2026-11-17 사용자: 올리기 버튼을 눌러야 학부모 앱·제자 앱에 그 달 기록·최우수·리포트가 나옴)
+const pubKey = () => S.recYear + '-' + pad(S.mo);
+function pubHtml(ev) {
+  const key = pubKey(), P = S.pub[key];
+  if (key < S.pubFrom) return '<div class="pub ok"><div><b>✅ ' + S.mo + '월 기록은 앱에 보여요</b><small>올리기 버튼이 생기기 전 기록이에요</small></div></div>';
+  if (P) { const d = new Date(P.at); return '<div class="pub ok"><div><b>✅ ' + S.mo + '월 기록이 앱에 올라가 있어요</b><small>' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + esc(P.by || '') + ' · 지금부터 넣는 기록도 바로 보여요</small></div><button class="un' + (S.sure === 'un' ? ' sure' : '') + '" id="pubUn">' + (S.sure === 'un' ? '정말 내릴까요?' : '올리기 취소') + '</button></div>'; }
+  return '<div class="pub"><div><b>📤 ' + S.mo + '월 기록 올리기</b><small>누르기 전에는 학부모 앱·제자 앱에 이 달 기록·최우수가 안 보여요.<br>다 재고 나서 눌러 주세요. 올리면 제자 앱에 결과 알림이 가요.</small></div><button class="go' + (S.sure === 'go' ? ' sure' : '') + '" id="pubGo">' + (S.sure === 'go' ? '한 번 더 누르면 올라가요' : '기록 올리기') + '</button></div>';
+}
+function bindPub() {
+  const go = async on => { const j = await api('/api/grec-pub', { m: S.mo, on }); S.sure = '';
+    if (!j.ok) { draw(); return toast(j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '올리지 못했어요')); }
+    S.pub = j.pub || {}; draw(); toast(on ? S.mo + '월 기록을 올렸어요' + (j.sent ? ' · 제자 ' + j.sent + '명에게 알림' : '') : S.mo + '월 기록을 앱에서 내렸어요'); };
+  const arm = k => { S.sure = k; draw(); clearTimeout(S.sureT); S.sureT = setTimeout(() => { if (S.sure === k) { S.sure = ''; draw(); } }, 4000); };
+  const g = $('#pubGo'); if (g) g.onclick = () => S.sure === 'go' ? (g.disabled = true, go(true)) : arm('go');
+  const u = $('#pubUn'); if (u) u.onclick = () => S.sure === 'un' ? (u.disabled = true, go(false)) : arm('un');
 }
 const groupOf = k => /^(중|고|성인)/.test(k.grade || '') ? '중고등' : !k.gender ? '' : k.kinder ? '유치 ' + k.gender : '초등 ' + k.gender; // 중고등부는 남녀 하나, 초등·유치는 남녀 따로 (2026-11-16)
 function drawIn(ev) {

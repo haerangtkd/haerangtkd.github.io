@@ -126,7 +126,7 @@ async function route(path, req, env) {
     }
     if (path === '/sync/month-stats') { // 📈 성장 측정지 출석 자동 (2026-11-14): 원생마다 달별 출석일·수련 대상일 — 출석부 '월별 기록'의 출석률과 같은 계산(화면 monthStats)
       const months = (Array.isArray(b.months) ? b.months : []).filter(m => /^\d{4}-\d{2}$/.test(m)).slice(0, 6); if (!months.length) return json({ ok: true, students: [] });
-      const extra = new Set((Array.isArray(b.closed) ? b.closed : []).filter(isDay)), td = kstDay(), first = months[0] + '-01', last = months[months.length - 1] + '-31';
+      const extra = new Set((Array.isArray(b.closed) ? b.closed : []).filter(isDay)), td = isDay(b.upto) && b.upto < kstDay() ? b.upto : kstDay(), first = months[0] + '-01', last = months[months.length - 1] + '-31';
       const [studs, att, abs, cl] = await Promise.all([all(env, 'SELECT id, data FROM students'), all(env, 'SELECT day, sid, r FROM att WHERE day >= ? AND day <= ?', first, last),
         all(env, 'SELECT sid, date FROM absences WHERE date >= ? AND date <= ?', first, last), all(env, 'SELECT day FROM closed WHERE day >= ? AND day <= ?', first, last)]);
       const closed = new Set([...cl.map(r => r.day), ...extra]), A = new Map(); att.forEach(r => A.set(r.sid + '|' + r.day, r.r)); const AB = new Set(abs.map(r => r.sid + '|' + r.date));
@@ -142,6 +142,30 @@ async function route(path, req, env) {
         return { id: s.id, name: s.name, m };
       });
       return json({ ok: true, students: out, closed: [...closed].sort() });
+    }
+    if (path === '/sync/week-stats') { // 📈 성장 리포트 출석 = 출석부 · 한 주씩 (2026-11-17 사용자: 주 5일이면 5일 중 몇 번, 3일이면 3일 중 몇 번) — 끝난 주(월~일)만
+      // 이름마다 weeks [{w: 월요일, o: 출석, tot: 수련 대상일}] + months {YYYY-MM: 출석한 날 수(오늘까지)} — 계산은 month-stats 와 같음(휴관·휴원·임시변경·등록일 반영)
+      const names = (Array.isArray(b.names) ? b.names : []).map(x => str(x, 20)).filter(Boolean).slice(0, 10), td = kstDay();
+      const from = isDay(b.from) && b.from < td ? b.from : addDaysA(td, -800), extra = new Set((Array.isArray(b.closed) ? b.closed : []).filter(isDay));
+      const L = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, ...J(r.data, {}) })).filter(s => s.name && names.includes(s.name)); if (!L.length) return json({ ok: true, kids: [], upto: '' });
+      const ids = L.map(s => s.id), q = ids.map(() => '?').join(',');
+      const [att, abs, cl] = await Promise.all([all(env, 'SELECT day, sid, r FROM att WHERE day >= ? AND sid IN (' + q + ')', from, ...ids), all(env, 'SELECT sid, date FROM absences WHERE date >= ? AND sid IN (' + q + ')', from, ...ids), all(env, 'SELECT day FROM closed WHERE day >= ?', from)]);
+      const closed = new Set([...cl.map(r => r.day), ...extra]), A = new Map(); att.forEach(r => A.set(r.sid + '|' + r.day, r.r)); const AB = new Set(abs.map(r => r.sid + '|' + r.date));
+      const W = ['일', '월', '화', '수', '목', '금', '토'], dow = d => new Date(d + 'T00:00:00Z').getUTCDay(), mon = d => addDaysA(d, -((dow(d) + 6) % 7));
+      const upto = addDaysA(mon(td), -1), w0 = mon(from); // 지난주 일요일까지
+      const kids = L.map(s => {
+        const lp = s.leavePeriods || [], onLeave = d => lp.some(p => (!p.start || p.start <= d) && (!p.end || d < p.end)) || (s.status === '휴원' && !lp.some(p => !p.end));
+        const daysOn = d => { const t = (s.temporarySchedules || []).find(t => t.start && t.start <= d && (!t.end || d <= t.end)); return t ? t.days || [] : (s.days || []); };
+        const sched = d => !closed.has(d) && s.status !== '퇴관' && (!s.joined || d >= s.joined) && !onLeave(d) && daysOn(d).includes(W[dow(d)]);
+        const weeks = [], months = {};
+        for (let w = w0; w <= td; w = addDaysA(w, 7)) { let o = 0, tot = 0;
+          for (let i = 0; i < 7; i++) { const d = addDaysA(w, i); if (d < from || d > td) continue; const r = A.get(s.id + '|' + d), k = r === 'o' ? 'o' : r === 'x' ? 'x' : (AB.has(s.id + '|' + d) && sched(d)) ? 'x' : closed.has(d) ? 'closed' : (s.status !== '퇴관' && onLeave(d) && (!s.joined || d >= s.joined)) ? 'leave' : 'u';
+            if (k === 'o') months[d.slice(0, 7)] = (months[d.slice(0, 7)] || 0) + 1;
+            if (d > upto) continue; if (k === 'o') o++; if (k !== 'closed' && k !== 'leave' && (sched(d) || k === 'o')) tot++; }
+          if (w <= addDaysA(upto, -6) && (tot || o)) weeks.push({ w, o: Math.min(o, tot || o), tot: tot || o }); }
+        return { name: s.name, sid: s.id, days: Array.isArray(s.days) ? s.days : [], weeks, months };
+      });
+      return json({ ok: true, kids, upto });
     }
     if (path === '/sync/closed') return json({ ok: true, closed: !!(await one(env, 'SELECT day FROM closed WHERE day = ?', isDay(b.day) ? b.day : kstDay())) });
     if (path === '/sync/dlpin-set') { // 업무 앱 이사범님이 정함
@@ -570,6 +594,7 @@ async function saveStudentRow(env, b, who) {
 }
 
 const BELTS = ['흰띠', '노란줄띠', '노란띠', '초록줄띠', '초록띠', '초록검은띠', '보라띠', '보라검은띠', '파란띠', '파란검은띠', '주황띠', '주황검은띠', '분홍띠', '밤띠', '빨간띠', '1품', '2품', '3품', '4품', '5품', '6품'];
+function addDaysA(d, n) { return new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10); }
 function cleanStudent(s) {
   const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
   const days = arr => (Array.isArray(arr) ? arr : []).filter(x => DAYS.includes(x)).sort((a, b) => DAYS.indexOf(a) - DAYS.indexOf(b));
