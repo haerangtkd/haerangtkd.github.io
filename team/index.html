@@ -1029,19 +1029,14 @@ async function savePickup(p, what) {
 }
 // 다른 앱 바로 열기 (같은 사이트 안 다른 화면, 따로 불러와서 업무 앱이 무거워지지 않음)
 // 2026-11-15 사용자 결정: 📈 성장(성장 측정지) 없앰 — 학부모 앱 '성장'이 기록·출석·심사로 저절로 채워짐, 띠·선범단은 원생 정보
-const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'], appKid: ['🥋', '제자 모드', ''] }; // 2026-11-15: 심사·기네스 다음에 제자 모드(제자 코드·도장 찍기·제자 앱) // 심사 채점 (2026-11-14)
-function kidMenu() { // 🥋 제자 모드 (2026-11-15): 제자 앱에 쓰는 것 모아 두기
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>🥋 제자 모드</h2></div><p class="help">제자 앱(따로 설치하는 앱)에 들어가는 코드를 만들고, 선범단 도장을 찍어요.</p>' +
-    '<div class="row" style="gap:8px;margin-top:8px"><button class="btn g" data-km="kcode" style="flex:1;padding:16px 4px">🔑<br>제자 코드</button><button class="btn g" data-km="sun" style="flex:1;padding:16px 4px">⭐<br>도장 찍기</button><button class="btn g" data-km="mile" style="flex:1;padding:16px 4px">💰<br>마일리지</button><button class="btn" data-km="open" style="flex:1;padding:16px 4px">📱<br>제자 앱</button></div>' +
-    // 2026-11-16 사용자: 제자 관련 자주 쓰는 것도 여기서 바로 (제자를 고르면 그 화면으로)
-    '<div class="kmg"><button class="btn g" data-km="note">📌<br>중요사항</button><button class="btn g" data-km="days">📅<br>수련 요일 변경</button><button class="btn g" data-km="temp">🗓<br>임시변경</button><button class="btn g" data-km="pqr">📱<br>학부모 앱 QR</button><button class="btn" data-km="kid">🥋<br>원생 정보</button></div>', ov => {
-    ov.onclick = e => { const b = e.target.closest('[data-km]'); if (!b) return; const k = b.dataset.km; if (k === 'open') return window.open('/kids/', '_blank');
-      if (k === 'days') return kidPick('📅 수련 요일 변경', '누구의 수련 요일을 바꿀까요? 바꾸면 출석부·학부모 앱에 바로 반영돼요.', x => kDays(x.days) + (dayReqs(x.name).length ? ' · 📩 학부모 요청' : ''), daysSheet);
-      if (k === 'temp') return kidPick('🗓 등원요일 임시변경', '누구의 등원 요일을 잠깐 바꿀까요? 정한 기간이 끝나면 원래 요일로 돌아가요.', x => kTemp(x, today()) ? '임시변경 중' : '', x => kidTempSheet(x));
-      if (k === 'pqr') return kidPick('📱 학부모 앱 QR', '누구의 학부모 앱 가입 QR(가족 초대번호)을 볼까요?', () => '', x => sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(x.name) + '</h2></div><div id="pqF"></div>', o2 => kidFamily(o2.querySelector('#pqF'), x)));
-      if (k === 'kid') return kidPick('🥋 원생 정보', '누구의 원생 정보를 볼까요?', x => kDays(x.days), x => kidSheet(x.id));
-      return k === 'kcode' ? kcodeSheet() : k === 'mile' ? mileSheet() : k === 'note' ? notePick() : sunSheet(); };
-  });
+const APPS = { appAtt: ['📋', '출석부', '/attendance/'], appNtc: ['📣', '알림 관리', '/notice/admin.html'], appExam: ['🏅', '심사', '/team/exam.html'], appRec: ['🏆', '기네스', '/team/record.html'] }; // 2026-11-15: 심사·기네스 다음에 제자 모드(제자 코드·도장 찍기·제자 앱) // 심사 채점 (2026-11-14)
+// 제자 모드 메뉴 없앰 (2026-11-19 사용자: 안에 있던 것은 더보기 지도로) — 이름 고르기 화면들
+function kidAct(k) {
+  if (k === 'kapp') return window.open('/kids/', '_blank');
+  if (k === 'days') return kidPick('📅 수련 요일 변경', '누구의 수련 요일을 바꿀까요? 바꾸면 출석부·학부모 앱에 바로 반영돼요.', x => kDays(x.days) + (dayReqs(x.name).length ? ' · 📩 학부모 요청' : ''), daysSheet);
+  if (k === 'temp') return kidPick('🗓 등원요일 임시변경', '누구의 등원 요일을 잠깐 바꿀까요? 정한 기간이 끝나면 원래 요일로 돌아가요.', x => kTemp(x, today()) ? '임시변경 중' : '', x => kidTempSheet(x));
+  if (k === 'pqr') return kidPick('📱 학부모 앱 QR', '누구의 학부모 앱 가입 QR(가족 초대번호)을 볼까요?', () => '', x => sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(x.name) + '</h2></div><div id="pqF"></div>', o2 => kidFamily(o2.querySelector('#pqF'), x)));
+  if (k === 'note') return notePick();
 }
 // 제자 고르기 (2026-11-16): 제자 모드 버튼들이 같이 씀 — 이름 검색 → 누르면 then(제자)
 async function kidPick(title, help, sub, then) {
@@ -1124,7 +1119,7 @@ function noteSheet(id, pre) { // pre: 학부모 연락에서 넣을 때 미리 �
     };
   });
 }
-function openApp(k) { if (k === 'appKid') return kidMenu(); try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
+function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
 const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지'], ['widget', '📱', '위젯'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
@@ -1410,8 +1405,8 @@ const attAbsOf = day => ((S.attAbs || new Map()).get(day) || {}).names || [];
 // ═════════ 더보기 (바로가기 + 다가오는 일정 + 신청표) ═════════
 // 더보기 = 지도 (2026-11-18 사용자: 헤매지 않게 영역별로 — 기능은 지우지 않고 4개 영역으로 나눔)
 const MORE_MAP = [
-  ['① 제자 관리', '원생 명단 · 제자 앱 코드 · 등록 서류', [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류']]],
-  ['② 수련 · 성장', '출석 · 심사 · 기록 · 제자 앱에 쓰는 것', [['appAtt', '📋', '출석부'], ['appExam', '🏅', '심사'], ['appRec', '🏆', '기네스'], ['appKid', '🎽', '제자 모드'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지']]],
+  ['① 제자 관리', '원생 정보 · 요일 · 중요사항 · 가입 QR · 서류', [['kids', '🥋', '원생'], ['note', '📌', '중요사항'], ['days', '📅', '요일 변경'], ['temp', '🗓', '임시변경'], ['pqr', '📱', '학부모 앱 QR'], ['docs', '📝', '등록 서류']]],
+  ['② 수련 · 성장', '출석 · 심사 · 기록 · 제자 앱', [['appAtt', '📋', '출석부'], ['appExam', '🏅', '심사'], ['appRec', '🏆', '기네스'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지'], ['kcode', '🔑', '제자 코드'], ['kapp', '🎽', '제자 앱 열기']]],
   ['③ 도장 운영', '학부모 앱 · 행사 · 소식', [['appNtc', '📣', '알림 관리'], ['table', '🎟', '행사·구매'], ['notice', '📢', '공지'], ['photo', '🖼', '사진']]],
   ['④ 업무 앱 · 시스템', '내 업무 · 기록 · 설정', [['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['log', '🔔', '알림 기록'], ['widget', '📱', '위젯'], ['backup', '📦', '백업'], ['settings', '⚙', '설정']]],
 ];
@@ -1428,6 +1423,7 @@ $('v-more').onclick = async e => {
     if (k === 'kids') return setTab('kids');
     if (k === 'hw') return hwListSheet();
     if (k === 'kcode') return kcodeSheet();
+    if (['kapp', 'days', 'temp', 'pqr', 'note'].includes(k)) return kidAct(k);
     if (k === 'sun') return sunSheet();
     if (k === 'mile') return mileSheet();
     if (k === 'widget') return widgetSheet();
