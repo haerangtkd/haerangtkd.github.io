@@ -551,6 +551,11 @@
   .mmap .sgrid{margin:0}
   .pmreps{margin:4px 0 8px;padding:6px 10px;background:#F3F6FB;border-radius:10px;font-size:14px}.pmreps div{padding:2px 0}.pmreps b{color:var(--brand)}.pmreps small{color:var(--muted);font-size:12px}
   .kcst{background:#F6F8FB;border:1px solid var(--line);border-radius:14px;padding:12px;margin:6px 0 12px}.kcsr{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}.kcsr span{flex:1;font-weight:700}.kcsr b{font-size:20px;letter-spacing:3px;color:var(--brand);font-variant-numeric:tabular-nums}.kcsr small{color:var(--muted);min-width:44px;text-align:right}
+  .pmph{margin:6px 0}.pmph img{width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block;background:#f2f2f2}.pmph small{display:block;color:#7a7f8a;font-size:12px;margin-top:3px}
+  .twch{display:flex;flex-wrap:wrap;gap:6px}.twch button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 11px;font-size:13.5px;font-weight:700}.twch span{font-size:13px;color:#8a8f99;align-self:center}
+  .twmh{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 8px}.twmh b{font-size:16px}
+  .twop{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 12px;margin-top:8px;font-size:14px;line-height:1.5}.twop.on{border-color:#0D326F;background:#EEF3FB;box-shadow:inset 0 0 0 1px #0D326F}.twop small{display:block;font-size:11.5px;color:#0D326F;font-weight:800;margin-bottom:2px}
+  .twc{font-size:13px;font-weight:800;color:#0D326F;margin:14px 2px 0}
 </style>
 </head>
 <body>
@@ -1038,6 +1043,73 @@ function kidAct(k) {
   if (k === 'pqr') return kidPick('📱 학부모 앱 QR', '누구의 학부모 앱 가입 QR(가족 초대번호)을 볼까요?', () => '', x => sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>' + esc(x.name) + '</h2></div><div id="pqF"></div>', o2 => kidFamily(o2.querySelector('#pqF'), x)));
   if (k === 'note') return notePick();
 }
+// ✍ 사범님 한마디 (2026-11-19 사용자 요청): 월말(25일~다음 달 7일)에 대시보드 카드 → 제자마다 추천 3개 / 100개 중 고르기 / 직접 쓰기. 다 고르면 카드가 사라짐
+// 고른 말은 학부모 앱 성장 리포트 '요약' 맨 위에 보임. 더보기 → ✍ 사범님 한마디에서 언제든 (지난달도)
+const monShift = (m, n) => { const d = new Date(Date.parse(m + '-01T00:00:00Z')); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 7); };
+const twDue = () => { const t = today(), d = +t.slice(8); return d >= 25 ? t.slice(0, 7) : d <= 7 ? monShift(t.slice(0, 7), -1) : ''; };
+const twTargets = () => (S.kids || []).filter(k => k.status !== '퇴관' && k.status !== '휴원');
+const twHas = (w, k) => !!(w && (w[k.id] || w['n:' + k.name]));
+async function loadTw(m, force) { if (!force && S.tw && S.tw.month === m && Date.now() - S.tw.at < 120000) return S.tw; const j = await api('/api/tword-get', { month: m }); if (j.ok) S.tw = { month: m, words: j.words || {}, bank: j.bank || [], at: Date.now() }; return S.tw; }
+let twLoading = false;
+function twCard() {
+  const m = twDue(); if (!m || !S.me || S.me.shared) return '';
+  if ((!S.tw || S.tw.month !== m || Date.now() - S.tw.at > 120000) && !twLoading) { twLoading = true; Promise.all([loadTw(m), S.kids ? null : loadKids()]).finally(() => { twLoading = false; if (S.tab === 'home') render(); }); }
+  if (!S.tw || S.tw.month !== m || !S.kids) return '';
+  const left = twTargets().filter(k => !twHas(S.tw.words, k)); if (!left.length) return '';
+  return '<div class="sec"><div class="sh"><h2>✍ ' + (+m.slice(5)) + '월 사범님 한마디 <em style="color:var(--no);font-style:normal">' + left.length + '</em></h2><button class="more" data-tw="' + m + '">고르기 ›</button></div>' +
+    '<p class="hint" style="margin:0 0 8px">학부모 앱 성장 리포트 맨 위에 보여요. 다 고르면 이 칸이 사라져요</p><div class="twch">' + left.slice(0, 8).map(k => '<button data-twk="' + esc(k.id) + '" data-tw="' + m + '">' + esc(k.name) + '</button>').join('') + (left.length > 8 ? '<span>외 ' + (left.length - 8) + '명</span>' : '') + '</div></div>';
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-tw]'); if (!b || b.closest('#ov')) return; e.stopPropagation(); const k = b.dataset.twk && (S.kids || []).find(x => x.id === b.dataset.twk); if (k) twKid(k, b.dataset.tw); else twSheet(b.dataset.tw); }, true);
+async function twSheet(m) {
+  m = m || twDue() || today().slice(0, 7); let f = '아직';
+  const draw = ov => { const el = ov.querySelector('#twL'); if (!el) return; const qv = (ov.querySelector('#twQ').value || '').trim(), w = (S.tw && S.tw.month === m && S.tw.words) || null;
+    ov.querySelector('#twM').textContent = (+m.slice(0, 4)) + '년 ' + (+m.slice(5)) + '월';
+    if (!S.kids || !w) { el.innerHTML = '<div class="help" style="padding:14px">불러오는 중…</div>'; return; }
+    const T = twTargets().sort((a, b) => a.name.localeCompare(b.name, 'ko')), done = T.filter(k => twHas(w, k));
+    ov.querySelector('#twF').innerHTML = ['아직', '골랐어요'].map(x => '<button class="' + (x === f ? 'on' : '') + '" data-twf="' + x + '">' + x + ' ' + (x === '아직' ? T.length - done.length : done.length) + '</button>').join('');
+    const L = T.filter(k => (f === '아직') !== twHas(w, k) && (!qv || k.name.includes(qv)));
+    el.innerHTML = L.length ? L.map(k => { const x = w[k.id] || w['n:' + k.name]; return '<button class="kcr" data-twk2="' + esc(k.id) + '"><b>' + esc(k.name) + '</b><small>' + esc(x ? x.text.slice(0, 34) + (x.text.length > 34 ? '…' : '') + ' · ' + x.by : '아직 안 골랐어요') + '</small><span>›</span></button>'; }).join('')
+      : '<div class="help" style="padding:14px">' + (f === '아직' ? '모두 골랐어요 👍' : '아직 고른 제자가 없어요') + '</div>'; };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>✍ 사범님 한마디</h2></div><div class="twmh"><button class="btn" data-twm="-1">‹</button><b id="twM"></b><button class="btn" data-twm="1">›</button></div>' +
+    '<p class="help">제자마다 한마디를 골라요. 학부모 앱 성장 리포트 \'요약\' 맨 위에 보여요. 성장·심사·기네스·출석을 보고 3개를 추천해요.</p><div class="seg" id="twF"></div><input class="inp" id="twQ" placeholder="이름 검색" autocomplete="off"><div id="twL" class="kcl" style="max-height:360px"></div>', ov => {
+    draw(ov); ov.querySelector('#twQ').oninput = () => draw(ov);
+    ov.addEventListener('click', async e => {
+      const fb = e.target.closest('[data-twf]'); if (fb) { f = fb.dataset.twf; return draw(ov); }
+      const mb = e.target.closest('[data-twm]'); if (mb) { const n = monShift(m, +mb.dataset.twm); if (n > today().slice(0, 7)) return toast('다음 달은 아직이에요'); m = n; S.tw = null; draw(ov); await loadTw(m, true); return draw(ov); }
+      const b = e.target.closest('[data-twk2]'); if (b) { const k = (S.kids || []).find(x => x.id === b.dataset.twk2); if (k) twKid(k, m); }
+    });
+    Promise.all([loadKids(), loadTw(m, true)]).then(() => draw(ov));
+  });
+}
+async function twKid(k, m) {
+  await loadTw(m); if (!S.tw) return toast('불러오지 못했어요');
+  const w = S.tw.words || {}, cur = w[k.id] || w['n:' + k.name]; let text = cur ? cur.text : '', recs = null, why = '', call = k.name, mode = 'rec';
+  const fillN = t => String(t).replace(/ㅇㅇ(이(?=[는가를의도랑와한에]))?/g, call);
+  const draw = ov => {
+    const box = ov.querySelector('#twB'); if (!box) return;
+    const bank = (S.tw.bank || []), cats = [...new Set(bank.map(x => x.cat))];
+    box.innerHTML = '<div class="seg">' + [['rec', '추천 3개'], ['all', '100개 중 고르기'], ['own', '직접 쓰기']].map(([v, n]) => '<button class="' + (mode === v ? 'on' : '') + '" data-twmd="' + v + '">' + n + '</button>').join('') + '</div>' +
+      (mode === 'rec' ? (recs ? (why ? '<p class="help" style="margin:8px 2px">' + esc(why) + '</p>' : '') + recs.map(r => '<button class="twop' + (r.text === text ? ' on' : '') + '" data-twt="' + esc(r.text) + '"><small>' + esc(r.cat) + '</small>' + esc(r.text) + '</button>').join('') : '<div class="help" style="padding:14px">성장 기록을 보는 중…</div>')
+      : mode === 'all' ? cats.map(c => '<div class="twc">' + esc(c) + '</div>' + bank.filter(x => x.cat === c).map(x => { const t = fillN(x.text); return '<button class="twop' + (t === text ? ' on' : '') + '" data-twt="' + esc(t) + '">' + esc(t) + '</button>'; }).join('')).join('') : '') +
+      '<label class="lab" style="display:block;margin-top:14px;font-weight:800">학부모님께 보일 한마디</label><textarea class="inp" id="twT" rows="3" maxlength="300" placeholder="추천이나 목록에서 고르거나 직접 적어 주세요">' + esc(text) + '</textarea>' +
+      '<button class="big g" id="twOk" style="margin-top:10px">저장</button>' + (cur ? '<button class="big" id="twDel" style="margin-top:8px">한마디 지우기</button>' : '');
+  };
+  sheet('<div class="shead"><button class="btn" data-twback>‹</button><h2>' + esc(k.name) + ' · ' + (+m.slice(5)) + '월 한마디</h2></div><div id="twB"></div>', ov => {
+    draw(ov);
+    api('/api/tword-rec', { name: k.name, sid: k.id, month: m }).then(j => { recs = j.ok ? j.recs : []; why = j.ok ? j.why : (j.error || ''); if (j.ok && j.call) call = j.call; if (!recs.length) mode = 'all'; draw(ov); });
+    ov.addEventListener('input', e => { if (e.target.id === 'twT') text = e.target.value; });
+    ov.addEventListener('click', async e => {
+      if (e.target.closest('[data-twback]')) return twSheet(m);
+      const md2 = e.target.closest('[data-twmd]'); if (md2) { mode = md2.dataset.twmd; draw(ov); if (mode === 'own') ov.querySelector('#twT').focus(); return; }
+      const o = e.target.closest('[data-twt]'); if (o) { text = o.dataset.twt; draw(ov); const ta = ov.querySelector('#twT'); if (ta) ta.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+      const sv = e.target.closest('#twOk, #twDel'); if (!sv) return; const del = sv.id === 'twDel';
+      if (!del && !text.trim()) return toast('한마디를 골라 주세요');
+      sv.disabled = true; const j = await api('/api/tword-set', { month: m, sid: k.id, name: k.name, text: del ? '' : text.trim() }); sv.disabled = false;
+      if (!j.ok) return toast(j.error || '저장하지 못했어요'); S.tw.words = j.words; S.tw.at = Date.now(); toast(del ? '지웠어요' : k.name + ' 한마디를 저장했어요');
+      const next = twTargets().sort((a, b) => a.name.localeCompare(b.name, 'ko')).find(x => !twHas(S.tw.words, x)); if (!del && next && twDue() === m) twKid(next, m); else twSheet(m); if (S.tab === 'home') render();
+    });
+  });
+}
 // 제자 고르기 (2026-11-16): 제자 모드 버튼들이 같이 씀 — 이름 검색 → 누르면 then(제자)
 async function kidPick(title, help, sub, then) {
   const draw = ov => { const el = ov.querySelector('#kpL'); if (!el) return; const qv = (ov.querySelector('#kpQ').value || '').trim();
@@ -1326,7 +1398,7 @@ function renderHome() {
       kpi('c2 nog' + (pkLate() ? ' blink' : ''), '', '등원·픽업', kidsD) +
       kpi('c3', 'data-kgo="ev"', '행사 신청', evN.length ? evN.slice(0, 3).join('<i>|</i>') + (evN.length > 3 ? '<i>…</i>' : '') : 0) +
       kpi('c4' + (todayT.some(isLate) || clLate ? ' blink' : ''), 'data-kgo="task"', '할일·청소', left) + '</div>' +
-    cneedCard() + checkCard() + outReqCard() + delReqCard() + docCard() +
+    cneedCard() + checkCard() + twCard() + outReqCard() + delReqCard() + docCard() +
     '<div class="attl"><button data-kh="1"><b>오늘 출석</b><span>' + (ks ? '출석 ' + ks.here.length + ' · 결석 ' + ks.absent.length + ' · <em' + (ks.notYet.length ? ' class="r"' : '') + '>미확인 ' + ks.notYet.length + '</em>' : '불러오는 중…') + '</span></button><button class="lbtn" data-app="appAtt">출석부 ›</button></div>' +
     pickupCard() +
     '<div class="sec' + (clLate ? ' blink' : '') + '" id="tdSec"><div class="sh"><h2>오늘 할 일 · 청소</h2>' + (left ? '<em class="lft">' + left + '개 남음</em>' : '') + '<button class="more" data-go="task">전체 보기 ›</button></div>' +
@@ -1406,7 +1478,7 @@ const attAbsOf = day => ((S.attAbs || new Map()).get(day) || {}).names || [];
 // 더보기 = 지도 (2026-11-18 사용자: 헤매지 않게 영역별로 — 기능은 지우지 않고 4개 영역으로 나눔)
 const MORE_MAP = [
   ['① 제자 관리', '원생 정보 · 요일 · 중요사항 · 가입 QR · 서류', [['kids', '🥋', '원생'], ['note', '📌', '중요사항'], ['days', '📅', '요일 변경'], ['temp', '🗓', '임시변경'], ['pqr', '📱', '학부모 앱 QR'], ['docs', '📝', '등록 서류']]],
-  ['② 수련 · 성장', '출석 · 심사 · 기록 · 제자 앱', [['appAtt', '📋', '출석부'], ['appExam', '🏅', '심사'], ['appRec', '🏆', '기네스'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지'], ['kcode', '🔑', '제자 코드'], ['kapp', '🎽', '제자 앱 열기']]],
+  ['② 수련 · 성장', '출석 · 심사 · 기록 · 제자 앱', [['appAtt', '📋', '출석부'], ['appExam', '🏅', '심사'], ['appRec', '🏆', '기네스'], ['tword', '✍', '사범님 한마디'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지'], ['kcode', '🔑', '제자 코드'], ['kapp', '🎽', '제자 앱 열기']]],
   ['③ 도장 운영', '학부모 앱 · 행사 · 소식', [['appNtc', '📣', '알림 관리'], ['table', '🎟', '행사·구매'], ['notice', '📢', '공지'], ['photo', '🖼', '사진']]],
   ['④ 업무 앱 · 시스템', '내 업무 · 기록 · 설정', [['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['log', '🔔', '알림 기록'], ['widget', '📱', '위젯'], ['backup', '📦', '백업'], ['settings', '⚙', '설정']]],
 ];
@@ -1422,6 +1494,7 @@ $('v-more').onclick = async e => {
     if (k === 'table' || k === 'buy') { S.tf = k === 'buy' ? 'buy' : 'all'; return setTab('table'); }
     if (k === 'kids') return setTab('kids');
     if (k === 'hw') return hwListSheet();
+    if (k === 'tword') return twSheet();
     if (k === 'kcode') return kcodeSheet();
     if (['kapp', 'days', 'temp', 'pqr', 'note'].includes(k)) return kidAct(k);
     if (k === 'sun') return sunSheet();
@@ -1573,6 +1646,9 @@ async function loadPhoto(img) {
   const id = img.dataset.ph; if (photoCache.has(id)) { img.src = photoCache.get(id); return; }
   const j = await api('/api/photo', { id }); if (j.ok) { const u = 'data:image/jpeg;base64,' + j.data; photoCache.set(id, u); img.src = u; }
 }
+// 학부모 연락 사진 (2026-11-19): 보이면 불러오고 누르면 크게
+new MutationObserver(() => document.querySelectorAll('.pmph img[data-ph]:not([data-ld])').forEach(im => { im.dataset.ld = 1; loadPhoto(im); })).observe(document.body, { childList: true, subtree: true });
+document.addEventListener('click', e => { const im = e.target.closest('.pmph img[data-ph]'); if (im) { e.stopPropagation(); viewPhoto(im.src, im.dataset.ph); } }, true);
 function viewPhoto(src, id) { const v = document.createElement('div'); v.className = 'viewer'; v.innerHTML = '<img src="' + src + '">'; v.onclick = () => v.remove(); document.body.appendChild(v); api('/api/photo', { id, size: 'full' }).then(j => { if (j.ok && v.isConnected) v.firstChild.src = 'data:image/jpeg;base64,' + j.data; }); }
 function jumpTo(id) {
   if (!id) return; requestAnimationFrame(() => { const el = $('m' + id); if (!el) return toast('예전 대화라 위로 더 불러와야 보여요');
@@ -2803,9 +2879,10 @@ function pmRow(x, withBtns) {
   const actL = x.act === 'absent' ? '출석부 결석에 넣을게요' : x.act === 'in' ? '픽업표에 넣을게요' : x.act === 'out' ? '중요사항에 넣을게요' : ''; // 2026-11-18: 보호자 하원은 할 일 대신 중요사항
   const reps = repsOf(x), repH = reps.length ? '<div class="pmreps">' + reps.map(r => '<div><b>↳ ' + esc(r.by) + '</b> ' + esc(r.text) + ' <small>' + whenAt(r.at) + '</small></div>').join('') + '</div>' : '';
   const auto = x.kind === 'text' && x.act ? ' <span class="tag y">자동 분류 · ' + ({ absent: '결석', in: '등원', out: '하원' })[x.act] + '</span>' : '';
-  if (withBtns && !x.ack) return '<div class="cki" data-pm="' + x.id + '"><div class="kd">💬 학부모 연락' + auto + '</div><div class="ch"><b>' + esc(x.kid) + '</b><span class="dchip' + (x.act === 'absent' ? ' r' : '') + '">' + dl + '</span><span class="when">' + esc(x.rel || '학부모') + ' · ' + whenAt(x.at) + '</span></div><p>' + esc(pmLine(x)) + '</p>' + repH +
+  const phH = x.ph ? '<div class="pmph"><img data-ph="' + esc(x.ph) + '" alt="학부모가 보낸 사진"><small>📷 학부모가 보낸 사진 · 누르면 크게</small></div>' : ''; // 2026-11-19
+  if (withBtns && !x.ack) return '<div class="cki" data-pm="' + x.id + '"><div class="kd">💬 학부모 연락' + auto + '</div><div class="ch"><b>' + esc(x.kid) + '</b><span class="dchip' + (x.act === 'absent' ? ' r' : '') + '">' + dl + '</span><span class="when">' + esc(x.rel || '학부모') + ' · ' + whenAt(x.at) + '</span></div><p>' + esc(pmLine(x)) + '</p>' + phH + repH +
     '<div class="pb">' + (actL ? '<button class="btn g" data-pa="' + (x.act === 'out' ? 'note' : '1') + '">' + actL + '</button><div class="pb2">' + (x.act !== 'out' ? '<button class="btn" data-pa="adj">조율할게요</button>' : '') + '<button class="btn" data-pa="0">확인만 할게요</button></div>' : '<button class="btn g" data-pa="0">확인했어요</button>') + '<button class="btn line" data-pa="rep">💬 답장 쓰기</button></div></div>';
-  return '<div class="pmr' + (x.ack ? ' ok' : '') + '" data-pm="' + x.id + '"><div class="pt"><b>' + esc(x.kid) + '</b> <span class="tag' + (x.act === 'absent' ? ' r' : x.act ? ' y' : '') + '">' + dl + '</span><p>' + esc(pmLine(x)) + '</p><small>' + esc(x.rel || '학부모') + ' · ' + hm(x.at) + (x.at < Date.now() - 864e5 ? ' · ' + md(dayOf(x.at)) : '') + (x.ack ? ' · ' + esc(x.ack) + ' 확인' + (x.applied ? (x.act === 'absent' ? ' · 출석부 결석 넣음' : x.act === 'out' ? ' · 중요사항에 넣음' : ' · 픽업표에 적음') : '') : '') + '</small>' + repH + '</div>' +
+  return '<div class="pmr' + (x.ack ? ' ok' : '') + '" data-pm="' + x.id + '"><div class="pt"><b>' + esc(x.kid) + '</b> <span class="tag' + (x.act === 'absent' ? ' r' : x.act ? ' y' : '') + '">' + dl + '</span><p>' + esc(pmLine(x)) + '</p>' + phH + '<small>' + esc(x.rel || '학부모') + ' · ' + hm(x.at) + (x.at < Date.now() - 864e5 ? ' · ' + md(dayOf(x.at)) : '') + (x.ack ? ' · ' + esc(x.ack) + ' 확인' + (x.applied ? (x.act === 'absent' ? ' · 출석부 결석 넣음' : x.act === 'out' ? ' · 중요사항에 넣음' : ' · 픽업표에 적음') : '') : '') + '</small>' + repH + '</div>' +
     (withBtns && !x.ack ? '<div class="pb">' + (actL ? '<button class="btn g" data-pa="1">' + actL + '</button><button class="btn" data-pa="adj">조율할게요</button>' : '') + '<button class="btn' + (actL ? '' : ' g') + '" data-pa="0">' + (actL ? '확인만 할게요' : '확인했어요') + '</button></div>' : '') + '</div>';
 }
 // 새 등록 서류 (원생 연결 전) — 학부모 연락처럼 대시보드에 (2026-11-13)

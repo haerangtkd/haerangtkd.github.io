@@ -54,6 +54,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS ksess (tok TEXT PRIMARY KEY, name TEXT, created INTEGER, seen INTEGER)',
   'CREATE TABLE IF NOT EXISTS kposts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, body TEXT, at INTEGER, del INTEGER DEFAULT 0)', // 선범단 커뮤니티 (선범단만, 글만)
   'CREATE TABLE IF NOT EXISTS kgame (ym TEXT, g TEXT, name TEXT, v INTEGER, at INTEGER, PRIMARY KEY (ym, g, name))', // 🎮 우리 도장 놀이터 이번 달 최고 기록 (2026-11-17)
+  'CREATE TABLE IF NOT EXISTS jlikes (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 알림장 하트 (2026-11-19 사용자 요청)
+  'CREATE TABLE IF NOT EXISTS jcmts (id INTEGER PRIMARY KEY AUTOINCREMENT, post INTEGER, parent TEXT, rel TEXT, kids TEXT, text TEXT, pub INTEGER DEFAULT 1, at INTEGER, upd INTEGER, del INTEGER DEFAULT 0)', // 알림장 댓글 (공개가 기본, 비공개 = 쓴 분과 도장만)
   'CREATE TABLE IF NOT EXISTS invites (code TEXT PRIMARY KEY, name TEXT, kids TEXT, max INTEGER DEFAULT 2, off INTEGER DEFAULT 0, created INTEGER)', // 가정별 초대번호 (가입할 수 있는 휴대폰 수 제한)
 ];
 let ready = false;
@@ -340,6 +342,12 @@ async function route(path, req, env) {
       const apk = await attPicks(env, myKids), prel = {}; for (const k of myKids) if (apk[k] && apk[k] !== p.id) prel[k] = ((await one(env, 'SELECT rel FROM parents WHERE id = ?', apk[k])) || {}).rel || '다른 보호자';
       return json({ ok: true, rel: p.rel, ph: p.ph, kids: myKids.map(k => { const a = (r.kids || []).find(x => x.name === k) || {}; return { name: k, ...a, attMe: apk[k] === p.id, attRel: prel[k] || '', fee: (a.sid && (fee.sids || {})[a.sid]) || (fee.map || {})[k] || null }; }), feeAt: fee.at || 0 }); // 회비는 출석부 원생 번호로 먼저, 없으면 이름 (2026-11-13)
     }
+    if (path === '/p/kid-bday') { // 학부모가 생일을 직접 고침 (2026-11-19 사용자 요청) → 출석부 원생 정보
+      if (!p.ok) return json({ ok: false, error: '도장 확인 후에 할 수 있어요' });
+      const kid = str(b.kid, 20), bd = String(b.bday || ''); if (!myKids.includes(kid)) return json({ ok: false, error: '제자 이름을 확인해 주세요' });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(bd) || isNaN(Date.parse(bd + 'T00:00:00Z')) || bd > kstDay(new Date()) || bd < '1940-01-01') return json({ ok: false, error: '생일을 다시 골라 주세요' });
+      return json(await attSync(env, '/sync/bday-set', { name: kid, bday: bd, lunar: !!b.lunar, who: kid + ' ' + (p.rel || '보호자') + ' (학부모 앱)' }));
+    }
     if (path === '/p/schedule') return json({ ok: true, me, items: await listSchedule(env, b.month) });
     if (path === '/p/notices') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'notice', myKids, 100), p.id, myKids) }); // 아이를 정한 공지(회비 안내 등)는 그 가정만
     if (path === '/p/home') {
@@ -347,7 +355,8 @@ async function route(path, req, env) {
       const out = { ok: true, me, today: {}, counts: {} };
       const n = (await listPosts(env, 'notice', myKids, 1))[0];
       out.counts.notice = n ? n.at : 0;
-      out.counts.schedule = await listSchedule(env, today.slice(0, 7)).then(l => l.filter(x => x.date >= today).slice(0, 3));
+      { const nm = new Date(Date.parse(today.slice(0, 7) + '-01T00:00:00Z') + 32 * 864e5).toISOString().slice(0, 7), L = [...await listSchedule(env, today.slice(0, 7)), ...await listSchedule(env, nm)], seenS = new Set();
+        out.counts.schedule = L.filter(x => (x.end || x.date) >= today && !seenS.has(x.id) && seenS.add(x.id)).slice(0, 5); } // 이번 달 + 다음 달 (2026-11-19: 행사 신청과 같이 보임)
       if (p.ok) {
         for (const k of myKids) {
           const a = await one(env, 'SELECT tin, tout FROM att WHERE day = ? AND name = ?', today, k);
@@ -357,6 +366,9 @@ async function route(path, req, env) {
         out.counts.journal = jn[0] ? jn[0].at : 0;
         const al = await listPosts(env, 'album', myKids, 1);
         out.counts.album = al[0] ? al[0].at : 0;
+        // 새 글 개수 (2026-11-19 사용자: 메뉴·소식 탭에 숫자) — 3주 안의 글 번호, 본 글인지는 휴대폰이 셈
+        const since3 = Date.now() - 21 * 864e5, rec = t => listPosts(env, t, myKids, 40).then(L => L.filter(x => x.at > since3).map(x => ({ id: x.id, at: x.at })));
+        out.recent = { notice: await rec('notice'), journal: await rec('journal') };
         const fm = kstDay(new Date()).slice(0, 7);
         out.fee = { month: fm, kids: [] }; // 납부 여부는 학부모에게 보내지 않음 (2026-11-13)
         // 확인을 기다리는 공지·알림장 (긴급 먼저, 30일 안)
@@ -372,7 +384,32 @@ async function route(path, req, env) {
     }
     // 여기부터는 관장님 승인 후에만
     if (!p.ok) return json({ ok: false, error: '도장에서 확인이 끝나면 볼 수 있어요', pending: true, me });
-    if (path === '/p/journal') return json({ ok: true, me, items: await withAcks(env, await listPosts(env, 'journal', myKids, 100), p.id, myKids) });
+    if (path === '/p/journal') return json({ ok: true, me, items: await withCmts(env, await withAcks(env, await listPosts(env, 'journal', myKids, 100), p.id, myKids), p.id) });
+    if (['/p/jlike', '/p/jcmt', '/p/jcmt-edit', '/p/jcmt-del'].includes(path)) { // 알림장 하트 · 댓글 (2026-11-19 사용자 요청)
+      const now = Date.now();
+      if (path === '/p/jlike') {
+        const id = b.id | 0, r = await one(env, "SELECT target FROM posts WHERE id = ? AND type = 'journal'", id); if (!r) return json({ ok: false, error: '지워진 알림장이에요' });
+        { const tg = J(r.target, []); if (tg.length && !tg.some(k => myKids.includes(k))) return json({ ok: false, error: '지워진 알림장이에요' }); }
+        if (b.on) await run(env, 'INSERT OR IGNORE INTO jlikes (post, parent, at) VALUES (?, ?, ?)', id, p.id, now); else await run(env, 'DELETE FROM jlikes WHERE post = ? AND parent = ?', id, p.id);
+        const n = await one(env, 'SELECT COUNT(*) AS n FROM jlikes WHERE post = ?', id); return json({ ok: true, likes: n ? n.n : 0, liked: !!b.on });
+      }
+      const text = str(b.text, 500).trim(), pub = b.pub === false || b.pub === 0 ? 0 : 1;
+      if (path === '/p/jcmt') {
+        const id = b.id | 0, r = await one(env, "SELECT title, target FROM posts WHERE id = ? AND type = 'journal'", id); if (!r) return json({ ok: false, error: '지워진 알림장이에요' });
+        const tg = J(r.target, []); if (tg.length && !tg.some(k => myKids.includes(k))) return json({ ok: false, error: '지워진 알림장이에요' });
+        if (!text) return json({ ok: false, error: '댓글을 적어 주세요' });
+        if ((await one(env, 'SELECT COUNT(*) AS n FROM jcmts WHERE parent = ? AND at > ?', p.id, now - 3600e3)).n >= 20) return json({ ok: false, error: '댓글을 너무 많이 남겼어요. 잠시 뒤에 해 주세요' });
+        const ks = tg.length ? myKids.filter(k => tg.includes(k)) : myKids;
+        await run(env, 'INSERT INTO jcmts (post, parent, rel, kids, text, pub, at, upd, del) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)', id, p.id, p.rel || '', JSON.stringify(ks), text, pub, now, now);
+        try { await teamSync(env, '/sync/jcmt-alert', { kids: ks, rel: p.rel || '', title: str(r.title, 60), text: text.slice(0, 80), pub: !!pub }); } catch (_) {} // 직원에게 알림
+      } else {
+        const c = await one(env, 'SELECT id, post FROM jcmts WHERE id = ? AND parent = ? AND del = 0', b.cid | 0, p.id); if (!c) return json({ ok: false, error: '내가 쓴 댓글만 고칠 수 있어요' });
+        if (path === '/p/jcmt-del') await run(env, 'UPDATE jcmts SET del = 1, upd = ? WHERE id = ?', now, c.id);
+        else { if (!text) return json({ ok: false, error: '댓글을 적어 주세요' }); await run(env, 'UPDATE jcmts SET text = ?, pub = ?, upd = ? WHERE id = ?', text, pub, now, c.id); }
+      }
+      const it = (await withCmts(env, [{ id: (path === '/p/jcmt' ? b.id : (await one(env, 'SELECT post FROM jcmts WHERE id = ?', b.cid | 0)).post) | 0 }], p.id))[0];
+      return json({ ok: true, cmts: it.cmts, likes: it.likes, liked: it.liked });
+    }
     if (path === '/p/reply') { // 📩 봉투 답장: 참가·불참 (바꿀 수 있음)
       const id = b.id | 0, kid = String(b.kid || ''), ans = b.ans === 'yes' ? 'yes' : b.ans === 'no' ? 'no' : '';
       const r = await one(env, 'SELECT target, env, title, ev FROM posts WHERE id = ?', id);
@@ -422,7 +459,11 @@ async function route(path, req, env) {
     if (['/p/contact', '/p/contact-send', '/p/hw', '/p/hw-check'].includes(path)) {
       const kst = await kidStatus(env), kids = myKids.filter(k => kst[k] !== '퇴관');
       if (path === '/p/contact') { const r = await teamSync(env, '/sync/ptpl', { kids }); return json(r.ok ? { ...r, kids } : r); }
-      if (path === '/p/contact-send') return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel, dayreq: !!b.dayreq }));
+      if (path === '/p/contact-send') { // 사진 1장 (2026-11-19 사용자 요청) · 이번 주만 다른 요일로 (swap)
+        const ph = b.photo && typeof b.photo === 'object' ? { full: String(b.photo.full || ''), thumb: String(b.photo.thumb || '') } : null;
+        if (ph && (!/^[A-Za-z0-9+/=]+$/.test(ph.full) || ph.full.length > 1500000 || !/^[A-Za-z0-9+/=]*$/.test(ph.thumb) || ph.thumb.length > 200000)) return json({ ok: false, error: '사진이 너무 커요. 다른 사진으로 해 주세요' });
+        return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel, dayreq: !!b.dayreq, photo: ph, swap: Array.isArray(b.swap) ? b.swap.slice(0, 5) : [] }));
+      }
       if (path === '/p/hw') { const r = await teamSync(env, '/sync/hw', { kids }); return json(r.ok ? { ...r, kids } : r); }
       return json(await teamSync(env, '/sync/hw-check', { kids, kid: b.kid, hw: b.hw, day: b.day, on: !!b.on, rel: p.rel }));
     }
@@ -892,10 +933,17 @@ async function route(path, req, env) {
         it.reads = aud.filter(p => readers.has(p.id)).length; it.audience = aud.length;
         if (it.ask) { const ackers = new Set(aa.filter(r => r.post === it.id).map(r => r.parent)); it.acks = aud.filter(p => ackers.has(p.id)).length; }
       }
+      if (type === 'journal' && items.length) { const ids = items.map(it => it.id), qs = ids.map(() => '?').join(','), lk = await all(env, 'SELECT post, COUNT(*) AS n FROM jlikes WHERE post IN (' + qs + ') GROUP BY post', ...ids), cm = await all(env, 'SELECT post, COUNT(*) AS n FROM jcmts WHERE del = 0 AND post IN (' + qs + ') GROUP BY post', ...ids);
+        for (const it of items) { it.likes = ((lk.find(r => r.post === it.id) || {}).n) || 0; it.cmts = ((cm.find(r => r.post === it.id) || {}).n) || 0; } } // 알림장 하트·댓글 수 (2026-11-19)
       const envIds = items.filter(it => it.env).map(it => it.id);
       if (envIds.length) { const rp = await all(env, 'SELECT post, ans FROM replies WHERE post IN (' + envIds.map(() => '?').join(',') + ')', ...envIds); for (const it of items) if (it.env) { const L = rp.filter(r => r.post === it.id); it.rYes = L.filter(r => r.ans === 'yes').length; it.rNo = L.filter(r => r.ans === 'no').length; } }
       return json({ ok: true, items });
     }
+    if (path === '/admin/jcmts') { // 알림장 댓글 보기 (비공개 댓글도 도장은 봄)
+      const rows = await all(env, 'SELECT * FROM jcmts WHERE post = ? AND del = 0 ORDER BY at', b.id | 0), lk = await one(env, 'SELECT COUNT(*) AS n FROM jlikes WHERE post = ?', b.id | 0);
+      return json({ ok: true, likes: lk ? lk.n : 0, items: rows.map(r => ({ id: r.id, who: J(r.kids, []).join('·') + ' ' + (r.rel || '보호자'), text: r.text, pub: !!r.pub, at: r.at, ed: r.upd > r.at + 1000 })) });
+    }
+    if (path === '/admin/jcmt-del') { await run(env, 'UPDATE jcmts SET del = 1, upd = ? WHERE id = ?', Date.now(), b.cid | 0); return json({ ok: true }); }
     if (path === '/admin/replies') { // 📩 봉투 답장 보기: 제자마다 참가·불참·아직
       const r = await one(env, 'SELECT target, title FROM posts WHERE id = ? AND env = 1', b.id | 0); if (!r) return json({ ok: false, error: '지워진 봉투예요' });
       const rs = await all(env, 'SELECT kid, rel, ans, at FROM replies WHERE post = ?', b.id | 0);
@@ -961,6 +1009,13 @@ async function listPosts(env, type, kids, limit, admin) {
     .filter(r => { const t = J(r.target, []); return admin || !kids || !t.length || t.some(x => kids.includes(x)); })
     .slice(0, limit)
     .map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, target: J(r.target, []), photos: J(r.photos, []), pin: !!r.pin, urgent: !!r.urgent, ask: !!r.ask, env: !!r.env, at: r.created }));
+}
+// 알림장 하트·댓글 (공개 댓글은 모두, 비공개는 쓴 분에게만 — 도장은 알림 관리에서 모두 봄)
+async function withCmts(env, items, parentId) {
+  const ids = items.map(x => x.id | 0).filter(Boolean); if (!ids.length) return items; const qs = ids.map(() => '?').join(',');
+  const [lk, my, cm] = await Promise.all([all(env, 'SELECT post, COUNT(*) AS n FROM jlikes WHERE post IN (' + qs + ') GROUP BY post', ...ids), all(env, 'SELECT post FROM jlikes WHERE parent = ? AND post IN (' + qs + ')', parentId, ...ids), all(env, 'SELECT * FROM jcmts WHERE del = 0 AND post IN (' + qs + ') AND (pub = 1 OR parent = ?) ORDER BY at', ...ids, parentId)]);
+  const mine = new Set(my.map(r => r.post));
+  return items.map(x => ({ ...x, likes: ((lk.find(r => r.post === x.id) || {}).n) || 0, liked: mine.has(x.id), cmts: cm.filter(r => r.post === x.id).map(r => ({ id: r.id, who: J(r.kids, []).join('·') + ' ' + (r.rel || '보호자'), text: r.text, pub: !!r.pub, mine: r.parent === parentId, at: r.at, ed: r.upd > r.at + 1000 })) }));
 }
 async function withAcks(env, items, parentId, myKids) { // 학부모 화면: 내가 '확인했어요'를 눌렀는지 · 봉투 답장
   if (items.some(x => x.env)) items = await withReplies(env, items, myKids || []);
@@ -1179,12 +1234,21 @@ async function kidPhoneTails(env, kids) {
   for (const s of r.students || []) if (kids.includes(s.name)) for (const v of s.phones || []) if (v.length >= 4) out.add(v.slice(-4));
   return out;
 }
+async function famFollow(env, students) {
+  const fam = {}; for (const s of students) if (s.famId && s.name && s.status !== '퇴관') (fam[s.famId] = fam[s.famId] || []).push(String(s.name).replace(/\s+/g, ''));
+  const famOf = {}; Object.values(fam).forEach(L => { if (L.length > 1) L.forEach(n => { famOf[n] = L; }); }); if (!Object.keys(famOf).length) return;
+  for (const p of await all(env, 'SELECT id, kids FROM parents WHERE ok = 1')) {
+    const ks = J(p.kids, []), add = [...new Set(ks.flatMap(k => famOf[k] || []))].filter(n => !ks.includes(n)); if (!add.length) continue;
+    await run(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify([...ks, ...add].slice(0, 6)), p.id);
+  }
+}
 async function kidStatus(env) {
   const c = await one(env, "SELECT v FROM kv WHERE k = 'kidStatus'"), old = c ? J(c.v, {}) : {};
   if (old.at && Date.now() - old.at < 600000) return old.map || {};
-  const r = await attSync(env, '/sync/roster', { all: true });
+  const r = await attSync(env, '/sync/roster', { all: true, fam: true });
   if (!r.ok || !Array.isArray(r.students)) return old.map || {};
-  try { await rosterFollow(env, r.students); } catch (_) {} // 원생 한 명단: 새 원생·이름·출결번호를 출석부에 맞춤
+  try { await rosterFollow(env, r.students); } catch (_) {}
+  try { await famFollow(env, r.students); } catch (_) {} // 형제·자매가 업무 앱에서 묶이면 보호자 앱에 저절로 (2026-11-19 사용자: 지금은 앱을 새로 깔아야 함) // 원생 한 명단: 새 원생·이름·출결번호를 출석부에 맞춤
   const map = {}; for (const s of r.students) if (s.name && s.status && s.status !== '재원') map[s.name] = s.status;
   // 아이가 모두 퇴관인 보호자는 등록 해제 (2026-11-13 사용자 결정: 학부모 앱의 '등록 해제' 버튼 대신 업무 앱에서 퇴관하면 해제)
   for (const p of await all(env, 'SELECT id, kids FROM parents')) { const ks = J(p.kids, []); if (ks.length && ks.every(k => map[k] === '퇴관')) await run(env, 'DELETE FROM parents WHERE id = ?', p.id); }

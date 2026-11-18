@@ -80,7 +80,7 @@ async function route(path, req, env) {
       const L = (await all(env, 'SELECT id, data FROM students')).map(r => ({ ...J(r.data, {}), id: r.id })).filter(s => names.includes(s.name) && s.status !== '퇴관');
       // 2026-11-16 사용자: 제자 앱 출석·출석 뱃지는 출석부(사범님이 누른 출석 'o') 기준 → att:true면 출석한 날 목록도 줌
       const OD = b.att && L.length ? await all(env, "SELECT sid, day FROM att WHERE r = 'o' AND sid IN (" + L.map(() => '?').join(',') + ') ORDER BY day', ...L.map(s => s.id)) : null;
-      return json({ ok: true, kids: L.map(s => ({ ...(OD ? { odays: OD.filter(r => r.sid === s.id).map(r => r.day) } : {}), sid: s.id, name: s.name, birth: s.birth || '', bday: s.lunar ? '' : (s.bday || ''), days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
+      return json({ ok: true, kids: L.map(s => ({ ...(OD ? { odays: OD.filter(r => r.sid === s.id).map(r => r.day) } : {}), sid: s.id, name: s.name, birth: s.birth || '', bday: s.lunar ? '' : (s.bday || ''), bdayRaw: s.bday || '', lunar: !!s.lunar, belt: s.belt || '', gender: s.gender || '', days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
     }
     if (path === '/sync/day-absent') { // 업무 앱 등원표: 그날 결석(출석부 '결석' + 미리 연락 온 결석 예정)
       const day = isDay(b.day) ? b.day : kstDay();
@@ -236,6 +236,16 @@ async function route(path, req, env) {
       const upd = Date.now();
       await env.DB.batch([q(env, 'UPDATE students SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), upd, str(b.sid, 60)), q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), str(b.sid, 60), '', upd, '등록 서류에서 채움: ' + got.join(', '), str(b.who, 20) || '업무 앱')]);
       return json({ ok: true, got });
+    }
+    if (path === '/sync/bday-set') { // 학부모 앱 '정보 확인'에서 생일을 직접 고침 (2026-11-19 사용자 요청) — 이름으로 찾음(퇴관 빼고), 출생연도도 같이
+      const name = str(b.name, 30).replace(/\s+/g, ''), bd = String(b.bday || '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(bd)) return json({ ok: false, error: '생일을 다시 골라 주세요' });
+      const rows = (await all(env, 'SELECT id, data FROM students')).map(r => ({ id: r.id, d: J(r.data, {}) })).filter(x => String(x.d.name || '').replace(/\s+/g, '') === name && x.d.status !== '퇴관');
+      if (rows.length !== 1) return json({ ok: false, error: '도장에 알려 주세요 (원생 정보를 찾지 못했어요)' });
+      const x = rows[0], old = (x.d.bday || '') + (x.d.lunar ? ' (음력)' : ''); x.d.bday = bd; x.d.lunar = !!b.lunar; x.d.birth = +bd.slice(0, 4);
+      const upd = Date.now();
+      await env.DB.batch([q(env, 'UPDATE students SET data = ?, upd = ? WHERE id = ?', JSON.stringify(x.d), upd, x.id), q(env, 'INSERT INTO history (id, sid, tid, at, text, who) VALUES (?, ?, ?, ?, ?, ?)', crypto.randomUUID(), x.id, '', upd, '생일: ' + (old || '없음') + ' → ' + bd + (b.lunar ? ' (음력)' : ''), str(b.who, 40) || '학부모 앱')]);
+      return json({ ok: true, bday: bd, lunar: !!b.lunar });
     }
     if (path === '/sync/fam-set') { // 업무 앱: 형제·자매 묶기/풀기 {sids, famId}
       const ids = (Array.isArray(b.sids) ? b.sids : []).slice(0, 10).map(x => str(x, 60)), fam = str(b.famId, 40), now = Date.now(), st = [];

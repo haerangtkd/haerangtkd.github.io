@@ -788,7 +788,7 @@
     $('nList').innerHTML = items.length ? items.map(x => '<li class="nt"><div><b>' + (want === 'all' ? '<span class="tg">' + (x.env ? '📩 봉투' : TNAME[x._t]) + '</span>' : '') + (x.urgent ? '<span style="color:#B42318">[긴급]</span> ' : '') + (x.pin ? '📌 ' : '') + (x.kind ? '[' + esc(x.kind) + '] ' : '') + esc(x.title) + '</b><small>' +
       when(x.at) + (x.target && x.target.length ? ' · ' + x.target.map(esc).join(', ') : '') + (x.photos && x.photos.length ? ' · 사진 ' + x.photos.length + '장' : '') + '</small>' +
       (x.photos && x.photos.length ? '<div class="thumbs">' + x.photos.slice(0, 6).map(p => '<img data-ph="' + esc(p) + '">').join('') + '</div>' : '') +
-      '</div><div class="act">' + (x.env ? '<button class="rp" data-rp="' + x.id + '">📩 답장 ' + ((x.rYes || 0) + (x.rNo || 0)) + '/' + x.target.length + ' · 참가 ' + (x.rYes || 0) + '</button>' : '') + '<button class="rd' + (x.audience && x.reads >= x.audience ? ' all' : '') + '" data-r="' + x.id + '">읽음 ' + x.reads + '/' + x.audience + (x.ask ? ' · 확인 ' + (x.acks || 0) : '') + '</button>' + '<button data-id="' + x.id + '">지우기</button></div></li>').join('') : '<li class="empty">아직 없습니다</li>';
+      '</div><div class="act">' + (x.likes != null ? '<button class="jcb" data-jc="' + x.id + '">♥ ' + x.likes + ' · 💬 ' + (x.cmts || 0) + '</button>' : '') + (x.env ? '<button class="rp" data-rp="' + x.id + '">📩 답장 ' + ((x.rYes || 0) + (x.rNo || 0)) + '/' + x.target.length + ' · 참가 ' + (x.rYes || 0) + '</button>' : '') + '<button class="rd' + (x.audience && x.reads >= x.audience ? ' all' : '') + '" data-r="' + x.id + '">읽음 ' + x.reads + '/' + x.audience + (x.ask ? ' · 확인 ' + (x.acks || 0) : '') + '</button>' + '<button data-id="' + x.id + '">지우기</button></div></li>').join('') : '<li class="empty">아직 없습니다</li>';
     $('nList').querySelectorAll('img[data-ph]').forEach(async img => { const r = await post('/admin/photo', { id: img.dataset.ph, size: 'thumb' }); if (r.ok) img.src = 'data:image/jpeg;base64,' + r.data; });
   }
   $('nList').onclick = async e => {
@@ -1014,6 +1014,17 @@
     document.body.appendChild(sh);
   }
   document.addEventListener('click', e => { const b = e.target.closest('button.rp'); if (b) showReplies(+b.dataset.rp); });
+  // 알림장 하트·댓글 보기 (2026-11-19): 비공개 댓글도 도장은 봄, 지우기 가능
+  async function showJcmts(id, title) {
+    const j = await post('/admin/jcmts', { id }); if (!j.ok) return toast(j.error || '불러오지 못했습니다');
+    const sh = document.createElement('div'); sh.className = 'sheet';
+    const draw = L => '<div class="in"><div class="sh-h"><b>' + esc(title) + '</b><button class="x">닫기</button></div><h4>♥ 좋아요 ' + j.likes + ' · 💬 댓글 ' + L.length + '</h4><ul>' +
+      (L.map(c => '<li><b>' + esc(c.who) + '</b>' + (c.pub ? '' : ' <em style="font-style:normal;color:#8A827C">🔒 비공개</em>') + '<span>' + when(c.at) + (c.ed ? ' · 수정됨' : '') + '</span><div style="margin-top:4px;white-space:pre-wrap">' + esc(c.text) + '</div><button class="jdel" data-cid="' + c.id + '" style="margin-top:4px">지우기</button></li>').join('') || '<li class="muted">아직 댓글이 없습니다</li>') + '</ul><p class="hint" style="margin-top:12px">공개 댓글은 이 알림장을 받은 보호자 모두가 보고, 비공개 댓글은 쓴 분과 도장만 봐요.</p></div>';
+    let L = j.items; sh.innerHTML = draw(L);
+    sh.onclick = async e => { if (e.target === sh || e.target.closest('.x')) return sh.remove(); const d = e.target.closest('.jdel'); if (d) { if (!confirm('이 댓글을 지울까요? 학부모님 앱에서도 사라집니다.')) return; await post('/admin/jcmt-del', { cid: +d.dataset.cid }); L = L.filter(c => c.id !== +d.dataset.cid); sh.innerHTML = draw(L); } };
+    document.body.appendChild(sh);
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('button.jcb'); if (b) { const li = b.closest('li'); showJcmts(+b.dataset.jc, li ? li.querySelector('b').textContent : ''); } });
   async function showReads(id, title) {
     const j = await post('/admin/reads', { id });
     if (!j.ok) return toast(j.error || '불러오지 못했습니다');
