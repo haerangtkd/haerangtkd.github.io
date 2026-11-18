@@ -520,7 +520,7 @@ async function route(path, req, env, ctx) {
   if (path === '/api/grec-get') {
     const r = await one(env, 'SELECT data, upd FROM gdocs WHERE path = ?', 'app/data'), d = r ? J(r.data, {}) : {};
     const at = await attSync(env, '/sync/students', {}); if (!at.ok) return json({ ok: false, error: at.error || '출석부를 불러오지 못했어요' });
-    return json({ ok: true, events: d.events || [], upd: r ? r.upd : 0, recYear: grecYear(d), pub: await grecPub(env), pubFrom: GREC_PUB_FROM, notified: J((await one(env, "SELECT v FROM kv WHERE k = 'grecNotified'") || {}).v, {}) || {},
+    return json({ ok: true, events: d.events || [], upd: r ? r.upd : 0, recYear: grecYear(d), pub: await grecPub(env), pubFrom: GREC_PUB_FROM, notified: J((await one(env, "SELECT v FROM kv WHERE k = 'grecNotified'") || {}).v, {}) || {}, mdate: J((await one(env, "SELECT v FROM kv WHERE k = 'grecDate'") || {}).v, {}) || {},
       students: (d.students || []).filter(k => k && k.name).map(k => ({ sid: k.sid || '', name: k.name, birth: k.birth || '', grade: k.grade || '', gender: k.gender || '', rec: k.rec || {} })),
       roster: at.students.filter(x => x.name && x.status !== '퇴관').map(x => ({ id: x.id, name: x.name, birth: x.birth || '', gender: x.gender || '', status: x.status || '재원' })) });
   }
@@ -569,14 +569,17 @@ async function route(path, req, env, ctx) {
     const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', 'app/data'), d = r ? J(r.data, {}) : {}, key = grecKey(d, m);
     if (key >= GREC_PUB_FROM && !(await grecPub(env))[key]) return json({ ok: false, error: '먼저 기록 올리기를 눌러 주세요 (올려야 학부모 앱에 기록이 보여요)' });
     const E = (d.events || []).find(e => (e.months || []).includes(m)); if (!E) return json({ ok: false, error: '이 달 종목이 없어요' });
+    const MD = J((await one(env, "SELECT v FROM kv WHERE k = 'grecDate'") || {}).v, {}) || {}, md = str(b.date, 10) || MD[key] || ''; // 측정한 날 (2026-11-19 사용자: 늦게 보내도 날짜가 맞게)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(md) || md.slice(0, 7) !== key) return json({ ok: false, error: '측정한 날을 ' + m + '월 안의 날짜로 적어 주세요' });
+    if (MD[key] !== md) { MD[key] = md; await run(env, "INSERT INTO kv (k, v) VALUES ('grecDate', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(MD)); }
     const ro = await attSync(env, '/sync/roster', { all: true }), RL = ro.ok ? ro.students : [], bySid = new Map(RL.filter(x => x.id).map(x => [x.id, x])), names = [];
     for (const k of d.students || []) { const v = ((k && k.rec || {})[E.name] || {})[m]; if (v == null || v === '') continue;
       const s1 = (k.sid && bySid.get(k.sid)) || RL.find(x => x.name === k.name); if (s1 && s1.status === '퇴관') continue; const n = s1 ? s1.name : k.name; if (n && !names.includes(n)) names.push(n); }
     if (!names.length) return json({ ok: false, error: '이 달 기록이 있는 제자가 없어요' });
-    const j = await noticeSync(env, '/sync/broadcast', { title: '🏆 ' + m + '월 기네스 기록이 나왔어요', body: '{kid} · ' + E.name + ' 기록을 성장 리포트에서 볼 수 있어요', children: names, offset: b.offset | 0, view: 'grow', kind: '기네스', att: true });
+    const j = await noticeSync(env, '/sync/broadcast', { title: '🏆 ' + m + '월 기네스 기록이 나왔어요', body: '{kid} · ' + m + '월 ' + (+md.slice(8)) + '일에 측정한 ' + E.name + ' 기록을 성장 리포트에서 볼 수 있어요', children: names, offset: b.offset | 0, view: 'grow', kind: '기네스', att: true });
     if (j.ok && !j.next) { const N = J((await one(env, "SELECT v FROM kv WHERE k = 'grecNotified'") || {}).v, {}) || {}; N[key] = { at: Date.now(), by: me.name, n: names.length };
       await run(env, "INSERT INTO kv (k, v) VALUES ('grecNotified', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(N)); await addLog(env, me.id, 'rec', '🏆 ' + me.name + '님이 ' + m + '월 기네스 기록 알림을 보냈어요 (제자 ' + names.length + '명 보호자)', ''); j.notified = N; }
-    return json({ ...j, kids: names.length });
+    return json({ ...j, kids: names.length, mdate: MD });
   }
   if (path === '/api/whoami') return json({ ok: true, id: me.id, name: me.name, boss: !!me.boss, shared: !!me.shared }); // 📈 성장 등 따로 열린 화면이 관리자인지 확인
   if (path === '/api/exam-closed') { // 📈 성장 화면: 마감한 심사 점수 (02·04·05 자동 채우기용, 점수만)

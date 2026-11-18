@@ -102,7 +102,7 @@ const curEv = () => S.events.find(e => (e.months || []).includes(S.mo)) || null;
 async function load() {
   const j = await api('/api/grec-get');
   if (!j.ok) { S.err = j.relogin || /로그인/.test(j.error || '') ? 'login' : j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '불러오지 못했어요'); return draw(); }
-  S.err = ''; S.events = j.events || []; S.pub = j.pub || {}; S.notified = j.notified || {}; S.recYear = j.recYear || now.getFullYear(); S.pubFrom = j.pubFrom || '2026-11';
+  S.err = ''; S.events = j.events || []; S.pub = j.pub || {}; S.notified = j.notified || {}; S.mdate = j.mdate || {}; S.recYear = j.recYear || now.getFullYear(); S.pubFrom = j.pubFrom || '2026-11';
   const gs = j.students || [];
   S.kids = j.roster.map(r => { const g = gs.find(x => x.sid && x.sid === r.id) || gs.find(x => !x.sid && x.name === r.name && String(x.birth).slice(0, 4) === String(r.birth).slice(0, 4)) || null; const gr = gradeOf(r.birth);
     return { sid: r.id, name: r.name, birth: r.birth, grade: gr, kinder: gr === '유치부', gender: r.gender || (g && g.gender) || '', status: r.status, rec: (g && g.rec) || {} }; })
@@ -136,7 +136,11 @@ function pubHtml(ev) {
 function momHtml(ev) {
   const n = S.kids.filter(k => k.status !== '퇴관' && valOf(k, ev, S.mo) != null).length, N = (S.notified || {})[pubKey()];
   const sub = N ? '✅ ' + (new Date(N.at).getMonth() + 1) + '/' + new Date(N.at).getDate() + ' ' + esc(N.by || '') + ' · 제자 ' + N.n + '명 보호자께 보냈어요' : '기록이 있는 제자 ' + n + '명만 · 기록 없는 제자는 빠져요';
-  return '<div class="pub"><div><b>📣 기록한 제자 어머니께 알림</b><small>' + sub + '<br>받는 분: 원생 정보에서 정한 출결 알림 받는 분(기본 어머니)</small></div><button class="go' + (S.sure === 'mom' ? ' sure' : '') + '" id="momGo"' + (n ? '' : ' disabled') + '>' + (S.sure === 'mom' ? '한 번 더 누르면 보내요' : N ? '다시 보내기' : '알림 보내기') + '</button></div>';
+  const key = pubKey(), md = (S.mdate || {})[key] || '', lo = key + '-01', hi = key + '-' + pad(new Date(S.recYear, S.mo, 0).getDate()), td = new Date(), tds = td.getFullYear() + '-' + pad(td.getMonth() + 1) + '-' + pad(td.getDate());
+  const dv = md || (tds >= lo && tds <= hi ? tds : '');
+  return '<div class="pub"><div style="flex:1 1 100%"><b>📣 기록한 제자 어머니께 알림</b><small>' + sub + '<br>받는 분: 원생 정보에서 정한 출결 알림 받는 분(기본 어머니)</small>' +
+    '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;font-weight:700">📅 측정한 날 <input type="date" id="momD" value="' + dv + '" min="' + lo + '" max="' + hi + '" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:15px"></label>' +
+    '<small id="momP">' + (dv ? '알림: "' + S.mo + '월 ' + (+dv.slice(8)) + '일에 측정한 ' + esc(ev.name) + ' 기록…"' : '측정한 날을 먼저 적어 주세요 (늦게 보내도 날짜가 맞게 나가요)') + '</small></div><button class="go' + (S.sure === 'mom' ? ' sure' : '') + '" id="momGo"' + (n ? '' : ' disabled') + '>' + (S.sure === 'mom' ? '한 번 더 누르면 보내요' : N ? '다시 보내기' : '알림 보내기') + '</button></div>';
 }
 function bindPub() {
   const go = async on => { const j = await api('/api/grec-pub', { m: S.mo, on }); S.sure = '';
@@ -144,10 +148,11 @@ function bindPub() {
     S.pub = j.pub || {}; draw(); toast(on ? S.mo + '월 기록을 올렸어요' + (j.sent ? ' · 제자 ' + j.sent + '명에게 알림' : '') : S.mo + '월 기록을 앱에서 내렸어요'); };
   const arm = k => { S.sure = k; draw(); clearTimeout(S.sureT); S.sureT = setTimeout(() => { if (S.sure === k) { S.sure = ''; draw(); } }, 4000); };
   const g = $('#pubGo'); if (g) g.onclick = () => S.sure === 'go' ? (g.disabled = true, go(true)) : arm('go');
-  const mg = $('#momGo'); if (mg) mg.onclick = async () => { if (S.sure !== 'mom') return arm('mom'); S.sure = ''; mg.disabled = true; mg.textContent = '보내는 중…';
+  const mdI = $('#momD'); if (mdI) mdI.onchange = () => { const v = mdI.value, p = $('#momP'); if (p) p.textContent = v ? '알림: "' + S.mo + '월 ' + (+v.slice(8)) + '일에 측정한 ' + (S.events.find(e => (e.months || []).includes(S.mo)) || {}).name + ' 기록…"' : '측정한 날을 먼저 적어 주세요'; };
+  const mg = $('#momGo'); if (mg) mg.onclick = async () => { const dd = mdI ? mdI.value : ''; if (!dd) return toast('측정한 날을 먼저 적어 주세요'); if (S.sure !== 'mom') { S.mdate = { ...(S.mdate || {}), [pubKey()]: dd }; return arm('mom'); } S.sure = ''; mg.disabled = true; mg.textContent = '보내는 중…';
     let off = 0, sent = 0, kids = 0, j;
-    do { j = await api('/api/grec-notify', { m: S.mo, offset: off }); if (!j.ok) { draw(); return toast(j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '보내지 못했어요')); } sent += j.sent || 0; kids = j.kids || kids; off = j.next; } while (off != null);
-    if (j.notified) S.notified = j.notified; draw(); toast('제자 ' + kids + '명 보호자께 알림 ' + sent + '건 보냈어요' + (sent ? '' : ' (알림 켠 분이 없어요)')); };
+    do { j = await api('/api/grec-notify', { m: S.mo, offset: off, date: dd }); if (!j.ok) { draw(); return toast(j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '보내지 못했어요')); } sent += j.sent || 0; kids = j.kids || kids; off = j.next; } while (off != null);
+    if (j.notified) S.notified = j.notified; if (j.mdate) S.mdate = j.mdate; draw(); toast('제자 ' + kids + '명 보호자께 알림 ' + sent + '건 보냈어요' + (sent ? '' : ' (알림 켠 분이 없어요)')); };
   const u = $('#pubUn'); if (u) u.onclick = () => S.sure === 'un' ? (u.disabled = true, go(false)) : arm('un');
 }
 const groupOf = k => /^(중|고|성인)/.test(k.grade || '') ? '중고등' : !k.gender ? '' : k.kinder ? '유치 ' + k.gender : '초등 ' + k.gender; // 중고등부는 남녀 하나, 초등·유치는 남녀 따로 (2026-11-16)
