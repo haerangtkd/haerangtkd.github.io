@@ -423,7 +423,7 @@
   .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .cgrid button{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 12px;font-size:14.5px;font-weight:700;text-align:left;color:var(--ink);line-height:1.35}
   .cgrid button.tx{grid-column:1/-1;text-align:center;color:var(--muted);font-weight:600}
-  .cmsg{font-size:13.5px;color:var(--muted);padding:8px 4px 0;display:flex;gap:8px}.cmsg b{color:var(--ink);font-weight:600;flex:1}.cmsg .ok{color:var(--green);font-weight:700;white-space:nowrap}
+  .crep{font-size:14px;color:var(--ink);background:#F3F6FB;border-radius:10px;padding:6px 10px;margin:4px 4px 0 30px}.cmsg{font-size:13.5px;color:var(--muted);padding:8px 4px 0;display:flex;gap:8px}.cmsg b{color:var(--ink);font-weight:600;flex:1}.cmsg .ok{color:var(--green);font-weight:700;white-space:nowrap}
   .hwc{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
   .hwc .hh{display:flex;align-items:center;gap:8px}.hwc .hh b{flex:1;font-size:16px;font-weight:800}
   .hwc .hm{font-size:13.5px;color:var(--muted);margin-top:3px;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -950,7 +950,7 @@
     return '<section class="sec" id="secCt"><h2>사범님께 연락' + (more > 0 ? '<button data-news="사범님 연락">지난 연락 ' + more + '건</button>' : '') + '</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기</button></div>' +
       L.map(cmsgRow).join('') + '</section>';
   }
-  const cmsgRow = x => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + esc(x.short ? (x.day !== dayOfMs(x.at) ? dShort(x.day) + ' ' : '') + x.short : x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘은? /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>';
+  const cmsgRow = x => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + esc(x.short ? (x.day !== dayOfMs(x.at) ? dShort(x.day) + ' ' : '') + x.short : x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘은? /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>' + ((x.reps || []).length ? x.reps.map(r => '<div class="crep">↳ 도장 답장 · ' + esc(r.text) + '</div>').join('') : ''); // 도장 답장 (2026-11-18)
   const dayOfMs = ms => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
   const todayK = () => dayOfMs(Date.now());
   // 도장에 가족 추가 요청 (보안: 주소를 아무에게나 보내지 않고 도장이 확인)

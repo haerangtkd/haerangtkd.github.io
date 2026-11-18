@@ -549,6 +549,7 @@
   /* 더보기 지도 */
   .mmap{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 14px 12px;margin-top:12px}.mmap h3{font-size:18px;font-weight:900;margin:0}.mmap p{margin:2px 0 10px;color:var(--muted);font-size:13.5px}
   .mmap .sgrid{margin:0}
+  .pmreps{margin:4px 0 8px;padding:6px 10px;background:#F3F6FB;border-radius:10px;font-size:14px}.pmreps div{padding:2px 0}.pmreps b{color:var(--brand)}.pmreps small{color:var(--muted);font-size:12px}
   .kcst{background:#F6F8FB;border:1px solid var(--line);border-radius:14px;padding:12px;margin:6px 0 12px}.kcsr{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}.kcsr span{flex:1;font-weight:700}.kcsr b{font-size:20px;letter-spacing:3px;color:var(--brand);font-variant-numeric:tabular-nums}.kcsr small{color:var(--muted);min-width:44px;text-align:right}
 </style>
 </head>
@@ -998,6 +999,29 @@ function pickupFor(d) {
   const p = S.pickup.get(d); if (p) return p;
   const w = wd(d); return { day: d, list: [...(S.pickupDefault[w] || [])], done: [], absent: [], memos: [], isDefault: true };
 }
+// 등원·픽업 메모 (2026-11-18 사용자: 날짜를 골라 적기 — 전날에 다음 날 메모를 적기도 함)
+function pkMemoSheet(d0) {
+  const t = today(); let day = d0 < t ? t : d0;
+  const kidsOf = d => { const p = pickupFor(d); return [...new Set([...p.list, ...p.absent])].filter(activeKid); };
+  let kid = '';
+  const draw = ov => { ov.querySelectorAll('#pmD button').forEach(b => b.classList.toggle('on', b.dataset.d === day)); ov.querySelector('#pmDay').value = day; ov.querySelector('#pmDl').textContent = fullDate(day);
+    const K = kidsOf(day); ov.querySelector('#pmK').innerHTML = '<button data-k="" class="' + (!kid ? 'on' : '') + '">제자 안 고름</button>' + K.map(k => '<button data-k="' + esc(k) + '" class="' + (kid === k ? 'on' : '') + '">' + esc(k) + '</button>').join('');
+    const M = pickupFor(day).memos || []; ov.querySelector('#pmL').innerHTML = M.length ? M.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '<p class="help">이 날 메모가 아직 없어요</p>'; };
+  sheet('<h2>📝 등원·픽업 메모</h2><p class="help">날짜를 골라 적어요. 내일 것도 미리 적어 둘 수 있어요.</p>' +
+    '<label class="f">날짜</label><div class="chips" id="pmD"><button data-d="' + t + '">오늘</button><button data-d="' + addDays(t, 1) + '">내일</button><button data-d="' + addDays(t, 2) + '">모레</button></div><input type="date" class="inp" id="pmDay" min="' + t + '" style="margin-top:6px"><p class="help" id="pmDl"></p>' +
+    '<label class="f">누구 (안 골라도 돼요)</label><div class="chips" id="pmK"></div>' +
+    '<label class="f">메모</label><textarea class="inp" id="pmT" rows="2" maxlength="200" placeholder="예: 할머니가 4시에 데리러 오심 / 차량 대신 걸어서 옴"></textarea>' +
+    '<label class="f">이 날 메모</label><div id="pmL"></div>' +
+    '<div class="foot"><span class="sp"></span><button data-close>닫기</button><button class="save" id="pmOk">넣기</button></div>', ov => {
+    draw(ov);
+    ov.querySelector('#pmD').onclick = e => { const b = e.target.closest('[data-d]'); if (b) { day = b.dataset.d; kid = ''; draw(ov); } };
+    ov.querySelector('#pmDay').onchange = e => { if (e.target.value) { day = e.target.value < t ? t : e.target.value; kid = ''; draw(ov); } };
+    ov.querySelector('#pmK').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { kid = b.dataset.k; draw(ov); } };
+    ov.querySelector('#pmOk').onclick = async () => { const tx = ov.querySelector('#pmT').value.trim(); if (!tx) return toast('메모를 적어 주세요');
+      const p = JSON.parse(JSON.stringify(pickupFor(day))); delete p.isDefault; p.day = day; p.memos = [...(p.memos || []), { who: S.me.name, text: (kid ? kid + ': ' : '') + tx, at: Date.now() }];
+      await savePickup(p, '📝 ' + md(day) + ' 등원·픽업 메모: ' + (kid ? kid + ' ' : '') + tx.slice(0, 30)); ov.querySelector('#pmT').value = ''; draw(ov); toast(md(day) + ' 메모를 넣었어요'); };
+  });
+}
 async function savePickup(p, what) {
   p.upd = Date.now(); S.pickup.set(p.day, p); render();
   const j = await api('/api/pickup', { day: p.day, list: p.list, done: p.done, absent: p.absent, memos: p.memos, what });
@@ -1110,7 +1134,7 @@ function pickupCard() {
   const kids = [...new Set([...p.list, ...p.absent])].filter(activeKid).sort((a, b) => (tm[a] || '99').localeCompare(tm[b] || '99')); loadRstat();
   const isAb = k => p.absent.includes(k) || aa.includes(k), nAb = kids.filter(isAb).length;
   return '<div class="sec" id="pkSec"><div class="sh"><h2>등원 · 픽업</h2><button class="lbtn" data-pd="-1">‹</button><small>' + (hd === t ? '오늘 ' : '') + md(hd) + '</small><button class="lbtn" data-pd="1">›</button></div>' +
-    '<div class="pkbar"><span class="pkn">픽업 <b>' + (kids.length - nAb) + '</b>명' + (nAb ? ' <em>· 결석 ' + nAb + '</em>' : '') + '</span><button class="lbtn" id="pkEdit">명단 추가</button><button class="lbtn" id="pkTime">픽업 수정</button></div>' +
+    '<div class="pkbar"><span class="pkn">픽업 <b>' + (kids.length - nAb) + '</b>명' + (nAb ? ' <em>· 결석 ' + nAb + '</em>' : '') + '</span><button class="lbtn" id="pkMemo">메모</button><button class="lbtn" id="pkEdit">명단 추가</button><button class="lbtn" id="pkTime">픽업 수정</button></div>' +
     (kids.length ? '<div id="pkL">' + kids.map(k => '<button class="kid' + (isAb(k) ? ' ab' : '') + '" data-k="' + esc(k) + '"><small class="ktm">' + (tm[k] ? tmKo(tm[k]) : '–') + '</small><span class="knm">' + esc(k) + '</span>' + (isAb(k) ? '<em class="abt">' + (aa.includes(k) && !p.absent.includes(k) ? '출석부' : '결석') + '</em>' : '') + '</button>').join('') + '</div><p class="hint" style="margin:8px 0 0">이름을 <b>꾹 누르면 결석</b>(다시 꾹 누르면 취소) · 출석부 결석도 여기 자동으로 보여요</p>' : '<p class="empty">' + (['토', '일'].includes(wd(hd)) ? '주말이에요' : '데리러 갈 제자가 없어요. \'명단 추가\'로 넣어 주세요.') + '</p>') +
     (p.memos.length ? p.memos.map(m => '<div class="memo"><b>' + esc(m.who) + '</b>' + esc(m.text) + '</div>').join('') : '') + pkCheckRow() + '</div>';
 }
@@ -1308,6 +1332,7 @@ function renderHome() {
 }
 async function onPickupClick(e, view) {
   const pd = e.target.closest('[data-pd]'); if (pd) { S.homeDay = addDays(S.homeDay, +pd.dataset.pd); render(); return true; }
+  if (e.target.id === 'pkMemo') { pkMemoSheet(S.homeDay); return true; }
   if (e.target.id === 'pkEdit') { pickupSheet(S.homeDay); return true; }
   if (e.target.id === 'pkTime') { pickupTimeSheet(S.homeDay); return true; }
   const k = e.target.closest('.kid'); if (k) { if (Date.now() - (S.pkLong || 0) > 800) toast('꾹 누르면 결석이에요'); return true; }
@@ -2750,13 +2775,26 @@ async function pkCheck(off) { S.pkchk = { day: today(), v: off ? null : { by: S.
 
 // ═════════ 학부모 연락 (학부모 앱 '사범님께 연락') ═════════
 const pmList = () => [...S.pmsg.values()].sort((a, b) => b.id - a.id);
+const repsOf = x => { if (Array.isArray(x.reps)) return x.reps; try { return JSON.parse(x.reps || '[]') || []; } catch (_) { return []; } };
+function pmReply(x) { // 학부모 연락에 답장 (2026-11-18): 학부모 휴대폰 알림 + 학부모 앱에 보임, 다른 직원에게도 알림
+  sheet('<h2>' + esc(x.kid) + ' · 답장 쓰기</h2><p class="help">학부모님 연락: ' + esc(pmLine(x)) + '</p>' + (repsOf(x).length ? '<div class="pmreps">' + repsOf(x).map(r => '<div><b>↳ ' + esc(r.by) + '</b> ' + esc(r.text) + '</div>').join('') + '</div>' : '') +
+    '<div class="chips" id="rpQ" style="margin-top:8px">' + ['네, 알겠습니다 😊', '확인했어요. 시간 맞춰 준비할게요', '네, 픽업표에 적어 둘게요', '쾌유를 빌어요. 다음 수업 때 봬요'].map(t => '<button data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>' +
+    '<textarea class="inp" id="rpT" rows="3" maxlength="300" placeholder="학부모님께 보낼 답장" style="margin-top:8px"></textarea><p class="help">보내면 학부모님 휴대폰에 알림이 가고, 학부모 앱 \'사범님 연락\'에 보여요. 다른 선생님들에게도 알림이 가요.</p>' +
+    '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="rpOk">보내기</button></div>', ov => {
+    ov.querySelector('#rpQ').onclick = e => { const b = e.target.closest('[data-t]'); if (b) ov.querySelector('#rpT').value = b.dataset.t; };
+    ov.querySelector('#rpOk').onclick = async e => { const t = ov.querySelector('#rpT').value.trim(); if (!t) return toast('답장을 적어 주세요'); e.target.disabled = true;
+      const j = await api('/api/pmsg-reply', { id: x.id, text: t }); e.target.disabled = false; if (!j.ok) return toast(j.error); const y = S.pmsg.get(x.id); if (y) y.reps = j.reps; closeSheet(); toast(j.pushed ? '답장을 보냈어요' : '답장을 남겼어요 · 학부모님 알림이 꺼져 있어요'); render(); };
+  });
+}
 const pmLine = x => x.short != null ? x.short : (x.label === '직접 쓴 연락' ? '' : x.day !== dayOf(x.at) ? x.label.replace(/^오늘 /, '') : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '') + (x.text ? (x.label === '직접 쓴 연락' ? '' : ' · ') + x.text : '');
 function pmRow(x, withBtns) {
   const t = today(), dl = x.day === t ? '오늘' : x.day === addDays(t, 1) ? '내일' : md(x.day);
   const actL = x.act === 'absent' ? '출석부 결석에 넣을게요' : x.act === 'in' ? '픽업표에 넣을게요' : x.act === 'out' ? '중요사항에 넣을게요' : ''; // 2026-11-18: 보호자 하원은 할 일 대신 중요사항
-  if (withBtns && !x.ack) return '<div class="cki" data-pm="' + x.id + '"><div class="kd">💬 학부모 연락</div><div class="ch"><b>' + esc(x.kid) + '</b><span class="dchip' + (x.act === 'absent' ? ' r' : '') + '">' + dl + '</span><span class="when">' + esc(x.rel || '학부모') + ' · ' + whenAt(x.at) + '</span></div><p>' + esc(pmLine(x)) + '</p>' +
-    '<div class="pb">' + (actL ? '<button class="btn g" data-pa="' + (x.act === 'out' ? 'note' : '1') + '">' + actL + '</button><div class="pb2">' + (x.act !== 'out' ? '<button class="btn" data-pa="adj">조율할게요</button>' : '') + '<button class="btn" data-pa="0">확인만 할게요</button></div>' : '<button class="btn g" data-pa="0">확인했어요</button>') + '</div></div>';
-  return '<div class="pmr' + (x.ack ? ' ok' : '') + '" data-pm="' + x.id + '"><div class="pt"><b>' + esc(x.kid) + '</b> <span class="tag' + (x.act === 'absent' ? ' r' : x.act ? ' y' : '') + '">' + dl + '</span><p>' + esc(pmLine(x)) + '</p><small>' + esc(x.rel || '학부모') + ' · ' + hm(x.at) + (x.at < Date.now() - 864e5 ? ' · ' + md(dayOf(x.at)) : '') + (x.ack ? ' · ' + esc(x.ack) + ' 확인' + (x.applied ? (x.act === 'absent' ? ' · 출석부 결석 넣음' : ' · 픽업표에 적음') : '') : '') + '</small></div>' +
+  const reps = repsOf(x), repH = reps.length ? '<div class="pmreps">' + reps.map(r => '<div><b>↳ ' + esc(r.by) + '</b> ' + esc(r.text) + ' <small>' + whenAt(r.at) + '</small></div>').join('') + '</div>' : '';
+  const auto = x.kind === 'text' && x.act ? ' <span class="tag y">자동 분류 · ' + ({ absent: '결석', in: '등원', out: '하원' })[x.act] + '</span>' : '';
+  if (withBtns && !x.ack) return '<div class="cki" data-pm="' + x.id + '"><div class="kd">💬 학부모 연락' + auto + '</div><div class="ch"><b>' + esc(x.kid) + '</b><span class="dchip' + (x.act === 'absent' ? ' r' : '') + '">' + dl + '</span><span class="when">' + esc(x.rel || '학부모') + ' · ' + whenAt(x.at) + '</span></div><p>' + esc(pmLine(x)) + '</p>' + repH +
+    '<div class="pb">' + (actL ? '<button class="btn g" data-pa="' + (x.act === 'out' ? 'note' : '1') + '">' + actL + '</button><div class="pb2">' + (x.act !== 'out' ? '<button class="btn" data-pa="adj">조율할게요</button>' : '') + '<button class="btn" data-pa="0">확인만 할게요</button></div>' : '<button class="btn g" data-pa="0">확인했어요</button>') + '<button class="btn line" data-pa="rep">💬 답장 쓰기</button></div></div>';
+  return '<div class="pmr' + (x.ack ? ' ok' : '') + '" data-pm="' + x.id + '"><div class="pt"><b>' + esc(x.kid) + '</b> <span class="tag' + (x.act === 'absent' ? ' r' : x.act ? ' y' : '') + '">' + dl + '</span><p>' + esc(pmLine(x)) + '</p><small>' + esc(x.rel || '학부모') + ' · ' + hm(x.at) + (x.at < Date.now() - 864e5 ? ' · ' + md(dayOf(x.at)) : '') + (x.ack ? ' · ' + esc(x.ack) + ' 확인' + (x.applied ? (x.act === 'absent' ? ' · 출석부 결석 넣음' : x.act === 'out' ? ' · 중요사항에 넣음' : ' · 픽업표에 적음') : '') : '') + '</small>' + repH + '</div>' +
     (withBtns && !x.ack ? '<div class="pb">' + (actL ? '<button class="btn g" data-pa="1">' + actL + '</button><button class="btn" data-pa="adj">조율할게요</button>' : '') + '<button class="btn' + (actL ? '' : ' g') + '" data-pa="0">' + (actL ? '확인만 할게요' : '확인했어요') + '</button></div>' : '') + '</div>';
 }
 // 새 등록 서류 (원생 연결 전) — 학부모 연락처럼 대시보드에 (2026-11-13)
@@ -2774,6 +2812,7 @@ function pmCard() {
 async function onPmClick(e) {
   const b = e.target.closest('[data-pa]'); if (!b) return false; const id = +b.closest('[data-pm]').dataset.pm;
   if (b.dataset.pa === 'adj') { pmAdjust(S.pmsg.get(id)); return true; }
+  if (b.dataset.pa === 'rep') { pmReply(S.pmsg.get(id)); return true; }
   if (b.dataset.pa === 'note') { // 보호자 하원 → 원생 중요사항 (내용·날짜·알림을 직원이 확인하고 넣기, 2026-11-18)
     const x = S.pmsg.get(id); if (!x) return true; if (!S.kids) await loadKids(true);
     const s = (S.kids || []).find(k => k.name === x.kid && k.status !== '퇴관'); if (!s) { toast(x.kid + ' 원생 정보를 찾지 못했어요'); return true; }

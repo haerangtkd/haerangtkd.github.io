@@ -116,6 +116,7 @@ async function setup(env) {
   const mcols = ((await env.DB.prepare('PRAGMA table_info(members)').all()).results || []).map(c => c.name);
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   try { await env.DB.prepare('ALTER TABLE subs ADD COLUMN last INTEGER').run(); } catch (_) {} // 마지막으로 알림이 간 때 (2026-11-13)
+  try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN reps TEXT').run(); } catch (_) {} // 학부모 연락 답장 [{by, text, at}] (2026-11-18)
   if (!mcols.includes('asrc')) { try { await env.DB.prepare('ALTER TABLE members ADD COLUMN asrc TEXT').run(); } catch (_) {} } // 출석부 PIN(암호화 값)을 마지막으로 가져온 것
   // boss: 직원 관리 권한(이사범님) · role: 직책 · mustpin: 처음 들어오면 PIN 바꾸기 · aid: 출석부 사범님 id · shared: 공용 계정
   for (const [c, t] of [['boss', 'INTEGER DEFAULT 0'], ['role', 'TEXT'], ['mustpin', 'INTEGER DEFAULT 0'], ['aid', 'TEXT'], ['shared', 'INTEGER DEFAULT 0'], ['ledger', 'INTEGER DEFAULT 0']])
@@ -380,7 +381,7 @@ async function route(path, req, env, ctx) {
         .map(x => ({ id: x.id, title: str(x.d.title, 100), date: x.d.date || '', closed: !!x.d.closed, goods: x.d.kind === 'goods', names: [...new Set((x.d.rows || []).filter(y => y && y.name && !y.wait && !y.appCancel && !y.guest).map(y => str(y.name, 20)))] })) });
     }
     if (path === '/sync/jtpl') return json({ ok: true, tpl: await jtplGet(env) }); // 알림 관리 '알림장 쓰기' 양식
-    if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 40', ...kids)).map(r => ({ id: r.id, kid: r.kid, label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r) })) : [] });
+    if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt, reps FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 40', ...kids)).map(r => ({ id: r.id, kid: r.kid, label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r), reps: J(r.reps, []).map(x => ({ text: x.text, at: x.at })) })) : [] });
     if (path === '/sync/pmsg-send') return json(await pmsgSend(env, b, kids, ctx));
     if (path === '/sync/hw') return json({ ok: true, hw: await hwFor(env, kids) });
     if (path === '/sync/sb-names') return json({ ok: true, list: await sbNames(env) }); // 알림 관리 제자 탭 '선범단 카드' (2026-11-14)
@@ -779,6 +780,16 @@ async function route(path, req, env, ctx) {
     ctx.waitUntil(pushAll(env, me.id, '🎟 ' + title, me.name + '님이 ' + kid + ' 신청을 ' + (hold ? '보류했어요 (인원 마감)' : '확인했어요'), 'event').catch(() => {}));
     await bumpItem(env, ev);
     return json({ ok: true, pushed: !!r.ok });
+  }
+  if (path === '/api/pmsg-reply') { // 학부모 연락에 답장 → 학부모 휴대폰 알림 + 학부모 앱 '사범님 연락'에 보임, 다른 직원에게도 알림 (2026-11-18)
+    const m = await one(env, 'SELECT * FROM pmsg WHERE id = ?', b.id | 0); if (!m) return json({ ok: false, error: '없는 연락이에요' });
+    const text = str(b.text, 300).trim(); if (!text) return json({ ok: false, error: '답장을 적어 주세요' });
+    const reps = [...J(m.reps, []), { by: me.name, text, at: Date.now() }].slice(-20);
+    await run(env, 'UPDATE pmsg SET reps = ?, upd = ? WHERE id = ?', JSON.stringify(reps), Date.now(), m.id);
+    const r = await noticeSync(env, '/sync/notify', { name: m.kid, title: '💬 도장에서 답장이 왔어요', body: m.kid + ' · ' + text.slice(0, 120), view: 'home' });
+    await addLog(env, me.id, 'pickup', '💬 ' + m.kid + ' 학부모 연락에 답장: ' + text.slice(0, 60) + ' · 학부모 ' + (r.ok ? '알림 보냄' : '알림 못 보냄'), m.day);
+    ctx.waitUntil(pushAll(env, me.id, '💬 ' + m.kid + ' 학부모 연락 · ' + me.name + '님 답장', text.slice(0, 120), 'home').catch(() => {}));
+    return json({ ok: true, reps, pushed: !!r.ok });
   }
   if (path === '/api/pmsg-ack') { // 학부모 연락 확인 (apply: 결석 → 출석부 결석 예정·픽업표 결석 / 등·하원 → 픽업표 메모)
     const m = await one(env, 'SELECT * FROM pmsg WHERE id = ?', b.id | 0); if (!m) return json({ ok: false, error: '없는 연락이에요' });
@@ -1607,6 +1618,14 @@ function pmShort(m) {
   if (!m.kind || m.kind === 'text') return m.text || '';
   return String(m.label || '').replace(/^오늘은? /, '') + (m.who ? ' (' + m.who + ')' : '') + (m.why ? ' · ' + m.why : '') + t;
 }
+// 학부모가 직접 쓴 연락 나누기 (2026-11-18 사용자: 직접 적어도 하원·등원이면 자동 분류) — 결석 > 하원 > 등원 순서
+function guessAct(t) {
+  t = String(t || '').replace(/\s+/g, '');
+  if (/결석|못갈|못가|못와|못올|쉴게|쉬겠|쉬어야|빠질게|빠지겠|안갈게|안가요|안보낼/.test(t)) return 'absent';
+  if (/하원|데리러|데려갈|픽업|일찍보내|일찍가|먼저보내|차량.{0,4}(하원|태워|부탁)|차타고|차량으로/.test(t)) return 'out';
+  if (/등원|데려다|늦게갈|늦게가|늦게보낼|늦을|지각/.test(t)) return 'in';
+  return '';
+}
 async function pmsgSend(env, b, kids, ctx) {
   const kid = str(b.kid, 20); if (!kids.includes(kid)) return { ok: false, error: '제자 이름을 확인해 주세요' };
   const tpl = (await ptplGet(env)).find(t => t.id === str(b.tpl, 20)), text = str(b.text, 200).trim();
@@ -1615,7 +1634,8 @@ async function pmsgSend(env, b, kids, ctx) {
   const who = tpl && tpl.ask === 'who' ? str(b.who, 10) : '', why = tpl && tpl.ask === 'why' ? str(b.why, 30) : '';
   const label = tpl ? tpl.label : b.family ? '가족 추가 요청' : b.dayreq ? '수련 요일 변경 요청' : '직접 쓴 연락';
   if ((await one(env, 'SELECT COUNT(*) AS n FROM pmsg WHERE kid = ? AND at > ?', kid, now - 3600e3)).n >= 10) return { ok: false, error: '연락을 너무 많이 보냈어요. 잠시 뒤에 해 주세요' };
-  await run(env, 'INSERT INTO pmsg (kid, kind, label, act, who, why, text, day, rel, at, upd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', kid, tpl ? tpl.id : 'text', label, tpl ? tpl.act : '', who, why, text, day, str(b.rel, 10), now, now);
+  const act = tpl ? tpl.act : (!b.family && !b.dayreq ? guessAct(text) : ''); // 직접 쓴 말도 결석·하원·등원이면 저절로 나눔 (2026-11-18)
+  await run(env, 'INSERT INTO pmsg (kid, kind, label, act, who, why, text, day, rel, at, upd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', kid, tpl ? tpl.id : 'text', label, act, who, why, text, day, str(b.rel, 10), now, now);
   const line = kid + ' · ' + label.replace(/오늘 /, day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ') + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text ? ' · ' + text : '');
   await addLog(env, '', 'pickup', '💬 ' + line + ' · ' + (str(b.rel, 10) || '학부모'), day);
   const h = new Date(now + 9 * 3600e3).getUTCHours();
