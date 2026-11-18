@@ -866,7 +866,7 @@
     if (!evFor(k).length) return '';
     return '<section class="sec" id="secEv"><h2>행사 신청</h2>' + evFor(k).map(ev => {
       const m = (ev.mine || []).find(x => x.kid === k) || {};
-      const st = m.applied ? '<span class="ev-st">' + (m.byStaff ? '도장에서 접수했어요' : '신청했어요') + '</span>' : m.cancel ? '<span class="ev-st c">' + (m.staffCx ? '도장에서 취소했어요' : '취소했어요') + '</span>' : !ev.canEdit ? '<span class="ev-st c">신청 마감</span>' : '';
+      const st = m.hold ? '<span class="ev-st c">보류 (인원 마감)</span>' : m.applied ? '<span class="ev-st">' + (m.byStaff ? '도장에서 접수했어요' : m.okd ? '도장에서 확인했어요' : '신청했어요 · 확인 중') + '</span>' : m.cancel ? '<span class="ev-st c">' + (m.staffCx ? '도장에서 취소했어요' : '취소했어요') + '</span>' : !ev.canEdit ? '<span class="ev-st c">신청 마감</span>' : '';
       return '<button class="evc" data-ev="' + esc(ev.id) + '"><div class="eh"><b>' + esc(ev.title) + '</b>' + st + '</div><div class="em">' + esc([ev.date ? evDay(ev.date) : '', evPrice(ev), ev.canEdit && ev.close ? evShort(ev.close) + '까지 신청' : ''].filter(Boolean).join(' · ')) + '</div>' + (ev.prep ? '<div class="em">🎒 ' + esc(ev.prep) + '</div>' : '') + (ev.eligText ? '<div class="em">👥 대상 ' + esc(ev.eligText) + '</div>' : '') +
         (!m.applied && ev.canEdit ? '<span class="ack-btn">' + (m.cancel ? '다시 신청하기' : '신청하기') + '</span>' : '') + '</button>';
     }).join('') + '</section>';
@@ -887,6 +887,7 @@
         (ev.van ? '<label class="f">하원차</label><div class="opts" data-g="van"><button data-v="1" class="' + (st.van === true ? 'on' : '') + '">타요</button><button data-v="0" class="' + (st.van === false ? 'on' : '') + '">안 타요</button></div>' : '') +
         (edit ? '<label class="f">도장에 남길 말 (안 적어도 돼요)</label><input class="m" id="evMemo" maxlength="100" value="' + esc(st.memo) + '">' : '') +
         (total() ? '<div class="tot"><span>참가비</span><span>' + won(total()) + '</span></div>' : '') +
+        (m.hold ? '<p class="help-l" style="margin-top:14px;color:#B3261E">신청 인원이 마감되어 보류되었습니다. 인원 증가 및 여유 자리가 생길 경우 연락드리겠습니다.</p>' : '') + // 2026-11-18
         (m.byStaff ? '<p class="help-l" style="margin-top:14px">도장에서 이미 접수했어요. 바꾸실 내용은 도장에 문자로 알려 주세요.</p>'
           : edit ? '<button class="btn" id="evGo">' + (mineApp ? '바꾼 내용 저장' : '신청하기') + '</button>' + (mineApp ? '<button class="cx" id="evCx" style="color:var(--brand)">신청 취소</button>' : '')
           : '<p class="help-l" style="margin-top:14px">신청 기간이 끝났어요. 바꾸실 내용은 도장에 문자로 알려 주세요.</p>') +

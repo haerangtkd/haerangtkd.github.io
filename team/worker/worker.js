@@ -768,10 +768,23 @@ async function route(path, req, env, ctx) {
     await run(env, "INSERT INTO kv (k, v) VALUES ('ptpl', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(list));
     return json({ ok: true });
   }
+  if (path === '/api/esign-ack') { // 학부모 앱 행사 신청 확인 · 보류 (2026-11-18 사용자 결정: 확인했어요를 눌러야 신청에 들어감 — 학부모·업무 앱에 알림)
+    const ev = str(b.ev, 40), kid = str(b.kid, 20), hold = !!b.hold;
+    const e = await one(env, 'SELECT state, cancel FROM esign WHERE ev = ? AND kid = ?', ev, kid); if (!e || e.cancel) return json({ ok: false, error: '없거나 취소된 신청이에요' });
+    const it = await one(env, "SELECT data FROM items WHERE id = ? AND type = 'event'", ev), d = J(it && it.data, {}), title = str(d.title, 60), now = Date.now();
+    await run(env, 'UPDATE esign SET state = ?, upd = ? WHERE ev = ? AND kid = ?', hold ? 'hold' : 'in', now, ev, kid);
+    const r = await noticeSync(env, '/sync/notify', { name: kid, title: hold ? '⏸ 행사 신청이 보류되었어요' : '✅ 행사 신청이 확인되었어요',
+      body: hold ? title + ' · ' + kid + ' · 신청 인원이 마감되어 보류되었습니다. 인원 증가 및 여유 자리가 생길 경우 연락드리겠습니다.' : title + (d.date ? ' (' + (+d.date.slice(5, 7)) + '/' + (+d.date.slice(8)) + ')' : '') + ' · ' + kid + ' 신청을 도장에서 확인했어요', view: 'plan' });
+    await addLog(env, me.id, 'event', '🎟 ' + title + ': ' + kid + (hold ? ' 보류 (인원 마감)' : ' 신청 확인') + ' · 학부모 ' + (r.ok ? '알림 보냄' : '알림 못 보냄' + (r.error ? ' — ' + str(r.error, 60) : '')), ev);
+    ctx.waitUntil(pushAll(env, me.id, '🎟 ' + title, me.name + '님이 ' + kid + ' 신청을 ' + (hold ? '보류했어요 (인원 마감)' : '확인했어요'), 'event').catch(() => {}));
+    await bumpItem(env, ev);
+    return json({ ok: true, pushed: !!r.ok });
+  }
   if (path === '/api/pmsg-ack') { // 학부모 연락 확인 (apply: 결석 → 출석부 결석 예정·픽업표 결석 / 등·하원 → 픽업표 메모)
     const m = await one(env, 'SELECT * FROM pmsg WHERE id = ?', b.id | 0); if (!m) return json({ ok: false, error: '없는 연락이에요' });
     let applied = m.applied;
-    if (b.apply && !m.applied && m.act) {
+    if (b.noted) applied = 1; // 2026-11-18 사용자 결정: 보호자 하원은 할 일 대신 원생 중요사항에 (화면에서 직원이 내용·날짜를 확인하고 넣은 뒤)
+    else if (b.apply && !m.applied && m.act) {
       // 조율할게요: 날짜·누가·내용을 고쳐서 넣기
       const day = isDay(b.day) ? b.day : m.day, who = b.who != null ? str(b.who, 10) : m.who, text = b.text != null ? str(b.text, 200) : m.text;
       const why = [m.why, text].filter(Boolean).join(' · ').slice(0, 40) || '학부모 연락';
@@ -940,7 +953,10 @@ async function route(path, req, env, ctx) {
     const day = isDay(b.day) ? b.day : kstDay();
     await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'pkchk:' + day, JSON.stringify(b.off ? null : { by: me.name, at: Date.now() }));
     await bumpKv(env);
-    if (!b.off) ctx.waitUntil(addLog(env, me.id, 'pickup', '✓ ' + day.slice(5).replace('-', '/') + ' 등원·픽업 확인', day).catch(() => {}));
+    if (!b.off) { // 2026-11-18 사용자: '등원·픽업 확인했어요'를 눌러도 알림이 안 왔음 → 알림 기록 + 직원 휴대폰 알림
+      ctx.waitUntil(addLog(env, me.id, 'pickup', '✓ ' + day.slice(5).replace('-', '/') + ' 등원·픽업 확인', day).catch(() => {}));
+      ctx.waitUntil(pushAll(env, me.id, '🚌 등원·픽업 확인', me.name + '님이 ' + (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' 등원·픽업을 확인했어요', 'pickup').catch(() => {}));
+    }
     return json({ ok: true });
   }
   // 내려받기 비밀번호 (출석부 서버에 보관) — 정하기는 이사범님만, 확인은 누구나
@@ -1191,7 +1207,7 @@ async function route(path, req, env, ctx) {
   if (path === '/api/student-save') return json(await attSync(env, '/sync/student-save', { student: b.student, history: b.history, upd: b.upd, who: me.name, noRevive: !me.boss }));
   if (path === '/api/student-history') return json(await attSync(env, '/sync/history', { sid: str(b.sid, 60) }));
   // 첫 화면 카드: 학부모 앱 가입 승인 대기 수
-  if (path === '/api/dash') { const r = await noticeSync(env, '/sync/pending', {}); return json({ ok: true, pending: r.ok ? r.pending : null, hpSkip: J((await one(env, "SELECT v FROM kv WHERE k = 'hpEvSkip'") || {}).v, []) }); }
+  if (path === '/api/dash') { const r = await noticeSync(env, '/sync/pending', {}); return json({ ok: true, pending: r.ok ? r.pending : null, wait: r.ok ? r.wait || [] : [], apps: r.ok ? r.apps || null : null, hpSkip: J((await one(env, "SELECT v FROM kv WHERE k = 'hpEvSkip'") || {}).v, []) }); }
   if (path === '/api/dsched') { // 업무 앱 달력의 📣 도장 일정 (알림 관리 일정표, 2026-11-13)
     const r = await noticeSync(env, '/sync/schedule', { from: isDay(b.from) ? b.from : '', to: isDay(b.to) ? b.to : '' });
     return json(r.ok ? { ok: true, items: r.items || [] } : { ok: false, error: r.error || '알림 관리 일정표를 불러오지 못했어요', items: [] });
@@ -1228,7 +1244,15 @@ async function route(path, req, env, ctx) {
     await r.stmt.run();
     if (r.type === 'event') { // 행사표에 들어간 학부모 신청은 '넣음'으로
       const names = (Array.isArray(b.item.rows) ? b.item.rows : []).filter(x => x && !x.guest).map(x => str(x.name, 20)).filter(Boolean).slice(0, 200); // 비회원(guest)은 이름이 같아도 회원 신청과 섞지 않음 (2026-11-16 테스트)
-      if (names.length) await run(env, "UPDATE esign SET state = 'in' WHERE ev = ? AND state = '' AND kid IN (" + names.map(() => '?').join(',') + ')', r.id, ...names);
+      // 2026-11-18: 새 신청·바꾼 신청은 '확인했어요'(/api/esign-ack)에서만 'in'. 여기선 학부모 취소만 정리 (신청표를 저장해도 확인 안 한 신청이 사라지지 않게)
+      if (names.length) await run(env, "UPDATE esign SET state = 'in' WHERE ev = ? AND state = '' AND cancel = 1 AND kid IN (" + names.map(() => '?').join(',') + ')', r.id, ...names);
+      // 보류했던 학부모 신청을 '참가로' 바꾸면 = 자리가 생김 → 학부모님께 확인 알림 (2026-11-18)
+      const go = (Array.isArray(b.item.rows) ? b.item.rows : []).filter(x => x && !x.guest && !x.wait && !x.appCancel).map(x => str(x.name, 20)).filter(Boolean).slice(0, 200);
+      const held = go.length ? await all(env, "SELECT kid FROM esign WHERE ev = ? AND state = 'hold' AND cancel = 0 AND kid IN (" + go.map(() => '?').join(',') + ')', r.id, ...go) : [];
+      if (held.length) { const now2 = Date.now(), t2 = str((b.item || {}).title, 60);
+        await run(env, "UPDATE esign SET state = 'in', upd = ? WHERE ev = ? AND state = 'hold' AND kid IN (" + held.map(() => '?').join(',') + ')', now2, r.id, ...held.map(x => x.kid));
+        for (const h of held) ctx.waitUntil(noticeSync(env, '/sync/notify', { name: h.kid, title: '✅ 행사 신청이 확인되었어요', body: t2 + ' · 자리가 생겨 ' + h.kid + ' 신청이 확인되었어요', view: 'plan' }).then(x => addLog(env, me.id, 'event', '🎟 ' + t2 + ': ' + h.kid + ' 보류 → 참가 · 학부모 ' + (x.ok ? '알림 보냄' : '알림 못 보냄'), r.id)).catch(() => {}));
+      }
       const nd = b.item || {}, od = old ? J(old.data, {}) : null; let sp = od ? od.sp : null, spErr = '';
       if (!sp && b.toParents && nd.date && nd.kind !== 'goods') { // 업무 앱에서 만든 신청표를 학부모님께 전달 → 날짜가 있으면 알림 관리 일정표에도 (2026-11-13)
         const x = await noticeSync(env, '/sync/sched-add', { ev: r.id, title: nd.title, date: nd.date, body: str(nd.desc, 1000), kind: /대회/.test(nd.title) ? '대회' : /심사/.test(nd.title) ? '심사' : '행사' });
@@ -1527,7 +1551,7 @@ async function openEvents(env, kids) {
     const staff = new Set((d.rows || []).filter(x => x && !x.guest).map(x => x.name)); // 비회원 줄은 빼고 (회원과 이름이 같아도 '신청됨'으로 안 보이게, 2026-11-16)
     out.push({ id: r.id, title: d.title, date: d.date || '', desc: str(d.desc, 1000), prep: str(d.prep, 300), elig: okKids, eligText: eligText(d.elig, grps), base: +d.base || 0, products: (d.products || []).map(p => ({ n: p.n, p: +p.p || 0 })), options: (d.options || []).map(o => ({ n: o.n, c: o.c || [] })), van: !!d.van, close: w.close, canEdit: w.canEdit,
       mine: kids.map(k => { const m0 = mine.find(x => x.ev === r.id && x.kid === k), m = m0 && m0.state === 'staff' && staff.has(k) ? null : m0; // 도장에서 뺐다가 다시 넣으면 다시 '도장에서 접수'
-        return { kid: k, applied: !!(m && !m.cancel) || (!m && staff.has(k)), byStaff: !m && staff.has(k), cancel: !!(m && m.cancel), staffCx: !!(m && m.cancel && m.state === 'staff'), data: m ? J(m.data, {}) : null }; }) });
+        return { kid: k, applied: !!(m && !m.cancel) || (!m && staff.has(k)), byStaff: !m && staff.has(k), cancel: !!(m && m.cancel), staffCx: !!(m && m.cancel && m.state === 'staff'), hold: !!(m && !m.cancel && m.state === 'hold'), okd: !!(m && !m.cancel && m.state === 'in'), data: m ? J(m.data, {}) : null }; }) });
   }
   return out.sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
 }
