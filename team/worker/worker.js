@@ -1638,8 +1638,7 @@ async function pmsgSend(env, b, kids, ctx) {
   await run(env, 'INSERT INTO pmsg (kid, kind, label, act, who, why, text, day, rel, at, upd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', kid, tpl ? tpl.id : 'text', label, act, who, why, text, day, str(b.rel, 10), now, now);
   const line = kid + ' · ' + label.replace(/오늘 /, day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ') + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text ? ' · ' + text : '');
   await addLog(env, '', 'pickup', '💬 ' + line + ' · ' + (str(b.rel, 10) || '학부모'), day);
-  const h = new Date(now + 9 * 3600e3).getUTCHours();
-  if (h >= 8 && h < 21) await pushAll(env, '', '💬 학부모 연락', line, 'home'); else await run(env, 'INSERT INTO pushq2 (text, at) VALUES (?, ?)', line, now);
+  await pushAll(env, '', '💬 학부모 연락', line, 'home'); // 2026-11-19 사용자: 밤에도 바로 (예전엔 밤 9시~아침 8시는 모았다가 아침에 — 그래서 밤에 시험한 연락 알림이 안 왔음)
   return { ok: true };
 }
 // 그날 픽업 명단 인원 (결석 빼고) — 0명이면 13:30 확인 알림을 안 보냄 (2026-11-15)
@@ -1895,7 +1894,7 @@ async function renameKidTeam(env, from, to) {
 async function onceAt(env, key) { const r = await one(env, 'SELECT v FROM kv WHERE k = ?', key); if (r) return false; await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', key, '1'); return true; }
 async function runTimed(env, now = Date.now()) {
   const k = new Date(now + 9 * 3600e3), day = k.toISOString().slice(0, 10), m = k.getUTCHours() * 60 + k.getUTCMinutes(), wd = k.getUTCDay();
-  if (m >= 8 * 60 && m < 21 * 60) { const q2 = await all(env, 'SELECT id, text FROM pushq2 ORDER BY id LIMIT 30'); if (q2.length) { await run(env, 'DELETE FROM pushq2 WHERE id <= ?', q2[q2.length - 1].id); await pushAll(env, '', '💬 밤사이 학부모 연락 ' + q2.length + '건', q2.slice(0, 3).map(x => x.text).join('\n') + (q2.length > 3 ? '\n외 ' + (q2.length - 3) + '건' : ''), 'home'); } }
+  { const q2 = await all(env, 'SELECT id, text FROM pushq2 ORDER BY id LIMIT 30'); /* 예전에 모아 둔 밤 연락은 다음 5분 안에 보냄 */ if (q2.length) { await run(env, 'DELETE FROM pushq2 WHERE id <= ?', q2[q2.length - 1].id); await pushAll(env, '', '💬 학부모 연락 ' + q2.length + '건', q2.slice(0, 3).map(x => x.text).join('\n') + (q2.length > 3 ? '\n외 ' + (q2.length - 3) + '건' : ''), 'home'); } }
   try { await runCneed(env, day); } catch (_) {} // 연락 필요는 맨 먼저 (앞 단계가 실패해도 가게)
   try { await runPickupAlerts(env, day); } catch (_) {}
   try { await runNoteAlerts(env, day); } catch (_) {}

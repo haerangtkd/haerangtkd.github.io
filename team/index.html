@@ -508,7 +508,7 @@
   .kpis.k4 .c2{background:#EDF2FB}.kpis.k4 .c2 small,.kpis.k4 .c2 b{color:var(--brand)}
   .kpis.k4 .c3{background:#FFF7E3}.kpis.k4 .c3 small,.kpis.k4 .c3 b{color:#8A5300}
   .kpis.k4 b i{font-style:normal;font-weight:400;color:#D9B77A;margin:0 3px;font-size:.8em;vertical-align:.08em}
-  .kpis.k4 .c4{background:#EEF1F6}.kpis.k4 .c4 small,.kpis.k4 .c4 b{color:var(--ink)}
+  .kpis.k4 .nog{cursor:default}.kpis.k4 .c4{background:#EEF1F6}.kpis.k4 .c4 small,.kpis.k4 .c4 b{color:var(--ink)}
   .ckq{border:2px solid #E57373;border-radius:18px;margin:12px 0 0;padding:14px 14px 12px;background:#fff}
   .ckq .sh h2 em{font-style:normal;color:var(--no);margin-left:4px}
   .cki{background:#FFFAFA;border:1px solid #F6DCDC;border-radius:14px;padding:12px 13px;margin-top:10px}
@@ -1252,6 +1252,20 @@ function joinRow() {
   return '<div class="cki"><div class="kd">👪 가입 승인 · 학부모 앱</div><div class="ch"><b>' + (L.length ? esc(L.map(x => (x.kids || []).join('·') + (x.rel ? ' ' + x.rel : '')).slice(0, 3).join(', ')) + (n > 3 ? ' 외 ' + (n - 3) + '가정' : '') : n + '가정') + '</b>' + (L[0] && L[0].at ? '<span class="when">' + whenAt(L[0].at) + '</span>' : '') + '</div>' +
     '<p>가입 승인을 기다리고 있어요. 알림 관리에서 확인하고 승인하면 여기서 사라져요.</p><div class="pb"><button class="btn g" data-app="appNtc">알림 관리에서 승인하기</button></div></div>';
 }
+// 숫자 칸 누르면 그 일을 하는 창으로 (2026-11-19): 학부모 연락 = 연락 창(없고 가입 승인만 있으면 알림 관리) · 행사 신청 = 신청표 · 할일·청소 = 업무 탭
+function kpiGo(k) {
+  if (k === 'task') { S.tkSeg = 'all'; S.tkf = 'open'; return setTab('task'); }
+  if (k === 'ev') { const evs = tableItems().filter(x => !x.closed && catOf(x) === 'event').sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999')), ns = newSigns();
+    const pick = ns.length ? S.items.get(ns.sort((a, b) => (a.upd || a.at) - (b.upd || b.at))[0].ev) : evs.length === 1 ? evs[0] : null;
+    if (pick) return openTable(pick); S.tf = 'event'; return setTab('table'); }
+  if (k === 'pm') { const L = pmList().filter(x => !x.ack);
+    if (!L.length) { if (S.dashPending) return openApp('appNtc'); return toast('확인할 학부모 연락이 없어요'); }
+    const draw = ov => { const M = pmList().filter(x => !x.ack); ov.querySelector('#pmS').innerHTML = M.length ? M.map(x => pmRow(x, true)).join('') : '<p class="empty">다 확인했어요 👍</p>'; };
+    sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 학부모 연락 ' + L.length + '</h2></div><div id="pmS"></div>' + (S.dashPending ? '<button class="btn" data-app="appNtc" style="width:100%;margin-top:12px">👪 가입 승인 ' + S.dashPending + '가정 · 알림 관리 열기</button>' : ''), ov => {
+      draw(ov); ov.classList.add('full');
+      ov.addEventListener('click', async e => { const ap = e.target.closest('[data-app]'); if (ap) return openApp(ap.dataset.app); if (await onPmClick(e)) setTimeout(() => { if (ov.isConnected) draw(ov); }, 300); });
+    }); }
+}
 function checkCard() {
   const pm = pmList().filter(x => !x.ack), sg = newSigns().sort((a, b) => (a.upd || a.at) - (b.upd || b.at)), pd = S.dashPending || 0, n = pm.length + sg.length + (pd ? 1 : 0);
   if (!n) return '';
@@ -1313,10 +1327,10 @@ function renderHome() {
     (S.bkDue && isBoss() ? '<div class="notice"><b>📦 ' + (+S.bkDue.slice(5)) + '월 백업을 받아 주세요</b><button class="btn g" id="bkGo">백업 받기</button></div>' : '') +
     ((S.joins || []).length ? '<div class="sec joinq"><div class="sh"><h2>들어오려는 사람</h2></div>' + S.joins.map(x => '<div class="mem"><span class="av l" style="background:#9AA1B0">' + esc(avName(x.name)) + '</span><b>' + esc(x.name) + '</b><button class="btn g" data-jok="' + x.id + '">승인</button><button class="btn" data-jno="' + x.id + '">거절</button></div>').join('') + '<p class="help">직원이면 승인해 주세요. 승인하면 그 사람 이름으로 들어가져요.</p></div>' : '') +
     '<div class="kpis k4">' +
-      kpi('c1' + (pmN ? ' blink' : ''), 'data-scroll="ckSec"', '학부모 연락', pmN) +
-      kpi('c2' + (pkLate() ? ' blink' : ''), 'data-scroll="pkSec"', '등원·픽업', kidsD + '/' + kidsN) +
-      kpi('c3', 'data-scroll="evSec"', '행사 신청', evN.length ? evN.slice(0, 3).join('<i>|</i>') + (evN.length > 3 ? '<i>…</i>' : '') : 0) +
-      kpi('c4' + (todayT.some(isLate) || clLate ? ' blink' : ''), 'data-scroll="tdSec"', '할일·청소', left) + '</div>' +
+      kpi('c1' + (pmN ? ' blink' : ''), 'data-kgo="pm"', '학부모 연락', pmN) +
+      kpi('c2 nog' + (pkLate() ? ' blink' : ''), '', '등원·픽업', kidsD) +
+      kpi('c3', 'data-kgo="ev"', '행사 신청', evN.length ? evN.slice(0, 3).join('<i>|</i>') + (evN.length > 3 ? '<i>…</i>' : '') : 0) +
+      kpi('c4' + (todayT.some(isLate) || clLate ? ' blink' : ''), 'data-kgo="task"', '할일·청소', left) + '</div>' +
     cneedCard() + checkCard() + outReqCard() + delReqCard() + docCard() +
     '<div class="attl"><button data-kh="1"><b>오늘 출석</b><span>' + (ks ? '출석 ' + ks.here.length + ' · 결석 ' + ks.absent.length + ' · <em' + (ks.notYet.length ? ' class="r"' : '') + '>미확인 ' + ks.notYet.length + '</em>' : '불러오는 중…') + '</span></button><button class="lbtn" data-app="appAtt">출석부 ›</button></div>' +
     pickupCard() +
@@ -1367,6 +1381,7 @@ $('v-home').onclick = async e => {
   const sga = e.target.closest('[data-sga]'); if (sga) { const x = S.esigns.get(sga.closest('[data-sg]').dataset.sg); if (!x) return; const a = sga.dataset.sga;
     if (a === 'view') return openTable(S.items.get(x.ev));
     sga.disabled = true; const ok = await signAck(x, a === 'hold'); sga.disabled = false; if (ok && a === 'ok') openTable(S.items.get(x.ev)); return; }
+  const kg = e.target.closest('[data-kgo]'); if (kg) return kpiGo(kg.dataset.kgo); // 숫자 칸 → 바로 일하는 창 (2026-11-19 사용자)
   if (e.target.closest('#refTg')) { S.refOpen = !S.refOpen; try { localStorage.setItem('haerang-team-ref', S.refOpen ? '1' : ''); } catch (_) {} return render(); }
   const ap = e.target.closest('[data-app]'); if (ap) return openApp(ap.dataset.app);
   const jk = e.target.closest('[data-jok],[data-jno]'); if (jk) { const ok = !!jk.dataset.jok, id = jk.dataset.jok || jk.dataset.jno; if (!ok && !confirm('거절할까요?')) return; const r = await api(ok ? '/api/join-ok' : '/api/join-no', { id }); toast(r.ok ? (ok ? r.name + '님이 들어왔어요' : '거절했어요') : r.error); S.joins = (S.joins || []).filter(x => x.id !== id); await sync(); return render(); }
