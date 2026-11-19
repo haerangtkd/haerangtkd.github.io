@@ -2279,6 +2279,7 @@ const kLp = lp => lp.length ? lp.map(p => (p.start || '?') + ' ~ ' + (p.end ? p.
 async function loadKids(force) {
   if (!force && S.kidsAt && Date.now() - S.kidsAt < 120000) return; S.kidsAt = Date.now();
   const j = await api('/api/students');
+  api('/api/kid-apps').then(r => { if (r && r.ok) { S.kapps = r.apps || {}; if (S.tab === 'kids') drawKidList(); } }); // 앱 가입 표시 (2026-11-19)
   if (j.ok) { S.kids = j.students || []; S.kidsHere = new Set(j.here || []); S.kidsAbs = new Set(j.absent || []); S.cneed = j.cneed || []; S.kidsErr = ''; } else { S.kidsErr = j.error || '출석부를 불러오지 못했어요'; S.kids = S.kids || null; }
   if (S.tab === 'kids' || S.tab === 'home') render();
 }
@@ -2299,8 +2300,11 @@ function kRow(s) {
   if (kTemp(s, t)) tg.push('<span class="tag y">임시변경 중</span>');
   if (S.kidsHere && S.kidsHere.has(s.id)) tg.push('<span class="tag g">오늘 출석</span>');
   else if (S.kidsAbs && S.kidsAbs.has(s.id)) tg.push('<span class="tag r">오늘 결석</span>');
-  return '<div class="kr" data-kid="' + esc(s.id) + '"><span class="av l" style="background:' + avColor(s.id) + '">' + esc(s.name.length > 2 ? s.name.slice(-2) : s.name) + '</span><div class="t"><b>' + esc(s.name) + '</b><small>' + esc([g.label, kDays(s.days), s.no ? '번호 ' + s.no : ''].filter(Boolean).join(' · ')) + '</small>' + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><em>›</em></div>';
+  return '<div class="kr" data-kid="' + esc(s.id) + '"><span class="av l" style="background:' + avColor(s.id) + '">' + esc(s.name.length > 2 ? s.name.slice(-2) : s.name) + '</span><div class="t"><b>' + esc(s.name) + '</b><small>' + esc([g.label, kDays(s.days), s.no ? '번호 ' + s.no : ''].filter(Boolean).join(' · ')) + '</small>' + kAppLine(s) + (tg.length ? '<div>' + tg.join('') + '</div>' : '') + '</div><em>›</em></div>';
 }
+// 원생 목록 '제자 1 · 보호자 2' 연한 회색 (2026-11-19 사용자: 들어가지 않아도 가입했는지)
+function kAppLine(s) { const A = S.kapps; if (!A) return ''; const a = A[s.name] || { p: 0, w: 0, k: 0 };
+  return '<small style="display:block;color:#A3A9B2;font-size:12px;margin-top:1px">' + (a.p || a.w || a.k ? '제자 ' + (a.k || 0) + ' · 보호자 ' + (a.p || 0) + (a.w ? ' · 승인 대기 ' + a.w : '') : '앱 가입 없음') + '</small>'; }
 function renderKids() {
   const f = S.kf || '재원';
   if (!S.kids) { $('v-kids').innerHTML = '<p class="empty" style="margin-top:30px">' + (S.kidsErr ? esc(S.kidsErr) : '출석부 명단을 불러오는 중이에요') + '</p>'; loadKids(); return; }
@@ -2339,6 +2343,8 @@ function kidSheet(id) {
     kTel(s.guardian, s.phone) + kTel(s.guardian2, s.phone2 || '') + (s.phx || []).map(x => kTel(x.r, x.v)).join('') + (!s.phone && !s.phone2 && s.guardian ? line('보호자', esc(s.guardian)) : '') +
     line('띠', esc((s.belt || '') + (s.sb ? ' · 선범단' : ''))) + line('성별', esc(s.gender || '')) + line('생년월일', esc(s.bday ? s.bday + (s.lunar ? ' (음력)' : '') : '')) +
     line('출석번호', esc(s.no || '')) + line('학교·유치원', esc([s.inst, s.cls ? s.cls + '반' : '', s.sno ? s.sno + '번' : ''].filter(Boolean).join(' '))) + line('주소', esc(s.addr || '')) + line('메모', esc(s.memo || '')) + '</div>' +
+    '<div id="kAttTop" style="margin-top:10px"></div>' +
+    '<div class="card" id="kTg" style="margin-top:10px;padding:4px 14px">' + [['noAsk', '🔕 태블릿 등원 알림 안 묻기', '태블릿을 안 눌러도 출석부에서 등원 알림을 묻지 않아요 (보호자가 데려다주는 제자)'], ['noInfo', '📋 정보 입력이 필요 없는 제자', '출석번호·연락처가 없어도 알림 카드에 안 나와요']].map(([k, t, h]) => '<label style="display:flex;gap:10px;align-items:center;padding:10px 0;font-size:15px"><input type="checkbox" data-tg="' + k + '"' + (s[k] ? ' checked' : '') + ' style="width:22px;height:22px;accent-color:var(--brand);flex:none"><span><b>' + t + '</b><small style="display:block;color:var(--muted);font-size:12.5px">' + h + '</small></span></label>').join('') + '</div>' +
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
     (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + clip('kPm' + s.id, L.map(x => pmRow(x, false)).join(''), '건') : ''; })() +
@@ -2351,6 +2357,8 @@ function kidSheet(id) {
     ov.querySelector('#kSt').onclick = () => kidStatusSheet(s);
     ov.querySelector('#kTp').onclick = () => kidTempSheet(s);
     ov.querySelector('#kEd').onclick = () => kidEdit(s);
+    ov.querySelector('#kTg').onchange = async e => { const k = e.target.dataset.tg; if (!k) return; const on = e.target.checked, n = JSON.parse(JSON.stringify(s)); n[k] = on; e.target.disabled = true; // 정보 수정 없이 바로 (2026-11-19 사용자)
+      const id = await saveKid(n, [(k === 'noAsk' ? '태블릿 등원 알림 묻지 않기' : '정보 입력 필요 없음') + (on ? ' 켬' : ' 끔')], s); e.target.disabled = false; if (!id) { e.target.checked = !on; return; } s[k] = on; s.upd = n.upd; toast(on ? '켰어요' : '껐어요'); };
     if (ov.querySelector('#kDel')) ov.querySelector('#kDel').onclick = () => kidDelete(s);
     api('/api/student-history', { sid: s.id }).then(j => { const el = ov.querySelector('#kHist'); if (el) el.innerHTML = j.ok && (j.items || []).length ? j.items.map(h => '<div class="kh">' + esc(h.text) + '<small>' + longTime(h.at) + (h.who ? ' · ' + esc(h.who) : '') + '</small></div>').join('') : '<p class="help">기록이 없어요</p>'; });
   });
@@ -2505,7 +2513,11 @@ async function kidFamily(el, s) {
   const j = await api('/api/kid-family', { name: s.name });
   if (!j.ok) { el.innerHTML = '<h3>학부모 앱 · 초대번호(QR)</h3><p class="help">' + esc(j.error || '알림 앱에 연결하지 못했어요') + '</p>'; return; }
   const ps = j.parents || [], inv = j.invites || [];
-  el.innerHTML = '<h3>학부모 앱 · 초대번호(QR)</h3><div class="card kinfo">' +
+  const okp = ps.filter(p => p.ok), atp = okp.find(p => p.att); // 출결 알림 받는 분을 맨 위에 크게 (2026-11-19 사용자: 잘 안 보여)
+  const attLine = '<div style="margin:0 0 8px;padding:10px 12px;border-radius:12px;font-size:14.5px;font-weight:800;' + (atp ? 'background:#E8F5E9;color:#1B5E20">🔔 등원·하원 알림 → ' + esc(atp.rel || '보호자') + (atp.ph ? ' (뒷자리 ' + esc(atp.ph) + ')' : '') + (atp.push ? '' : ' · 휴대폰 알림이 꺼져 있어요') : okp.length ? 'background:#FDECEC;color:#C62828">⚠ 등원·하원 알림을 받을 분이 정해지지 않았어요 · 아래에서 골라 주세요' : 'background:#F3F4F6;color:#6B7280">학부모 앱에 가입한 보호자가 없어요') + '</div>' +
+    '<p class="help" style="margin:-2px 0 8px">출결(등원·하원) 알림만 한 분에게, 공지·알림장·기네스 등 다른 알림은 가입한 보호자 모두에게 가요.</p>';
+  { const top = document.getElementById('kAttTop'); if (top) top.innerHTML = attLine.replace('<p class="help" style="margin:-2px 0 8px">', '<p class="help" style="display:none">'); } // 원생 상세 맨 위에도 (2026-11-19)
+  el.innerHTML = '<h3>학부모 앱 · 초대번호(QR)</h3>' + attLine + '<div class="card kinfo">' +
     '<div class="kv"><span>태블릿 출석번호</span><b>' + (j.onKiosk ? esc((j.codes || []).join(', ') || '번호 없음') : '아직 안 들어감 (10분 안에 자동으로)') + '</b></div>' +
     (ps.length ? ps.map(p => '<div class="kv"><span>' + esc(p.rel || '보호자') + (p.ph ? ' · ' + esc(p.ph) : '') + '</span><b>' + (p.ok ? (p.push ? '' : '<small style="color:#C62828;font-weight:400">알림 꺼짐 </small>') + (p.att ? '<span class="bdg" style="background:#E8F5E9;color:#2E7D32">🔔 출결 알림 받음</span>' : '<button class="btn" data-att="' + esc(p.id) + '" style="padding:3px 10px">출결 알림 받게</button>') : '승인 대기') + '</b></div>').join('') : '<div class="kv"><span>가입한 보호자</span><b>없음</b></div>') +
     (ps.filter(p => p.ok).length > 1 ? (ps.some(p => p.att) ? '<p class="help" style="margin:4px 0 0">등원·하원 알림은 한 분에게만 가요. ' + (j.attSet ? '도장이 고른 분이에요. <button class="btn" data-att="" style="padding:2px 8px">기본(어머니)으로</button>' : '지금은 기본(어머니)이에요. 다른 분으로 바꾸려면 \'출결 알림 받게\'를 눌러요.') + '</p>' : '<p class="help" style="margin:4px 0 0;color:#C62828;font-weight:700">⚠ 어머니가 가입하지 않아 등원·하원 알림이 아무에게도 안 가요. 받을 분의 \'출결 알림 받게\'를 눌러 주세요.</p>') : '') +
@@ -2655,9 +2667,14 @@ function kidEdit(s0, pre, after) {
     '<label class="f">메모</label><textarea class="inp" id="eMemo" rows="2">' + esc(s.memo) + '</textarea>' +
     '<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="eNoInfo"' + (s.noInfo ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 정보 입력이 필요 없는 제자 (출석번호·학부모 연락처가 없어도 알림에 안 나와요)</label>' +
     '<label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:15px"><input type="checkbox" id="eNoAsk"' + (s.noAsk ? ' checked' : '') + ' style="width:20px;height:20px;accent-color:var(--brand)"> 태블릿을 안 눌러도 등원 알림을 묻지 않기 (보호자가 데려다주는 제자)</label>' +
+    (s0 ? '<label class="f">🔔 등원·하원 알림 받는 분 <small style="color:var(--muted)">(학부모 앱에 가입한 분 중에서)</small></label><select class="inp" id="eAtt"><option value="">불러오는 중…</option></select>' : '') +
     (s0 ? '<p class="help">회원 상태(휴원·퇴관)는 앞 화면의 \'회원 상태\'에서 바꿔요.</p>' : '') +
     '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="eSave">' + (s0 ? '저장' : '등록') + '</button></div>', ov => {
     const g = id => ov.querySelector('#' + id);
+    let att0 = null; if (s0 && g('eAtt')) api('/api/kid-family', { name: s0.name }).then(j => { const el = g('eAtt'); if (!el) return; const P = j && j.ok ? (j.parents || []).filter(p => p.ok) : [];
+      if (!P.length) { el.innerHTML = '<option value="">가입한 보호자가 없어요</option>'; el.disabled = true; return; }
+      const cur = (P.find(p => p.att) || {}).id || ''; att0 = j.attSet ? cur : '';
+      el.innerHTML = '<option value="">기본 (어머니' + (P.some(p => /어머니|엄마/.test(p.rel || '')) ? '' : ' · 안 계시면 한 분일 때만') + ')</option>' + P.map(p => '<option value="' + esc(p.id) + '"' + (j.attSet && p.id === cur ? ' selected' : '') + '>' + esc((p.rel || '보호자') + (p.ph ? ' · 뒷자리 ' + p.ph : '')) + (p.push ? '' : ' (알림 꺼짐)') + '</option>').join(''); });
     g('eDays').onclick = e => { const b = e.target.closest('button'); if (!b) return; const v = b.dataset.v; if (v === 'all') s.days = KWEEK.every(x => s.days.includes(x)) ? [] : [...KWEEK]; else s.days = s.days.includes(v) ? s.days.filter(x => x !== v) : KWEEK.filter(x => x === v || s.days.includes(x)); g('eDays').querySelectorAll('button').forEach(x => x.classList.toggle('on', s.days.includes(x.dataset.v))); };
     g('eSex').onclick = e => { const b = e.target.closest('button'); if (!b) return; s.gender = s.gender === b.dataset.v ? '' : b.dataset.v; g('eSex').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === s.gender)); };
     g('eBday').onchange = () => { const v = g('eBday').value; if (v) g('eBirth').value = String(+v.slice(0, 4)); };
@@ -2694,6 +2711,7 @@ function kidEdit(s0, pre, after) {
         if (ch.length) h.push('정보 수정: ' + ch.join(', '));
       }
       const id = await saveKid(s, h, s0);
+      if (id && s0 && att0 !== null && g('eAtt') && g('eAtt').value !== att0) { const r = await api('/api/kid-attto', { name: s.name, id: g('eAtt').value }); if (!r.ok) toast(r.error || '출결 알림 받는 분을 바꾸지 못했어요'); } // 출결 알림 받는 분 (2026-11-19)
       const took = id && after ? await after(id) : null;
       if (id && took !== 'done') { toast(s0 ? '저장했어요' : s.name + ' 등록했어요'); kidSheet(id); }
     };

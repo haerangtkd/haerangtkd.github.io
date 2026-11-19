@@ -132,7 +132,7 @@ function pubHtml(ev) {
   if (P) { const d = new Date(P.at); return '<div class="pub ok"><div><b>✅ ' + S.mo + '월 기록이 앱에 올라가 있어요</b><small>' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + esc(P.by || '') + ' · 지금부터 넣는 기록도 바로 보여요</small></div><button class="un' + (S.sure === 'un' ? ' sure' : '') + '" id="pubUn">' + (S.sure === 'un' ? '정말 내릴까요?' : '올리기 취소') + '</button></div>' + momHtml(ev) + qwHtml(); }
   return '<div class="pub"><div><b>📤 ' + S.mo + '월 기록 올리기</b><small>누르기 전에는 학부모 앱·제자 앱에 이 달 기록·최우수가 안 보여요.<br>다 재고 나서 눌러 주세요. 올리면 제자 앱에 결과 알림이 가요.</small></div><button class="go' + (S.sure === 'go' ? ' sure' : '') + '" id="pubGo">' + (S.sure === 'go' ? '한 번 더 누르면 올라가요' : '기록 올리기') + '</button></div>';
 }
-// 📣 기록한 제자 어머니께 알림 (2026-11-19 사용자: 기네스 잰 제자만, 안 적힌 제자는 빼고) — 받는 분 = 출결 알림 받는 분(기본 어머니)
+// 📣 기록한 제자 보호자께 알림 (2026-11-19 사용자: 기네스 잰 제자만, 안 적힌 제자는 빼고) — 받는 분 = 출결 알림 받는 분(기본 어머니)
 // 🏆 분기 1위 발표 (2026-11-19 사용자: 분기 마지막 달에 제자 전체에게 1위 + 학부모 앱 'ㅇㅇ이가 … 1위했어요!') — 3·6·9·12월에만
 function qwHtml() {
   if (![3, 6, 9, 12].includes(S.mo)) return '';
@@ -153,7 +153,7 @@ function momHtml(ev) {
   const key = pubKey(), md = (S.mdate || {})[key] || '', lo = key + '-01', hi = key + '-' + pad(new Date(S.recYear, S.mo, 0).getDate()), td = new Date(), tds = td.getFullYear() + '-' + pad(td.getMonth() + 1) + '-' + pad(td.getDate());
   const ff = (() => { const d = new Date(S.recYear, S.mo - 1, 1); d.setDate(1 + (5 - d.getDay() + 7) % 7); return key + '-' + pad(d.getDate()); })(); // 기본 = 그 달 첫째 주 금요일 (2026-11-19 사용자)
   const dv = md || ff;
-  return '<div class="pub"><div style="flex:1 1 100%"><b>📣 기록한 제자 어머니께 알림</b><small>' + sub + '<br>받는 분: 원생 정보에서 정한 출결 알림 받는 분(기본 어머니)</small>' +
+  return '<div class="pub"><div style="flex:1 1 100%"><b>📣 기록한 제자 보호자께 알림</b><small>' + sub + '<br>받는 분: 그 제자 보호자 모두 (학부모 앱에 가입한 분)</small>' +
     '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;font-weight:700">📅 측정한 날 <input type="date" id="momD" value="' + dv + '" min="' + lo + '" max="' + hi + '" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:15px"></label>' +
     '<small id="momP">' + (dv ? '알림: "' + S.mo + '월 ' + (+dv.slice(8)) + '일에 측정한 ' + esc(ev.name) + ' 기록…"' : '측정한 날을 먼저 적어 주세요 (늦게 보내도 날짜가 맞게 나가요)') + '</small></div><button class="go' + (S.sure === 'mom' ? ' sure' : '') + '" id="momGo"' + (n ? '' : ' disabled') + '>' + (S.sure === 'mom' ? '한 번 더 누르면 보내요' : n ? '안 보낸 ' + n + '명에게 보내기' : N ? '모두 보냈어요' : '기록한 제자가 없어요') + '</button></div>';
 }

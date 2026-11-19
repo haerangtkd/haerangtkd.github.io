@@ -641,6 +641,13 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     return json(await kidRemove(env, cleanNames([b.name])[0] || '', !!b.dry));
   }
+  if (path === '/sync/kid-apps') { // 업무 앱 원생 목록 '제자 1 · 보호자 2' (2026-11-19 사용자) — 이름마다 승인된 보호자·승인 대기·제자 앱 기기 수
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const o = {}, g = n => o[n] || (o[n] = { p: 0, w: 0, k: 0 });
+    for (const r of await all(env, 'SELECT kids, ok FROM parents')) for (const n of J(r.kids, [])) g(n)[r.ok ? 'p' : 'w']++;
+    for (const r of await all(env, 'SELECT name, COUNT(*) AS n FROM ksess GROUP BY name')) if (!KSTAFF.includes(r.name)) g(r.name).k = r.n;
+    return json({ ok: true, apps: o });
+  }
   if (path === '/sync/kid-family' || path === '/sync/invite-save') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     if (path === '/sync/invite-save') { await run(env, "DELETE FROM kv WHERE k = 'kidStatus'"); try { await kidStatus(env); } catch (_) {} return json(await inviteSave(env, b)); } // 방금 등록한 원생도 바로 명단에

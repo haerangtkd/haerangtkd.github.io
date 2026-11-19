@@ -520,7 +520,7 @@ async function route(path, req, env, ctx) {
     // 보낸 제자는 빼고 새로 기록한 제자만 (2026-11-19 사용자: 심사처럼 나중에 잰 제자도 따로 보내기)
     const N0 = J((await one(env, "SELECT v FROM kv WHERE k = 'grecNotified'") || {}).v, {}) || {}, done = (N0[key] && N0[key].names) || [], pend = names.filter(n => !done.includes(n));
     if (!pend.length) return json({ ok: false, error: '새로 기록한 제자가 없어요 (모두 보냈어요)' });
-    const j = await noticeSync(env, '/sync/broadcast', { title: '🏆 ' + m + '월 기네스 기록이 나왔어요', body: '{kid} · ' + m + '월 ' + (+md.slice(8)) + '일에 측정한 ' + E.name + ' 기록을 성장 리포트에서 볼 수 있어요', children: pend, offset: b.offset | 0, view: 'grow', kind: '기네스', att: true });
+    const j = await noticeSync(env, '/sync/broadcast', { title: '🏆 ' + m + '월 기네스 기록이 나왔어요', body: '{kid} · ' + m + '월 ' + (+md.slice(8)) + '일에 측정한 ' + E.name + ' 기록을 성장 리포트에서 볼 수 있어요', children: pend, offset: b.offset | 0, view: 'grow', kind: '기네스' }); // 출결 알림만 정해진 한 분, 기네스는 가입한 보호자 모두 (2026-11-19 사용자)
     if (j.ok && !j.next) { const N = J((await one(env, "SELECT v FROM kv WHERE k = 'grecNotified'") || {}).v, {}) || {}, all = [...((N[key] && N[key].names) || [])]; pend.forEach(n => { if (!all.includes(n)) all.push(n); });
       N[key] = { at: Date.now(), by: me.name, n: all.length, names: all };
       await run(env, "INSERT INTO kv (k, v) VALUES ('grecNotified', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(N)); await addLog(env, me.id, 'rec', '🏆 ' + me.name + '님이 ' + m + '월 기네스 기록 알림을 보냈어요 (제자 ' + pend.length + '명 보호자' + (done.length ? ', 새로 기록한 제자만' : '') + ')', ''); j.notified = N; }
@@ -1364,6 +1364,7 @@ async function route(path, req, env, ctx) {
     return json(r.ok ? { ok: true, names: r.names || [] } : { ok: false, names: [] });
   }
   // 원생 화면: 학부모 앱 가족 초대번호(QR)·가입 상태 (알림 서버에 있음) — 2026-11-13
+  if (path === '/api/kid-apps') return json(await noticeSync(env, '/sync/kid-apps', {})); // 원생 목록 앱 가입 표시 (2026-11-19)
   if (path === '/api/kid-family') return json(await noticeSync(env, '/sync/kid-family', { name: str(b.name, 20) }));
   if (path === '/api/kid-attto') return json(me.shared ? { ok: false, error: '공용 계정으로는 바꿀 수 없어요' } : await noticeSync(env, '/sync/kid-attto', { name: str(b.name, 20), id: str(b.id, 20) })); // 출결 알림 받는 분 (2026-11-16)
   if (path === '/api/kid-fam') { // 형제·자매 묶기 {sid, with} / 풀기 {sid, off}
