@@ -793,6 +793,7 @@ async function route(path, req, env, ctx) {
     const text = str(b.text, 300).trim(), phs = (Array.isArray(b.phs) ? b.phs : []).map(x => str(x, 30)).filter(x => /^[A-Za-z0-9]+$/.test(x)).slice(0, 3);
     if (!text && !phs.length) return json({ ok: false, error: '답장을 적거나 사진을 넣어 주세요' });
     const now = Date.now(), reps = [...J(m.reps, []), { by: me.name, text, at: now, phs }].slice(-40);
+    if (await pmAbsent(env, m, me.name)) await run(env, 'UPDATE pmsg SET applied = 1 WHERE id = ?', m.id); // 답장으로 확인해도 결석은 저절로
     await run(env, 'UPDATE pmsg SET reps = ?, upd = ?' + (m.ack ? '' : ', ack = ?, ackAt = COALESCE(ackAt, ?)') + ' WHERE id = ?', JSON.stringify(reps), now, ...(m.ack ? [] : [me.name, now]), m.id);
     const what = text ? text.slice(0, 120) : '📷 사진 ' + phs.length + '장';
     const r = await noticeSync(env, '/sync/notify', { name: m.kid, title: '💬 도장에서 답장이 왔어요', body: m.kid + ' · ' + what + (text && phs.length ? ' · 📷' : ''), view: 'contact' });
@@ -810,6 +811,7 @@ async function route(path, req, env, ctx) {
   if (path === '/api/pmsg-ack') { // 학부모 연락 확인 (apply: 결석 → 출석부 결석 예정·픽업표 결석 / 등·하원 → 픽업표 메모)
     const m = await one(env, 'SELECT * FROM pmsg WHERE id = ?', b.id | 0); if (!m) return json({ ok: false, error: '없는 연락이에요' });
     let applied = m.applied;
+    if (await pmAbsent(env, m, me.name)) applied = 1; // 2026-11-19 사용자: 결석 버튼 연락은 어느 버튼으로 확인해도 출석부·픽업표 결석에 저절로
     if (b.todo) { // 2026-11-19 사용자: 연락 종류를 나누지 않고 '할 일에 넣기' (그날 마감)
       const ttl = m.kid + ' · ' + (pmShort(m) || m.label).slice(0, 60);
       const r = itemStmt(env, { type: 'todo', title: ttl, due: m.day, cat: m.act === 'out' ? '하원' : '', status: '진행', whos: [], checks: [], done: false, pickupKid: m.act === 'out' ? m.kid : '' }, me); await r.stmt.run(); applied = 1;
@@ -1718,6 +1720,14 @@ function guessAct(t) {
 // 학부모 앱 '사범님께 연락' 대화 (2026-11-19 사용자): 학부모·도장이 주고받기, 사진 3장까지, 이모티콘 (이모티콘은 알림 안 울림)
 const PM_EMO = ['👍', '❤️', '😊', '🙏'];
 const pmPhs = ph => String(ph || '').split(',').filter(Boolean);
+// 학부모 앱 '결석' 버튼으로 온 연락(직접 쓴 말 빼고)은 직원이 처음 확인·답장할 때 출석부 결석 예정 + 픽업표 결석 (2026-11-19 사용자)
+async function pmAbsent(env, m, by) {
+  if (m.act !== 'absent' || m.applied || m.kind === 'text') return false;
+  const why = [m.why, m.text].filter(Boolean).join(' · ').slice(0, 40) || '학부모 연락';
+  const r = await attSync(env, '/sync/absence', { items: [{ name: m.kid, date: m.day, why }] }).catch(() => ({}));
+  await pickupMark(env, m.day, m.kid, 'absent', '결석 (' + why + ')', by);
+  return !!(r && r.ok);
+}
 async function pmPhotoSave(env, list, now) {
   const ids = [];
   for (const x of list.slice(0, 3)) { if (!x || !x.full || !/^[A-Za-z0-9+/=]+$/.test(x.full) || x.full.length > 1500000) continue; const id = rid(12); await run(env, 'INSERT INTO photos (id, full, thumb, created) VALUES (?, ?, ?, ?)', id, x.full, /^[A-Za-z0-9+/=]+$/.test(x.thumb || '') ? x.thumb : x.full, now); ids.push(id); }
