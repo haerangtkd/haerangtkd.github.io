@@ -143,6 +143,35 @@
   .feet{display:flex;gap:10px;}
   .feet .big{flex:1;touch-action:manipulation;}
   .codeIn{width:100%;border:2px solid #e6d5bb;border-radius:14px;padding:12px 14px;font:inherit;font-size:18px;color:var(--ink);background:#fff;margin-bottom:12px;}
+  /* 2026-11-19 오전: 입어 보기 · 수업/쉬는 시간 · 명예의 전당 넘기기 */
+  #charSheet .rec{display:none;}
+  #charSheet .shop{max-height:30vh;}
+  .chip.try{border-color:#5b8fc7;background:#eaf3fc;}
+  .chip.lockp{opacity:.75;}
+  .tryBar{display:flex;gap:8px;align-items:center;margin-top:10px;min-height:52px;}
+  .tryBar .big{flex:1;font-size:18px;padding:12px;}
+  .tryBar .x{flex:none;}
+  .tryBar p{flex:1;margin:0;font-size:14px;color:var(--soft);text-align:center;}
+  .glab{grid-column:1/-1;font-size:14px;color:var(--soft);margin:6px 2px 0;}
+  .game.soon{opacity:.55;}
+  .avs{display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;font-size:14px;line-height:1;overflow:hidden;flex:none;color:#fff;background:#c9b49a;vertical-align:middle;}
+  .avs img{width:100%;height:100%;object-fit:cover;}
+  .fcard .r span:first-child{display:flex;align-items:center;gap:5px;min-width:0;}
+  .fnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;}
+  .fnav button{border:none;background:#f1e6d6;border-radius:999px;width:38px;height:38px;font:inherit;font-size:18px;color:var(--ink);}
+  .fnav button:disabled{opacity:.3;}
+  .fnav b{font-size:17px;font-weight:normal;}
+  .fempty{grid-column:1/-1;text-align:center;padding:26px 10px;background:#fff6e0;border-radius:18px;font-size:17px;line-height:1.6;}
+  .fempty b{display:block;font-size:30px;margin-bottom:4px;}
+  #rankSheet .rlist{max-height:212px;}
+  .rlist .r span{display:flex;align-items:center;gap:8px;min-width:0;}
+  .rlist .r .avs{flex:none;width:28px;height:28px;font-size:16px;}
+  .goInfo .tgPick{display:grid;background:none;padding:0;}
+  .tgPick{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:4px 0 12px;}
+  .tgPick button{border:2px solid transparent;background:#f6eee2;border-radius:14px;padding:8px 2px;font:inherit;font-size:15px;color:var(--ink);line-height:1.25;}
+  .tgPick button small{display:block;font-size:11px;color:var(--soft);}
+  .tgPick button.on{border-color:var(--accent);background:#fff;}
+  .tgPick button.soon{opacity:.5;}
   .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--soft);}
 </style>
 </head>
@@ -151,7 +180,7 @@
 <canvas id="c"></canvas>
 
 <div class="top">
-  <div class="title"><a class="back" href="./" aria-label="제자 앱으로">‹</a><div><b>레크리에이션</b><span>해랑경희 태권도</span></div></div>
+  <div class="title"><a class="back" href="./" aria-label="제자 앱으로">‹</a><div><b>레크리에이션</b><span id="zoneName">🥋 수업 시간</span></div></div>
   <div class="right">
     <button class="pill btn" id="stars">⭐ 0</button>
     <button class="pill" id="soundBtn">소리 켜짐</button>
@@ -169,7 +198,7 @@
 </div>
 
 <div class="sheet" id="charSheet">
-  <div class="sheetHead"><b>👕 탈의실</b><button class="x" data-close>닫기</button></div>
+  <div class="sheetHead"><b id="charTitle">👕 탈의실</b><button class="x" data-close>닫기</button></div>
   <div class="rec">
     <div><b id="rStars">0</b>가진 별</div>
     <div><b id="rRope">0</b>줄넘기 최고</div>
@@ -178,10 +207,10 @@
   </div>
   <div class="shop">
     <div class="label">띠</div><div class="chips" id="beltChips"></div>
-    <div class="label">머리 색</div><div class="chips" id="hairChips"></div>
     <div id="shopCats"></div>
   </div>
-  <p class="note">띠는 제자 앱에 있는 내 진짜 띠예요. 도복 바지 색은 품에 따라 저절로 바뀌어요(1품 파랑 · 2품 빨강 · 3품 검정). 산 꾸미기는 계속 내 것이라 언제든 별 없이 다시 고를 수 있어요.</p>
+  <div class="tryBar" id="tryBar"></div>
+  <p class="note">눌러서 먼저 입어 볼 수 있어요. 사는 건 별이 있어야 해요. 품도복은 그 품이 되면 입을 수 있어요(1품 파랑 · 2품 빨강 · 3품 검정 바지).</p>
 </div>
 
 <div class="sheet" id="gameSheet">
@@ -194,16 +223,7 @@
 
 <div class="sheet" id="playSheet">
   <div class="sheetHead"><b>무엇을 할까요?</b><button class="x" data-close>닫기</button></div>
-  <div class="games">
-    <div class="gwrap"><button class="game" data-game="rope"><i>🪢</i><b>줄넘기</b><small id="pRope"></small></button><div class="rk" id="rk-rope"></div></div>
-    <div class="gwrap"><button class="game" data-game="tg"><i>🥋</i><b>태극 1장</b><small id="pTg"></small></button><div class="rk" id="rk-tg"></div></div>
-    <div class="gwrap"><button class="game" data-game="break"><i>🪵</i><b>격파 놀이</b><small id="pBreak"></small></button><div class="rk" id="rk-brk"></div></div>
-    <div class="gwrap"><button class="game" data-game="belt"><i>🎗️</i><b>띠 순서</b><small id="pBelt"></small></button><div class="rk" id="rk-belt"></div></div>
-    <div class="gwrap"><button class="game" data-game="whack"><i>🎯</i><b>표적 치기</b><small id="pWhack"></small></button><div class="rk" id="rk-whack"></div></div>
-    <div class="gwrap"><button class="game" data-game="mem"><i>🃏</i><b>짝 맞추기</b><small id="pMem"></small></button><div class="rk" id="rk-mem"></div></div>
-    <div class="gwrap"><button class="game" data-game="quiz"><i>💡</i><b>해랑경희 퀴즈</b><small id="pQuiz"></small></button><div class="rk" id="rk-quiz"></div></div>
-    <div class="gwrap"><button class="game" data-game="run"><i>🏃</i><b>왕복달리기</b><small id="pRun"></small></button></div>
-  </div>
+  <div class="games" id="gameList"></div>
 </div>
 
 <div class="sheet" id="rankSheet">
@@ -219,8 +239,9 @@
 </div>
 
 <div class="sheet" id="fameSheet">
-  <div class="sheetHead"><b id="fameTitle">🏆 명예의 전당</b><button class="x" data-close>닫기</button></div>
-  <p class="note" style="margin:0 0 10px">놀이별 이번 달 1~3위 · 매달 1일에 새로 시작해요</p>
+  <div class="sheetHead"><b>🏆 명예의 전당</b><button class="x" data-close>닫기</button></div>
+  <div class="fnav"><button id="fPrev" aria-label="지난달">‹</button><b id="fameTitle">이번 달</b><button id="fNext" aria-label="다음 달">›</button></div>
+  <p class="note" style="margin:0 0 10px" id="fameNote">놀이별 1~3위 · 매달 1일에 새로 시작해요 · 옆으로 밀면 지난달</p>
   <div class="fame" id="fameList"></div>
 </div>
 
@@ -239,7 +260,7 @@
 </div>
 
 <div class="sheet" id="tgSheet">
-  <div class="sheetHead"><b>태극 1장 맞추기</b><button class="x" data-close>그만하기</button></div>
+  <div class="sheetHead"><b id="tgTitle">태극 1장 맞추기</b><button class="x" data-close>그만하기</button></div>
   <div class="tgStep" id="tgStep">준비</div>
   <div class="choices" id="tgChoices"></div>
   <p class="gMsg" id="tgMsg" style="margin-bottom:0"></p>
@@ -288,15 +309,36 @@ if(MYBELT) { try { localStorage.setItem('haerang-dojang-belt', MYBELT); } catch(
 else { try { MYBELT = localStorage.getItem('haerang-dojang-belt') || ''; } catch(e){} }
 if(!MYBELT) MYBELT = '흰띠';
 const LOOK = beltLook(MYBELT);
-const HAIRS = [
+const HAIRS = [ /* 예전 저장값(S.hair 번호) 옮기기용 */
   {name:'밤색', c:'#4a3426'}, {name:'검정', c:'#262222'}, {name:'갈색', c:'#7a5134'}, {name:'노랑', c:'#d9a94e'}
 ];
 
 /* ---------- 👕 탈의실 상점 (2026-11-19) ----------
-   별은 놀이에서 받고, 꾸미기를 사면 바로 입혀짐. 산 것은 계속 내 것(다시 고를 때 별 안 듦).
-   새 놀이(왕복달리기)도 별로 엶. 선범단·수련으로 얻는 꾸미기는 여기서 팔지 않음(제자 앱 프로필). */
-const SHOP_CATS = [['band','머리띠'], ['kihap','기합 소리'], ['tag','이름표 테두리']];
+   눌러서 먼저 입어 보기 → 별이 있으면 사기. 산 것은 계속 내 것(다시 고를 때 별 안 듦).
+   품도복은 살 수 없고, 그 품이 되면 입을 수 있음(입어 보기는 누구나). 새 놀이(왕복달리기·품새)도 별로 엶.
+   선범단·수련으로 얻는 꾸미기는 여기서 팔지 않음(제자 앱 프로필). */
+const SHOP_CATS = [['hair','머리 색'], ['dobok','도복'], ['band','머리띠'], ['kihap','기합 소리'], ['tag','이름표 테두리']];
 const SHOP = [
+  {cat:'hair', id:'', n:'밤색', p:0, c:'#4a3426'},
+  {cat:'hair', id:'hBlack', n:'검정', p:0, c:'#262222'},
+  {cat:'hair', id:'hBrown', n:'갈색', p:0, c:'#7a5134'},
+  {cat:'hair', id:'hYellow', n:'노랑', p:0, c:'#d9a94e'},
+  {cat:'hair', id:'hRed', n:'빨강', p:15, c:'#c8372d'},
+  {cat:'hair', id:'hOrange', n:'주황', p:15, c:'#e8812c'},
+  {cat:'hair', id:'hPink', n:'분홍', p:15, c:'#f08bb4'},
+  {cat:'hair', id:'hGreen', n:'초록', p:15, c:'#3fa35b'},
+  {cat:'hair', id:'hSky', n:'하늘', p:15, c:'#6cc3ea'},
+  {cat:'hair', id:'hBlue', n:'파랑', p:20, c:'#2f6fde'},
+  {cat:'hair', id:'hPurple', n:'보라', p:20, c:'#8a5bd1'},
+  {cat:'hair', id:'hMint', n:'민트', p:20, c:'#5fd3b4'},
+  {cat:'hair', id:'hSilver', n:'은색', p:30, c:'#c9ccd3'},
+  {cat:'hair', id:'hWhite', n:'하양', p:30, c:'#f4f1ea'},
+  {cat:'hair', id:'hGold', n:'금색', p:40, c:'#e0b43a'},
+  {cat:'dobok', id:'w', n:'흰 도복', p:0, top:'#fbfaf6', trim:'#dedbd2', pants:'#fbfaf6', c:'#fbfaf6'},
+  {cat:'dobok', id:'p1', n:'1품 도복', poom:1, top:'#fbfaf6', trim:'#c8302a', pants:'#2f5fc4', c:'#2f5fc4'},
+  {cat:'dobok', id:'p2', n:'2품 도복', poom:2, top:'#fbfaf6', trim:'#c8302a', pants:'#c8302a', c:'#c8302a'},
+  {cat:'dobok', id:'p3', n:'3품 도복', poom:3, top:'#fbfaf6', trim:'#1f1d1c', pants:'#1f1d1c', c:'#1f1d1c'},
+  {cat:'dobok', id:'dSummer', n:'여름 도복', p:40, top:'#2f6fde', trim:'#2a58b8', pants:'#1f1d1c', c:'#2f6fde'},
   {cat:'band', id:'', n:'없음', p:0},
   {cat:'band', id:'bWhite', n:'흰 머리띠', p:10, c:'#ffffff'},
   {cat:'band', id:'bRed', n:'빨간 머리띠', p:15, c:'#d92d20'},
@@ -306,7 +348,7 @@ const SHOP = [
   {cat:'kihap', id:'kHa', n:'하앗!', p:10, v:'하앗', pi:1.1, f:[[380,.1],[300,.16]]},
   {cat:'kihap', id:'kIya', n:'이얍!', p:10, v:'이얍', pi:1.8, f:[[660,.06],[880,.06],[1040,.12]]},
   {cat:'kihap', id:'kTae', n:'태권!', p:15, v:'태권', pi:1.2, f:[[440,.09],[560,.09],[440,.14]]},
-  {cat:'kihap', id:'kHr', n:'해랑!', p:15, v:'해랑', pi:1.6, f:[[600,.09],[800,.09],[1000,.16]]},
+  {cat:'kihap', id:'kCha', n:'차앗!', p:15, v:'차앗', pi:1.6, f:[[700,.06],[950,.14]]},
   {cat:'tag', id:'', n:'기본', p:0},
   {cat:'tag', id:'tSky', n:'하늘 테두리', p:20, c:'#5b8fc7'},
   {cat:'tag', id:'tGold', n:'금색 테두리', p:40, c:'#e0b43a'},
@@ -314,12 +356,26 @@ const SHOP = [
 ];
 const shopItem = (cat, id) => SHOP.find(x => x.cat === cat && x.id === (id || ''));
 const owns = id => !id || S.own.indexOf(id) >= 0;
-const kihapWord = () => (shopItem('kihap', S.eq.kihap) || {n:'얍!'}).n;
+/* 내 품 (3품 이상·단은 3) — 품도복은 지금 품까지 입을 수 있음 */
+const MYPOOM = (() => { const b = String(MYBELT || ''), m = b.match(/(\d+)\s*품/); if(m) return Math.min(3, +m[1]); return /단|검은띠/.test(b) ? 3 : 0; })();
+const ownsItem = it => !!it && (it.poom ? MYPOOM >= it.poom : (it.p === 0 || owns(it.id)));
+let PREV = null; /* 입어 보는 중인 것 */
+const EQ = () => PREV ? Object.assign({}, S.eq, PREV) : S.eq;
+/* 도복: 비워 두면 '지금 내 품 도복'(승품하면 저절로 바뀜), 품이 없으면 흰 도복 */
+const dobokId = e => (e && e.dobok) || (MYPOOM ? 'p' + MYPOOM : 'w');
+const dobokOf = e => shopItem('dobok', dobokId(e)) || shopItem('dobok', 'w');
+const curId = cat => cat === 'dobok' ? dobokId(S.eq) : (S.eq[cat] || '');
+const kihapWord = () => (shopItem('kihap', EQ().kihap) || {n:'얍!'}).n;
 const RUN_PRICE = 50;
-/* 예전에 산 도복 색은 별을 돌려줌 (2026-11-19 도복은 품에 따라 저절로로 바뀜) */
-{ const OLD = {dSky:20, dPink:20, dNavy:25, dBlack:30}; let back = 0;
+/* 예전 상점의 도복 색(하늘·분홍·남색·검정)은 별을 돌려줌 · 해랑! 기합은 차앗!으로 바꿈 · 머리 색 번호 → 상점 */
+{ const OLD = {dSky:20, dPink:20, dNavy:25, dBlack:30}; let back = 0, ch = false;
   S.own = S.own.filter(id => { if(OLD[id]){ back += OLD[id]; return false; } return true; });
-  if(back){ S.stars += back; } if(S.eq.dobok || back){ S.eq.dobok = ''; save(); } }
+  if(back){ S.stars += back; ch = true; }
+  if(OLD[S.eq.dobok]){ S.eq.dobok = ''; ch = true; }
+  if(S.own.indexOf('kHr') >= 0){ S.own = S.own.map(x => x === 'kHr' ? 'kCha' : x); ch = true; }
+  if(S.eq.kihap === 'kHr'){ S.eq.kihap = 'kCha'; ch = true; }
+  if(S.eq.hair == null){ S.eq.hair = ['', 'hBlack', 'hBrown', 'hYellow'][S.hair || 0] || ''; ch = true; }
+  if(ch) save(); }
 /* 도복 바지 색: 1품 파랑 · 2품 빨강 · 3품 이상(단 포함) 검정 · 나머지 흰색 */
 function pantsColor(b){
   b = String(b || ''); const m = b.match(/(\d+)\s*품/);
@@ -382,8 +438,22 @@ const GAMES = {
   belt: {n:'띠 순서', d:-1, f:v => (v/10).toFixed(1) + '초'},
   whack:{n:'표적 치기', d:1, f:v => v + '점'},
   mem:  {n:'짝 맞추기', d:-1, f:v => v + '번 만에'},
-  quiz: {n:'해랑경희 퀴즈', d:1, f:v => v + '/8'}
+  quiz: {n:'해랑경희 퀴즈', d:1, f:v => v + '/8'},
+  run:  {n:'왕복달리기', d:-1, f:v => (v/10).toFixed(1) + '초'},
+  tg2:  {n:'태극 2장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
+  tg3:  {n:'태극 3장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
+  tg4:  {n:'태극 4장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
+  tg5:  {n:'태극 5장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
+  tg6:  {n:'태극 6장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
+  tg7:  {n:'태극 7장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
+  tg8:  {n:'태극 8장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'}
 };
+const BASE_GAMES = ['rope','tg','brk','belt','whack','mem','quiz']; /* 명예의 전당에 늘 보이는 놀이 (나머지는 기록이 있을 때만) */
+const PATCH = { p1:'patch-1.png', p2:'patch-2.png', p3:'patch-3.png', p4:'patch-4.png', sbl:'sb-av.png' }; /* 제자 앱 프로필과 같은 그림 */
+function avSpan(n, pr){
+  const p = (pr || {})[n] || {}, e = p.av || String(n || '').slice(1, 2) || '?';
+  return '<span class="avs" style="background:' + escH(p.bg || '#c9b49a') + '">' + (PATCH[e] ? '<img src="' + PATCH[e] + '" alt="">' : escH(e)) + '</span>';
+}
 const nowYm = () => new Date(Date.now() + 9*3600e3).toISOString().slice(0,7);
 function monthRec(g, v){
   if(!GAMES[g] || !(v >= 0)) return;
@@ -398,7 +468,7 @@ async function gameSync(wantTop){
   const q = pendQ();
   if(!q && !wantTop) return null;
   try {
-    const r = await fetch(API + '/k/game', {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tok: TOK, recs: q || undefined, top: !!wantTop})}).then(x => x.json());
+    const r = await fetch(API + '/k/game', {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tok: TOK, recs: q || undefined, top: !!wantTop, months: !!wantTop})}).then(x => x.json());
     if(r && r.ok){
       if(q && S.mb && S.mb.q === q){ S.mb.q = {}; save(); }
       if(r.top){ TOP = r; topAt = Date.now(); }
@@ -434,12 +504,13 @@ async function loadRanks(){
   drawRanks();
   await gameSync(true); drawRanks();
 }
-function showRank(g){
-  const t = TOP && TOP.top && TOP.top[g]; if(!t) return;
+function showRank(g, D){
+  D = D || TOP; const t = D && D.top && D.top[g]; if(!t) return;
   if(openSheetFn) openSheetFn('rankSheet');
-  $('rkTitle').textContent = '🏆 ' + GAMES[g].n + ' · ' + (+TOP.ym.slice(5)) + '월 순위';
-  $('rkList').innerHTML = (t.list || []).map((x,i) => '<div class="r' + (x.n === TOP.me ? ' me' : '') + '"><i>' + medal(i) + '</i><span>' + escH(x.n) + (x.n === TOP.me ? ' (나)' : '') + '</span><b>' + GAMES[g].f(x.v) + '</b></div>').join('') || '<div class="r"><span>아직 기록이 없어요</span></div>';
-  $('rkMe').textContent = t.me ? '내 순위: ' + t.cnt + '명 중 ' + t.me.rank + '위 (' + GAMES[g].f(t.me.v) + ')' : '이번 달 내 기록이 아직 없어요. 한 판 해 볼까요?';
+  const cur = D.ym === nowYm();
+  $('rkTitle').textContent = '🏆 ' + GAMES[g].n + ' · ' + (+D.ym.slice(5)) + '월';
+  $('rkList').innerHTML = (t.list || []).map((x,i) => '<div class="r' + (x.n === D.me ? ' me' : '') + '"><i>' + medal(i) + '</i><span>' + avSpan(x.n, D.prof) + escH(x.n) + (x.n === D.me ? ' (나)' : '') + '</span><b>' + GAMES[g].f(x.v) + '</b></div>').join('') || '<div class="r"><span>아직 기록이 없어요</span></div>';
+  $('rkMe').textContent = t.me ? '내 순위: ' + t.cnt + '명 중 ' + t.me.rank + '위 (' + GAMES[g].f(t.me.v) + ')' : (cur ? '이번 달 내 기록이 아직 없어요. 한 판 해 볼까요?' : '이 달에는 내 기록이 없어요.');
 }
 
 if(!window.THREE){ $('loading').textContent = '그림을 불러오지 못했어요. 다시 열어 주세요.'; return; }
@@ -538,7 +609,7 @@ const fame = textTex(768, 384, (g,w,h)=>{
   }
 });
 const fameM = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.1), new THREE.MeshLambertMaterial({map:fame.tex}));
-fameM.position.set(-W/2+.02, 1.9, -7.2); fameM.rotation.y = Math.PI/2; scene.add(fameM);
+fameM.position.set(-W/2+.02, 1.9, -5.9); /* 탈의실과 조금 띄움 */ fameM.rotation.y = Math.PI/2; scene.add(fameM);
 fameM.scale.set(.85,.85,1);
 
 /* 창문 (오른쪽 벽) */
@@ -613,7 +684,8 @@ halves.forEach(h => { for(let k=0;k<3;k++){ const l = new THREE.Mesh(new THREE.P
 const brk = {t:-1};
 
 /* 부딪힘 */
-const PILLARS = [{x:-1.9, z:-3.4}, {x:1.9, z:5.2}];
+const PILLARS = [{x:-1.9, z:-3.4}, {x:2.1, z:3.9}];
+const ZONE_Z = 3.2; /* 이 줄 앞 = 수업 시간, 뒤 = 쉬는 시간 */
 const OBST = [
   {x:BAG.x, z:BAG.z, r:.8}, {x:STAND.x, z:STAND.z, r:.75},
   {x:6.4,z:6.6,r:.6},{x:6.4,z:8.6,r:.6},{x:6.4,z:10.6,r:.6},
@@ -681,7 +753,7 @@ tagS.scale.set(1.5,.45,1); tagS.position.y = 2.75; tagS.renderOrder = 10; P.root
 function drawTag(){
   const g = tag.g; g.clearRect(0,0,320,96);
   g.fillStyle='rgba(255,250,242,.95)'; roundRect(g,10,12,300,70,35); g.fill();
-  const tg = shopItem('tag', S.eq.tag);
+  const tg = shopItem('tag', EQ().tag);
   if(tg && tg.c){
     if(tg.c === 'rainbow'){ const gr = g.createLinearGradient(10,0,310,0); ['#e74c3c','#f39c12','#f1c40f','#2ecc71','#3498db','#9b59b6'].forEach((c,i)=>gr.addColorStop(i/5,c)); g.strokeStyle = gr; }
     else g.strokeStyle = tg.c;
@@ -694,9 +766,10 @@ function drawTag(){
   tag.tex.needsUpdate = true;
 }
 function applyLook(){
-  beltMat.color.set(LOOK.c); knotMat.color.set(LOOK.k); hairMat.color.set(HAIRS[S.hair].c);
-  const bd = shopItem('band', S.eq.band); bandG.visible = !!(bd && bd.c); if(bandG.visible) bandMat.color.set(bd.c);
-  pantsMat.color.set(pantsColor(MYBELT) || '#fbfaf6');
+  const e = EQ();
+  beltMat.color.set(LOOK.c); knotMat.color.set(LOOK.k); hairMat.color.set((shopItem('hair', e.hair) || shopItem('hair', '')).c);
+  const bd = shopItem('band', e.band); bandG.visible = !!(bd && bd.c); if(bandG.visible) bandMat.color.set(bd.c);
+  const dk = dobokOf(e); dobok.color.set(dk.top); trim.color.set(dk.trim); pantsMat.color.set(dk.pants);
   drawTag();
 }
 applyLook();
@@ -764,7 +837,7 @@ function angDiff(a,b){ let d = b - a; while(d > Math.PI) d -= Math.PI*2; while(d
 /* ---------- 버튼 ---------- */
 /* 기합 소리 (2026-11-19 사용자: 아무 소리도 안 나고 다 똑같음 → 목소리 + 기합마다 다른 소리) */
 function sayKihap(){
-  const it = shopItem('kihap', S.eq.kihap) || shopItem('kihap', '');
+  const it = shopItem('kihap', EQ().kihap) || shopItem('kihap', '');
   floatText(it.n);
   if(!S.sound) return;
   tone(it.f || [[600,.1]]); noise(.12, 1800, .35);
@@ -862,36 +935,56 @@ const runG = new THREE.Group(); scene.add(runG);
 pickable(runG, 'run');
 
 /* 놀이 탁자 (뒤쪽) */
-function booth(id, x, z, emoji, name, col){
+function booth(id, x, z, emoji, name, col, soon){
   const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
   box(1.5,.72,.8,'#d8b48a',0,.36,0,g); box(1.62,.08,.92,col,0,.76,0,g);
   box(1.36,.9,.05,col,0,1.3,-.25,g);
-  const t = textTex(512, 320, (c,w,h) => { c.fillStyle = '#fffaf2'; roundRect(c,0,0,w,h,30); c.fill(); c.font = '130px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(emoji, w/2, 118); c.fillStyle = '#5a4632'; c.font = '62px ' + FONT; c.fillText(name, w/2, 250); });
+  const t = textTex(512, 320, (c,w,h) => { c.fillStyle = '#fffaf2'; roundRect(c,0,0,w,h,30); c.fill(); c.font = '130px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.globalAlpha = soon ? .45 : 1; c.fillText(emoji, w/2, 118); c.globalAlpha = 1; c.fillStyle = '#5a4632'; c.font = '62px ' + FONT; c.fillText(name, w/2, 250);
+    if(soon){ c.fillStyle = '#e07a5f'; roundRect(c,150,16,212,60,30); c.fill(); c.fillStyle = '#fff'; c.font = '40px ' + FONT; c.fillText('준비 중', w/2, 48); } });
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1.24,.78), new THREE.MeshBasicMaterial({map:t.tex})); m.position.set(0,1.3,-.22); g.add(m);
   OBST.push({x, z, r:.95});
   return pickable(g, id);
 }
-booth('belt', -3.9, 9.2, '🎗️', '띠 순서', '#e07a5f');
-booth('mem', 0, 10.3, '🃏', '짝 맞추기', '#5b8fc7');
-booth('quiz', 3.9, 9.2, '💡', '해랑경희 퀴즈', '#6aa84f');
+/* 쉬는 시간 (뒤쪽): 3줄 × 3칸 — 준비 중 놀이는 2026-11-19 사용자가 보낸 놀이 목록에서 고름 */
+const BOOTHS = [
+  ['belt','🎗️','띠 순서','#e07a5f'], ['mem','🃏','짝 맞추기','#5b8fc7'], ['quiz','💡','해랑경희 퀴즈','#6aa84f'],
+  ['ruler','📏','자를 잡아라','#b9b2a8',1], ['balloon','🎈','풍선 터뜨리기','#b9b2a8',1], ['order','🔢','순서대로','#b9b2a8',1],
+  ['lr','↔️','좌우로','#b9b2a8',1], ['rps','✌️','가위바위보','#b9b2a8',1], ['tug','💪','줄다리기','#b9b2a8',1]
+];
+const BOOTH_POS = {};
+BOOTHS.forEach((b, i) => { const x = [-4.2, 0, 4.2][i % 3], z = [5.8, 8.2, 10.6][Math.floor(i / 3)]; BOOTH_POS[b[0]] = {x, z}; booth(b[0], x, z, b[1], b[2], b[3], b[4]); });
+/* 쉬는 시간 줄 */
+{ const ln = box(W - .3, .012, .07, new THREE.MeshBasicMaterial({color:'#ffffff', transparent:true, opacity:.8}), 0, .092, ZONE_Z, scene, false); ln.receiveShadow = false; }
+/* 겨루기 (준비 중) — 거울 앞 오른쪽 */
+const kyoG = new THREE.Group(); scene.add(kyoG);
+{ const t = textTex(256, 256, (g,w,h) => { g.fillStyle = '#2f6fde'; g.fillRect(0,0,w,h); g.fillStyle = '#f2c94c'; g.fillRect(14,14,w-28,h-28); g.fillStyle = '#d92d20'; g.fillRect(14,14,w-28,(h-28)/2); g.fillStyle = 'rgba(255,255,255,.85)'; g.font = '46px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('겨루기', w/2, h/2); });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), new THREE.MeshLambertMaterial({map:t.tex, transparent:true, opacity:.75})); m.rotation.x = -Math.PI/2; m.position.set(4.4, .087, -6.3); m.receiveShadow = true; kyoG.add(m); }
+pickable(kyoG, 'kyo');
 pickable(bag, 'bag'); pickable(stand, 'brk');
 
 /* 자리마다: 어디 서서 · 어디 보고 · 도착하면 무엇 */
 const ST = {
-  locker:{n:'탈의실', e:'👕', spot:{x:-5.6, z:-10.65}, face:{x:-7, z:-10.65}, ly:3.0, open:() => openSheet('charSheet')},
-  fame:{n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-7.2}, face:{x:-7, z:-7.2}, lp:{x:-6.2, z:-7.2}, ly:3.3, open:() => openSheet('fameSheet')},
-  tg:{n:'태극 1장', e:'🥋', g:'tg', spot:TG_START_POS, face:{x:TG_START_POS.x, z:-13}, lp:{x:.6, z:-7.6}, ly:2.0, start:() => startTg()},
-  brk:{n:'격파 놀이', e:'🪵', g:'brk', spot:STAND_SPOT, face:STAND, lp:STAND, ly:2.3, start:() => openGame()},
-  bag:{n:'샌드백', e:'🥊', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, open:() => { bagBusy = true; bagPunches(4); }},
-  whack:{n:'표적 치기', e:'🎯', g:'whack', spot:{x:-4.4, z:-3.8}, face:{x:-4.4, z:-4.9}, lp:{x:-4.4, z:-4.9}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
-  rope:{n:'줄넘기', e:'🪢', g:'rope', spot:CENTER_ROPE, face:{x:CENTER_ROPE.x, z:-13}, lp:{x:CENTER_ROPE.x, z:CENTER_ROPE.z-1.3}, ly:2.0, start:() => startRope()},
-  run:{n:'왕복달리기', e:'🏃', lock:'gRun', price:RUN_PRICE, spot:{x:3.9, z:3.1}, face:{x:3.9, z:-2}, lp:{x:3.9, z:-.3}, ly:1.6, start:() => openPanel('왕복달리기', gameRun)},
-  belt:{n:'띠 순서', e:'🎗️', g:'belt', spot:{x:-3.9, z:10.45}, face:{x:-3.9, z:9.2}, lp:{x:-3.9, z:9.2}, ly:2.3, start:() => openPanel('띠 순서 맞추기', gameBelt)},
-  mem:{n:'짝 맞추기', e:'🃏', g:'mem', spot:{x:0, z:11.55}, face:{x:0, z:10.3}, lp:{x:0, z:10.3}, ly:2.3, start:() => openPanel('짝 맞추기', gameMem)},
-  quiz:{n:'해랑경희 퀴즈', e:'💡', g:'quiz', spot:{x:3.9, z:10.45}, face:{x:3.9, z:9.2}, lp:{x:3.9, z:9.2}, ly:2.3, start:() => openPanel('해랑경희 퀴즈', gameQuiz)}
+  locker:{z:'side', n:'탈의실', e:'👕', spot:{x:-5.6, z:-10.65}, face:{x:-7, z:-10.65}, ly:3.0, open:() => openSheet('charSheet')},
+  fame:{z:'side', n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-5.9}, face:{x:-7, z:-5.9}, lp:{x:-6.2, z:-5.9}, ly:3.3, open:() => openSheet('fameSheet')},
+  tg:{z:'class', n:'품새', e:'🥋', g:'tg', spot:TG_START_POS, face:{x:TG_START_POS.x, z:-13}, lp:{x:.6, z:-7.6}, ly:2.0, start:() => startTg(tgSel)},
+  brk:{z:'class', n:'격파 놀이', e:'🪵', g:'brk', spot:STAND_SPOT, face:STAND, lp:STAND, ly:2.3, start:() => openGame()},
+  bag:{z:'class', n:'샌드백', e:'🥊', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, open:() => { bagBusy = true; bagPunches(4); }},
+  whack:{z:'class', n:'표적 치기', e:'🎯', g:'whack', spot:{x:-4.4, z:-3.8}, face:{x:-4.4, z:-4.9}, lp:{x:-4.4, z:-4.9}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
+  kyo:{z:'class', n:'겨루기', e:'🤜', soon:1, spot:{x:4.4, z:-5.0}, face:{x:4.4, z:-6.3}, lp:{x:4.4, z:-6.3}, ly:1.7},
+  rope:{z:'class', n:'줄넘기', e:'🪢', g:'rope', spot:CENTER_ROPE, face:{x:CENTER_ROPE.x, z:-13}, lp:{x:CENTER_ROPE.x, z:CENTER_ROPE.z-1.3}, ly:2.0, start:() => startRope()},
+  run:{z:'class', n:'왕복달리기', e:'🏃', g:'run', lock:'gRun', price:RUN_PRICE, spot:{x:3.9, z:2.6}, face:{x:3.9, z:-2}, lp:{x:3.9, z:-.3}, ly:1.6, start:() => openPanel('왕복달리기', gameRun)},
+  belt:{z:'rest', n:'띠 순서', e:'🎗️', g:'belt', spot:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z+1.25}, face:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z}, lp:BOOTH_POS.belt, ly:2.3, start:() => openPanel('띠 순서 맞추기', gameBelt)},
+  mem:{z:'rest', n:'짝 맞추기', e:'🃏', g:'mem', spot:{x:BOOTH_POS.mem.x, z:BOOTH_POS.mem.z+1.25}, face:{x:BOOTH_POS.mem.x, z:BOOTH_POS.mem.z}, lp:BOOTH_POS.mem, ly:2.3, start:() => openPanel('짝 맞추기', gameMem)},
+  quiz:{z:'rest', n:'해랑경희 퀴즈', e:'💡', g:'quiz', spot:{x:BOOTH_POS.quiz.x, z:BOOTH_POS.quiz.z+1.25}, face:{x:BOOTH_POS.quiz.x, z:BOOTH_POS.quiz.z}, lp:BOOTH_POS.quiz, ly:2.3, start:() => openPanel('해랑경희 퀴즈', gameQuiz)},
+  ruler:{z:'rest', n:'자를 잡아라', e:'📏', soon:1, spot:{x:BOOTH_POS.ruler.x, z:BOOTH_POS.ruler.z+1.25}, face:{x:BOOTH_POS.ruler.x, z:BOOTH_POS.ruler.z}, lp:BOOTH_POS.ruler, ly:2.3},
+  balloon:{z:'rest', n:'풍선 터뜨리기', e:'🎈', soon:1, spot:{x:BOOTH_POS.balloon.x, z:BOOTH_POS.balloon.z+1.25}, face:{x:BOOTH_POS.balloon.x, z:BOOTH_POS.balloon.z}, lp:BOOTH_POS.balloon, ly:2.3},
+  order:{z:'rest', n:'순서대로', e:'🔢', soon:1, spot:{x:BOOTH_POS.order.x, z:BOOTH_POS.order.z+1.25}, face:{x:BOOTH_POS.order.x, z:BOOTH_POS.order.z}, lp:BOOTH_POS.order, ly:2.3},
+  lr:{z:'rest', n:'좌우로', e:'↔️', soon:1, spot:{x:BOOTH_POS.lr.x, z:BOOTH_POS.lr.z+1.25}, face:{x:BOOTH_POS.lr.x, z:BOOTH_POS.lr.z}, lp:BOOTH_POS.lr, ly:2.3},
+  rps:{z:'rest', n:'가위바위보', e:'✌️', soon:1, spot:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z+1.25}, face:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z}, lp:BOOTH_POS.rps, ly:2.3},
+  tug:{z:'rest', n:'줄다리기', e:'💪', soon:1, spot:{x:BOOTH_POS.tug.x, z:BOOTH_POS.tug.z+1.25}, face:{x:BOOTH_POS.tug.x, z:BOOTH_POS.tug.z}, lp:BOOTH_POS.tug, ly:2.3}
 };
 ST.locker.lp = {x:-6.4, z:-10.65};
-const stLabel = id => { const s = ST[id]; return s.e + ' ' + s.n + (s.lock && !owns(s.lock) ? ' 🔒' + s.price : ''); };
+const stLabel = id => { const s = ST[id]; return s.e + ' ' + s.n + (s.soon ? ' · 준비 중' : s.lock && !owns(s.lock) ? ' 🔒' + s.price : ''); };
 Object.keys(ST).forEach(id => { const s = ST[id]; s.lb = label(stLabel(id), s.lp.x, s.ly, s.lp.z); pickable(s.lb, id); });
 
 function goStation(id){
@@ -916,9 +1009,13 @@ let goId = null;
 function openGo(id){
   const s = ST[id]; goId = id;
   openSheet('goSheet');
-  $('goTitle').textContent = s.e + ' ' + s.n + (s.lock && !owns(s.lock) ? '' : ' 할까요?');
+  if(id === 'tg') return openTgGo();
+  $('goTitle').textContent = s.e + ' ' + s.n + (s.soon || (s.lock && !owns(s.lock)) ? '' : ' 할까요?');
   const rows = [];
-  if(s.lock && !owns(s.lock)){
+  if(s.soon){
+    rows.push(['🚧 준비 중', '곧 만날 수 있어요!']);
+    $('goBtn').textContent = '조금만 기다려 주세요'; $('goBtn').disabled = true;
+  } else if(s.lock && !owns(s.lock)){
     rows.push(['🔒 새 놀이', '별 ' + s.price + '개로 열어요'], ['가진 별', '⭐ ' + S.stars]);
     $('goBtn').textContent = S.stars >= s.price ? '⭐' + s.price + ' 내고 열기' : '별 ' + (s.price - S.stars) + '개 더 모아요';
     $('goBtn').disabled = S.stars < s.price;
@@ -932,8 +1029,30 @@ function openGo(id){
   $('goInfo').innerHTML = rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
   if(s.g && API && TOK && (!TOP || Date.now() - topAt > 60000)) gameSync(true).then(() => { if(openId === 'goSheet' && goId === id) openGo(id); });
 }
+/* 🥋 품새: 1장은 그냥, 2·3장은 별로 엶, 4~8장은 사범님이 동작 순서를 확인한 뒤 열림 */
+let tgSel = 1;
+function tgReady(n){ return !!TGS[n]; }
+function tgOwned(n){ return n === 1 || owns('tg' + n); }
+function openTgGo(){
+  $('goTitle').textContent = '🥋 품새 · 태극 ' + tgSel + '장';
+  const best = n => { const v = n === 1 ? S.bestTg : ((S.bestTgN || {})[n] ?? -1); return v < 0 ? '' : v === 0 ? '만점' : v + '번 틀림'; };
+  let h = '<div class="tgPick">' + [1,2,3,4,5,6,7,8].map(n => '<button data-tg="' + n + '" class="' + (n === tgSel ? 'on' : '') + (tgReady(n) ? '' : ' soon') + '">' + n + '장<small>' + (!tgReady(n) ? '준비 중' : tgOwned(n) ? (best(n) || '열림') : '⭐' + TG_PRICE[n]) + '</small></button>').join('') + '</div>';
+  const g = tgSel === 1 ? 'tg' : 'tg' + tgSel, t = TOP && TOP.top && TOP.top[g], L = (t && t.list) || [];
+  h += '<div><span>이번 달 1위</span><b>' + (L.length ? '🥇 ' + escH(L[0].n) + ' · ' + GAMES[g].f(L[0].v) : '아직 없어요') + '</b></div>';
+  $('goInfo').innerHTML = h;
+  $('goInfo').querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { audio(); sfx.pop(); tgSel = +b.dataset.tg; openTgGo(); });
+  const btn = $('goBtn');
+  if(!tgReady(tgSel)){ btn.textContent = '사범님이 동작을 확인하면 열려요'; btn.disabled = true; }
+  else if(!tgOwned(tgSel)){ const p = TG_PRICE[tgSel]; btn.textContent = S.stars >= p ? '⭐' + p + ' 내고 태극 ' + tgSel + '장 열기' : '별 ' + (p - S.stars) + '개 더 모아요'; btn.disabled = S.stars < p; }
+  else { btn.textContent = '태극 ' + tgSel + '장 시작!'; btn.disabled = false; }
+}
 $('goBtn').addEventListener('click', () => {
   audio(); const s = ST[goId]; if(!s) return;
+  if(s.soon) return;
+  if(goId === 'tg' && tgReady(tgSel) && !tgOwned(tgSel)){
+    const p = TG_PRICE[tgSel]; if(S.stars < p){ sfx.fail(); return; }
+    S.stars -= p; S.own.push('tg' + tgSel); save(); updateStars(); sfx.star(); toast('태극 ' + tgSel + '장이 열렸어요! 🎉'); openTgGo(); return;
+  }
   if(s.lock && !owns(s.lock)){
     if(S.stars < s.price){ sfx.fail(); return; }
     S.stars -= s.price; S.own.push(s.lock); save(); updateStars(); s.lb.userData.draw(stLabel(goId));
@@ -943,24 +1062,58 @@ $('goBtn').addEventListener('click', () => {
 });
 $('stars').addEventListener('click', () => { audio(); goStation('locker'); });
 
-/* 🏆 명예의 전당 (놀이별 이번 달 1~3위, 매달 1일 새로) */
+/* 🏆 명예의 전당 (놀이별 1~3위, 매달 1일 새로) — ‹ › 또는 옆으로 밀어 지난달 (2026-11-19 사용자) */
+const FAME = {}; let fameYm = null, fameMonths = null;
+const ymAdd = (ym, k) => { const d = new Date(Date.UTC(+ym.slice(0,4), +ym.slice(5,7) - 1 + k, 1)); return d.toISOString().slice(0,7); };
+async function fameLoad(ym){
+  if(!API || !TOK) return null;
+  const cur = nowYm();
+  if(ym === cur){ if(!TOP || Date.now() - topAt > 60000 || pendQ()) await gameSync(true); if(TOP) FAME[cur] = TOP; }
+  else if(!FAME[ym]){
+    try { const r = await fetch(API + '/k/game', {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tok: TOK, top: true, ym, months: true})}).then(x => x.json());
+      if(r && r.ok){ FAME[ym] = r.ym === ym ? r : {ym, me: r.me, top: {}, prof: {}}; if(Array.isArray(r.months)) fameMonths = r.months; } } catch(e){}
+  }
+  if(!fameMonths && TOP && Array.isArray(TOP.months)) fameMonths = TOP.months;
+  return FAME[ym] || null;
+}
 function drawFame(){
-  const box3 = $('fameList');
-  $('fameTitle').textContent = '🏆 ' + (+((TOP && TOP.ym) || nowYm()).slice(5)) + '월 명예의 전당';
+  const box3 = $('fameList'), ym = fameYm || nowYm(), cur = ym === nowYm(), D = FAME[ym];
+  $('fameTitle').textContent = (+ym.slice(5)) + '월 명예의 전당' + (cur ? ' · 이번 달' : '');
+  const first = (fameMonths && fameMonths.length) ? fameMonths.slice().sort()[0] : ymAdd(nowYm(), -1);
+  $('fPrev').disabled = ym <= first; $('fNext').disabled = cur;
   if(!API || !TOK){ box3.innerHTML = '<p class="note" style="grid-column:1/-1">제자 앱에서 들어오면 순위가 보여요.</p>'; return; }
-  if(!TOP || !TOP.top){ box3.innerHTML = '<p class="note" style="grid-column:1/-1">순위를 불러오는 중…</p>'; return; }
-  box3.innerHTML = Object.keys(GAMES).map(g => {
-    const t = TOP.top[g] || {}, L = t.list || [];
-    const rows = L.length ? L.slice(0,3).map((x,i) => '<div class="r' + (x.n === TOP.me ? ' me' : '') + '"><span>' + medal(i) + ' ' + escH(x.n) + '</span><span>' + GAMES[g].f(x.v) + '</span></div>').join('') : '<div class="r"><span>1등이 되어 보세요!</span></div>';
-    const more = (L.length > 3 || (t.me && t.me.rank > 3)) ? '<button class="more" data-rank="' + g + '">더보기' + (t.me && t.me.rank > 3 ? ' · 나 ' + t.me.rank + '위' : '') + '</button>' : '';
-    return '<div class="fcard"><b>' + (ST[g] ? ST[g].e + ' ' : '') + GAMES[g].n + '</b>' + rows + more + '</div>';
+  if(!D || !D.top){ box3.innerHTML = '<p class="note" style="grid-column:1/-1">불러오는 중…</p>'; return; }
+  const gs = Object.keys(GAMES).filter(g => BASE_GAMES.indexOf(g) >= 0 || ((D.top[g] || {}).list || []).length);
+  const any = gs.some(g => ((D.top[g] || {}).list || []).length);
+  if(!any){
+    box3.innerHTML = cur ? '<div class="fempty"><b>🥁</b>두구두구… 아직 아무도 없어요!<br>' + (+ym.slice(5)) + '월 첫 주인공은 과연 누구?!</div>'
+                         : '<div class="fempty"><b>🥁</b>' + (+ym.slice(5)) + '월 명예의 전당은 비어 있어요.<br>이번 달 주인공은 과연 누구?!</div>';
+    return;
+  }
+  box3.innerHTML = gs.map(g => {
+    const t = D.top[g] || {}, L = t.list || [];
+    const rows = L.length ? L.slice(0,3).map((x,i) => '<div class="r' + (x.n === D.me ? ' me' : '') + '"><span>' + medal(i) + avSpan(x.n, D.prof) + escH(x.n) + '</span><span>' + GAMES[g].f(x.v) + '</span></div>').join('') : '<div class="r"><span>' + (cur ? '1등이 되어 보세요!' : '기록 없음') + '</span></div>';
+    const more = L.length ? '<button class="more" data-rank="' + g + '">더보기' + (t.me && t.me.rank > 3 ? ' · 나 ' + t.me.rank + '위' : '') + '</button>' : '';
+    const ic = g === 'run' ? '🏃' : /^tg/.test(g) ? '🥋' : (ST[g] ? ST[g].e : '');
+    return '<div class="fcard"><b>' + ic + ' ' + GAMES[g].n + '</b>' + rows + more + '</div>';
   }).join('');
-  box3.querySelectorAll('[data-rank]').forEach(b => b.onclick = e => { e.stopPropagation(); audio(); showRank(b.dataset.rank); });
+  box3.querySelectorAll('[data-rank]').forEach(b => b.onclick = e => { e.stopPropagation(); audio(); showRank(b.dataset.rank, D); });
 }
 async function fillFame(){
-  drawFame();
-  if(API && TOK && (!TOP || Date.now() - topAt > 60000 || pendQ())){ await gameSync(true); if(openId === 'fameSheet') drawFame(); }
+  if(!fameYm) fameYm = nowYm();
+  drawFame(); await fameLoad(fameYm); if(openId === 'fameSheet') drawFame();
 }
+function fameGo(k){
+  const ym = ymAdd(fameYm || nowYm(), k), first = (fameMonths && fameMonths.length) ? fameMonths.slice().sort()[0] : ymAdd(nowYm(), -1);
+  if(ym > nowYm() || ym < first) return;
+  audio(); sfx.pop(); fameYm = ym; fillFame();
+}
+$('fPrev').addEventListener('click', () => fameGo(-1));
+$('fNext').addEventListener('click', () => fameGo(1));
+{ let sx = null; const fl = $('fameSheet');
+  fl.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, {passive:true});
+  fl.addEventListener('touchend', e => { if(sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if(Math.abs(dx) > 60) fameGo(dx > 0 ? -1 : 1); }, {passive:true}); }
+$('rkBack').onclick = null;
 function goBag(){
   if(bagBusy || P.act) return;
   const go = () => bagPunches(4);
@@ -983,22 +1136,25 @@ document.querySelectorAll('.bar button').forEach(b => b.addEventListener('click'
 
 /* ---------- 창 ---------- */
 let openId = null;
-function openSheet(id){ closeSheets(); openId = id; $(id).classList.add('open'); if(id==='charSheet') fillChar(); if(id==='playSheet') fillPlay(); if(id==='fameSheet') fillFame(); } /* 순위는 제자 앱 즐기기 화면에서 (2026-11-17 사용자) */
+function openSheet(id){ closeSheets(); openId = id; $(id).classList.add('open'); if(id==='charSheet'){ P.yawT = 0; fillChar(); } if(id==='playSheet') fillPlay(); if(id==='fameSheet') fillFame(); } /* 순위는 제자 앱 즐기기 화면에서 (2026-11-17 사용자) */
 function closeSheets(){
   document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
   if(openId==='gameSheet') G.on = false;
   if(openId==='ropeSheet' || openId==='tgSheet') endMode();
+  if(openId==='charSheet' && (PREV || TRY)) stopTry();
   openId = null;
 }
 function fillPlay(){
-  $('pRope').textContent = '최고 ' + S.bestRope + '번';
-  $('pTg').textContent = S.bestTg < 0 ? '순서 맞히기' : (S.bestTg === 0 ? '최고 만점!' : '최고 ' + S.bestTg + '번 틀림');
-  $('pBreak').textContent = '최고 ' + S.best + '단계';
-  $('pBelt').textContent = S.bestBelt ? '최고 ' + S.bestBelt.toFixed(1) + '초' : '낮은 띠부터';
-  $('pWhack').textContent = '최고 ' + S.bestWhack + '점';
-  $('pMem').textContent = S.bestMem ? '최고 ' + S.bestMem + '번 만에' : '같은 그림 찾기';
-  $('pQuiz').textContent = '최고 ' + S.bestQuiz + '/8';
-  $('pRun').textContent = owns('gRun') ? (S.bestRun ? '최고 ' + S.bestRun.toFixed(1) + '초' : '열렸어요!') : '🔒 별 ' + RUN_PRICE + '개로 열기';
+  const sub = id => { const st2 = ST[id];
+    if(st2.soon) return '준비 중';
+    if(st2.lock && !owns(st2.lock)) return '🔒 별 ' + st2.price + '개로 열기';
+    if(id === 'tg') return '태극 1~8장';
+    if(id === 'bag') return '10번 치면 별 하나';
+    const bb = BESTS[id] && BESTS[id](); return bb && bb !== '아직 없어요' ? '최고 ' + bb : ''; };
+  const sec = (z, title) => '<div class="glab">' + title + '</div>' + Object.keys(ST).filter(id => ST[id].z === z).map(id =>
+    '<button class="game' + (ST[id].soon ? ' soon' : '') + '" data-st="' + id + '"><i>' + ST[id].e + '</i><b>' + ST[id].n + '</b><small>' + sub(id) + '</small></button>').join('');
+  $('gameList').innerHTML = sec('class', '🥋 수업 시간 (앞쪽)') + sec('rest', '🎈 쉬는 시간 (뒤쪽)');
+  $('gameList').querySelectorAll('[data-st]').forEach(b => b.onclick = () => { audio(); sfx.pop(); goStation(b.dataset.st); });
 }
 function addStars(n, msg){ if(n <= 0) return; S.stars += n; updateStars(); save(); sfx.star(); if(msg) toast(msg); }
 const CENTER = {x:-2.4, z:.4}; /* 줄넘기 자리 (가운데 운동 구역) */
@@ -1009,17 +1165,13 @@ function goCenter(cb){
   if(near(CENTER.x, CENTER.z, .3)) cb(); else walkTo(CENTER.x, CENTER.z, cb);
 }
 /* 놀이 목록에서 고르면 그 놀이 자리로 걸어감 (2026-11-19) */
-document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => {
-  audio(); sfx.pop();
-  const g = b.dataset.game;
-  goStation(g === 'break' ? 'brk' : g);
-}));
+
 function endMode(){
   P.mode = null; ropeG.visible = false; R.on = false; T.on = false;
   P.jt = -1; P.root.position.y = .08; P.act = null;
 }
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
-$('rkBack').addEventListener('click', () => openSheet('fameSheet'));
+$('rkBack').addEventListener('click', () => { openSheet('fameSheet'); });
 openSheetFn = openSheet;
 /* 🔑 선생님 테스트: '레크리에이션' 글자를 3초 길게 누름 → 코드 맞으면 별 200개 (2026-11-19 사용자) */
 { const tb = document.querySelector('.title b'); let lt = null;
@@ -1038,37 +1190,51 @@ openSheetFn = openSheet;
 function fillChar(){
   $('rStars').textContent = S.stars; $('rRope').textContent = S.bestRope + '번'; $('rBest').textContent = S.best + '단계'; $('rTg').textContent = S.bestTg < 0 ? '-' : (S.bestTg === 0 ? '만점' : S.bestTg + '번 틀림');
   $('beltChips').innerHTML = '<span class="chip on"><span class="dot" style="background:'+LOOK.c+'"></span>'+MYBELT+'</span>';
-  const hc = $('hairChips'); hc.innerHTML = '';
-  HAIRS.forEach((h,i) => {
-    const el = document.createElement('button'); el.className = 'chip' + (i===S.hair?' on':'');
-    el.innerHTML = '<span class="dot" style="background:'+h.c+'"></span>'+h.name;
-    el.onclick = () => { S.hair = i; save(); applyLook(); fillChar(); sfx.pop(); };
-    hc.appendChild(el);
-  });
+  $('charTitle').textContent = '👕 탈의실 · ⭐ ' + S.stars;
   const box2 = $('shopCats'); box2.innerHTML = '';
   SHOP_CATS.forEach(([cat, name]) => {
     const lb = document.createElement('div'); lb.className = 'label'; lb.textContent = name; box2.appendChild(lb);
     const ch = document.createElement('div'); ch.className = 'chips'; box2.appendChild(ch);
     SHOP.filter(x => x.cat === cat).forEach(it => {
-      const mine = owns(it.id), on = (S.eq[cat] || '') === it.id;
+      const mine = ownsItem(it), on = curId(cat) === it.id, tr = TRY && TRY.cat === cat && TRY.id === it.id;
       const b = document.createElement('button');
-      b.className = 'chip' + (on ? ' on' : '') + (!mine && S.stars < it.p ? ' poor' : '') + (askBuy === it.id && it.id ? ' ask' : '');
+      b.className = 'chip' + (on ? ' on' : '') + (tr ? ' try' : '') + (!mine && it.poom ? ' lockp' : '') + (!mine && !it.poom && S.stars < it.p ? ' poor' : '');
       const dot = it.c ? '<span class="dot" style="background:' + (it.c === 'rainbow' ? 'linear-gradient(90deg,#e74c3c,#f1c40f,#2ecc71,#3498db,#9b59b6)' : it.c) + '"></span>' : '';
-      const tail = mine ? (on ? '<small>입는 중</small>' : (it.id ? '<small>내 것</small>' : '')) : (askBuy === it.id ? '<small>한 번 더 누르면 사요</small>' : '<small>⭐' + it.p + '</small>');
+      const tail = on ? '<small>입는 중</small>' : mine ? ((it.p || it.poom) ? '<small>내 것</small>' : '') : it.poom ? '<small>🔒 ' + it.poom + '품</small>' : '<small>⭐' + it.p + '</small>';
       b.innerHTML = dot + it.n + ' ' + tail;
-      b.onclick = () => { audio(); pickShop(it); };
+      b.onclick = () => tryOn(it);
       ch.appendChild(b);
     });
   });
+  drawTryBar();
+}
+/* 입어 보기 → 입기 / 사기 */
+let TRY = null;
+function tryOn(it){
+  audio(); TRY = {cat: it.cat, id: it.id};
+  PREV = {}; PREV[it.cat] = it.cat === 'dobok' ? it.id : it.id;
+  applyLook(); if(it.cat === 'kihap') sayKihap(); else { sfx.pop(); doAct('bow', 1.0); }
+  fillChar();
+}
+function stopTry(){ PREV = null; TRY = null; applyLook(); }
+function drawTryBar(){
+  const bar = $('tryBar'); bar.innerHTML = '';
+  if(!TRY){ bar.innerHTML = '<p>입어 보고 싶은 걸 눌러 보세요 👀</p>'; return; }
+  const it = shopItem(TRY.cat, TRY.id); if(!it){ bar.innerHTML = ''; return; }
+  const back = el('button', 'x', '되돌리기'); back.onclick = () => { audio(); stopTry(); fillChar(); };
+  const btn = el('button', 'big', '');
+  if(curId(it.cat) === it.id){ bar.innerHTML = '<p>지금 입고 있어요</p>'; return; }
+  if(ownsItem(it)){ btn.textContent = '이걸로 입기'; btn.onclick = () => { audio(); equip(it); toast('바꿨어요!'); }; }
+  else if(it.poom){ btn.textContent = it.poom + '품이 되면 입을 수 있어요'; btn.disabled = true; }
+  else if(S.stars < it.p){ btn.textContent = '별이 ' + (it.p - S.stars) + '개 더 있어야 살 수 있어요'; btn.disabled = true; }
+  else { btn.textContent = '⭐' + it.p + ' 내고 사기'; btn.onclick = () => { audio(); if(S.stars < it.p) return; S.stars -= it.p; S.own.push(it.id); updateStars(); equip(it); sfx.star(); toast(it.n + ' 샀어요!'); floatText('✨', 2.6); }; }
+  bar.append(back, btn);
+}
+function equip(it){
+  S.eq[it.cat] = it.cat === 'dobok' ? (it.id === 'p' + MYPOOM ? '' : it.id) : it.id;
+  save(); PREV = null; TRY = null; applyLook(); fillChar();
 }
 let askBuy = null;
-function pickShop(it){
-  if(owns(it.id)){ askBuy = null; S.eq[it.cat] = it.id; save(); applyLook(); fillChar(); sfx.pop(); if(it.cat === 'kihap'){ sayKihap(); } return; }
-  if(S.stars < it.p){ askBuy = null; sfx.fail(); toast('별이 ' + (it.p - S.stars) + '개 더 필요해요'); fillChar(); return; }
-  if(askBuy !== it.id){ askBuy = it.id; sfx.tick(); fillChar(); return; }
-  askBuy = null; S.stars -= it.p; S.own.push(it.id); S.eq[it.cat] = it.id; save(); updateStars(); applyLook(); fillChar();
-  sfx.star(); toast(it.n + ' 샀어요! 바로 ' + (it.cat === 'kihap' ? '바뀌었어요' : '입었어요')); if(it.cat === 'kihap') setTimeout(sayKihap, 300); else floatText('✨', 2.6);
-}
 
 /* ---------- 격파 놀이 ---------- */
 const G = {on:false, level:1, x:0, dir:1, wait:0, z0:.4, zw:.26, over:false};
@@ -1179,27 +1345,76 @@ const TG = [
   {d:'앞으로',          s:'오른앞굽이', m:'몸통반대지르기', step:1.1, t:'punch', arm:1,  lead:1, deep:1, kihap:1}
 ];
 const TECHS = ['아래막기','몸통안막기','얼굴막기','몸통반대지르기','몸통바로지르기'];
+/* 태극 2장·3장 (국기원 순서, 2026-11-19 Claude가 넣음 — 사범님 확인 필요). 4~8장은 사범님이 순서를 확인해 준 뒤 넣기 */
+const TG2 = [
+  {d:'왼쪽으로', s:'왼앞서기', m:'아래막기', turn:'L', step:.8, t:'block', h:0, arm:-1, lead:-1},
+  {d:'앞으로', s:'오른앞굽이', m:'몸통반대지르기', step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'뒤로 돌아', s:'오른앞서기', m:'아래막기', turn:'B', step:.8, t:'block', h:0, arm:1, lead:1},
+  {d:'앞으로', s:'왼앞굽이', m:'몸통반대지르기', step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
+  {d:'왼쪽으로 돌아', s:'왼앞서기', m:'몸통안막기', turn:'L', step:.8, t:'block', h:1, arm:1, lead:-1},
+  {d:'앞으로', s:'오른앞서기', m:'몸통안막기', step:.8, t:'block', h:1, arm:-1, lead:1},
+  {d:'왼쪽으로', s:'왼앞서기', m:'아래막기', turn:'L', step:.8, t:'block', h:0, arm:-1, lead:-1},
+  {d:'오른발 앞차고', s:'오른앞굽이', m:'얼굴반대지르기', kick:1, step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'뒤로 돌아', s:'오른앞서기', m:'아래막기', turn:'B', step:.8, t:'block', h:0, arm:1, lead:1},
+  {d:'왼발 앞차고', s:'왼앞굽이', m:'얼굴반대지르기', kick:-1, step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
+  {d:'왼쪽으로 돌아', s:'왼앞서기', m:'얼굴막기', turn:'L', step:.8, t:'block', h:2, arm:-1, lead:-1},
+  {d:'앞으로', s:'오른앞서기', m:'얼굴막기', step:.8, t:'block', h:2, arm:1, lead:1},
+  {d:'오른쪽으로 돌아', s:'왼앞서기', m:'몸통안막기', turn:'R', step:.8, t:'block', h:1, arm:1, lead:-1},
+  {d:'뒤로 돌아', s:'오른앞서기', m:'몸통안막기', turn:'B', step:.8, t:'block', h:1, arm:-1, lead:1},
+  {d:'처음 자리 쪽으로 돌아', s:'왼앞서기', m:'아래막기', turn:'S', step:.8, t:'block', h:0, arm:-1, lead:-1},
+  {d:'오른발 앞차고', s:'오른앞서기', m:'몸통반대지르기', kick:1, step:.8, t:'punch', arm:1, lead:1},
+  {d:'왼발 앞차고', s:'왼앞서기', m:'몸통반대지르기', kick:-1, step:.8, t:'punch', arm:-1, lead:-1},
+  {d:'오른발 앞차고', s:'오른앞서기', m:'몸통반대지르기', kick:1, step:.8, t:'punch', arm:1, lead:1, kihap:1}
+];
+const TG3 = [
+  {d:'왼쪽으로', s:'왼앞서기', m:'아래막기', turn:'L', step:.8, t:'block', h:0, arm:-1, lead:-1},
+  {d:'오른발 앞차고', s:'오른앞굽이', m:'몸통두번지르기', kick:1, step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'뒤로 돌아', s:'오른앞서기', m:'아래막기', turn:'B', step:.8, t:'block', h:0, arm:1, lead:1},
+  {d:'왼발 앞차고', s:'왼앞굽이', m:'몸통두번지르기', kick:-1, step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
+  {d:'왼쪽으로 돌아', s:'왼앞서기', m:'한손날목치기', turn:'L', step:.8, t:'punch', arm:1, lead:-1},
+  {d:'앞으로', s:'오른앞서기', m:'한손날목치기', step:.8, t:'punch', arm:-1, lead:1},
+  {d:'왼쪽으로', s:'오른뒷굽이', m:'한손날바깥막기', turn:'L', step:.8, t:'block', h:1, arm:-1, lead:-1},
+  {d:'그 자리에서', s:'왼앞굽이', m:'몸통바로지르기', step:.4, t:'punch', arm:1, lead:-1, deep:1},
+  {d:'뒤로 돌아', s:'왼뒷굽이', m:'한손날바깥막기', turn:'B', step:.8, t:'block', h:1, arm:1, lead:1},
+  {d:'그 자리에서', s:'오른앞굽이', m:'몸통바로지르기', step:.4, t:'punch', arm:-1, lead:1, deep:1},
+  {d:'왼쪽으로 돌아', s:'왼앞서기', m:'몸통안막기', turn:'L', step:.8, t:'block', h:1, arm:1, lead:-1},
+  {d:'앞으로', s:'오른앞서기', m:'몸통안막기', step:.8, t:'block', h:1, arm:-1, lead:1},
+  {d:'오른쪽으로 돌아', s:'왼앞서기', m:'아래막기', turn:'R', step:.8, t:'block', h:0, arm:-1, lead:-1},
+  {d:'오른발 앞차고', s:'오른앞굽이', m:'몸통두번지르기', kick:1, step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'뒤로 돌아', s:'오른앞서기', m:'아래막기', turn:'B', step:.8, t:'block', h:0, arm:1, lead:1},
+  {d:'왼발 앞차고', s:'왼앞굽이', m:'몸통두번지르기', kick:-1, step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
+  {d:'처음 자리 쪽으로 돌아', s:'왼앞서기', m:'아래막기 · 몸통바로지르기', turn:'S', step:.8, t:'block', h:0, arm:-1, lead:-1},
+  {d:'앞으로', s:'오른앞서기', m:'아래막기 · 몸통바로지르기', step:.8, t:'block', h:0, arm:1, lead:1},
+  {d:'왼발 앞차고', s:'왼앞서기', m:'아래막기 · 몸통바로지르기', kick:-1, step:.8, t:'block', h:0, arm:-1, lead:-1},
+  {d:'오른발 앞차고', s:'오른앞서기', m:'아래막기 · 몸통바로지르기', kick:1, step:.8, t:'block', h:0, arm:1, lead:1, kihap:1}
+];
+const TGS = {1: null, 2: TG2, 3: TG3}; /* 1 = 위의 TG (아래에서 채움) */
+const TG_PRICE = {2:30, 3:35, 4:40, 5:45, 6:50, 7:55, 8:60};
+let CUR = null;
 const DIR_SWAP = {'왼쪽으로':'오른쪽으로','오른쪽으로':'왼쪽으로','왼쪽으로 돌아':'오른쪽으로 돌아','오른쪽으로 돌아':'왼쪽으로 돌아',
   '앞으로':'뒤로 돌아','뒤로 돌아':'왼쪽으로','그 자리에서':'앞으로','오른발 앞차고':'왼발 앞차고','왼발 앞차고':'오른발 앞차고',
   '처음 자리 쪽으로 돌아':'앞으로'};
+TGS[1] = TG; CUR = TG;
 const TG_START = TG_START_POS;
 const T = {on:false, i:0, miss:0, stepMiss:0, busy:false, dir:{x:0,z:-1}};
 const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
 function tgLabel(d, st, m){ return '<b>' + d + '</b> · ' + st + ' ' + m; }
 
-function startTg(){
+function startTg(n){
+  n = TGS[n] ? n : 1; T.n = n; CUR = TGS[n];
   openSheet('tgSheet'); P.mode = 'tg';
+  $('tgTitle').textContent = '태극 ' + n + '장 맞추기';
   T.on = true; T.i = 0; T.miss = 0; T.stepMiss = 0; T.busy = false; T.dir = {x:0, z:-1};
   P.yawT = Math.PI;
   $('tgMsg').textContent = '캐릭터 뒤에서 보고 있어요. 다음 동작을 골라요!';
   showTg();
 }
 function showTg(){
-  const st = TG[T.i];
-  $('tgStep').textContent = (T.i+1) + '번째 동작 (' + (T.i+1) + ' / ' + TG.length + ')';
+  const st = CUR[T.i];
+  $('tgStep').textContent = (T.i+1) + '번째 동작 (' + (T.i+1) + ' / ' + CUR.length + ')';
   const right = {html: tgLabel(st.d, st.s, st.m), ok:true};
-  const wrongDir = {html: tgLabel(DIR_SWAP[st.d], st.s, st.m)};
-  const others = TECHS.filter(x => x !== st.m);
+  const wrongDir = {html: tgLabel(DIR_SWAP[st.d] || '뒤로 돌아', st.s, st.m)};
+  const others = [...new Set(CUR.map(x => x.m).concat(TECHS))].filter(x => x !== st.m);
   const wrongTech = {html: tgLabel(st.d, st.s, others[Math.floor(Math.random()*others.length)])};
   const box2 = $('tgChoices'); box2.innerHTML = '';
   shuffle([right, wrongDir, wrongTech]).forEach(o => {
@@ -1223,9 +1438,9 @@ function pickTg(b){
   b.classList.add('ok'); sfx.tick();
   T.busy = true; T.stepMiss = 0;
   $('tgMsg').textContent = ['좋아요!','정확해요!','멋져요!','바로 그거예요!'][T.i % 4];
-  playTg(TG[T.i], () => {
+  playTg(CUR[T.i], () => {
     T.busy = false; T.i++;
-    if(T.i >= TG.length) return finishTg();
+    if(T.i >= CUR.length) return finishTg();
     showTg();
   });
 }
@@ -1262,17 +1477,19 @@ function playTg(st, done){
   run();
 }
 function finishTg(){
-  monthRec('tg', T.miss);
+  const jang = T.n || 1;
+  monthRec(jang === 1 ? 'tg' : 'tg' + jang, T.miss);
   T.on = false;
   const n = T.miss >= 0 && T.miss === 0 ? 3 : T.miss <= 3 ? 2 : 1;
   let msg = T.miss === 0 ? '한 번도 안 틀렸어요! 별 3개 ⭐⭐⭐' : T.miss + '번 틀렸어요. 별 ' + n + '개 받았어요';
-  if(S.bestTg < 0 || T.miss < S.bestTg){ S.bestTg = T.miss; msg = '새 기록! ' + msg; }
+  if(jang === 1){ if(S.bestTg < 0 || T.miss < S.bestTg){ S.bestTg = T.miss; msg = '새 기록! ' + msg; } }
+  else { S.bestTgN = S.bestTgN || {}; const b = S.bestTgN[jang]; if(b == null || T.miss < b){ S.bestTgN[jang] = T.miss; msg = '새 기록! ' + msg; } }
   addStars(n);
-  $('tgStep').textContent = '태극 1장 완성! 🎉';
+  $('tgStep').textContent = '태극 ' + jang + '장 완성! 🎉';
   $('tgMsg').textContent = msg;
   const c = $('tgChoices'); c.innerHTML = '';
   const again = document.createElement('button'); again.className = 'big'; again.textContent = '다시 하기';
-  again.onclick = () => { audio(); P.act = null; closeSheets(); walkTo(TG_START.x, TG_START.z, startTg); };
+  again.onclick = () => { audio(); P.act = null; closeSheets(); walkTo(TG_START.x, TG_START.z, () => startTg(jang)); };
   c.appendChild(again);
   setTimeout(() => { P.yawT = Math.atan2(T.dir.x, T.dir.z); doAct('bow', 1.4); }, 200);
 }
@@ -1372,6 +1589,7 @@ function gameRun(body){
     $('rnTime').textContent = sec.toFixed(1) + '초';
     let m = sec.toFixed(1) + '초에 들어왔어요!';
     if(!S.bestRun || sec < S.bestRun){ S.bestRun = sec; m = '새 기록! ' + m; }
+    monthRec('run', Math.round(sec * 10));
     const st = sec <= 7 ? 3 : sec <= 10 ? 2 : 1;
     addStars(st); msg.textContent = m + ' 별 ' + st + '개 ⭐';
     feet.style.display = 'none'; again.style.display = '';
@@ -1624,7 +1842,7 @@ canvas.addEventListener('pointerup', e => {
   const r = canvas.getBoundingClientRect();
   ndc.set((e.clientX-r.left)/r.width*2-1, -((e.clientY-r.top)/r.height)*2+1);
   ray.setFromCamera(ndc, camera);
-  const hits = ray.intersectObjects(PICK, true);
+  const hits = ray.intersectObjects(PICK, true).filter(h => h.object.visible !== false); /* 숨긴 이름표는 안 눌림 */
   if(hits.length){
     let o = hits[0].object; while(o && !(o.userData && o.userData.st)) o = o.parent;
     if(o && o.userData.st) return goStation(o.userData.st);
@@ -1645,7 +1863,7 @@ function resize(){
 window.addEventListener('resize', resize); resize();
 const camT = new THREE.Vector3(0,0,2), camOff = new THREE.Vector3(0, 10.5, 11.5);
 const CAM_Z0 = -9.6, CAM_Z1 = 10.4;
-let camFree = false, camFZ = 2, camFX = 0;
+let camFree = false, camFZ = 2, camFX = 0, zoneNow = '';
 const CAM_X = 4.6; /* 2026-11-19 사용자: 벽 쪽 좌우로 잘 안 움직여짐 → 화면도 벽까지 따라감 */
 
 /* ---------- 매 장면 ---------- */
@@ -1793,7 +2011,10 @@ function loop(now){
   else ring.material.opacity = 0;
 
   /* 사진기 */
-  const tx = camFree ? camFX : Math.max(-CAM_X, Math.min(CAM_X, pos.x)), tz = camFree ? camFZ : Math.max(CAM_Z0, Math.min(CAM_Z1, pos.z));
+  const tx = camFree ? camFX : Math.max(-CAM_X, Math.min(CAM_X, pos.x)), tz = camFree ? camFZ : Math.max(CAM_Z0, Math.min(CAM_Z1 + 3, pos.z + (openId === 'charSheet' ? 3.2 : 0)));
+  /* 수업 시간(앞) · 쉬는 시간(뒤): 지금 있는 쪽 놀이 이름표만 */
+  const zn = pos.z < ZONE_Z ? 'class' : 'rest';
+  if(zn !== zoneNow){ zoneNow = zn; Object.values(ST).forEach(st2 => { if(st2.lb) st2.lb.visible = st2.z === 'side' || st2.z === zn; }); $('zoneName').textContent = zn === 'class' ? '🥋 수업 시간' : '🎈 쉬는 시간'; }
   const ck = camFree ? 10 : (P.target ? 6 : 3);
   camT.x += (tx - camT.x) * Math.min(1, dt*ck); camT.z += (tz - camT.z) * Math.min(1, dt*ck);
   camera.position.set(camT.x + camOff.x*camK, camOff.y*camK, camT.z + camOff.z*camK);
