@@ -170,19 +170,24 @@ async function route(path, req, env) {
     if (!ks) return json({ ok: false, error: '다시 도장에서 코드를 넣어 주세요', out: true });
     // 🎮 우리 도장 놀이터 이번 달 순위 (2026-11-17 사용자) — 판마다 안 부름: 놀이터를 열 때·나갈 때·놀이 목록을 볼 때만 (기록 묶음 저장 + 순위)
     if (path === '/k/game') {
-      const me = ks.name, ym = kstDay(new Date()).slice(0, 7);
-      if (!viaP && b.recs && typeof b.recs === 'object') for (const [g, v0] of Object.entries(b.recs).slice(0, 10)) {
+      const me = ks.name, ym = kstDay(new Date()).slice(0, 7), qym = /^\d{4}-\d{2}$/.test(String(b.ym || '')) && String(b.ym) <= ym ? String(b.ym) : ym; // 지난달 명예의 전당 보기 (2026-11-19 사용자)
+      if (!viaP && b.recs && typeof b.recs === 'object') for (const [g, v0] of Object.entries(b.recs).slice(0, 20)) {
         const d = GAME_DIR[g], v = Math.round(Number(v0)); if (!d || !Number.isFinite(v) || v < 0 || v > 100000) continue;
         const better = d > 0 ? 'excluded.v > kgame.v' : 'excluded.v < kgame.v';
         await run(env, 'INSERT INTO kgame (ym, g, name, v, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(ym, g, name) DO UPDATE SET v = CASE WHEN ' + better + ' THEN excluded.v ELSE kgame.v END, at = CASE WHEN ' + better + ' THEN excluded.at ELSE kgame.at END', ym, g, me, v, Date.now());
       }
       if (!b.top) return json({ ok: true });
-      const rows = await all(env, 'SELECT g, name, v, at FROM kgame WHERE ym = ?', ym), top = {};
+      const rows = await all(env, 'SELECT g, name, v, at FROM kgame WHERE ym = ?', qym), top = {};
       for (const g of Object.keys(GAME_DIR)) {
         const L = rows.filter(r => r.g === g).sort((x, y) => GAME_DIR[g] * (y.v - x.v) || x.at - y.at), i = L.findIndex(r => r.name === me);
         top[g] = { list: L.slice(0, 10).map(r => ({ n: r.name, v: r.v })), me: i >= 0 ? { rank: i + 1, v: L[i].v } : null, cnt: L.length };
       }
-      return json({ ok: true, ym, me, top });
+      // 이름 옆 프로필(제자 앱 꾸미기 av·bg) · 기록이 있는 달 목록 (2026-11-19 사용자)
+    const pnm = [...new Set(Object.values(top).flatMap(t => t.list.map(x => x.n)))].slice(0, 90);
+    const prw = pnm.length ? await all(env, 'SELECT k, v FROM kv WHERE k IN (' + pnm.map(() => '?').join(',') + ')', ...pnm.map(n => 'kprof:' + n)) : [];
+    const prof = Object.fromEntries(prw.map(r => { const p = J(r.v, {}) || {}; return [String(r.k).slice(6), { av: p.av || '', bg: p.bg || '' }]; }));
+    const months = b.months ? (await all(env, 'SELECT DISTINCT ym FROM kgame ORDER BY ym DESC LIMIT 24')).map(r => r.ym) : undefined;
+    return json({ ok: true, ym: qym, me, top, prof, months });
     }
     const name = ks.name, km = J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {};
     const t = await teamSync(env, '/sync/kmode', { name });
@@ -1086,7 +1091,7 @@ async function kidQr(env, name) { // 제자마다 내 출석 QR (2026-11-14) —
   let q = await kvj(env, 'kqr:' + name); if (q) return q;
   q = 'HRK1-' + rid(6).toUpperCase(); await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'kqr:' + name, JSON.stringify(q)); return (await kvj(env, 'kqr:' + name)) || q;
 }
-const GAME_DIR = { rope: 1, tg: -1, brk: 1, belt: -1, whack: 1, mem: -1, quiz: 1 }; // 🎮 놀이터 기록: 1 = 클수록 좋음, -1 = 작을수록 좋음 (태극 1장 틀린 수 · 띠 순서 0.1초 · 짝 맞추기 횟수)
+const GAME_DIR = { rope: 1, tg: -1, brk: 1, belt: -1, whack: 1, mem: -1, quiz: 1, run: -1, tg2: -1, tg3: -1, tg4: -1, tg5: -1, tg6: -1, tg7: -1, tg8: -1 }; // 2026-11-19: 왕복달리기(0.1초) · 태극 2~8장(틀린 수) // 🎮 놀이터 기록: 1 = 클수록 좋음, -1 = 작을수록 좋음 (태극 1장 틀린 수 · 띠 순서 0.1초 · 짝 맞추기 횟수)
 const KCODE_TTL = 5 * 60000; // 제자 코드 = 숫자 6자리, 5분 안에 한 번만 (2026-11-15)
 // 직원 시험용 제자 앱 이름 (2026-11-18 사용자 결정) — 이 세 분만 코드가 늘 같음 (kv 'kstaff' = {이름: 코드}, 처음 한 번 만들어 둠)
 const KSTAFF = ['김사범님', '이사범님', '한코치님'];
