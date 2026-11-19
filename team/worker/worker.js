@@ -515,10 +515,14 @@ async function route(path, req, env, ctx) {
     for (const k of d.students || []) { const v = ((k && k.rec || {})[E.name] || {})[m]; if (v == null || v === '') continue;
       const s1 = (k.sid && bySid.get(k.sid)) || RL.find(x => x.name === k.name); if (s1 && s1.status === '퇴관') continue; const n = s1 ? s1.name : k.name; if (n && !names.includes(n)) names.push(n); }
     if (!names.length) return json({ ok: false, error: '이 달 기록이 있는 제자가 없어요' });
-    const j = await noticeSync(env, '/sync/broadcast', { title: '🏆 ' + m + '월 기네스 기록이 나왔어요', body: '{kid} · ' + m + '월 ' + (+md.slice(8)) + '일에 측정한 ' + E.name + ' 기록을 성장 리포트에서 볼 수 있어요', children: names, offset: b.offset | 0, view: 'grow', kind: '기네스', att: true });
-    if (j.ok && !j.next) { const N = J((await one(env, "SELECT v FROM kv WHERE k = 'grecNotified'") || {}).v, {}) || {}; N[key] = { at: Date.now(), by: me.name, n: names.length };
-      await run(env, "INSERT INTO kv (k, v) VALUES ('grecNotified', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(N)); await addLog(env, me.id, 'rec', '🏆 ' + me.name + '님이 ' + m + '월 기네스 기록 알림을 보냈어요 (제자 ' + names.length + '명 보호자)', ''); j.notified = N; }
-    return json({ ...j, kids: names.length, mdate: MD });
+    // 보낸 제자는 빼고 새로 기록한 제자만 (2026-11-19 사용자: 심사처럼 나중에 잰 제자도 따로 보내기)
+    const N0 = J((await one(env, "SELECT v FROM kv WHERE k = 'grecNotified'") || {}).v, {}) || {}, done = (N0[key] && N0[key].names) || [], pend = names.filter(n => !done.includes(n));
+    if (!pend.length) return json({ ok: false, error: '새로 기록한 제자가 없어요 (모두 보냈어요)' });
+    const j = await noticeSync(env, '/sync/broadcast', { title: '🏆 ' + m + '월 기네스 기록이 나왔어요', body: '{kid} · ' + m + '월 ' + (+md.slice(8)) + '일에 측정한 ' + E.name + ' 기록을 성장 리포트에서 볼 수 있어요', children: pend, offset: b.offset | 0, view: 'grow', kind: '기네스', att: true });
+    if (j.ok && !j.next) { const N = J((await one(env, "SELECT v FROM kv WHERE k = 'grecNotified'") || {}).v, {}) || {}, all = [...((N[key] && N[key].names) || [])]; pend.forEach(n => { if (!all.includes(n)) all.push(n); });
+      N[key] = { at: Date.now(), by: me.name, n: all.length, names: all };
+      await run(env, "INSERT INTO kv (k, v) VALUES ('grecNotified', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(N)); await addLog(env, me.id, 'rec', '🏆 ' + me.name + '님이 ' + m + '월 기네스 기록 알림을 보냈어요 (제자 ' + pend.length + '명 보호자' + (done.length ? ', 새로 기록한 제자만' : '') + ')', ''); j.notified = N; }
+    return json({ ...j, kids: pend.length, mdate: MD });
   }
   if (path === '/api/whoami') return json({ ok: true, id: me.id, name: me.name, boss: !!me.boss, shared: !!me.shared }); // 📈 성장 등 따로 열린 화면이 관리자인지 확인
   if (path === '/api/exam-closed') { // 📈 성장 화면: 마감한 심사 점수 (02·04·05 자동 채우기용, 점수만)

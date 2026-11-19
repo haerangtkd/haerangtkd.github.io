@@ -134,14 +134,14 @@ function pubHtml(ev) {
 }
 // 📣 기록한 제자 어머니께 알림 (2026-11-19 사용자: 기네스 잰 제자만, 안 적힌 제자는 빼고) — 받는 분 = 출결 알림 받는 분(기본 어머니)
 function momHtml(ev) {
-  const n = S.kids.filter(k => k.status !== '퇴관' && valOf(k, ev, S.mo) != null).length, N = (S.notified || {})[pubKey()];
-  const sub = N ? '✅ ' + (new Date(N.at).getMonth() + 1) + '/' + new Date(N.at).getDate() + ' ' + esc(N.by || '') + ' · 제자 ' + N.n + '명 보호자께 보냈어요' : '기록이 있는 제자 ' + n + '명만 · 기록 없는 제자는 빠져요';
+  const N = (S.notified || {})[pubKey()], done = (N && N.names) || [], rk = S.kids.filter(k => k.status !== '퇴관' && valOf(k, ev, S.mo) != null), n = rk.filter(k => !done.includes(k.name)).length; // n = 아직 안 보낸 제자 (2026-11-19 사용자: 심사처럼 나중에 잰 제자만 따로)
+  const sub = (N ? '✅ 보낸 제자 ' + (N.names ? N.names.length : N.n) + '명 (마지막 ' + (new Date(N.at).getMonth() + 1) + '/' + new Date(N.at).getDate() + ' ' + esc(N.by || '') + ') · ' : '') + (n ? '<b style="color:var(--red,#A40F16)">아직 안 보낸 제자 ' + n + '명</b>' : (N ? '새로 기록한 제자가 없어요' : '기록한 제자가 없어요')) + '<br>기록 없는 제자는 빠지고, 나중에 기록하면 그 제자만 따로 보낼 수 있어요';
   const key = pubKey(), md = (S.mdate || {})[key] || '', lo = key + '-01', hi = key + '-' + pad(new Date(S.recYear, S.mo, 0).getDate()), td = new Date(), tds = td.getFullYear() + '-' + pad(td.getMonth() + 1) + '-' + pad(td.getDate());
   const ff = (() => { const d = new Date(S.recYear, S.mo - 1, 1); d.setDate(1 + (5 - d.getDay() + 7) % 7); return key + '-' + pad(d.getDate()); })(); // 기본 = 그 달 첫째 주 금요일 (2026-11-19 사용자)
   const dv = md || ff;
   return '<div class="pub"><div style="flex:1 1 100%"><b>📣 기록한 제자 어머니께 알림</b><small>' + sub + '<br>받는 분: 원생 정보에서 정한 출결 알림 받는 분(기본 어머니)</small>' +
     '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;font-weight:700">📅 측정한 날 <input type="date" id="momD" value="' + dv + '" min="' + lo + '" max="' + hi + '" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:15px"></label>' +
-    '<small id="momP">' + (dv ? '알림: "' + S.mo + '월 ' + (+dv.slice(8)) + '일에 측정한 ' + esc(ev.name) + ' 기록…"' : '측정한 날을 먼저 적어 주세요 (늦게 보내도 날짜가 맞게 나가요)') + '</small></div><button class="go' + (S.sure === 'mom' ? ' sure' : '') + '" id="momGo"' + (n ? '' : ' disabled') + '>' + (S.sure === 'mom' ? '한 번 더 누르면 보내요' : N ? '다시 보내기' : '알림 보내기') + '</button></div>';
+    '<small id="momP">' + (dv ? '알림: "' + S.mo + '월 ' + (+dv.slice(8)) + '일에 측정한 ' + esc(ev.name) + ' 기록…"' : '측정한 날을 먼저 적어 주세요 (늦게 보내도 날짜가 맞게 나가요)') + '</small></div><button class="go' + (S.sure === 'mom' ? ' sure' : '') + '" id="momGo"' + (n ? '' : ' disabled') + '>' + (S.sure === 'mom' ? '한 번 더 누르면 보내요' : n ? '안 보낸 ' + n + '명에게 보내기' : '모두 보냈어요') + '</button></div>';
 }
 function bindPub() {
   const go = async on => { const j = await api('/api/grec-pub', { m: S.mo, on }); S.sure = '';
