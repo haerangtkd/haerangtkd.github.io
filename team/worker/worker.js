@@ -1594,6 +1594,17 @@ async function growData(env, names) {
       const td0 = kstDay(), lastSun = addDays(td0, -((new Date(Date.parse(td0 + 'T00:00:00Z')).getUTCDay() + 6) % 7) - 1); // 출석은 지난주 일요일까지 (2026-11-17 사용자: 한 주씩 평가)
       const AQ = {}; const attQ = async m => { const L = qMonths(m.slice(0, 5) + String(Math.floor((+m.slice(5) - 1) / 3) * 3 + 3).padStart(2, '0')).filter(x => x <= now), key = L[0]; // 분기 전체(이번 달까지)를 한 번만 불러옴
         if (!(key in AQ)) { const q = await attQuarter(env, L, lastSun).catch(() => null); AQ[key] = q && q.ok ? q : null; } return AQ[key]; };
+      // 몸의 기초 = 같은 부 평균 기준 (2026-11-19): 그해 그 분기(첫 달 ~ mo) 제자마다 가장 좋은 기록 → 부(유치부·초등부 남/여, 중고등부) 평균. 3명보다 적으면 남녀 합쳐서 → 그래도 적으면 전체 → 그래도 적으면 null
+      const BA = {}; const bodyAvg = (y, m, ev, by, sex) => { const key = y + '-' + m + '-' + ev.name;
+        if (!(key in BA)) { const L = y === y0 ? studs : ((snaps[y] && snaps[y].students) || []), q0 = Math.floor((m - 1) / 3) * 3 + 1, sy = m >= 3 ? y : y - 1, T = {};
+          const add = (g, v) => { (T[g] || (T[g] = [])).push(v); };
+          for (const s of L) { if (!s) continue; let b = null; for (let x = q0; x <= m; x++) { if (!(ev.months || []).includes(x)) continue; const raw = ((s.rec || {})[ev.name] || {})[x]; if (raw == null || raw === '' || typeof raw === 'object') continue; const n = +raw; if (!isFinite(n) || n <= 0) continue; if (b == null || (ev.lower ? n < b : n > b)) b = n; }
+            if (b == null) continue; const r = R[s.name] || {}, yy = +String(r.birth || s.birth || '').slice(0, 4), sx = r.gender || s.gender || ''; add('*', b); if (!yy) continue; const g = sy - yy - 6, band = g <= 0 ? '유치부' : g <= 6 ? '초등부' : '중고등부'; add(band, b); if (sx && band !== '중고등부') add(band + ' ' + sx, b); }
+          BA[key] = { T, sy }; }
+        const { T, sy } = BA[key], yy = +String(by || '').slice(0, 4), g = yy ? sy - yy - 6 : null, band = g == null ? '' : g <= 0 ? '유치부' : g <= 6 ? '초등부' : '중고등부';
+        const tries = band ? (sex && band !== '중고등부' ? [band + ' ' + sex, band, '*'] : [band, '*']) : ['*'];
+        for (const t of tries) { const v = T[t]; if (v && v.length >= 3) return { v: v.reduce((a2, z) => a2 + z, 0) / v.length, g: t === '*' ? '전체 제자' : t.replace(' 남', ' 남자').replace(' 여', ' 여자') }; }
+        return null; };
       const hsh = t => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
       const kids = [], TW = {};
       for (const n of names) {
@@ -1614,11 +1625,13 @@ async function growData(env, names) {
           if (pct == null && x.an != null && x.an !== '' && +x.at > 0) { an = +x.an; at = +x.at; pct = Math.round(an / at * 100); } else if (pct == null && x.rate != null && x.rate !== '') pct = Math.round(+x.rate);
           if (pct != null) { a[1] = lvA(pct); const ql = qMonths(mo); src[1] = '📋 출석부 출석률 ' + pct + '%' + (an != null && at ? ' (' + (ql.length > 1 ? +ql[0].slice(5) + '~' + (+mo.slice(5)) : +mo.slice(5)) + '월 ' + an + '/' + at + '회, 휴관일 빼고, 끝난 주까지)' : ''); }
           // 100점 성장 점수 (2026-11-15 사용자 결정): 90점 이상 아주 잘해요 · 70점 이상 잘해요 · 그 아래 성장 중이에요, 기록이 없으면 null(측정 전)
-          const OLD = { '성장 중이에요': 60, '잘해요': 80, '아주 잘해요': 95 }, sc = [null, ...a.map(v => v ? OLD[v] || null : null)];
+          const OLD = { '성장 중이에요': 60, '잘해요': 80, '아주 잘해요': 95 }, sc = [null, ...a.map(v => v ? OLD[v] || null : null)]; let bsrc = '';
           [['v0', 1], ['v2', 3], ['v3', 4]].forEach(([k2, j]) => { if (au[k2] != null) sc[j] = au[k2]; });
           if (pct != null) sc[2] = Math.round(pct >= hi ? 90 + (pct - hi) / Math.max(1, 100 - hi) * 10 : pct >= mid ? 70 + (pct - mid) / Math.max(1, hi - mid) * 20 : 50 + pct / Math.max(1, mid) * 20);
           { const ev = evs.find(e => (e.months || []).includes(+mo.slice(5))), ms = ev ? (ev.months || []).filter(m => m <= +mo.slice(5)).map(m => (rec[ev.name] || {})[m]).filter(v => v != null) : [], nv = ms.filter(v => typeof v !== 'object' && !isNaN(+v)).map(Number);
-            if (nv.length) { const f = nv[0], bst = ev.lower ? Math.min(...nv) : Math.max(...nv), d = ev.lower ? f - bst : bst - f, r = f ? d / Math.abs(f) : (d > 0 ? .1 : 0); sc[0] = nv.length === 1 ? 70 : Math.min(100, 70 + Math.round(r * 200)); } // 내 첫 기록 대비 (10% 좋아지면 90점)
+            if (nv.length) { const f = nv[0], bst = ev.lower ? Math.min(...nv) : Math.max(...nv), d = ev.lower ? f - bst : bst - f, r = f ? d / Math.abs(f) : (d > 0 ? .1 : 0), A = bodyAvg(+mo.slice(0, 4), +mo.slice(5), ev, birth, ro.gender || (k && k.gender) || '');
+              if (A) { const ra = ev.lower ? (A.v - bst) / A.v : (bst - A.v) / A.v; sc[0] = Math.max(50, Math.min(100, Math.round(75 + ra * 50) + (d > 0 ? Math.min(5, Math.max(1, Math.round(r * 50))) : 0))); bsrc = '같은 부(' + A.g + ') 평균 기록을 75점으로 계산 · 평균보다 30% 좋으면 90점' + (d > 0 ? ' · 기록이 좋아져서 +점' : ''); } // 2026-11-19 사용자: 첫 기록이 늘 70점이라 애매 → 같은 부 평균 기준 (순위·퍼센트는 안 보임)
+              else sc[0] = nv.length === 1 ? 70 : Math.min(100, 70 + Math.round(r * 200)); } // 같은 부가 3명보다 적으면 예전처럼 내 첫 기록 대비
             else if (ms.length) sc[0] = 60; } // 도전만 했어요
           sc.forEach((v, j) => { if (v != null && j > 0) a[j - 1] = v >= 90 ? '아주 잘해요' : v >= 70 ? '잘해요' : '성장 중이에요'; });
           const scv = sc.filter(v => v != null), total = scv.length ? Math.round(scv.reduce((s2, z) => s2 + z, 0) / scv.length) : null; // 해랑 성장 점수 = 기록이 있는 요소의 평균
@@ -1634,7 +1647,7 @@ async function growData(env, names) {
             cm = pool.length ? pool[hsh(n + mo) % pool.length].text : '이번 달도 열심히 수련했어요. 다음 달도 함께 성장해요!'; } }
           prevCm = cm;
           const tw = (TW[mo] || (TW[mo] = J((await one(env, 'SELECT v FROM kv WHERE k = ?', 'tword:' + mo) || {}).v, {}) || {})), w0 = tw[who.sid] || tw['n:' + n]; // ✍ 사범님 한마디 (업무 앱에서 고름, 2026-11-19)
-          ps.push({ month: mo, att: a, sc, total, src, cm: fill(cm, n).slice(0, 600), auto, pct, an, at, exam: au.n || 0, word: w0 && w0.text ? fill(w0.text, n).slice(0, 300) : '', cat: cm0cat });
+          ps.push({ month: mo, att: a, sc, total, src, bsrc, cm: fill(cm, n).slice(0, 600), auto, pct, an, at, exam: au.n || 0, word: w0 && w0.text ? fill(w0.text, n).slice(0, 300) : '', cat: cm0cat });
         }
         const ry = {}; Object.keys(snaps).forEach(y => { const R2 = recOfY(+y, k, who); if (Object.keys(R2).length) ry[y] = R2; });
         kids.push({ name: n, rec, recY: ry, periods: ps, exams: examList(ex, who) });
