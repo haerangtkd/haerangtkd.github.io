@@ -145,7 +145,12 @@
   .codeIn{width:100%;border:2px solid #e6d5bb;border-radius:14px;padding:12px 14px;font:inherit;font-size:18px;color:var(--ink);background:#fff;margin-bottom:12px;}
   /* 2026-11-19 오전: 입어 보기 · 수업/쉬는 시간 · 명예의 전당 넘기기 */
   #charSheet .rec{display:none;}
-  #charSheet .shop{max-height:30vh;}
+  #charSheet .shop{max-height:23vh;}
+  #charSheet .shop > .label:first-child, #beltChips, #charSheet .note{display:none;} /* 2026-11-19 사용자: 탈의실 카드 낮게 */
+  .stabs{display:flex;gap:6px;overflow-x:auto;margin:0 0 10px;padding-bottom:2px;scrollbar-width:none;}
+  .stabs::-webkit-scrollbar{display:none;}
+  .stab{flex:none;border:none;background:#f1e6d6;border-radius:999px;padding:8px 13px;font:inherit;font-size:14px;color:var(--ink);}
+  .stab.on{background:var(--accent);color:#fff;}
   .chip.try{border-color:#5b8fc7;background:#eaf3fc;}
   .chip.lockp{opacity:.75;}
   .tryBar{display:flex;gap:8px;align-items:center;margin-top:10px;min-height:52px;}
@@ -1192,8 +1197,11 @@ function fillChar(){
   $('beltChips').innerHTML = '<span class="chip on"><span class="dot" style="background:'+LOOK.c+'"></span>'+MYBELT+'</span>';
   $('charTitle').textContent = '👕 탈의실 · ⭐ ' + S.stars;
   const box2 = $('shopCats'); box2.innerHTML = '';
-  SHOP_CATS.forEach(([cat, name]) => {
-    const lb = document.createElement('div'); lb.className = 'label'; lb.textContent = name; box2.appendChild(lb);
+  /* 카테고리 탭 (2026-11-19 사용자) */
+  const tabs = document.createElement('div'); tabs.className = 'stabs';
+  SHOP_CATS.forEach(([cat, name]) => { const b = document.createElement('button'); b.className = 'stab' + (cat === shopTab ? ' on' : ''); b.textContent = name; b.onclick = () => { audio(); sfx.pop(); shopTab = cat; fillChar(); }; tabs.appendChild(b); });
+  box2.appendChild(tabs);
+  SHOP_CATS.filter(([c]) => c === shopTab).forEach(([cat, name]) => {
     const ch = document.createElement('div'); ch.className = 'chips'; box2.appendChild(ch);
     SHOP.filter(x => x.cat === cat).forEach(it => {
       const mine = ownsItem(it), on = curId(cat) === it.id, tr = TRY && TRY.cat === cat && TRY.id === it.id;
@@ -1209,7 +1217,7 @@ function fillChar(){
   drawTryBar();
 }
 /* 입어 보기 → 입기 / 사기 */
-let TRY = null;
+let TRY = null, shopTab = 'hair';
 function tryOn(it){
   audio(); TRY = {cat: it.cat, id: it.id};
   PREV = {}; PREV[it.cat] = it.cat === 'dobok' ? it.id : it.id;
@@ -1219,7 +1227,7 @@ function tryOn(it){
 function stopTry(){ PREV = null; TRY = null; applyLook(); }
 function drawTryBar(){
   const bar = $('tryBar'); bar.innerHTML = '';
-  if(!TRY){ bar.innerHTML = '<p>입어 보고 싶은 걸 눌러 보세요 👀</p>'; return; }
+  if(!TRY){ bar.innerHTML = '<p>눌러서 입어 보고, 별이 있으면 사요 👀<br>품도복은 그 품이 되면 입을 수 있어요</p>'; return; }
   const it = shopItem(TRY.cat, TRY.id); if(!it){ bar.innerHTML = ''; return; }
   const back = el('button', 'x', '되돌리기'); back.onclick = () => { audio(); stopTry(); fillChar(); };
   const btn = el('button', 'big', '');
@@ -2012,8 +2020,8 @@ function loop(now){
 
   /* 사진기 */
   const dress = openId === 'charSheet'; /* 탈의실: 캐릭터 확대 (2026-11-19 사용자) */
-  zoomK += ((dress ? .34 : 1) - zoomK) * Math.min(1, dt*5);
-  const tx = dress ? pos.x : camFree ? camFX : Math.max(-CAM_X, Math.min(CAM_X, pos.x)), tz = dress ? pos.z + 1.05 : camFree ? camFZ : Math.max(CAM_Z0, Math.min(CAM_Z1, pos.z));
+  zoomK += ((dress ? .42 : 1) - zoomK) * Math.min(1, dt*5);
+  const tx = dress ? pos.x : camFree ? camFX : Math.max(-CAM_X, Math.min(CAM_X, pos.x)), tz = dress ? pos.z + 1.8 : camFree ? camFZ : Math.max(CAM_Z0, Math.min(CAM_Z1, pos.z));
   /* 수업 시간(앞) · 쉬는 시간(뒤): 지금 있는 쪽 놀이 이름표만 */
   const zn = pos.z < ZONE_Z ? 'class' : 'rest';
   if(dress && zoneNow !== 'dress'){ zoneNow = 'dress'; Object.values(ST).forEach(st2 => { if(st2.lb) st2.lb.visible = false; }); } /* 갈아입을 땐 이름표 숨김 */
