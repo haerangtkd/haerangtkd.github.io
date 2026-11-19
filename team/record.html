@@ -126,13 +126,31 @@ function draw() {
 }
 // 📤 그 달 기록 올리기 (2026-11-17 사용자: 올리기 버튼을 눌러야 학부모 앱·제자 앱에 그 달 기록·최우수·리포트가 나옴)
 const pubKey = () => S.recYear + '-' + pad(S.mo);
-function pubHtml(ev) {
-  const key = pubKey(), P = S.pub[key];
-  if (key < S.pubFrom) return '<div class="pub ok"><div><b>✅ ' + S.mo + '월 기록은 앱에 보여요</b><small>올리기 버튼이 생기기 전 기록이에요</small></div></div>' + momHtml(ev) + qwHtml();
-  if (P) { const d = new Date(P.at); return '<div class="pub ok"><div><b>✅ ' + S.mo + '월 기록이 앱에 올라가 있어요</b><small>' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + esc(P.by || '') + ' · 지금부터 넣는 기록도 바로 보여요</small></div><button class="un' + (S.sure === 'un' ? ' sure' : '') + '" id="pubUn">' + (S.sure === 'un' ? '정말 내릴까요?' : '올리기 취소') + '</button></div>' + momHtml(ev) + qwHtml(); }
-  return '<div class="pub"><div><b>📤 ' + S.mo + '월 기록 올리기</b><small>누르기 전에는 학부모 앱·제자 앱에 이 달 기록·최우수가 안 보여요.<br>다 재고 나서 눌러 주세요. 올리면 제자 앱에 결과 알림이 가요.</small></div><button class="go' + (S.sure === 'go' ? ' sure' : '') + '" id="pubGo">' + (S.sure === 'go' ? '한 번 더 누르면 올라가요' : '기록 올리기') + '</button></div>';
+// 📤 기록 올리기 + 알림을 카드 하나로 (2026-11-19 사용자: 화면이 헷갈려 — 날짜 정하고 한 번에, 올린 뒤엔 학부모 알림 상태가 같은 카드에)
+function momState(ev) {
+  const key = pubKey(), N = (S.notified || {})[key], done = (N && N.names) || [], rk = S.kids.filter(k => k.status !== '퇴관' && valOf(k, ev, S.mo) != null), n = rk.filter(k => !done.includes(k.name)).length;
+  const ff = (() => { const d = new Date(S.recYear, S.mo - 1, 1); d.setDate(1 + (5 - d.getDay() + 7) % 7); return key + '-' + pad(d.getDate()); })(); // 기본 = 그 달 첫째 주 금요일
+  return { key, N, done, rec: rk.length, n, dv: (S.mdate || {})[key] || ff, lo: key + '-01', hi: key + '-' + pad(new Date(S.recYear, S.mo, 0).getDate()) };
 }
-// 📣 기록한 제자 보호자께 알림 (2026-11-19 사용자: 기네스 잰 제자만, 안 적힌 제자는 빼고) — 받는 분 = 출결 알림 받는 분(기본 어머니)
+function dateRow(ev, st) {
+  return '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;font-weight:700">📅 측정한 날 <input type="date" id="momD" value="' + st.dv + '" min="' + st.lo + '" max="' + st.hi + '" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:15px;background:#fff"></label>' +
+    '<small id="momP">학부모 알림: "' + S.mo + '월 ' + (+st.dv.slice(8)) + '일에 측정한 ' + esc(ev.name) + ' 기록을 성장 리포트에서 볼 수 있어요"</small>';
+}
+function pubHtml(ev) {
+  const P = S.pub[pubKey()], st = momState(ev), old = pubKey() < S.pubFrom;
+  if (!P && !old) return '<div class="pub"><div style="flex:1 1 100%"><b>📤 ' + S.mo + '월 기록 올리고 알림 보내기</b>' + dateRow(ev, st) +
+    '<small style="margin-top:8px">누르면 한 번에:<br>① 학부모 앱·제자 앱에 ' + S.mo + '월 기록·최우수가 보여요<br>② 제자 앱에 결과 알림<br>③ 기록한 제자 <b>' + st.rec + '명</b>의 보호자께 학부모 앱 알림 (기록 없는 제자는 빠져요)<br>다 재고 나서 눌러 주세요.</small></div>' +
+    '<button class="go' + (S.sure === 'go' ? ' sure' : '') + '" id="pubGo">' + (S.sure === 'go' ? '한 번 더 누르면 보내요' : '기록 올리고 알림 보내기') + '</button></div>';
+  const d = P ? new Date(P.at) : null, N = st.N;
+  const head = old ? '✅ ' + S.mo + '월 기록은 앱에 보여요' : '✅ ' + S.mo + '월 기록이 앱에 올라가 있어요';
+  const line1 = old ? '올리기 버튼이 생기기 전 기록이에요' : (d.getMonth() + 1) + '/' + d.getDate() + ' ' + esc(P.by || '') + ' · 제자 앱 알림은 그때 보냈어요 · 지금부터 넣는 기록도 바로 보여요';
+  const line2 = '학부모 알림: ' + (N ? '✅ ' + (N.names ? N.names.length : N.n) + '명 보냄 (' + (new Date(N.at).getMonth() + 1) + '/' + new Date(N.at).getDate() + ' ' + esc(N.by || '') + ')' : '아직 안 보냈어요') +
+    (st.n ? ' · <b style="color:#A40F16">안 보낸 제자 ' + st.n + '명</b>' : N ? ' · 모두 보냈어요' : '');
+  return '<div class="pub ok"><div style="flex:1 1 100%"><b>' + head + '</b><small>' + line1 + '</small><small style="margin-top:6px;font-size:13.5px;color:var(--ink)">' + line2 + '</small>' +
+    (st.n ? dateRow(ev, st) + '<small>나중에 기록한 제자도 여기서 그 제자만 따로 보내요. 받는 분: 학부모 앱에 가입한 보호자 모두</small>' : '') + '</div>' +
+    (st.n ? '<button class="go' + (S.sure === 'mom' ? ' sure' : '') + '" id="momGo">' + (S.sure === 'mom' ? '한 번 더 누르면 보내요' : '안 보낸 ' + st.n + '명 학부모 알림 보내기') + '</button>' : '') +
+    (old ? '' : '<button class="un' + (S.sure === 'un' ? ' sure' : '') + '" id="pubUn" style="margin-left:' + (st.n ? '8px' : 'auto') + '">' + (S.sure === 'un' ? '정말 내릴까요?' : '올리기 취소') + '</button>') + '</div>' + qwHtml();
+}
 // 🏆 분기 1위 발표 (2026-11-19 사용자: 분기 마지막 달에 제자 전체에게 1위 + 학부모 앱 'ㅇㅇ이가 … 1위했어요!') — 3·6·9·12월에만
 function qwHtml() {
   if (![3, 6, 9, 12].includes(S.mo)) return '';
@@ -147,27 +165,23 @@ function qwHtml() {
     '<br>제자 앱: 알림 켠 제자 모두에게 1위 발표 · 학부모 앱: 1위 제자 보호자께 \'ㅇㅇ이가 ' + lab + ' 분기별 기네스에서 … 1위했어요!\'';
   return '<div class="pub"><div style="flex:1 1 100%"><b>🏆 ' + lab + ' 분기 1위 발표 · ' + esc(q.ev) + '</b><small>' + sub + '</small>' + list + '</div><button class="go' + (S.sure === 'qw' ? ' sure' : '') + '" id="qwGo"' + (gs.length ? '' : ' disabled') + '>' + (S.sure === 'qw' ? '한 번 더 누르면 보내요' : SN ? '다시 발표하기' : '1위 발표하기') + '</button></div>';
 }
-function momHtml(ev) {
-  const N = (S.notified || {})[pubKey()], done = (N && N.names) || [], rk = S.kids.filter(k => k.status !== '퇴관' && valOf(k, ev, S.mo) != null), n = rk.filter(k => !done.includes(k.name)).length; // n = 아직 안 보낸 제자 (2026-11-19 사용자: 심사처럼 나중에 잰 제자만 따로)
-  const sub = (N ? '✅ 보낸 제자 ' + (N.names ? N.names.length : N.n) + '명 (마지막 ' + (new Date(N.at).getMonth() + 1) + '/' + new Date(N.at).getDate() + ' ' + esc(N.by || '') + ') · ' : '') + (n ? '<b style="color:var(--red,#A40F16)">아직 안 보낸 제자 ' + n + '명</b>' : (N ? '새로 기록한 제자가 없어요' : '기록한 제자가 없어요')) + '<br>기록 없는 제자는 빠지고, 나중에 기록하면 그 제자만 따로 보낼 수 있어요';
-  const key = pubKey(), md = (S.mdate || {})[key] || '', lo = key + '-01', hi = key + '-' + pad(new Date(S.recYear, S.mo, 0).getDate()), td = new Date(), tds = td.getFullYear() + '-' + pad(td.getMonth() + 1) + '-' + pad(td.getDate());
-  const ff = (() => { const d = new Date(S.recYear, S.mo - 1, 1); d.setDate(1 + (5 - d.getDay() + 7) % 7); return key + '-' + pad(d.getDate()); })(); // 기본 = 그 달 첫째 주 금요일 (2026-11-19 사용자)
-  const dv = md || ff;
-  return '<div class="pub"><div style="flex:1 1 100%"><b>📣 기록한 제자 보호자께 알림</b><small>' + sub + '<br>받는 분: 그 제자 보호자 모두 (학부모 앱에 가입한 분)</small>' +
-    '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;font-weight:700">📅 측정한 날 <input type="date" id="momD" value="' + dv + '" min="' + lo + '" max="' + hi + '" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:15px"></label>' +
-    '<small id="momP">' + (dv ? '알림: "' + S.mo + '월 ' + (+dv.slice(8)) + '일에 측정한 ' + esc(ev.name) + ' 기록…"' : '측정한 날을 먼저 적어 주세요 (늦게 보내도 날짜가 맞게 나가요)') + '</small></div><button class="go' + (S.sure === 'mom' ? ' sure' : '') + '" id="momGo"' + (n ? '' : ' disabled') + '>' + (S.sure === 'mom' ? '한 번 더 누르면 보내요' : n ? '안 보낸 ' + n + '명에게 보내기' : N ? '모두 보냈어요' : '기록한 제자가 없어요') + '</button></div>';
-}
+function momHtml() { return ''; } // (예전 따로 있던 카드 — 위 카드에 합침)
 function bindPub() {
   const go = async on => { const j = await api('/api/grec-pub', { m: S.mo, on }); S.sure = '';
     if (!j.ok) { draw(); return toast(j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '올리지 못했어요')); }
-    S.pub = j.pub || {}; S.qw = {}; S.qwL = {}; draw(); toast(on ? S.mo + '월 기록을 올렸어요' + (j.sent ? ' · 제자 ' + j.sent + '명에게 알림' : ' · 기록이 없어서 알림은 안 보냈어요') : S.mo + '월 기록을 앱에서 내렸어요'); };
+    S.pub = j.pub || {}; S.qw = {}; S.qwL = {};
+    if (!on) { draw(); return toast(S.mo + '월 기록을 앱에서 내렸어요'); }
+    const ks = j.sent || 0, m = await momSend(dd0); // 올리면 학부모 알림까지 한 번에 (2026-11-19)
+    draw(); toast(S.mo + '월 기록을 올렸어요 · 제자 앱 ' + ks + '명' + (m ? (m.ok ? ' · 학부모 ' + m.kids + '명 보호자께 ' + m.sent + '건' : ' · 학부모 알림 못 보냄: ' + m.error) : '')); };
+  let dd0 = '';
+  const momSend = async dd => { if (!dd) return null; let off = 0, sent = 0, kids = 0, j;
+    do { j = await api('/api/grec-notify', { m: S.mo, offset: off, date: dd }); if (!j.ok) return /새로 기록한|기록이 있는 제자가 없/.test(j.error || '') ? null : { ok: false, error: j.error === 'not found' ? '업무 서버를 새로 반영해야 해요' : (j.error || '오류') }; sent += j.sent || 0; kids = j.kids || kids; off = j.next; } while (off != null);
+    if (j.notified) S.notified = j.notified; if (j.mdate) S.mdate = j.mdate; return { ok: true, sent, kids }; };
   const arm = k => { S.sure = k; draw(); clearTimeout(S.sureT); S.sureT = setTimeout(() => { if (S.sure === k) { S.sure = ''; draw(); } }, 4000); };
-  const g = $('#pubGo'); if (g) g.onclick = () => S.sure === 'go' ? (g.disabled = true, go(true)) : arm('go');
-  const mdI = $('#momD'); if (mdI) mdI.onchange = () => { const v = mdI.value, p = $('#momP'); if (p) p.textContent = v ? '알림: "' + S.mo + '월 ' + (+v.slice(8)) + '일에 측정한 ' + (S.events.find(e => (e.months || []).includes(S.mo)) || {}).name + ' 기록…"' : '측정한 날을 먼저 적어 주세요'; };
+  const g = $('#pubGo'); if (g) g.onclick = () => { const dd = ($('#momD') || {}).value || ''; if (!dd) return toast('측정한 날을 먼저 정해 주세요'); S.mdate = { ...(S.mdate || {}), [pubKey()]: dd }; if (S.sure !== 'go') return arm('go'); dd0 = dd; g.disabled = true; g.textContent = '보내는 중…'; go(true); };
+  const mdI = $('#momD'); if (mdI) mdI.onchange = () => { const v = mdI.value, p = $('#momP'); if (p) p.textContent = v ? '학부모 알림: "' + S.mo + '월 ' + (+v.slice(8)) + '일에 측정한 ' + (S.events.find(e => (e.months || []).includes(S.mo)) || {}).name + ' 기록…"' : '측정한 날을 먼저 적어 주세요'; };
   const mg = $('#momGo'); if (mg) mg.onclick = async () => { const dd = mdI ? mdI.value : ''; if (!dd) return toast('측정한 날을 먼저 적어 주세요'); if (S.sure !== 'mom') { S.mdate = { ...(S.mdate || {}), [pubKey()]: dd }; return arm('mom'); } S.sure = ''; mg.disabled = true; mg.textContent = '보내는 중…';
-    let off = 0, sent = 0, kids = 0, j;
-    do { j = await api('/api/grec-notify', { m: S.mo, offset: off, date: dd }); if (!j.ok) { draw(); return toast(j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '보내지 못했어요')); } sent += j.sent || 0; kids = j.kids || kids; off = j.next; } while (off != null);
-    if (j.notified) S.notified = j.notified; if (j.mdate) S.mdate = j.mdate; draw(); toast('제자 ' + kids + '명 보호자께 알림 ' + sent + '건 보냈어요' + (sent ? '' : ' (알림 켠 분이 없어요)')); };
+    const m = await momSend(dd); draw(); if (!m) return toast('보낼 제자가 없어요'); if (!m.ok) return toast(m.error); toast('제자 ' + m.kids + '명 보호자께 알림 ' + m.sent + '건 보냈어요' + (m.sent ? '' : ' (알림 켠 분이 없어요)')); };
   const qg = $('#qwGo'); if (qg) qg.onclick = async () => { if (S.sure !== 'qw') return arm('qw'); S.sure = ''; qg.disabled = true; qg.textContent = '보내는 중…';
     const j = await api('/api/grec-qwin', { m: S.mo, send: true }); if (!j.ok) { draw(); return toast(j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '보내지 못했어요')); }
     S.qw = { ...(S.qw || {}), [pubKey()]: j }; draw(); toast('1위 발표했어요 · 제자 앱 ' + (j.kidSent || 0) + '대 · 학부모 ' + (j.parentSent || 0) + '건'); };
