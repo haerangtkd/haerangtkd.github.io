@@ -135,9 +135,10 @@ async function route(path, req, env) {
       const out = studs.map(r => ({ id: r.id, ...J(r.data, {}) })).filter(s => s.name).map(s => {
         const lp = s.leavePeriods || [], onLeave = d => lp.some(p => (!p.start || p.start <= d) && (!p.end || d < p.end)) || (s.status === '휴원' && !lp.some(p => !p.end));
         const daysOn = d => { const t = (s.temporarySchedules || []).find(t => t.start && t.start <= d && (!t.end || d <= t.end)); return t ? t.days || [] : (s.days || []); };
-        const sched = d => !closed.has(d) && s.status !== '퇴관' && (!s.joined || d >= s.joined) && !onLeave(d) && daysOn(d).includes(wdOf(d));
+        const j0 = (() => { const f = att.filter(r => r.sid === s.id && r.r === 'o').map(r => r.day).sort()[0]; if (!(s.joined && f && f < s.joined)) return s.joined; const t = new Date(f + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - (t.getUTCDay() + 6) % 7); return t.toISOString().slice(0, 10); })(); // 등록일보다 먼저 출석한 날이 있으면 그 주 월요일부터 셈 (2026-11-19 김태권: 등록일 11/13인데 11/3부터 출석 → 3/3으로 보였음)
+        const sched = d => !closed.has(d) && s.status !== '퇴관' && (!j0 || d >= j0) && !onLeave(d) && daysOn(d).includes(wdOf(d));
         const m = {};
-        months.forEach(ym => { let o = 0, tot = 0; days(ym).forEach(d => { if (d > td) return; const r = A.get(s.id + '|' + d), k = r === 'o' ? 'o' : r === 'x' ? 'x' : (AB.has(s.id + '|' + d) && sched(d)) ? 'x' : closed.has(d) ? 'closed' : (s.status !== '퇴관' && onLeave(d) && (!s.joined || d >= s.joined)) ? 'leave' : 'u';
+        months.forEach(ym => { let o = 0, tot = 0; days(ym).forEach(d => { if (d > td) return; const r = A.get(s.id + '|' + d), k = r === 'o' ? 'o' : r === 'x' ? 'x' : (AB.has(s.id + '|' + d) && sched(d)) ? 'x' : closed.has(d) ? 'closed' : (s.status !== '퇴관' && onLeave(d) && (!j0 || d >= j0)) ? 'leave' : 'u';
           if (k === 'o') o++; if (k !== 'closed' && k !== 'leave' && (sched(d) || k === 'o')) tot++; }); m[ym] = { o, tot }; });
         return { id: s.id, name: s.name, m };
       });
@@ -156,10 +157,11 @@ async function route(path, req, env) {
       const kids = L.map(s => {
         const lp = s.leavePeriods || [], onLeave = d => lp.some(p => (!p.start || p.start <= d) && (!p.end || d < p.end)) || (s.status === '휴원' && !lp.some(p => !p.end));
         const daysOn = d => { const t = (s.temporarySchedules || []).find(t => t.start && t.start <= d && (!t.end || d <= t.end)); return t ? t.days || [] : (s.days || []); };
-        const sched = d => !closed.has(d) && s.status !== '퇴관' && (!s.joined || d >= s.joined) && !onLeave(d) && daysOn(d).includes(W[dow(d)]);
+        const j0 = (() => { const f = att.filter(r => r.sid === s.id && r.r === 'o').map(r => r.day).sort()[0]; if (!(s.joined && f && f < s.joined)) return s.joined; const t = new Date(f + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - (t.getUTCDay() + 6) % 7); return t.toISOString().slice(0, 10); })(); // 등록일보다 먼저 출석한 날이 있으면 그 주 월요일부터 셈 (2026-11-19 김태권: 등록일 11/13인데 11/3부터 출석 → 3/3으로 보였음)
+        const sched = d => !closed.has(d) && s.status !== '퇴관' && (!j0 || d >= j0) && !onLeave(d) && daysOn(d).includes(W[dow(d)]);
         const weeks = [], months = {};
         for (let w = w0; w <= td; w = addDaysA(w, 7)) { let o = 0, tot = 0;
-          for (let i = 0; i < 7; i++) { const d = addDaysA(w, i); if (d < from || d > td) continue; const r = A.get(s.id + '|' + d), k = r === 'o' ? 'o' : r === 'x' ? 'x' : (AB.has(s.id + '|' + d) && sched(d)) ? 'x' : closed.has(d) ? 'closed' : (s.status !== '퇴관' && onLeave(d) && (!s.joined || d >= s.joined)) ? 'leave' : 'u';
+          for (let i = 0; i < 7; i++) { const d = addDaysA(w, i); if (d < from || d > td) continue; const r = A.get(s.id + '|' + d), k = r === 'o' ? 'o' : r === 'x' ? 'x' : (AB.has(s.id + '|' + d) && sched(d)) ? 'x' : closed.has(d) ? 'closed' : (s.status !== '퇴관' && onLeave(d) && (!j0 || d >= j0)) ? 'leave' : 'u';
             if (k === 'o') months[d.slice(0, 7)] = (months[d.slice(0, 7)] || 0) + 1;
             if (d > upto) continue; if (k === 'o') o++; if (k !== 'closed' && k !== 'leave' && (sched(d) || k === 'o')) tot++; }
           if (w <= addDaysA(upto, -6) && (tot || o)) weeks.push({ w, o: Math.min(o, tot || o), tot: tot || o }); }
