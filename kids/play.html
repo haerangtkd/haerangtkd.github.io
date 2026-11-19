@@ -497,9 +497,9 @@ box(.12, .28, D, woodC,  W/2-.06, .22, 0);
 box(W+.6, .3, .3, woodC, 0, .15, D/2+.15);
 
 /* 거울 */
-box(7.4, 2.1, .06, '#b89470', 1.6, 1.55, -D/2+.03, scene, false);
-const mirror = box(7.1, 1.85, .05, new THREE.MeshLambertMaterial({color:'#d4e7ee', emissive:'#2a3a40', emissiveIntensity:.15}), 1.6, 1.55, -D/2+.07, scene, false);
-for(let k=0;k<3;k++){ const s = box(.25, 1.6, .01, new THREE.MeshBasicMaterial({color:'#ffffff', transparent:true, opacity:.35}), -.9+k*.45, 1.55, -D/2+.1, scene, false); s.rotation.z = .5; s.castShadow=false; }
+box(10.8, 2.1, .06, '#b89470', -.3, 1.55, -D/2+.03, scene, false);
+const mirror = box(10.5, 1.85, .05, new THREE.MeshLambertMaterial({color:'#d4e7ee', emissive:'#2a3a40', emissiveIntensity:.15}), -.3, 1.55, -D/2+.07, scene, false);
+for(let k=0;k<3;k++){ const s = box(.25, 1.6, .01, new THREE.MeshBasicMaterial({color:'#ffffff', transparent:true, opacity:.35}), -3.4+k*.45, 1.55, -D/2+.1, scene, false); s.rotation.z = .5; s.castShadow=false; }
 
 /* 간판 */
 const sign = textTex(1024, 160, (g,w,h)=>{
@@ -508,7 +508,7 @@ const sign = textTex(1024, 160, (g,w,h)=>{
   g.fillText('해랑경희 태권도', w/2, h/2+6);
 });
 const signM = new THREE.Mesh(new THREE.PlaneGeometry(5.2, .81), new THREE.MeshBasicMaterial({map:sign.tex, transparent:true}));
-signM.position.set(1.6, 3.08, -D/2+.02); scene.add(signM);
+signM.position.set(-.3, 3.08, -D/2+.02); scene.add(signM);
 
 /* 명예의 전당 (왼쪽 벽) */
 const fame = textTex(768, 384, (g,w,h)=>{
@@ -525,7 +525,7 @@ const fame = textTex(768, 384, (g,w,h)=>{
   }
 });
 const fameM = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.1), new THREE.MeshLambertMaterial({map:fame.tex}));
-fameM.position.set(-W/2+.02, 1.9, -9.4); fameM.rotation.y = Math.PI/2; scene.add(fameM);
+fameM.position.set(-W/2+.02, 1.9, -7.2); fameM.rotation.y = Math.PI/2; scene.add(fameM);
 fameM.scale.set(.85,.85,1);
 
 /* 창문 (오른쪽 벽) */
@@ -799,12 +799,15 @@ function label(txt, x, y, z){
 
 /* 탈의실 문 (앞쪽 벽 왼쪽: 왼 여자 · 오 남자) */
 const lockerG = new THREE.Group(); scene.add(lockerG);
-[[-5.85, '#f3a6bd', '여자', '♀'], [-4.15, '#6fa3dc', '남자', '♂']].forEach(([x, c, n, sym]) => {
-  box(1.5, 2.45, .12, '#f4f1ea', x, 1.23, -D/2+.08, lockerG, false);
-  box(1.3, 2.3, .1, c, x, 1.17, -D/2+.14, lockerG, false);
+/* 왼쪽 벽 (2026-11-19): 앞에서부터 남자 · 여자 탈의실, 그 뒤 명예의 전당 */
+[[-11.5, '#6fa3dc', '남자', '♂'], [-9.8, '#f3a6bd', '여자', '♀']].forEach(([z, c, n, sym]) => {
+  const dg = new THREE.Group(); dg.position.set(-W/2, 0, z); dg.rotation.y = Math.PI/2; lockerG.add(dg);
+  const x = 0, D2 = 0, lg = dg;
+  box(1.5, 2.45, .12, '#f4f1ea', 0, 1.23, .06, dg, false);
+  box(1.3, 2.3, .1, c, 0, 1.17, .12, dg, false);
   const t = textTex(256, 256, (g,w,h) => { g.fillStyle = '#ffffff'; g.beginPath(); g.arc(128,110,86,0,7); g.fill(); g.fillStyle = c; g.font = '120px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(sym, 128, 112); g.fillStyle = '#ffffff'; g.font = '46px ' + FONT; g.fillText(n, 128, 226); });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(.8,.8), new THREE.MeshBasicMaterial({map:t.tex, transparent:true})); m.position.set(x, 1.65, -D/2+.2); lockerG.add(m);
-  box(.08, .3, .08, '#e9d9b0', x + .48, 1.1, -D/2+.22, lockerG, false);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(.8,.8), new THREE.MeshBasicMaterial({map:t.tex, transparent:true})); m.position.set(0, 1.65, .18); dg.add(m);
+  box(.08, .3, .08, '#e9d9b0', .48, 1.1, .2, dg, false);
 });
 pickable(lockerG, 'locker');
 pickable(fameM, 'fame');
@@ -814,12 +817,12 @@ const tgMark = floorTex(256, 256, (g,w,h) => { g.strokeStyle = 'rgba(224,122,95,
 pickable(tgMark, 'tg');
 
 /* 표적 (겨루기 미트) */
-const whackG = new THREE.Group(); whackG.position.set(-5.4, 0, -5.6); scene.add(whackG);
+const whackG = new THREE.Group(); whackG.position.set(-4.4, 0, -4.9); scene.add(whackG);
 cyl(.4,.45,.12,'#5c5d6b',0,.06,0,whackG,20); cyl(.06,.06,1.1,'#8d8f99',0,.65,0,whackG,10);
 { const pad = cyl(.36,.36,.16,'#d92d20',0,1.3,0,whackG,24); pad.rotation.x = Math.PI/2;
   const in1 = cyl(.24,.24,.17,'#ffffff',0,1.3,.005,whackG,24); in1.rotation.x = Math.PI/2;
   const in2 = cyl(.11,.11,.18,'#2f6fde',0,1.3,.01,whackG,20); in2.rotation.x = Math.PI/2; }
-pickable(whackG, 'whack'); OBST.push({x:-5.4, z:-5.6, r:.5});
+pickable(whackG, 'whack'); OBST.push({x:-4.4, z:-4.9, r:.5});
 
 /* 줄넘기 자리 */
 const ropeMark = floorTex(256, 256, (g,w,h) => { g.fillStyle = 'rgba(122,166,194,.35)'; g.beginPath(); g.arc(128,128,118,0,7); g.fill(); g.font = '120px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🪢', 128, 132); }, 1.5, 1.5, CENTER_ROPE.x, CENTER_ROPE.z);
@@ -849,19 +852,19 @@ pickable(bag, 'bag'); pickable(stand, 'brk');
 
 /* 자리마다: 어디 서서 · 어디 보고 · 도착하면 무엇 */
 const ST = {
-  locker:{n:'탈의실', e:'👕', spot:{x:-5, z:-11.5}, face:{x:-5, z:-13}, ly:3.0, open:() => openSheet('charSheet')},
-  fame:{n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-9.4}, face:{x:-7, z:-9.4}, lp:{x:-6.2, z:-9.4}, ly:3.3, open:() => openSheet('fameSheet')},
+  locker:{n:'탈의실', e:'👕', spot:{x:-5.6, z:-10.65}, face:{x:-7, z:-10.65}, ly:3.0, open:() => openSheet('charSheet')},
+  fame:{n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-7.2}, face:{x:-7, z:-7.2}, lp:{x:-6.2, z:-7.2}, ly:3.3, open:() => openSheet('fameSheet')},
   tg:{n:'태극 1장', e:'🥋', g:'tg', spot:TG_START_POS, face:{x:TG_START_POS.x, z:-13}, lp:{x:.6, z:-7.6}, ly:2.0, start:() => startTg()},
   brk:{n:'격파 놀이', e:'🪵', g:'brk', spot:STAND_SPOT, face:STAND, lp:STAND, ly:2.3, start:() => openGame()},
   bag:{n:'샌드백', e:'🥊', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, open:() => { bagBusy = true; bagPunches(4); }},
-  whack:{n:'표적 치기', e:'🎯', g:'whack', spot:{x:-5.4, z:-4.5}, face:{x:-5.4, z:-5.6}, lp:{x:-5.4, z:-5.6}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
+  whack:{n:'표적 치기', e:'🎯', g:'whack', spot:{x:-4.4, z:-3.8}, face:{x:-4.4, z:-4.9}, lp:{x:-4.4, z:-4.9}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
   rope:{n:'줄넘기', e:'🪢', g:'rope', spot:CENTER_ROPE, face:{x:CENTER_ROPE.x, z:-13}, lp:{x:CENTER_ROPE.x, z:CENTER_ROPE.z-1.3}, ly:2.0, start:() => startRope()},
   run:{n:'왕복달리기', e:'🏃', lock:'gRun', price:RUN_PRICE, spot:{x:3.9, z:3.1}, face:{x:3.9, z:-2}, lp:{x:3.9, z:-.3}, ly:1.6, start:() => openPanel('왕복달리기', gameRun)},
   belt:{n:'띠 순서', e:'🎗️', g:'belt', spot:{x:-3.9, z:10.45}, face:{x:-3.9, z:9.2}, lp:{x:-3.9, z:9.2}, ly:2.3, start:() => openPanel('띠 순서 맞추기', gameBelt)},
   mem:{n:'짝 맞추기', e:'🃏', g:'mem', spot:{x:0, z:11.55}, face:{x:0, z:10.3}, lp:{x:0, z:10.3}, ly:2.3, start:() => openPanel('짝 맞추기', gameMem)},
   quiz:{n:'해랑경희 퀴즈', e:'💡', g:'quiz', spot:{x:3.9, z:10.45}, face:{x:3.9, z:9.2}, lp:{x:3.9, z:9.2}, ly:2.3, start:() => openPanel('해랑경희 퀴즈', gameQuiz)}
 };
-ST.locker.lp = {x:-5, z:-12.6};
+ST.locker.lp = {x:-6.4, z:-10.65};
 const stLabel = id => { const s = ST[id]; return s.e + ' ' + s.n + (s.lock && !owns(s.lock) ? ' 🔒' + s.price : ''); };
 Object.keys(ST).forEach(id => { const s = ST[id]; s.lb = label(stLabel(id), s.lp.x, s.ly, s.lp.z); pickable(s.lb, id); });
 
