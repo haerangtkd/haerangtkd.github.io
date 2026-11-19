@@ -384,6 +384,7 @@ async function route(path, req, env) {
         // 📩 답장을 기다리는 봉투 (60일 안, 내 제자가 받는 사람인 것)
         const envs = (await all(env, "SELECT * FROM posts WHERE env = 1 AND created > ? ORDER BY created DESC LIMIT 30", Date.now() - 60 * 864e5)).filter(r => J(r.target, []).some(x => myKids.includes(x)));
         out.envs = (await withReplies(env, envs.map(r => ({ id: r.id, type: r.type, kind: r.kind, title: r.title, body: r.body, env: true, target: J(r.target, []), photos: J(r.photos, []), at: r.created })), myKids));
+        { const QW = J((await one(env, "SELECT v FROM kv WHERE k = 'qwins'") || {}).v, []), qw = []; QW.forEach(q => (q.w || []).forEach(w => { if (myKids.includes(w.name)) qw.push({ key: q.key, label: q.label, ev: q.ev, unit: q.unit, at: q.at, name: w.name, grp: w.grp, v: w.v }); })); out.qwins = qw.reverse(); } // 🏆 분기 기네스 1위 (2026-11-19)
       }
       return json(out);
     }
@@ -610,6 +611,14 @@ async function route(path, req, env) {
     return json({ ok: true, list: kd.map(k => { const x = at.find(y => y.name === k.name) || {}; return { name: k.name, sid: k.sid || '', in: x.tin || '', out: x.tout || '', g: g[k.name] || 0 }; }) });
   }
   // 업무 앱: 숙제 올릴 때 학부모님께 알림 (대상 제자 또는 모두)
+  if (path === '/sync/qwin-set') { // 🏆 분기 기네스 1위 (업무 앱 기록장에서 발표, 2026-11-19) → 학부모 앱 홈·제자 정보에 'ㅇㅇ이가 … 1위했어요!'
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    const key = str(b.key, 10); if (!/^\d{4}-Q[1-4]$/.test(key)) return json({ ok: false, error: '잘못된 분기' });
+    const L = J((await one(env, "SELECT v FROM kv WHERE k = 'qwins'") || {}).v, []).filter(x => x.key !== key);
+    L.push({ key, label: str(b.label, 12), ev: str(b.ev, 30), unit: str(b.unit, 8), at: Date.now(), w: (Array.isArray(b.w) ? b.w : []).slice(0, 30).map(x => ({ name: str(x.name, 20), grp: str(x.grp, 12), v: x.v })) });
+    await run(env, "INSERT INTO kv (k, v) VALUES ('qwins', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(L.sort((x, y) => x.key < y.key ? -1 : 1).slice(-12)));
+    return json({ ok: true });
+  }
   if (path === '/sync/broadcast') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     return json(await send(env, { kind: ['심사', '성장', '대회', '기네스'].includes(b.kind) ? b.kind : '미션', title: b.title, body: b.body, children: b.children, view: b.view === 'grow' ? 'grow' : '', offset: b.offset | 0, att: !!b.att })); // att = 제자마다 출결 알림 받는 분(기본 어머니)만 (2026-11-19 기네스) // view 'grow' = 승급 심사 결과·성장 리포트 → 성장 리포트 // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름

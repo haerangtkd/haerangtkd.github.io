@@ -80,7 +80,7 @@ async function route(path, req, env) {
       const L = (await all(env, 'SELECT id, data FROM students')).map(r => ({ ...J(r.data, {}), id: r.id })).filter(s => names.includes(s.name) && s.status !== '퇴관');
       // 2026-11-16 사용자: 제자 앱 출석·출석 뱃지는 출석부(사범님이 누른 출석 'o') 기준 → att:true면 출석한 날 목록도 줌
       const OD = b.att && L.length ? await all(env, "SELECT sid, day FROM att WHERE r = 'o' AND sid IN (" + L.map(() => '?').join(',') + ') ORDER BY day', ...L.map(s => s.id)) : null;
-      return json({ ok: true, kids: L.map(s => ({ ...(OD ? { odays: OD.filter(r => r.sid === s.id).map(r => r.day) } : {}), sid: s.id, name: s.name, birth: s.birth || '', bday: s.lunar ? '' : (s.bday || ''), bdayRaw: s.bday || '', lunar: !!s.lunar, belt: s.belt || '', gender: s.gender || '', days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
+      return json({ ok: true, kids: L.map(s => ({ ...(OD ? { odays: OD.filter(r => r.sid === s.id).map(r => r.day) } : {}), sid: s.id, name: s.name, birth: s.birth || '', bday: s.lunar ? '' : (s.bday || ''), bdayRaw: s.bday || '', lunar: !!s.lunar, belt: s.belt || '', sb: !!s.sb, gender: s.gender || '', days: Array.isArray(s.days) ? s.days : [], status: s.status || '재원', temp: (Array.isArray(s.temporarySchedules) ? s.temporarySchedules : []).filter(t => !t.end || t.end >= day).map(t => ({ start: t.start || '', end: t.end || '', days: t.days || [] })) })) });
     }
     if (path === '/sync/day-absent') { // 업무 앱 등원표: 그날 결석(출석부 '결석' + 미리 연락 온 결석 예정)
       const day = isDay(b.day) ? b.day : kstDay();

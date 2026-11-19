@@ -526,6 +526,25 @@ async function route(path, req, env, ctx) {
       await run(env, "INSERT INTO kv (k, v) VALUES ('grecNotified', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(N)); await addLog(env, me.id, 'rec', '🏆 ' + me.name + '님이 ' + m + '월 기네스 기록 알림을 보냈어요 (제자 ' + pend.length + '명 보호자' + (done.length ? ', 새로 기록한 제자만' : '') + ')', ''); j.notified = N; }
     return json({ ...j, kids: pend.length, mdate: MD });
   }
+  if (path === '/api/grec-qwin') { // 🏆 분기 1위 발표 (2026-11-19 사용자) — send 없으면 미리 보기만
+    const m = b.m | 0; if (![3, 6, 9, 12].includes(m)) return json({ ok: false, error: '분기 마지막 달(3·6·9·12월)에만 발표해요' });
+    const r = await one(env, 'SELECT data FROM gdocs WHERE path = ?', 'app/data'), d = r ? J(r.data, {}) : {}, key = grecKey(d, m), pub = await grecPub(env);
+    for (let mm = m - 2; mm <= m; mm++) { const k2 = grecKey(d, mm); if (k2 >= GREC_PUB_FROM && !pub[k2]) return json({ ok: false, error: mm + '월 기록을 먼저 올려 주세요 (올려야 앱에 보여요)' }); }
+    const ro = await attSync(env, '/sync/roster', { all: true }), Q = guinQuarter(d, ro.ok ? ro.students : [], +key.slice(0, 4), m); if (!Q) return json({ ok: false, error: '이 분기 종목이 없어요' });
+    const QS = J((await one(env, "SELECT v FROM kv WHERE k = 'grecQ'") || {}).v, {}) || {}, ORD = ['중고등부', '초등부 남', '초등부 여', '유치부 남', '유치부 여'], gs = ORD.filter(g => Q.g[g]);
+    if (!b.send) return json({ ok: true, q: Q, sent: QS[Q.key] || null });
+    if (!gs.length) return json({ ok: false, error: '1위를 정할 기록이 없어요 (성별이 없는 유치·초등 제자는 빠져요)' });
+    const W = []; gs.forEach(g => Q.g[g].forEach(n => W.push({ name: n, grp: g, v: Q.v[g] })));
+    const vt = v => v + (Q.unit || ''), line = gs.map(g => grpLong(g) + ' ' + Q.g[g].join('·')).join(' / ');
+    // 제자 앱: 1위는 축하, 나머지는 발표
+    const kr = await kidPushMany(env, W.map(w => ({ name: w.name, title: '👑 ' + Q.label + ' 기네스 ' + grpLong(w.grp) + ' 1위!', body: Q.ev + ' ' + vt(w.v) + ' · 정말 멋져요! 명예의 전당에서 확인해 봐요' })), { title: '🏆 ' + Q.label + ' 분기 기네스 1위 발표!', body: line.slice(0, 120), except: W.map(w => w.name) });
+    // 학부모 앱: 1위 제자 보호자 모두에게 (출결 알림 받는 분만이 아니라)
+    let ps = 0; for (const w of W) { let off = 0; for (let t = 0; t < 6; t++) { const j = await noticeSync(env, '/sync/broadcast', { title: '🏆 ' + Q.label + ' 기네스 1위!', body: iga(w.name) + ' ' + Q.label + ' 분기별 기네스에서 ' + grpLong(w.grp) + ' 1위했어요! (' + Q.ev + ' ' + vt(w.v) + ')', children: [w.name], offset: off, view: 'grow', kind: '기네스' }); if (!j.ok) break; ps += j.sent || 0; if (j.next == null) break; off = j.next; } }
+    await noticeSync(env, '/sync/qwin-set', { key: Q.key, label: Q.label, ev: Q.ev, unit: Q.unit, w: W });
+    QS[Q.key] = { at: Date.now(), by: me.name, label: Q.label, ev: Q.ev, unit: Q.unit, w: W }; await run(env, "INSERT INTO kv (k, v) VALUES ('grecQ', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(QS));
+    await addLog(env, me.id, 'rec', '🏆 ' + me.name + '님이 ' + Q.label + ' 분기 기네스 1위를 발표했어요 · ' + line, '');
+    return json({ ok: true, q: Q, sent: QS[Q.key], kidSent: kr.sent || 0, parentSent: ps });
+  }
   if (path === '/api/whoami') return json({ ok: true, id: me.id, name: me.name, boss: !!me.boss, shared: !!me.shared }); // 📈 성장 등 따로 열린 화면이 관리자인지 확인
   if (path === '/api/exam-closed') { // 📈 성장 화면: 마감한 심사 점수 (02·04·05 자동 채우기용, 점수만)
     const ex = await examClosed(env), out = {}; Object.keys(ex).forEach(m => { out[m] = ex[m].rows.map(r => ({ sid: r.sid, name: r.name, sc: r.d.sc || {}, absent: !!r.d.absent })); });
@@ -1893,6 +1912,24 @@ function guinBest(data, RL, yr0, cm0) {
   }
   return out;
 }
+// 🏆 분기 1위 (2026-11-19 사용자: 분기 마지막에 제자 전체에게 누가 1위인지 + 학부모 앱에 'ㅇㅇ이가 10~12월 분기별 기네스에서 유치부 남자 1위했어요!')
+// 그 분기 종목의 분기 안(첫 달 ~ lastM) 가장 좋은 기록, 부는 guinBest 와 같음(중고등부 · 초등부 남/여 · 유치부 남/여), 같은 기록이면 함께
+function guinQuarter(data, RL, yr, lastM) {
+  const q0 = Math.floor((lastM - 1) / 3) * 3 + 1, ev = ((data && data.events) || []).find(e => (e.months || []).includes(lastM)); if (!ev) return null;
+  const L = (data && data.students) || [], R = RL || [], bySid = new Map(R.filter(s => s.id).map(s => [s.id, s])), byName = new Map(R.map(s => [s.name, s]));
+  const sy = lastM >= 3 ? yr : yr - 1, G = {}, V = {};
+  for (const k of L) {
+    let best = null; for (let m = q0; m <= lastM; m++) { if (!(ev.months || []).includes(m)) continue; const raw = ((k.rec || {})[ev.name] || {})[m]; if (raw == null || raw === '' || typeof raw === 'object') continue; const n = +raw; if (!isFinite(n)) continue; if (best == null || (ev.lower ? n < best : n > best)) best = n; }
+    if (best == null) continue;
+    const r = (k.sid && bySid.get(k.sid)) || byName.get(k.name); if (r && r.status === '퇴관') continue;
+    const name = r ? r.name : k.name, by = +String((r && r.birth) || k.birth || '').slice(0, 4); if (!by || !name) continue;
+    const g = sy - by - 6, sex = (r && r.gender) || k.gender || '', grp = g <= 0 ? (sex ? '유치부 ' + sex : '') : g <= 6 ? (sex ? '초등부 ' + sex : '') : '중고등부'; if (!grp) continue;
+    if (V[grp] == null || (ev.lower ? best < V[grp] : best > V[grp])) { V[grp] = best; G[grp] = [name]; } else if (best === V[grp] && !G[grp].includes(name)) G[grp].push(name);
+  }
+  return { key: yr + '-Q' + Math.ceil(lastM / 3), label: q0 + '~' + (q0 + 2) + '월', ev: ev.name, unit: ev.unit || '', g: G, v: V };
+}
+const grpLong = g => String(g || '').replace(/ 남$/, ' 남자').replace(/ 여$/, ' 여자');
+const iga = n => { const s = String(n || ''), f = s.length >= 3 ? s.slice(1) : s, c = f.charCodeAt(f.length - 1) - 0xAC00; return f + (c >= 0 && c < 11172 && c % 28 ? '이가' : '가'); }; // 김해랑 → 해랑이가, 이지후 → 지후가
 async function attBelts(env) { // 띠는 출석부 원생 정보가 기준 (2026-11-15 사용자 결정) — sid → 띠
   const r = await attSync(env, '/sync/roster', { all: true }); const m = {}; if (r.ok) for (const s of r.students || []) if (s.id) { m[s.id] = s.belt || ''; if (s.name) m['n:' + s.name] = s.belt || ''; } Object.defineProperty(m, 'list', { value: r.ok ? r.students || [] : null }); return m;
 }

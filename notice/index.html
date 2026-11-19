@@ -578,6 +578,8 @@
   .ibbar .tick{position:relative;height:16px;margin-top:4px}.ibbar .tick span{position:absolute;font-size:11px;color:#B3B8C2;transform:translateX(-50%)}.ibbar .tick span:first-child{transform:none}.ibbar .tick span:last-child{transform:none}
   .gword{background:#fff;border-radius:20px;padding:16px 18px;margin:12px 0 0;border:1.5px solid #F0D9D9;box-shadow:0 1px 10px rgba(164,15,22,.06)}.gword small{font-size:13px;color:var(--brand);font-weight:800}.gword p{margin:8px 0 6px;font-size:16px;line-height:1.6;font-weight:600}.gword span{display:block;text-align:right;font-size:12.5px;color:var(--muted)}
   .kprof{background:#fff;border-radius:22px;padding:18px;box-shadow:0 1px 10px rgba(0,0,0,.04)}.kp1{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}.kp1 .avatar.big{width:58px;height:58px;font-size:22px}.kp1 b{font-size:21px;font-weight:900;display:block}.kp1 small{font-size:13.5px;color:var(--muted)}
+  .qwin{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;margin:0 0 12px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#FFF6D8,#FCE7A8);color:#5A3E00;box-shadow:0 1px 10px rgba(0,0,0,.05)}.qwin .qi{font-size:30px}.qwin b{display:block;font-size:15.5px;font-weight:900;line-height:1.35;word-break:keep-all}.qwin small{display:block;font-size:12.5px;opacity:.8;margin-top:2px}
+  .sbpatch{width:58px;height:58px;border-radius:50%;flex:0 0 58px;background:url(/kids/sb-av.png) center/cover;box-shadow:0 0 0 3px #C0A355}.sbtag{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:99px;background:#0B2C6B;color:#F3D98B;font-size:12px;font-weight:800;vertical-align:3px}.kqw{margin-top:10px;font-size:13.5px;font-weight:800;color:#8A5A00;background:#FFF6D8;border-radius:12px;padding:8px 10px;word-break:keep-all}
   .kp2{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding-top:12px}.kp2 small{display:block;font-size:12.5px;color:var(--muted)}.kp2 b{font-size:15px;font-weight:800;display:block;margin-top:2px}.kp2 b.bt{color:var(--brand)}
   .li .ext{margin-left:auto;color:#B9B1AA;font-size:18px}.li .lic.e{background:none;font-size:20px}
   .bdx{display:inline-block;margin-left:8px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:700;color:var(--brand)}
@@ -918,6 +920,7 @@
       catch (er) { if (seq !== envSeq[id + '|' + kid]) return; setAns(prev.ans, prev.at); if (ov.isConnected) ov.querySelector('.envrd').innerHTML = draw(); else if (tab === 'home') drawHome(); else if (tab === 'news' && news) paintNews(); toast((er && er.message) || '답장을 보내지 못했어요. 다시 눌러 주세요'); }
     };
   }
+  document.addEventListener('click', e => { if (e.target.closest('[data-qwin]')) { e.preventDefault(); return openPage('grow'); } }); // 🏆 분기 1위 카드 → 성장 리포트
   document.addEventListener('click', e => { const b = e.target.closest('[data-env]'); if (!b) return; e.stopPropagation(); e.preventDefault(); openEnv(+b.dataset.env); }, true);
   function evSection(k) {
     if (!evFor(k).length) return '';
@@ -1018,6 +1021,14 @@
     if (key === 'perk') return openPage('perk');
     if (key === 'journal' || key === 'hw' || key === 'ev') { planF = { journal: '알림장', hw: '미션', ev: '행사 신청' }[key]; return openPage('plan'); } // 알림장 · 미션 · 행사
     if (key === 'att' || key === 'kid' || key === 'schedule' || key === 'notice') { planF = { att: '출석', kid: '출석', schedule: '일정', notice: '공지' }[key]; return openPage('cal'); } // 일정 · 공지 · 출석
+  }
+  // 🏆 분기 기네스 1위 (2026-11-19 사용자: 'ㅇㅇ이가 10~12월 분기별 기네스에서 유치부 남자 1위했어요!') — 발표 뒤 60일 동안 홈에
+  const iga = n => { const s0 = String(n || ''), f = s0.length >= 3 ? s0.slice(1) : s0, c = f.charCodeAt(f.length - 1) - 0xAC00; return f + (c >= 0 && c < 11172 && c % 28 ? '이가' : '가'); };
+  const grpLong = g => String(g || '').replace(/ 남$/, ' 남자').replace(/ 여$/, ' 여자');
+  const qwText = w => iga(w.name) + ' ' + w.label + ' 분기별 기네스에서 ' + grpLong(w.grp) + ' 1위했어요!';
+  function qwinSection() {
+    const KS = myKids(), L = ((home && home.qwins) || []).filter(w => KS.includes(w.name) && Date.now() - (w.at || 0) < 60 * 864e5);
+    return L.map(w => '<button class="qwin" data-qwin="1"><span class="qi">🏆</span><span><b>' + esc(qwText(w)) + '</b><small>' + esc(w.ev || '') + (w.v != null ? ' ' + esc(String(w.v)) + esc(w.unit || '') : '') + ' · 성장 리포트에서 보기 ›</small></span></button>').join('');
   }
   // 📩 봉투 (형제 모두)
   function envSection() {
@@ -1322,7 +1333,7 @@
           (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</b><small>' +
           (t.out ? '오늘 등원 ' + esc(t.in || '') + ' · 하원 ' + esc(t.out) : t.in ? '하원하면 바로 알려 드려요' : '도착하면 등원 알림이 와요') + '</small></span>' + ICON.right + '</button>'; }
       else h += '<button class="status multi" data-tile="att">' + KS.map(kk => { const t = stOf(kk); return '<span class="sr' + (t.out ? ' out' : t.in ? ' in' : '') + '"><span class="si">' + (t.in || t.out ? ICON.check : ICON.door) + '</span><span class="st"><b>' + esc(kk) + '</b><small>' + (t.out ? esc(t.out) + ' 하원했어요' : t.in ? esc(t.in) + ' 등원했어요' : '아직 등원 전이에요') + '</small></span></span>'; }).join('') + ICON.right + '</button>';
-      h += homeTiles() + envSection() + contactSection(); // 2026-11-19: 행사 신청 칸은 '다가오는 일정'에 합침 (같은 내용 두 번 안 보이게), 확인할 소식은 '소식' 탭 숫자로
+      h += homeTiles() + qwinSection() + envSection() + contactSection(); // 2026-11-19: 행사 신청 칸은 '다가오는 일정'에 합침 (같은 내용 두 번 안 보이게), 확인할 소식은 '소식' 탭 숫자로
     }
     h += upSection();
     if (isAndroid && !standalone && !store.get('haerang-x-install')) h += '<div class="tip"><b class="t">앱으로 설치하면 더 편해요</b>지금은 인터넷 화면에서 쓰고 계세요. 홈 화면에 설치하면 앱처럼 바로 열려요.<div class="row"><button id="hInstallBtn">설치하기</button><button id="hInstallX">닫기</button></div></div>';
@@ -1683,8 +1694,9 @@
     const ki = ((kinfo && kinfo.kids) || []).find(x => x.name === k) || {};
     const kidSel = s.children.length > 1 ? '<div class="chips">' + s.children.map((c, i) => '<button data-k="' + i + '" class="' + (c === k ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' : '';
     const grp = grpOf(ki.birth), row = (x, ic, t, sub, ext) => '<button class="li" data-x="' + x + '">' + (ic ? '<span class="lic e">' + ic + '</span>' : '') + '<span class="lt"><b>' + t + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</span>' + (ext ? '<span class="ext">↗</span>' : ICON.right) + '</button>';
-    const prof = '<section class="kprof"><div class="kp1"><span class="avatar big">' + esc(initial(k)) + '</span><div><b>' + esc(k) + '</b><small>해랑경희 태권도장' + (grp ? ' · ' + grp : '') + (s.approved ? '' : ' · 도장 확인 중') + '</small></div></div>' +
-      '<div class="kp2"><div><small>소속</small><b>' + esc(grp || '–') + '</b></div><div><small>수련 요일</small><b>' + esc((ki.days || []).join('·') || '–') + '</b></div><div><small>현재 띠</small><b class="bt">' + esc(ki.belt || '–') + '</b></div></div></section>';
+    const qws = ((home && home.qwins) || []).filter(w => w.name === k); // 🏆 분기 기네스 1위 · 선범단 패치 (2026-11-19 사용자)
+    const prof = '<section class="kprof"><div class="kp1">' + (ki.sb ? '<span class="sbpatch" role="img" aria-label="선범단 패치"></span>' : '<span class="avatar big">' + esc(initial(k)) + '</span>') + '<div><b>' + esc(k) + (ki.sb ? '<span class="sbtag">⭐ 선범단</span>' : '') + '</b><small>해랑경희 태권도장' + (grp ? ' · ' + grp : '') + (s.approved ? '' : ' · 도장 확인 중') + '</small></div></div>' +
+      '<div class="kp2"><div><small>소속</small><b>' + esc(grp || '–') + '</b></div><div><small>수련 요일</small><b>' + esc((ki.days || []).join('·') || '–') + '</b></div><div><small>현재 띠</small><b class="bt">' + esc(ki.belt || '–') + '</b></div></div>' + (ki.sb ? '<div class="kqw" style="background:#EEF2FA;color:#0B2C6B">⭐ 다른 수련생에게 모범이 되는 해랑경희 선범단원이에요</div>' : '') + qws.map(w => '<div class="kqw">🏆 ' + esc(qwText(w)) + '</div>').join('') + '</section>';
     const bd = ki.bdayRaw ? (+ki.bdayRaw.slice(5, 7)) + '월 ' + (+ki.bdayRaw.slice(8)) + '일' + (ki.lunar ? ' (음력)' : '') : '';
     const info = '<div class="msec">제자 정보</div><div class="list">' +
       (s.approved ? row('info', '', '제자 기본 정보', '생일' + (bd ? ' ' + bd : '') + ' · 수련 요일 · 회비 정보') : '') +
