@@ -146,6 +146,7 @@
   .feed .fic.t-notice{background:#E9EEF6;color:#1F3B63}.feed .fic.t-journal{background:#FBEEEE;color:#A40F16}.feed .fic.t-album{background:#E4F2F1;color:#22706E}
   .feed .ft{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.feed .ft small{font-size:12.5px;color:var(--muted)}
   .feed .ft b{font-size:15.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.feed .ft em{font-style:normal;font-size:12.5px;color:#C62828;font-weight:700}
+  .feed.sm{padding:11px 14px}.feed.sm .fic{width:34px;height:34px;border-radius:10px}.feed.sm .fic svg{width:19px;height:19px}.feed .fdt{flex:none;font-size:12.5px;color:var(--muted)}.feed .fic.t-ct{background:#FFF4DE;font-size:17px}
   .feed .fdot{flex:none;width:8px;height:8px;border-radius:50%;background:#E5484D}.feed .fgo{flex:none;width:18px;height:18px;color:#B8B0AA}.feed .fgo svg{width:18px;height:18px}
 
   /* 앨범 */
@@ -421,6 +422,24 @@
   .ev-sh .cx{display:block;width:100%;border:0;background:none;color:var(--muted);font-size:14.5px;padding:12px;margin-top:2px}
   /* 사범님께 연락 · 숙제 */
   .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  /* 사범님께 연락 달력 · 대화 (2026-11-19) */
+  .ctcal{background:#fff;border:1px solid var(--line);border-radius:18px;padding:4px 10px 12px}
+  .ctw,.ctg{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}.ctw span{font-size:12px;color:var(--muted);padding:6px 0}
+  .ctg button{border:0;background:none;padding:6px 0 8px;font:inherit;font-size:15px;font-weight:600;color:var(--ink);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .ctg button.x{color:#C9C2BC}.ctg button.td{color:var(--brand);font-weight:900}.ctg button.on{background:#FBEEEE}
+  .ctg button i{width:6px;height:6px;border-radius:50%;background:transparent}.ctg button i.d{background:var(--brand)}
+  .cth{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:10px}
+  .cth .hd{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:6px}.cth .hd b{color:var(--ink);font-size:15px}.cth .hd .ok{margin-left:auto;color:var(--green);font-weight:700}
+  .bb{display:flex;flex-direction:column;margin:6px 0}.bb.me{align-items:flex-end}.bb .bx{max-width:84%;padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word;position:relative}
+  .bb.me .bx{background:#FBEEEE;border-bottom-right-radius:5px}.bb.dj .bx{background:#F1F3F7;border-bottom-left-radius:5px}
+  .bb small{font-size:11.5px;color:var(--muted);margin:2px 6px 0}.bb .rx{font-size:15px;margin:2px 6px 0}
+  .bb .phs{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}.bb .phs img{width:78px;height:78px;object-fit:cover;border-radius:10px;background:#eee}
+  .emo{display:flex;gap:4px;margin:3px 4px 0}.emo button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:2px 8px;font-size:14px}.emo button.on{border-color:var(--brand);background:#FBEEEE}
+  .ctrp{width:100%;margin-top:8px;border:1.5px solid var(--brand);color:var(--brand);background:#fff;border-radius:12px;padding:10px;font-weight:800;font-size:14.5px}
+  .ctin textarea{width:100%;margin-top:8px}.ctin .row2{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}.ctin .row2 .sp{flex:1}
+  .ctin .row2 button{border:0;background:var(--brand);color:#fff;border-radius:10px;padding:9px 16px;font-weight:800}.ctin .row2 label{border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-weight:700;color:var(--muted);background:#fff}
+  .phl{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}.phl span{position:relative}.phl img{width:72px;height:72px;object-fit:cover;border-radius:10px}.phl button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:#333;color:#fff;font-size:12px;padding:0}
+  .cmsg{cursor:pointer}
   .cgrid button{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 12px;font-size:14.5px;font-weight:700;text-align:left;color:var(--ink);line-height:1.35}
   .cgrid button.tx{grid-column:1/-1;text-align:center;color:var(--muted);font-weight:600}
   .crep{font-size:14px;color:var(--ink);background:#F3F6FB;border-radius:10px;padding:6px 10px;margin:4px 4px 0 30px}.cmsg{font-size:13.5px;color:var(--muted);padding:8px 4px 0;display:flex;gap:8px}.cmsg b{color:var(--ink);font-weight:600;flex:1}.cmsg .ok{color:var(--green);font-weight:700;white-space:nowrap}
@@ -1008,7 +1027,7 @@
   function contactSection() {
     if (!contact) return '';
     const KS = myKids(), M = (contact.msgs || []).filter(x => KS.includes(x.kid)), L = M.filter(x => dayOfMs(x.at) === todayK()), more = M.length - L.length; // 홈엔 오늘 것만, 나머지는 소식 → 사범님 연락
-    return '<section class="sec" id="secCt"><h2 class="h2s">사범님께 연락<small>누르면 세부사항 선택이 가능해요</small>' + (more > 0 ? '<button data-news="사범님 연락">지난 연락 ' + more + '건</button>' : '') + '</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기 <small>(사진 첨부 가능해요)</small></button></div>' +
+    return '<section class="sec" id="secCt"><h2 class="h2s">사범님께 연락<small>누르면 세부사항 선택이 가능해요</small>' + (M.length ? '<button data-ctpg="" style="white-space:nowrap">지난 연락 ›</button>' : '') + '</h2><div class="cgrid">' + (contact.tpl || []).map(t => '<button data-ct="' + esc(t.id) + '">' + esc(t.label) + '</button>').join('') + '<button class="tx" data-ct="__text">✏️ 직접 적어서 보내기 <small>(사진 3장까지)</small></button></div>' +
       L.map(x => cmsgRow(x, KS.length > 1)).join('') + '</section>';
   }
   // 다가오는 일정 + 행사 신청 (2026-11-19 사용자: 행사 신청을 일정에 연동 — 일정 옆에 '신청했어요' / '신청하기')
@@ -1030,7 +1049,10 @@
         return '<div class="li up' + (x.ev ? ' hasev' : '') + '"' + (x.ev ? ' data-ev="' + esc(x.ev.id) + '"' : '') + '><span class="dchip"><small>' + (d ? d.m + '월' : '날짜') + '</small><b>' + (d ? d.d : '–') + '</b></span><span class="lt"><b>' + esc(x.title) + '</b><small>' + (d ? d.w + '요일' : '날짜 미정') + (x.kind ? ' · ' + esc(x.kind) : '') + (x.ev ? ' · ' + esc(evPrice(x.ev)) + (x.ev.canEdit && x.ev.close ? ' · ' + evShort(x.ev.close) + '까지 신청' : '') : '') + '</small></span>' + (x.ev ? '<span class="evps">' + evPills(x.ev) + '</span>' : '') + '</div>'; }).join('') + '</div>'
       : '<div class="calm"><span>다가오는 일정이 없어요</span></div>') + '</section>';
   }
-  const cmsgRow = (x, nm) => '<div class="cmsg"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + (nm ? esc(x.kid) + ' · ' : '') + (x.ph ? '📷 ' : '') + esc(x.short ? (x.day !== dayOfMs(x.at) ? dShort(x.day) + ' ' : '') + x.short : x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘은? /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '')) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>' + ((x.reps || []).length ? x.reps.map(r => '<div class="crep">↳ 도장 답장 · ' + esc(r.text) + '</div>').join('') : ''); // 도장 답장 (2026-11-18)
+  const cmsgRow = (x, nm) => { const rp = (x.reps || []).filter(r => !r.p), last = (x.reps || []).slice(-1)[0];
+    return '<div class="cmsg" data-ctpg="' + dayOfMs(x.at) + '"><span>' + dShort(dayOfMs(x.at)) + '</span><b>' + (nm ? esc(x.kid) + ' · ' : '') + ((x.phs || []).length ? '📷 ' : '') + esc(cmsgText(x)) + '</b>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span>보냈어요</span>') + '</div>' +
+      (rp.length ? '<div class="crep" data-ctpg="' + dayOfMs(x.at) + '">↳ 도장 답장 · ' + esc(rp[rp.length - 1].text || '📷 사진') + (last && last.p ? ' · 내 답장 보냄' : '') + ((x.reps || []).length > 1 ? ' <b style="color:var(--brand)">대화 ' + (x.reps.length + 1) + ' ›</b>' : '') + '</div>' : ''); }; // 누르면 '사범님께 연락' 달력 창 (2026-11-19)
+  const cmsgText = x => x.short ? (x.day !== dayOfMs(x.at) ? dShort(x.day) + ' ' : '') + x.short : x.label === '직접 쓴 연락' ? x.text : (x.day !== dayOfMs(x.at) ? x.label.replace(/^오늘은? /, '') + ' (' + dShort(x.day) + ')' : x.label) + (x.who ? ' (' + x.who + ')' : '') + (x.why ? ' · ' + x.why : '');
   const dayOfMs = ms => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
   const todayK = () => dayOfMs(Date.now());
   // 도장에 가족 추가 요청 (보안: 주소를 아무에게나 보내지 않고 도장이 확인)
@@ -1058,9 +1080,15 @@
       return { url: full, full: full.split(',')[1], thumb: mk(320, .7).split(',')[1] };
     } finally { URL.revokeObjectURL(url); }
   }
+  // 사진 고르기 칸 (3장까지, 2026-11-19): 고른 사진 + '사진 넣기'
+  const phPick = (L, inId) => (L.length ? '<div class="phl">' + L.map((x, i) => '<span><img src="' + x.url + '" alt=""><button data-phx="' + i + '" aria-label="빼기">✕</button></span>').join('') + '</div>' : '') + (L.length < 3 ? '<label class="cphadd" style="margin-top:6px"><input type="file" accept="image/*" multiple id="' + inId + '" hidden>📷 사진 넣기 (' + L.length + '/3)</label>' : '');
+  async function phAdd(L, files) {
+    const fs = [...(files || [])]; if (!fs.length) return; if (L.length + fs.length > 3) toast('사진은 3장까지 넣을 수 있어요');
+    toast('사진을 줄이는 중…'); for (const f of fs.slice(0, 3 - L.length)) { try { L.push(await shrinkPhoto(f)); } catch (_) { toast('사진을 열지 못했어요. 다른 사진으로 해 주세요'); } }
+  }
   function contactSheet(id, pre) {
     const s0 = me() || {}, KS = s0.children || [], isText = id === '__text', t = isText ? { id: '', label: pre && pre.title || '직접 적어서 보내기', ask: '' } : (contact.tpl || []).find(x => x.id === id); if (!t) return;
-    const st = { kid: curKid(), day: todayK(), who: t.ask === 'who' ? (s0.relation || '') : '', why: '', text: (pre && pre.text) || '', save: false, swapOn: false, swap: [], photo: null };
+    const st = { kid: curKid(), day: todayK(), who: t.ask === 'who' ? (s0.relation || '') : '', why: '', text: (pre && pre.text) || '', save: false, swapOn: false, swap: [], photos: [] };
     let saved = []; try { saved = JSON.parse(localStorage.getItem(PH) || '[]'); } catch (_) {}
     const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
     const tom = new Date(Date.parse(todayK()) + 864e5).toISOString().slice(0, 10);
@@ -1078,7 +1106,7 @@
         (isText && saved.length ? '<label class="f">자주 쓰는 말</label><div class="opts" data-g="ph">' + saved.map((x, i) => '<button data-v="' + i + '">' + esc(x) + '</button>').join('') + '</div>' : '') +
         '<label class="f">' + (isText ? '도장에 전달할 내용' : t.ask === 'why' ? '직접 적기 (안 적어도 돼요)' : '더 남길 말 (안 적어도 돼요)') + '</label>' +
         (isText ? '<textarea class="m" id="cT" rows="4" maxlength="200" placeholder="' + esc((pre && pre.ph) || '도장에 전달할 내용을 적어 주세요 (예: 오늘은 5시에 데리러 갈게요)') + '">' + esc(st.text) + '</textarea>' : '<input class="m" id="cT" maxlength="200" value="' + esc(st.text) + '">') +
-        (isText ? '<label class="f">사진 (1장 · 안 넣어도 돼요)</label>' + (st.photo ? '<div class="cph"><img src="' + st.photo.url + '" alt=""><button id="cPhX">사진 빼기</button></div>' : '<label class="cphadd"><input type="file" accept="image/*" id="cPh" hidden>📷 사진 넣기</label>') : '') +
+        (isText ? '<label class="f">사진 (3장까지 · 안 넣어도 돼요)</label>' + phPick(st.photos, 'cPh') : '') +
         (isText && !(pre && pre.noSave) ? '<label style="display:flex;gap:8px;align-items:center;margin:10px 4px 0;font-size:14px"><input type="checkbox" id="cS"' + (st.save ? ' checked' : '') + '> 이 말을 자주 쓰는 말로 저장 (이 휴대폰에만)</label>' + (saved.length ? '<button class="cx" id="cPhClr" style="padding:6px">자주 쓰는 말 지우기</button>' : '') : '') +
         '<button class="btn" id="cGo">보내기</button><button class="cx" id="cX">닫기</button></div>';
     };
@@ -1088,11 +1116,11 @@
     sh.addEventListener('change', async e => {
       if (e.target.id === 'cD') { if (e.target.value) { st.day = e.target.value < todayK() ? todayK() : e.target.value; markDay(); if (absent && st.swapOn) { keep(); draw(); } } return; }
       if (e.target.id === 'cSw') { keep(); st.swapOn = e.target.checked; if (!st.swapOn) st.swap = []; return draw(); }
-      if (e.target.id === 'cPh') { const f = e.target.files && e.target.files[0]; if (!f) return; keep(); toast('사진을 줄이는 중…'); try { st.photo = await shrinkPhoto(f); } catch (_) { toast('사진을 열지 못했어요. 다른 사진으로 해 주세요'); } return draw(); }
+      if (e.target.id === 'cPh') { keep(); await phAdd(st.photos, e.target.files); return draw(); }
     });
     sh.onclick = async e => {
       if (e.target === sh || e.target.closest('#cX')) return sh.remove();
-      if (e.target.closest('#cPhX')) { keep(); st.photo = null; return draw(); }
+      const px = e.target.closest('[data-phx]'); if (px) { keep(); st.photos.splice(+px.dataset.phx, 1); return draw(); }
       const b = e.target.closest('.opts button'); if (b) { keep(); const g = b.parentNode.dataset.g, v = b.dataset.v; if (g === 'day') { st.day = v; const d = sh.querySelector('#cD'); if (d) d.value = ''; if (absent && st.swapOn) return draw(); markDay(); return; } if (g === 'kid') st.kid = v; if (g === 'who') st.who = v; if (g === 'why') st.why = st.why === v ? '' : v; if (g === 'swap') st.swap = st.swap.includes(v) ? st.swap.filter(x => x !== v) : [...st.swap, v]; if (g === 'ph') st.text = saved[+v]; return draw(); }
       if (e.target.closest('#cPhClr')) { if (confirm('자주 쓰는 말을 모두 지울까요?')) { saved = []; localStorage.removeItem(PH); draw(); } return; }
       if (e.target.closest('#cGo')) {
@@ -1101,10 +1129,10 @@
         if (t.ask === 'why' && !st.why && !st.text.trim() && !st.swap.length) return toast('사유를 고르거나 적어 주세요');
         if (absent && st.swapOn && !st.swap.length) return toast('바꿔서 올 요일을 골라 주세요');
         if (isText && !st.text.trim()) return toast('도장에 전달할 내용을 적어 주세요');
-        const btn = sh.querySelector('#cGo'); btn.disabled = true; btn.textContent = st.photo ? '사진 보내는 중…' : '보내는 중…';
+        const btn = sh.querySelector('#cGo'); btn.disabled = true; btn.textContent = st.photos.length ? '사진 보내는 중…' : '보내는 중…';
         try {
           const text = ((pre && pre.prefix) || '') + st.text.trim();
-          const j = await post('/p/contact-send', { kid: st.kid, tpl: t.id, who: st.who, why: st.why, text, day: st.day, swap: st.swap, photo: st.photo ? { full: st.photo.full, thumb: st.photo.thumb } : null });
+          const j = await post('/p/contact-send', { kid: st.kid, tpl: t.id, who: st.who, why: st.why, text, day: st.day, swap: st.swap, photos: st.photos.map(x => ({ full: x.full, thumb: x.thumb })) });
           if (!j.ok) throw new Error(j.error);
           if (isText && st.save) { saved = [st.text.trim(), ...saved.filter(x => x !== st.text.trim())].slice(0, 10); localStorage.setItem(PH, JSON.stringify(saved)); }
           sh.remove(); toast((pre && pre.done) || '사범님께 보냈어요'); loadContact();
@@ -1113,6 +1141,51 @@
     };
     draw(); document.body.appendChild(sh);
   }
+  // ── 사범님께 연락 창 (2026-11-19 사용자): 달력에 대화한 날 점 → 누르면 그날 대화 · 도장 답장에 다시 말하기(사진 3장) · 이모티콘 ──
+  let ctMon = '', ctSel = '', ctOpen = 0; const ctRp = { text: '', photos: [] }, CT_EMO = ['👍', '❤️', '😊', '🙏'];
+  const ctDays = x => [dayOfMs(x.at), ...(x.reps || []).map(r => dayOfMs(r.at))];
+  async function drawContact(keepPos) {
+    if (!contact || !keepPos) { try { const j = await post('/p/contact'); if (j.ok) contact = j; } catch (_) {} }
+    if (curPg !== 'contact' || $('v-page').hidden) return;
+    if (!contact) return body('<div class="empty">불러오지 못했어요</div>');
+    const KS = myKids(), many = KS.length > 1, M = (contact.msgs || []).filter(x => KS.includes(x.kid)), t = todayK();
+    if (!ctSel) ctSel = M.length ? ctDays(M[0]).sort().slice(-1)[0] : t;
+    if (!ctMon || !keepPos) ctMon = ctSel.slice(0, 7);
+    const has = new Set(M.flatMap(ctDays)), [y, mo] = ctMon.split('-').map(Number), first = new Date(Date.UTC(y, mo - 1, 1)), nd = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+    let cells = ''; for (let i = 0; i < first.getUTCDay(); i++) cells += '<button class="x" disabled></button>';
+    for (let d = 1; d <= nd; d++) { const k = ctMon + '-' + String(d).padStart(2, '0'); cells += '<button data-cd="' + k + '" class="' + (k === ctSel ? 'on ' : '') + (k === t ? 'td' : '') + '">' + d + '<i class="' + (has.has(k) ? 'd' : '') + '"></i></button>'; }
+    const L = M.filter(x => ctDays(x).includes(ctSel)).sort((a, b) => a.at - b.at), sd = md(ctSel);
+    const ph = (x, ids) => ids.length ? '<div class="phs">' + ids.map((id, i) => '<img data-ph="c:' + x.id + ':' + esc(id) + '" data-cv="' + x.id + '|' + ids.map(esc).join(',') + '|' + i + '" alt="">').join('') + '</div>' : '';
+    const bub = (x, me2, text, ids, at, who, extra) => '<div class="bb ' + (me2 ? 'me' : 'dj') + '"><div class="bx">' + (who ? '<b style="display:block;font-size:12px;color:var(--brand)">' + esc(who) + '</b>' : '') + esc(text) + ph(x, ids) + '</div><small>' + dateTime(at) + '</small>' + (extra || '') + '</div>';
+    const thread = x => '<div class="cth" data-tid="' + x.id + '"><div class="hd">' + (many ? '<b>' + esc(x.kid) + '</b>' : '') + '<span>' + esc(x.label === '직접 쓴 연락' ? '직접 쓴 연락' : x.label) + '</span>' + (x.ack ? '<span class="ok">도장 확인 ✓</span>' : '<span class="ok" style="color:var(--muted)">보냈어요</span>') + '</div>' +
+      bub(x, true, cmsgText(x) || '📷 사진', x.phs || [], x.at, '', x.re ? '<span class="rx">' + esc(x.re) + '</span>' : '') +
+      (x.reps || []).map((r, i) => r.p ? bub(x, true, r.text || '📷 사진', r.phs || [], r.at, '', r.re ? '<span class="rx">' + esc(r.re) + '</span>' : '')
+        : bub(x, false, r.text || '📷 사진', r.phs || [], r.at, '도장', '<div class="emo">' + CT_EMO.map(e => '<button data-emo="' + i + '|' + e + '" class="' + (r.re === e ? 'on' : '') + '">' + e + '</button>').join('') + '</div>')).join('') +
+      (ctOpen === x.id ? '<div class="ctin"><textarea class="m" id="ctT" rows="3" maxlength="300" placeholder="도장에 보낼 말 (예: 네 맞아요. 가방에 넣어 주세요)">' + esc(ctRp.text) + '</textarea>' + phPick(ctRp.photos, 'ctPh') + '<div class="row2"><button style="background:#fff;color:var(--muted);border:1px solid var(--line)" data-ctx>닫기</button><span class="sp"></span><button data-ctgo>보내기</button></div></div>'
+        : '<button class="ctrp" data-ctrp="' + x.id + '">💬 이어서 말하기</button>') + '</div>';
+    body('<div class="ctcal"><div class="mhead"><button data-cm="-1">' + ICON.left + '</button><b>' + y + '년 ' + mo + '월</b><button data-cm="1">' + ICON.right + '</button></div><div class="ctw">' + [...WD].map(w => '<span>' + w + '</span>').join('') + '</div><div class="ctg">' + cells + '</div></div>' +
+      '<div class="msec">' + sd.m + '월 ' + sd.d + '일 (' + sd.w + ') · ' + L.length + '건의 연락</div>' + (L.length ? L.map(thread).join('') : '<div class="calm"><span>이 날은 연락이 없어요</span></div>') +
+      '<p class="help-l" style="text-align:center;margin:14px 0">점이 있는 날은 도장과 연락한 날이에요. 새 연락은 홈 \'사범님께 연락\'에서 보내요.</p>');
+    loadThumbs();
+    const keep = () => { const i = $('ctT'); if (i) ctRp.text = i.value; };
+    $('pBody').onchange = async e => { if (e.target.id === 'ctPh') { keep(); await phAdd(ctRp.photos, e.target.files); drawContact(true); } };
+    $('pBody').onclick = async e => {
+      const cm = e.target.closest('[data-cm]'); if (cm) { const d = new Date(Date.UTC(y, mo - 1 + +cm.dataset.cm, 1)); ctMon = d.toISOString().slice(0, 7); return drawContact(true); }
+      const cd = e.target.closest('[data-cd]'); if (cd) { ctSel = cd.dataset.cd; ctOpen = 0; return drawContact(true); }
+      const cv = e.target.closest('[data-cv]'); if (cv) { const [mid, ids, i] = cv.dataset.cv.split('|'); return openViewer(ids.split(',').map(id => 'c:' + mid + ':' + id), +i); }
+      const tid = +((e.target.closest('[data-tid]') || {}).dataset || {}).tid, x = M.find(z => z.id === tid);
+      const rp = e.target.closest('[data-ctrp]'); if (rp) { ctOpen = tid; ctRp.text = ''; ctRp.photos = []; drawContact(true); const i = $('ctT'); if (i) i.focus(); return; }
+      if (e.target.closest('[data-ctx]')) { ctOpen = 0; return drawContact(true); }
+      const px = e.target.closest('[data-phx]'); if (px) { keep(); ctRp.photos.splice(+px.dataset.phx, 1); return drawContact(true); }
+      const em = e.target.closest('[data-emo]'); if (em && x) { const [i, emo] = em.dataset.emo.split('|'), r = x.reps[+i], was = r.re; r.re = r.re === emo ? '' : emo; drawContact(true);
+        try { const j = await post('/p/contact-react', { id: x.id, i: +i, e: r.re }); if (!j.ok) throw new Error(j.error); } catch (er) { r.re = was; drawContact(true); toast(er.message || '잠시 후 다시 해 주세요'); } return; }
+      const go = e.target.closest('[data-ctgo]'); if (go && x) { keep(); if (!ctRp.text.trim() && !ctRp.photos.length) return toast('보낼 말을 적거나 사진을 넣어 주세요');
+        go.disabled = true; go.textContent = ctRp.photos.length ? '사진 보내는 중…' : '보내는 중…';
+        try { const j = await post('/p/contact-reply', { id: x.id, text: ctRp.text.trim(), photos: ctRp.photos.map(p => ({ full: p.full, thumb: p.thumb })) }); if (!j.ok) throw new Error(j.error); ctOpen = 0; ctRp.text = ''; ctRp.photos = []; ctSel = todayK(); toast('도장에 보냈어요'); drawContact(); }
+        catch (er) { go.disabled = false; go.textContent = '보내기'; toast(er.message || '잠시 후 다시 해 주세요'); } }
+    };
+  }
+  const dateTime = ms => { const d = new Date(ms + 9 * 3600e3), h = d.getUTCHours(), m = String(d.getUTCMinutes()).padStart(2, '0'); return (h < 12 ? '오전 ' : '오후 ') + ((h % 12) || 12) + ':' + m; };
   // 생일 고치기 (2026-11-19 사용자 요청): 학부모가 직접 → 출석부 원생 정보 (바뀐 기록에 남음)
   function bdaySheet(kid, v, lunar) {
     const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
@@ -1262,6 +1335,7 @@
       const ev = e.target.closest('[data-ev]'); if (ev) return evSheet(ev.dataset.ev, ev.dataset.evk);
       const tl = e.target.closest('[data-tile]'); if (tl) return onTile(tl.dataset.tile);
       const ct = e.target.closest('[data-ct]'); if (ct) return contactSheet(ct.dataset.ct);
+      const cp = e.target.closest('[data-ctpg]'); if (cp) { ctSel = cp.dataset.ctpg || ''; return openPage('contact'); }
       const hc = e.target.closest('[data-hwc]'); if (hc) return hwToggle(hc.dataset.hwc);
       const hw = e.target.closest('[data-hw]'); if (hw) return hwSheet(hw.dataset.hw);
       if (e.target.closest('#hWho')) return pickKid();
@@ -1311,7 +1385,8 @@
     const s = me() || {};
     if (!news) tbody('<div class="empty">불러오는 중…</div>');
     try {
-      const [n, j, a] = await Promise.all([post('/p/notices'), s.approved ? post('/p/journal') : null, s.approved ? post('/p/albums') : null]);
+      const [n, j, a, c] = await Promise.all([post('/p/notices'), s.approved ? post('/p/journal') : null, s.approved ? post('/p/albums') : null, s.approved ? post('/p/contact').catch(() => null) : null]);
+      if (c && c.ok) contact = c;
       news = {
         notice: (n && n.ok ? n.items : []).map(x => ({ ...x, t: 'notice' })),
         journal: (j && j.ok ? j.items : []).map(x => ({ ...x, t: 'journal' })),
@@ -1330,16 +1405,19 @@
     list = list.filter(x => !top(x)).sort((p, q) => q.at - p.at);
     if (newsF !== '사범님 연락') markSeen(t ? [t] : ['notice', 'journal', 'album']);
     const chips = '<div class="chips sticky">' + ['전체', '공지', '알림장', '사범님 연락'].map(k => '<button class="' + (k === newsF ? 'on' : '') + '">' + k + '</button>').join('') + '</div>';
-    const card = x => x.t === 'journal' ? jRow(x) : feedRow(x); // 알림장은 키즈노트처럼 (2026-11-19), 나머지는 한 줄 목록
+    if (newsF === '사범님 연락') { newsF = '전체'; ctSel = ''; setTimeout(() => openPage('contact'), 0); } // 사범님 연락은 달력 창으로 (2026-11-19)
+    const card = x => x.t === 'ct' ? ctFeed(x) : feedRow(x); // 2026-11-19 사용자: 소식 알림은 제목만 간단히 (알림장 자세한 모양은 알림장 화면에서)
+    if (!t && s.approved && contact) { const KS2 = myKids(), by = {}; (contact.msgs || []).filter(x => KS2.includes(x.kid)).forEach(x => ctDays(x).forEach((d, i) => { const at = i ? x.reps[i - 1].at : x.at; const o = by[d] = by[d] || { t: 'ct', day: d, ids: new Set(), at: 0 }; o.ids.add(x.id); o.at = Math.max(o.at, at); }));
+      list = [...list, ...Object.values(by).map(o => ({ ...o, n: o.ids.size }))].sort((p, q) => q.at - p.at); }
     let h = chips;
-    if (newsF === '사범님 연락') { const KS2 = myKids(), M = ((contact && contact.msgs) || []).filter(x => KS2.includes(x.kid)); h += M.length ? '<div class="msec">사범님께 보낸 연락</div><div class="sec">' + M.map(x => cmsgRow(x, KS2.length > 1)).join('') + '</div>' : '<div class="empty">보낸 연락이 없어요</div>'; tbody(h); $('tBody').onclick = e => { const c = e.target.closest('.chips button'); if (c) { newsF = c.textContent; paintNews(); scrollTo(0, 0); } }; return; }
     if (!s.approved && (t === 'journal' || t === 'album')) h += '<div class="empty">도장에서 확인이 끝나면 볼 수 있어요</div>';
     else if (!pinned.length && !list.length) h += '<div class="empty">아직 ' + (t ? newsF : '소식') + '이 없어요</div>';
     else h += (pinned.length ? '<div class="msec">꼭 읽어 주세요</div>' + pinned.map(card).join('') : '') + grouped(list, card);
     tbody(h);
     loadThumbs();
     $('tBody').onclick = e => {
-      const c = e.target.closest('.chips button'); if (c) { newsF = c.textContent; paintNews(); scrollTo(0, 0); return; }
+      const c = e.target.closest('.chips button'); if (c) { if (c.textContent === '사범님 연락') { ctSel = ''; return openPage('contact'); } newsF = c.textContent; paintNews(); scrollTo(0, 0); return; }
+      const cp = e.target.closest('[data-ctpg]'); if (cp) { ctSel = cp.dataset.ctpg; return openPage('contact'); }
       const f = e.target.closest('[data-open]'); if (f) { const [tt, id] = f.dataset.open.split(':'); const x = (news[tt] || []).find(y => y.id === +id); if (x) openPost(x); }
     };
   }
@@ -1380,12 +1458,12 @@
   }
   // 소식 한 줄: '새 공지가 올라왔어요' + 제목 · 날짜, 아직 안 본 글은 빨간 점
   function feedRow(x) {
-    const mine = (me().children || []), who = x.t === 'journal' && x.target && x.target.length ? x.target.filter(k => mine.includes(k)).join('·') : '';
-    const what = x.t === 'album' ? '사진 ' + (x.photos || []).length + '장이 올라왔어요' : x.t === 'journal' ? (who ? who + ' ' : '') + '알림장이 올라왔어요' : (x.urgent ? '긴급 공지가 올라왔어요' : x.kind === '회비' ? '회비 안내가 왔어요' : '새 공지가 올라왔어요');
     const d = dayOf(x.at), fresh = !sentReads.has(x.id | 0), need = x.ask && !x.acked && me().approved;
-    return '<button class="feed' + (x.urgent && !x.acked ? ' urg' : '') + '" data-open="' + x.t + ':' + (x.id | 0) + '"><span class="fic t-' + x.t + '">' + (IC[x.t] || '') + '</span><span class="ft"><small>' + what + ' · ' + d.m + '월 ' + d.d + '일</small><b>' + esc(x.title) + '</b>' +
-      (need ? '<em>\'확인했어요\'를 눌러 주세요</em>' : '') + '</span>' + (fresh ? '<i class="fdot" aria-label="새 글"></i>' : '') + '<span class="fgo">' + ICON.right + '</span></button>';
+    return '<button class="feed sm' + (x.urgent && !x.acked ? ' urg' : '') + '" data-open="' + x.t + ':' + (x.id | 0) + '"><span class="fic t-' + x.t + '">' + (IC[x.t] || '') + '</span><span class="ft"><b>' + esc(x.title) + '</b>' +
+      (need ? '<em>\'확인했어요\'를 눌러 주세요</em>' : '') + '</span><small class="fdt">' + d.m + '/' + d.d + '</small>' + (fresh ? '<i class="fdot" aria-label="새 글"></i>' : '') + '</button>';
   }
+  // 사범님 연락 한 줄 (2026-11-19 사용자): '11월 19일 2건의 연락' → 누르면 달력 창 그날
+  const ctFeed = o => { const d = md(o.day); return '<button class="feed sm" data-ctpg="' + o.day + '"><span class="fic t-ct">💬</span><span class="ft"><b>' + d.m + '월 ' + d.d + '일 ' + o.n + '건의 연락</b></span><small class="fdt">사범님께 연락</small></button>'; };
   let curPost = null;
   function openPost(x) { curPost = x; PAGES.post = TYPE_LABEL[x.t] || '소식'; openPage('post'); }
   function albumCard(a, full) {
@@ -1664,7 +1742,7 @@
   }
 
   // ═════════ 하위 화면 (회비 안내) ═════════
-  const PAGES = { fee: '회비 안내', info: '제자 기본 정보', notice: '공지', journal: '알림장', album: '앨범', perk: '제휴 · 혜택', plan: '알림장 · 미션 · 행사', cal: '일정 · 공지 · 출석', grow: '성장 리포트' };
+  const PAGES = { fee: '회비 안내', info: '제자 기본 정보', notice: '공지', journal: '알림장', album: '앨범', perk: '제휴 · 혜택', plan: '알림장 · 미션 · 행사', cal: '일정 · 공지 · 출석', grow: '성장 리포트', contact: '사범님께 연락' };
   function openPage(name, push = true) {
     if (!PAGES[name] || !me()) return;
     if (push) history.pushState({ p: name }, '', '#' + name);
@@ -1964,7 +2042,7 @@
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); };
   }
   const RENDER = {
-    plan() { return drawPlan(null, true); }, cal() { return drawPlan(null, true); }, grow() { growD = null; return drawGrow(); },
+    plan() { return drawPlan(null, true); }, cal() { return drawPlan(null, true); }, grow() { growD = null; return drawGrow(); }, contact() { return drawContact(); },
     notice() { return listPage('notice'); }, journal() { return listPage('journal'); }, album() { return listPage('album'); },
     async info() { // 정보 확인 (2026-11-13): 바꾸는 것은 도장에서
       const j = await post('/p/kid-info').catch(() => null); if (failed(j)) return; if (!j || !j.ok) return body('<div class="empty">불러오지 못했어요</div>');
@@ -2036,7 +2114,7 @@
   const photoCache = new Map();
   function photoUrl(id, size) {
     const key = id + ':' + size;
-    if (!photoCache.has(key)) photoCache.set(key, post('/p/photo', { id, size }).then(j => j.ok ? 'data:image/jpeg;base64,' + j.data : '').catch(() => ''));
+    if (!photoCache.has(key)) photoCache.set(key, (String(id).startsWith('c:') ? post('/p/contact-photo', { id: +String(id).split(':')[1], ph: String(id).split(':')[2], full: size === 'full' }) : post('/p/photo', { id, size })).then(j => j.ok ? 'data:image/jpeg;base64,' + j.data : '').catch(() => ''));
     return photoCache.get(key);
   }
   function loadThumbs() { document.querySelectorAll('img[data-ph]').forEach(async img => { img.src = await photoUrl(img.dataset.ph, 'thumb'); }); }
@@ -2120,7 +2198,7 @@
   }
   // 앱 아이콘 숫자: 알림이 온 화면을 열어 보면 그 알림만 빠짐 (서비스 워커가 알림마다 화면 이름을 적어 둠, 2026-11-16)
   const B_TAB = { home: ['', 'home', 'attendance', 'kid', 'me'], news: ['news', 'notice', 'journal', 'album'], kid: ['kid', 'me', 'attendance'], schedule: ['schedule'] };
-  const B_PG = { plan: ['plan', 'journal', 'hw', 'ev'], cal: ['cal', 'schedule', 'notice', 'attendance'], grow: ['grow', 'exam'] };
+  const B_PG = { contact: ['contact'], plan: ['plan', 'journal', 'hw', 'ev'], cal: ['cal', 'schedule', 'notice', 'attendance'], grow: ['grow', 'exam'] };
   const B_KNOWN = new Set([...Object.values(B_TAB).flat(), ...Object.values(B_PG).flat(), ...Object.keys(PAGES)]);
   function badgeSeen() {
     if (document.hidden || !me() || !('caches' in window)) return;

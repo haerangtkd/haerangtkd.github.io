@@ -461,14 +461,20 @@ async function route(path, req, env) {
       await teamSync(env, '/sync/pmsg-send', { kids, kid: kids[0], tpl: '', text: rel + ' (전화 뒷자리 ' + ph + ') — 앱 주소를 보내 주시고, 가입하면 알림 관리에서 승인해 주세요', rel: p.rel, family: true });
       return json({ ok: true });
     }
-    if (['/p/contact', '/p/contact-send', '/p/hw', '/p/hw-check'].includes(path)) {
+    if (['/p/contact', '/p/contact-send', '/p/contact-reply', '/p/contact-react', '/p/contact-photo', '/p/hw', '/p/hw-check'].includes(path)) {
       const kst = await kidStatus(env), kids = myKids.filter(k => kst[k] !== '퇴관');
       if (path === '/p/contact') { const r = await teamSync(env, '/sync/ptpl', { kids }); return json(r.ok ? { ...r, kids } : r); }
-      if (path === '/p/contact-send') { // 사진 1장 (2026-11-19 사용자 요청) · 이번 주만 다른 요일로 (swap)
-        const ph = b.photo && typeof b.photo === 'object' ? { full: String(b.photo.full || ''), thumb: String(b.photo.thumb || '') } : null;
-        if (ph && (!/^[A-Za-z0-9+/=]+$/.test(ph.full) || ph.full.length > 1500000 || !/^[A-Za-z0-9+/=]*$/.test(ph.thumb) || ph.thumb.length > 200000)) return json({ ok: false, error: '사진이 너무 커요. 다른 사진으로 해 주세요' });
-        return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel, dayreq: !!b.dayreq, photo: ph, swap: Array.isArray(b.swap) ? b.swap.slice(0, 5) : [] }));
+      // 사진 3장까지 (2026-11-19 사용자 요청, 예전 1장 photo도 받음)
+      const phList = () => { const L = Array.isArray(b.photos) ? b.photos : b.photo && typeof b.photo === 'object' ? [b.photo] : []; const out = [];
+        for (const x of L.slice(0, 3)) { const ph = { full: String((x && x.full) || ''), thumb: String((x && x.thumb) || '') }; if (!/^[A-Za-z0-9+/=]+$/.test(ph.full) || ph.full.length > 1500000 || !/^[A-Za-z0-9+/=]*$/.test(ph.thumb) || ph.thumb.length > 200000) return null; out.push(ph); }
+        return out; };
+      if (path === '/p/contact-send') { // · 이번 주만 다른 요일로 (swap)
+        const photos = phList(); if (!photos) return json({ ok: false, error: '사진이 너무 커요. 다른 사진으로 해 주세요' });
+        return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel, dayreq: !!b.dayreq, photos, swap: Array.isArray(b.swap) ? b.swap.slice(0, 5) : [] }));
       }
+      if (path === '/p/contact-reply') { const photos = phList(); if (!photos) return json({ ok: false, error: '사진이 너무 커요. 다른 사진으로 해 주세요' }); return json(await teamSync(env, '/sync/pmsg-reply', { kids, id: b.id | 0, text: b.text, rel: p.rel, photos })); } // 도장 답장에 다시 말하기 (2026-11-19)
+      if (path === '/p/contact-react') return json(await teamSync(env, '/sync/pmsg-react', { kids, id: b.id | 0, i: b.i | 0, e: String(b.e || '') }));
+      if (path === '/p/contact-photo') return json(await teamSync(env, '/sync/pmsg-photo', { kids, id: b.id | 0, ph: String(b.ph || ''), full: !!b.full }));
       if (path === '/p/hw') { const r = await teamSync(env, '/sync/hw', { kids }); return json(r.ok ? { ...r, kids } : r); }
       return json(await teamSync(env, '/sync/hw-check', { kids, kid: b.kid, hw: b.hw, day: b.day, on: !!b.on, rel: p.rel }));
     }
@@ -536,7 +542,7 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     const name = cleanNames([b.name])[0];
     if (!name) return json({ ok: false, error: '이름' });
-    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: b.view === 'home' ? '' : b.view === 'plan' ? 'plan' : 'attendance', att: !b.view || b.view === 'attendance' }); // view 'home' = 학부모 연락 확인 알림, 'plan' = 행사 신청 취소 알림
+    const r = await send(env, { kind: '출결', title: b.title, body: b.body, children: [name], view: b.view === 'home' ? '' : b.view === 'plan' ? 'plan' : b.view === 'contact' ? 'contact' : 'attendance', att: !b.view || b.view === 'attendance' }); // 'contact' = 사범님께 연락 창 (2026-11-19) // view 'home' = 학부모 연락 확인 알림, 'plan' = 행사 신청 취소 알림
     if (r.ok && !r.total) return json({ ok: false, error: (await all(env, 'SELECT kids FROM parents WHERE ok = 1')).some(p => J(p.kids, []).includes(name)) ? name + ' 학생은 출결 알림 받을 분이 정해지지 않았어요 (업무 앱 원생 정보에서 골라 주세요)' : name + ' 학생은 알림 앱에 가입한 보호자가 없습니다' });
     return json({ ...r, ok: !!r.ok && r.sent > 0, error: r.ok && !r.sent ? '보호자 휴대폰에 보내지 못했습니다 (알림이 꺼져 있을 수 있음)' : r.error });
   }

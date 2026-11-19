@@ -117,7 +117,8 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   try { await env.DB.prepare('ALTER TABLE subs ADD COLUMN last INTEGER').run(); } catch (_) {} // 마지막으로 알림이 간 때 (2026-11-13)
   try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN reps TEXT').run(); } catch (_) {}
-  try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN ph TEXT').run(); } catch (_) {} // 학부모 연락 사진 (photos 표 id, 2026-11-19) // 학부모 연락 답장 [{by, text, at}] (2026-11-18)
+  try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN ph TEXT').run(); } catch (_) {}
+  try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN re TEXT').run(); } catch (_) {} // 학부모 첫 연락에 사범님 이모티콘 (2026-11-19) // 학부모 연락 사진 (photos 표 id, 2026-11-19) // 학부모 연락 답장 [{by, text, at}] (2026-11-18)
   if (!mcols.includes('asrc')) { try { await env.DB.prepare('ALTER TABLE members ADD COLUMN asrc TEXT').run(); } catch (_) {} } // 출석부 PIN(암호화 값)을 마지막으로 가져온 것
   // boss: 직원 관리 권한(이사범님) · role: 직책 · mustpin: 처음 들어오면 PIN 바꾸기 · aid: 출석부 사범님 id · shared: 공용 계정
   for (const [c, t] of [['boss', 'INTEGER DEFAULT 0'], ['role', 'TEXT'], ['mustpin', 'INTEGER DEFAULT 0'], ['aid', 'TEXT'], ['shared', 'INTEGER DEFAULT 0'], ['ledger', 'INTEGER DEFAULT 0']])
@@ -316,11 +317,12 @@ async function route(path, req, env, ctx) {
         .map(x => ({ id: x.id, title: str(x.d.title, 100), date: x.d.date || '', closed: !!x.d.closed, goods: x.d.kind === 'goods', names: [...new Set((x.d.rows || []).filter(y => y && y.name && !y.wait && !y.appCancel && !y.guest).map(y => str(y.name, 20)))] })) });
     }
     if (path === '/sync/jtpl') return json({ ok: true, tpl: await jtplGet(env) }); // 알림 관리 '알림장 쓰기' 양식
-    if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, 'SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt, reps, ph FROM pmsg WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 40', ...kids)).map(r => ({ id: r.id, kid: r.kid, label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r), ph: !!r.ph, reps: J(r.reps, []).map(x => ({ text: x.text, at: x.at })) })) : [] });
+    if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, "SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt, reps, ph, re FROM pmsg WHERE label <> '가족 추가 요청' AND kid IN (" + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 300', ...kids)).map(r => ({ id: r.id, kid: r.kid, label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, rel: r.rel || '', ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r), phs: pmPhs(r.ph), re: r.re || '', reps: J(r.reps, []).map(x => ({ p: !!x.p, by: x.p ? (x.by || '보호자') : '도장', text: x.text || '', at: x.at, phs: Array.isArray(x.phs) ? x.phs : [], re: x.re || '' })) })) : [] }); // 2026-11-19: 대화(학부모·도장)·사진 여러 장·이모티콘, 달력으로 보게 300건까지
+    if (path === '/sync/pmsg-reply' || path === '/sync/pmsg-react' || path === '/sync/pmsg-photo') return json(await pmsgParent(env, path, b, kids, ctx)); // 학부모 앱 '사범님께 연락' 대화 (2026-11-19)
     if (path === '/sync/pmsg-send') return json(await pmsgSend(env, b, kids, ctx));
     if (path === '/sync/jcmt-alert') { // 알림장 댓글 → 직원 알림 (2026-11-19)
       const line = (kids.join('·') || '학부모') + ' ' + (str(b.rel, 10) || '보호자') + ' · ' + str(b.title, 60) + (b.pub ? '' : ' (비공개)') + ' · ' + str(b.text, 80);
-      await addLog(env, '', 'notice', '💬 알림장 댓글: ' + line, ''); await pushAll(env, '', '💬 알림장 댓글', line, 'home'); return json({ ok: true });
+      await addLog(env, '', 'notice', '💬 알림장 댓글: ' + line, ''); return json({ ok: true }); // 2026-11-19 사용자: 알림장 댓글·좋아요는 휴대폰 알림 안 울림 (알림 기록에만)
     }
     if (path === '/sync/hw') return json({ ok: true, hw: await hwFor(env, kids) });
     if (path === '/sync/sb-names') return json({ ok: true, list: await sbNames(env) }); // 알림 관리 제자 탭 '선범단 카드' (2026-11-14)
@@ -767,20 +769,32 @@ async function route(path, req, env, ctx) {
     const why = [per && per.total != null ? '해랑 성장 점수 ' + per.total + '점' : '', sc[2] != null ? '끈기(출석) ' + sc[2] + '점' : '', ex ? (ex.absent ? '심사 쉼' : ex.pass ? '심사 합격' + (ex.nb ? ' · ' + ex.nb : '') : '심사 다시 도전') : ''].filter(Boolean).join(' · ');
     return json({ ok: true, recs, why, call });
   }
-  if (path === '/api/pmsg-reply') { // 학부모 연락에 답장 → 학부모 휴대폰 알림 + 학부모 앱 '사범님 연락'에 보임, 다른 직원에게도 알림 (2026-11-18)
+  if (path === '/api/pmsg-reply') { // 학부모 연락에 답장 → 학부모 휴대폰 알림 + 학부모 앱 '사범님 연락'에 보임, 다른 직원에게도 알림 (2026-11-18) · 사진 3장까지, 답장하면 확인한 것으로 (2026-11-19)
     const m = await one(env, 'SELECT * FROM pmsg WHERE id = ?', b.id | 0); if (!m) return json({ ok: false, error: '없는 연락이에요' });
-    const text = str(b.text, 300).trim(); if (!text) return json({ ok: false, error: '답장을 적어 주세요' });
-    const reps = [...J(m.reps, []), { by: me.name, text, at: Date.now() }].slice(-20);
-    await run(env, 'UPDATE pmsg SET reps = ?, upd = ? WHERE id = ?', JSON.stringify(reps), Date.now(), m.id);
-    const r = await noticeSync(env, '/sync/notify', { name: m.kid, title: '💬 도장에서 답장이 왔어요', body: m.kid + ' · ' + text.slice(0, 120), view: 'home' });
-    await addLog(env, me.id, 'pickup', '💬 ' + m.kid + ' 학부모 연락에 답장: ' + text.slice(0, 60) + ' · 학부모 ' + (r.ok ? '알림 보냄' : '알림 못 보냄'), m.day);
-    ctx.waitUntil(pushAll(env, me.id, '💬 ' + m.kid + ' 학부모 연락 · ' + me.name + '님 답장', text.slice(0, 120), 'home').catch(() => {}));
+    const text = str(b.text, 300).trim(), phs = (Array.isArray(b.phs) ? b.phs : []).map(x => str(x, 30)).filter(x => /^[A-Za-z0-9]+$/.test(x)).slice(0, 3);
+    if (!text && !phs.length) return json({ ok: false, error: '답장을 적거나 사진을 넣어 주세요' });
+    const now = Date.now(), reps = [...J(m.reps, []), { by: me.name, text, at: now, phs }].slice(-40);
+    await run(env, 'UPDATE pmsg SET reps = ?, upd = ?' + (m.ack ? '' : ', ack = ?, ackAt = COALESCE(ackAt, ?)') + ' WHERE id = ?', JSON.stringify(reps), now, ...(m.ack ? [] : [me.name, now]), m.id);
+    const what = text ? text.slice(0, 120) : '📷 사진 ' + phs.length + '장';
+    const r = await noticeSync(env, '/sync/notify', { name: m.kid, title: '💬 도장에서 답장이 왔어요', body: m.kid + ' · ' + what + (text && phs.length ? ' · 📷' : ''), view: 'contact' });
+    await addLog(env, me.id, 'pickup', '💬 ' + m.kid + ' 학부모 연락에 답장: ' + what.slice(0, 60) + ' · 학부모 ' + (r.ok ? '알림 보냄' : '알림 못 보냄'), m.day);
+    ctx.waitUntil(pushAll(env, me.id, '💬 ' + m.kid + ' 학부모 연락 · ' + me.name + '님 답장', what, 'home').catch(() => {}));
     return json({ ok: true, reps, pushed: !!r.ok });
+  }
+  if (path === '/api/pmsg-react') { // 학부모 말에 이모티콘 (알림은 안 울림, 2026-11-19) — i = -1 첫 연락, 0.. = 대화 순서
+    const m = await one(env, 'SELECT * FROM pmsg WHERE id = ?', b.id | 0); if (!m) return json({ ok: false, error: '없는 연락이에요' });
+    const e = PM_EMO.includes(b.e) ? b.e : '', i = b.i | 0, reps = J(m.reps, []);
+    if (i < 0) await run(env, 'UPDATE pmsg SET re = ?, upd = ? WHERE id = ?', e, Date.now(), m.id);
+    else { if (!reps[i] || !reps[i].p) return json({ ok: false, error: '학부모님 말에만 할 수 있어요' }); reps[i].re = e; await run(env, 'UPDATE pmsg SET reps = ?, upd = ? WHERE id = ?', JSON.stringify(reps), Date.now(), m.id); }
+    return json({ ok: true, re: e, reps });
   }
   if (path === '/api/pmsg-ack') { // 학부모 연락 확인 (apply: 결석 → 출석부 결석 예정·픽업표 결석 / 등·하원 → 픽업표 메모)
     const m = await one(env, 'SELECT * FROM pmsg WHERE id = ?', b.id | 0); if (!m) return json({ ok: false, error: '없는 연락이에요' });
     let applied = m.applied;
-    if (b.noted) applied = 1; // 2026-11-18 사용자 결정: 보호자 하원은 할 일 대신 원생 중요사항에 (화면에서 직원이 내용·날짜를 확인하고 넣은 뒤)
+    if (b.todo) { // 2026-11-19 사용자: 연락 종류를 나누지 않고 '할 일에 넣기' (그날 마감)
+      const ttl = m.kid + ' · ' + (pmShort(m) || m.label).slice(0, 60);
+      const r = itemStmt(env, { type: 'todo', title: ttl, due: m.day, cat: m.act === 'out' ? '하원' : '', status: '진행', whos: [], checks: [], done: false, pickupKid: m.act === 'out' ? m.kid : '' }, me); await r.stmt.run(); applied = 1;
+    } else if (b.noted) applied = 1; // 2026-11-18 사용자 결정: 보호자 하원은 할 일 대신 원생 중요사항에 (화면에서 직원이 내용·날짜를 확인하고 넣은 뒤)
     else if (b.apply && !m.applied && m.act) {
       // 조율할게요: 날짜·누가·내용을 고쳐서 넣기
       const day = isDay(b.day) ? b.day : m.day, who = b.who != null ? str(b.who, 10) : m.who, text = b.text != null ? str(b.text, 200) : m.text;
@@ -796,9 +810,9 @@ async function route(path, req, env, ctx) {
     }
     await run(env, 'UPDATE pmsg SET ack = ?, ackAt = ?, applied = ?, upd = ? WHERE id = ?', me.name, Date.now(), applied, Date.now(), m.id);
     // 학부모 휴대폰에도 '도장에서 확인했어요 · 11/12 엄마 하원' (처음 확인할 때 한 번, 가족 추가 요청은 빼고)
-    if (!m.ack && m.label !== '가족 추가 요청') {
+    if (!m.ack && !m.ackAt && m.label !== '가족 추가 요청') { // 학부모가 다시 말해서 열린 연락을 또 확인할 때는 안 보냄 (2026-11-19)
       const n = await one(env, 'SELECT * FROM pmsg WHERE id = ?', m.id);
-      ctx.waitUntil(noticeSync(env, '/sync/notify', { name: m.kid, title: '✅ 도장에서 확인했어요', body: (+n.day.slice(5, 7)) + '/' + (+n.day.slice(8)) + ' ' + m.kid + ' · ' + pmShort(n), view: 'home' }).catch(() => {}));
+      ctx.waitUntil(noticeSync(env, '/sync/notify', { name: m.kid, title: '✅ 도장에서 확인했어요', body: (+n.day.slice(5, 7)) + '/' + (+n.day.slice(8)) + ' ' + m.kid + ' · ' + pmShort(n), view: 'contact' }).catch(() => {}));
     }
     return json({ ok: true });
   }
@@ -1681,6 +1695,35 @@ function guessAct(t) {
   if (/등원|데려다|늦게갈|늦게가|늦게보낼|늦을|지각/.test(t)) return 'in';
   return '';
 }
+// 학부모 앱 '사범님께 연락' 대화 (2026-11-19 사용자): 학부모·도장이 주고받기, 사진 3장까지, 이모티콘 (이모티콘은 알림 안 울림)
+const PM_EMO = ['👍', '❤️', '😊', '🙏'];
+const pmPhs = ph => String(ph || '').split(',').filter(Boolean);
+async function pmPhotoSave(env, list, now) {
+  const ids = [];
+  for (const x of list.slice(0, 3)) { if (!x || !x.full || !/^[A-Za-z0-9+/=]+$/.test(x.full) || x.full.length > 1500000) continue; const id = rid(12); await run(env, 'INSERT INTO photos (id, full, thumb, created) VALUES (?, ?, ?, ?)', id, x.full, /^[A-Za-z0-9+/=]+$/.test(x.thumb || '') ? x.thumb : x.full, now); ids.push(id); }
+  return ids;
+}
+async function pmsgParent(env, path, b, kids, ctx) {
+  const m = await one(env, 'SELECT * FROM pmsg WHERE id = ?', b.id | 0); if (!m || !kids.includes(m.kid)) return { ok: false, error: '없는 연락이에요' };
+  const reps = J(m.reps, []), now = Date.now();
+  if (path === '/sync/pmsg-photo') { // 이 연락에 붙은 사진만
+    const id = str(b.ph, 30), all2 = [...pmPhs(m.ph), ...reps.flatMap(x => Array.isArray(x.phs) ? x.phs : [])]; if (!all2.includes(id)) return { ok: false, error: '사진이 없어요' };
+    const r = await one(env, 'SELECT ' + (b.full ? 'full' : 'thumb') + ' AS d FROM photos WHERE id = ?', id); return r ? { ok: true, data: r.d } : { ok: false, error: '사진이 없어요' };
+  }
+  if (path === '/sync/pmsg-react') { // 도장 말에 이모티콘 (i = 대화 순서)
+    const e = PM_EMO.includes(b.e) ? b.e : '', i = b.i | 0; if (!reps[i] || reps[i].p) return { ok: false, error: '도장 답장에만 할 수 있어요' };
+    reps[i].re = e; await run(env, 'UPDATE pmsg SET reps = ?, upd = ? WHERE id = ?', JSON.stringify(reps), now, m.id); return { ok: true };
+  }
+  const text = str(b.text, 300).trim(); if (!text && !(Array.isArray(b.photos) && b.photos.length)) return { ok: false, error: '내용을 적거나 사진을 넣어 주세요' };
+  if ((await one(env, 'SELECT COUNT(*) AS n FROM pmsg WHERE kid = ? AND at > ?', m.kid, now - 3600e3)).n + reps.filter(x => x.p && x.at > now - 3600e3).length >= 20) return { ok: false, error: '연락을 너무 많이 보냈어요. 잠시 뒤에 해 주세요' };
+  const phs = await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : [], now);
+  const nr = [...reps, { p: 1, by: str(b.rel, 10) || '보호자', text, at: now, phs }].slice(-40);
+  await run(env, 'UPDATE pmsg SET reps = ?, ack = NULL, upd = ? WHERE id = ?', JSON.stringify(nr), now, m.id); // 학부모가 다시 말하면 업무 앱 '확인할 것'에 다시 올라옴
+  const line = m.kid + ' · ' + (text ? text.slice(0, 100) : '') + (phs.length ? ' 📷 사진 ' + phs.length + '장' : '') + ' (' + (str(b.rel, 10) || '보호자') + ' 답장)';
+  await addLog(env, '', 'pickup', '💬 ' + line, m.day);
+  ctx.waitUntil(pushAll(env, '', '💬 학부모 답장', line, 'home').catch(() => {}));
+  return { ok: true };
+}
 async function pmsgSend(env, b, kids, ctx) {
   const kid = str(b.kid, 20); if (!kids.includes(kid)) return { ok: false, error: '제자 이름을 확인해 주세요' };
   const tpl = (await ptplGet(env)).find(t => t.id === str(b.tpl, 20)), text = str(b.text, 200).trim();
@@ -1692,9 +1735,9 @@ async function pmsgSend(env, b, kids, ctx) {
   const act = tpl ? tpl.act : (!b.family && !b.dayreq ? guessAct(text) : ''); // 직접 쓴 말도 결석·하원·등원이면 저절로 나눔 (2026-11-18)
   const WK = ['월', '화', '수', '목', '금', '토'], sw = tpl && tpl.act === 'absent' && Array.isArray(b.swap) ? [...new Set(b.swap.map(x => str(x, 1)).filter(x => WK.includes(x)))].sort((x, y) => WK.indexOf(x) - WK.indexOf(y)) : []; // 이번 주만 다른 요일로 (2026-11-19)
   const text2 = sw.length ? ('이번 주만 ' + sw.join('·') + '요일로 바꿔서 올게요' + (text ? ' · ' + text : '')) : text;
-  let ph = null; if (b.photo && b.photo.full && /^[A-Za-z0-9+/=]+$/.test(b.photo.full) && b.photo.full.length <= 1500000) { ph = rid(12); await run(env, 'INSERT INTO photos (id, full, thumb, created) VALUES (?, ?, ?, ?)', ph, b.photo.full, /^[A-Za-z0-9+/=]+$/.test(b.photo.thumb || '') ? b.photo.thumb : b.photo.full, now); } // 사진 (2026-11-19)
+  const phIds = await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : [], now), ph = phIds.length ? phIds.join(',') : null; // 사진 3장까지 (2026-11-19)
   await run(env, 'INSERT INTO pmsg (kid, kind, label, act, who, why, text, day, rel, at, upd, ph) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', kid, tpl ? tpl.id : 'text', label, act, who, why, text2, day, str(b.rel, 10), now, now, ph);
-  const line = kid + ' · ' + label.replace(/오늘 /, day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ') + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text2 ? ' · ' + text2 : '') + (ph ? ' · 📷 사진' : '');
+  const line = kid + ' · ' + label.replace(/오늘 /, day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ') + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text2 ? ' · ' + text2 : '') + (phIds.length ? ' · 📷 사진 ' + phIds.length + '장' : '');
   await addLog(env, '', 'pickup', '💬 ' + line + ' · ' + (str(b.rel, 10) || '학부모'), day);
   await pushAll(env, '', '💬 학부모 연락', line, 'home'); // 2026-11-19 사용자: 밤에도 바로 (예전엔 밤 9시~아침 8시는 모았다가 아침에 — 그래서 밤에 시험한 연락 알림이 안 왔음)
   return { ok: true };
