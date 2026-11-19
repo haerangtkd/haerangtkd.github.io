@@ -557,7 +557,14 @@
   .emo{display:flex;gap:4px;margin:3px 2px 0}.emo button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:2px 9px;font-size:14px}.emo button.on{border-color:var(--brand);background:#E8EEF8}
   .sheet .emo button,.emo button{width:auto;height:30px;min-width:0;min-height:0;padding:0 9px;font-size:14px;line-height:1;border-radius:99px;flex:none}.emo{border:0}
   .phl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}.phl span{position:relative}.phl img{width:64px;height:64px;object-fit:cover;border-radius:10px}.phl span button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#333;color:#fff;font-size:12px;padding:0}
-  .mh{font-size:15px;margin:14px 2px 4px}.pmr[data-pmo]{cursor:pointer}
+  .mh{font-size:15px;margin:14px 2px 4px}
+  .kchats{margin:0 -4px}.kchat{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:10px 4px;border-radius:12px}.kchat:active{background:var(--chip)}
+  .kchat .kav{flex:none;width:48px;height:48px;border-radius:17px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+  .kchat .kt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.kchat .kt b{font-size:16px;font-weight:800}.kchat .kt b small{font-size:12.5px;color:var(--muted);font-weight:600}
+  .kchat .kt span{font-size:14px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
+  .kchat .kr{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;align-self:flex-start;padding-top:2px}.kchat .kr small{font-size:12px;color:var(--muted)}
+  .kchat .kr em{font-style:normal;min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:#E8452C;color:#fff;font-size:12.5px;font-weight:800;line-height:22px;text-align:center;box-sizing:border-box}.kchat .kr i{font-style:normal;font-size:11.5px;color:#2E8B57}
+  .pm3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 6px}.pm3 .btn{padding:10px 2px;font-size:13.5px;font-weight:700;border-radius:11px;white-space:normal}.pmr[data-pmo]{cursor:pointer}
   .twch{display:flex;flex-wrap:wrap;gap:6px}.twch button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 11px;font-size:13.5px;font-weight:700}.twch span{font-size:13px;color:#8a8f99;align-self:center}
   .twmh{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 8px}.twmh b{font-size:16px}
   .twop{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 12px;margin-top:8px;font-size:14px;line-height:1.5}.twop.on{border-color:#0D326F;background:#EEF3FB;box-shadow:inset 0 0 0 1px #0D326F}.twop small{display:block;font-size:11.5px;color:#0D326F;font-weight:800;margin-bottom:2px}
@@ -2913,7 +2920,7 @@ const repsOf = x => { if (Array.isArray(x.reps)) return x.reps; try { return JSO
 const PM_EMO = ['👍', '❤️', '😊', '🙏'];
 const pmPhs = x => String(x.ph || '').split(',').filter(Boolean);
 const pmPhH = (ids, who) => ids.length ? '<div class="pmph">' + ids.map(id => '<img data-ph="' + esc(id) + '" alt="' + who + ' 사진">').join('') + '</div>' : '';
-function pmThread(x0) {
+function pmThread(x0, back) {
   const ph = []; let busy = false;
   const draw = ov => { const x = S.pmsg.get(x0.id) || x0, R = repsOf(x);
     const bub = (me2, who, text, ids, at, emo) => '<div class="pbb ' + (me2 ? 'dj' : 'pa') + '"><div class="bx"><b>' + esc(who) + '</b>' + esc(text) + pmPhH(ids, who) + '</div><small>' + whenAt(at) + '</small>' + (emo || '') + '</div>';
@@ -2922,11 +2929,11 @@ function pmThread(x0) {
       R.map((r, i) => r.p ? bub(false, r.by || '학부모', r.text || '📷 사진', r.phs || [], r.at, emoRow(i, r.re)) : bub(true, r.by + ' 사범님', r.text || '📷 사진', r.phs || [], r.at, r.re ? '<span class="rx">' + esc(r.re) + '</span>' : '')).join('');
     ov.querySelector('#thP').innerHTML = ph.map((p, i) => '<span><img src="data:image/jpeg;base64,' + p.thumb + '"><button data-phx="' + i + '">✕</button></span>').join('') + (ph.length < 3 ? '<label class="btn">📷 사진 (' + ph.length + '/3)<input type="file" accept="image/*" multiple id="thIn" hidden></label>' : '');
     ov.querySelectorAll('#thL img[data-ph]').forEach(loadPhoto); };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 ' + esc(x0.kid) + ' · 학부모 연락</h2></div><div id="thL" class="pmth"></div>' +
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 ' + esc(x0.kid) + ' · 학부모 연락</h2></div>' + (x0.ack ? '' : '<div class="pm3" data-pm="' + x0.id + '"><button class="btn" data-pa="note">📌 중요사항에 넣기</button><button class="btn" data-pa="todo">☑ 할 일에 넣기</button><button class="btn" data-pa="0">✓ 확인만 하기</button></div>') + '<div id="thL" class="pmth"></div>' +
     '<div class="chips" id="rpQ" style="margin-top:10px">' + ['네, 알겠습니다 😊', '확인했어요. 시간 맞춰 준비할게요', '어머니, 이거 맞을까요?', '가방 안에 넣어 둘게요', '쾌유를 빌어요. 다음 수업 때 봬요'].map(t => '<button data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>' +
     '<textarea class="inp" id="rpT" rows="3" maxlength="300" placeholder="학부모님께 보낼 답장" style="margin-top:8px"></textarea><div class="phl" id="thP"></div><p class="help">보내면 학부모님 휴대폰에 알림이 가고 \'확인\'으로 처리돼요. 이모티콘은 알림이 안 울려요.</p>' +
     '<div class="foot"><span class="sp"></span><button data-close>닫기</button><button class="save" id="rpOk">보내기</button></div>', ov => {
-    ov.classList.add('full'); draw(ov);
+    ov.classList.add('full'); draw(ov); if (back) sheetOnClose = () => setTimeout(back, 50);
     ov.querySelector('#rpQ').onclick = e => { const b = e.target.closest('[data-t]'); if (b) ov.querySelector('#rpT').value = b.dataset.t; };
     ov.addEventListener('change', async e => { if (e.target.id !== 'thIn') return; const fs = [...e.target.files].slice(0, 3 - ph.length); if (e.target.files.length > fs.length) toast('사진은 3장까지예요');
       for (const f of fs) { try { const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(f); });
@@ -2934,6 +2941,7 @@ function pmThread(x0) {
         ph.push({ full: sh(1400, .8), thumb: sh(400, .7) }); } catch (_) { toast('사진을 열지 못했어요'); } }
       draw(ov); });
     ov.addEventListener('click', async e => {
+      if (e.target.closest('.pm3 [data-pa]')) { if (e.target.closest('[data-pa="note"]')) sheetOnClose = null; await onPmClick(e); const p3 = ov.querySelector('.pm3'); if (p3 && (S.pmsg.get(x0.id) || {}).ack) p3.remove(); return; }
       const px = e.target.closest('[data-phx]'); if (px) { ph.splice(+px.dataset.phx, 1); return draw(ov); }
       const em = e.target.closest('[data-emo]'); if (em) { const [i, emo] = em.dataset.emo.split('|'), x = S.pmsg.get(x0.id) || x0, R = repsOf(x), cur = +i < 0 ? x.re : (R[+i] || {}).re, val = cur === emo ? '' : emo;
         const j = await api('/api/pmsg-react', { id: x0.id, i: +i, e: val }); if (!j.ok) return toast(j.error); if (+i < 0) x.re = val; else x.reps = JSON.stringify(j.reps); return draw(ov); }
@@ -2958,14 +2966,22 @@ function pmRow(x, withBtns) {
   return '<div class="pmr' + (x.ack ? ' ok' : '') + '" data-pm="' + x.id + '" data-pmo="1"><div class="pt"><b>' + esc(x.kid) + '</b> <span class="tag' + (x.act === 'absent' ? ' r' : x.act ? ' y' : '') + '">' + dl + '</span><p>' + esc(pmLine(x)) + '</p>' + phH + '<small>' + esc(x.rel || '학부모') + ' · ' + hm(x.at) + (x.at < Date.now() - 864e5 ? ' · ' + md(dayOf(x.at)) : '') + (x.ack ? ' · ' + esc(x.ack) + ' 확인' + (x.applied ? ' · 넣음' : '') : '') + ' · 💬 대화 ›</small>' + repH + '</div>' +
     (withBtns && !x.ack ? '<div class="pm4"><button class="btn" data-pa="note">📌 중요사항에 넣기</button><button class="btn" data-pa="todo">☑ 할 일에 넣기</button><button class="btn" data-pa="0">✓ 확인만 하기</button><button class="btn g" data-pa="rep">💬 직접 답장하기</button></div>' : '') + '</div>';
 }
-// 학부모님 연락 모아 보기 (더보기 ① 제자 관리, 2026-11-19): 확인 안 한 것 먼저, 날짜별
+// 학부모님 연락 모아 보기 (더보기 ① 제자 관리) — 2026-11-19 사용자: 카카오톡 채팅 목록처럼 가장 최근에 말한 연락이 위로
+const pmLastAt = x => Math.max(x.at, ...repsOf(x).map(r => r.at || 0));
+function pmUnread(x) { if (x.ack) return 0; const R = repsOf(x); let n = 1; for (const r of R) n = r.p ? n + 1 : 0; return n || 1; } // 확인 안 한 연락: 마지막 사범님 말 뒤의 학부모 말 수
+const pmAvC = n => ['#F4A63A', '#E2477B', '#3E8ED0', '#4A9442', '#8B55F5', '#E0703A', '#1F9D8B'][[...String(n)].reduce((a, c) => a + c.charCodeAt(0), 0) % 7];
+function pmChatRow(x) {
+  const R = repsOf(x), last = R[R.length - 1], at = pmLastAt(x), un = pmUnread(x);
+  const pv = last ? (last.p ? '' : last.by + ' 사범님: ') + (last.text || '📷 사진') : (pmPhs(x).length && !pmLine(x) ? '📷 사진' : pmLine(x));
+  const tm = dayOf(at) === today() ? hm(at) : dayOf(at) === addDays(today(), -1) ? '어제' : md(dayOf(at));
+  return '<button class="kchat" data-pmc="' + x.id + '"><span class="kav" style="background:' + pmAvC(x.kid) + '">' + esc(x.kid.slice(-2)) + '</span><span class="kt"><b>' + esc(x.kid) + ' <small>' + esc(x.rel || '학부모') + '</small></b><span>' + esc(pv) + '</span></span><span class="kr"><small>' + tm + '</small>' + (un ? '<em>' + un + '</em>' : x.ack ? '<i>✓ ' + esc(x.ack) + '</i>' : '') + '</span></button>';
+}
 function pmAllSheet() {
-  const draw = ov => { const L = pmList().filter(x => x.label !== '가족 추가 요청'), open = L.filter(x => !x.ack), done = L.filter(x => x.ack); let last = '';
-    ov.querySelector('#pmA').innerHTML = (open.length ? '<h3 class="mh">확인할 연락 ' + open.length + '</h3>' + open.map(x => pmRow(x, true)).join('') : '<p class="help">확인할 연락이 없어요 👍</p>') +
-      (done.length ? '<h3 class="mh">지난 연락</h3>' + done.map(x => { const d = dayOf(x.at), h = d !== last ? '<div class="help" style="margin:12px 2px 2px;font-weight:800">' + md(d) + '</div>' : ''; last = d; return h + pmRow(x, false); }).join('') : ''); };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 학부모님 연락</h2></div><p class="help">학부모 앱 \'사범님께 연락\'으로 온 것 (60일). 누르면 대화를 보고 답장할 수 있어요.</p><div id="pmA"></div>', ov => {
+  const draw = ov => { const L = pmList().filter(x => x.label !== '가족 추가 요청').sort((a, b) => pmLastAt(b) - pmLastAt(a));
+    ov.querySelector('#pmA').innerHTML = L.length ? L.map(pmChatRow).join('') : '<p class="empty">학부모님 연락이 없어요</p>'; };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 학부모님 연락</h2></div><div id="pmA" class="kchats"></div>', ov => {
     ov.classList.add('full'); draw(ov);
-    ov.addEventListener('click', async e => { if (await onPmClick(e)) setTimeout(() => { if (ov.isConnected) draw(ov); }, 300); });
+    ov.addEventListener('click', e => { const r = e.target.closest('[data-pmc]'); if (r) pmThread(S.pmsg.get(+r.dataset.pmc), pmAllSheet); });
   });
 }
 // 새 등록 서류 (원생 연결 전) — 학부모 연락처럼 대시보드에 (2026-11-13)
