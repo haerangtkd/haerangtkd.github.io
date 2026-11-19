@@ -533,7 +533,7 @@
   .h2s small{display:block;font-size:12.5px;color:var(--muted);font-weight:500;margin-top:2px;letter-spacing:0}
   .cgrid button.tx small{font-weight:500;font-size:12.5px;color:var(--muted)}
   .li.up{align-items:center}.li.up.hasev{cursor:pointer}.evps{margin-left:auto;display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex:none}
-  .evp{font-size:12.5px;font-weight:800;border-radius:99px;padding:5px 10px;white-space:nowrap}.evp.ok{background:#E4F4ED;color:#1E7A46}.evp.go{background:#fff;color:var(--brand);border:1.5px solid var(--brand)}.evp.c{background:#F1EDE9;color:#8A827C}
+  .evp{font-size:14px;font-weight:800;border-radius:12px;padding:9px 12px 9px 14px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;border:1.5px solid transparent;box-shadow:0 2px 6px rgba(0,0,0,.08)}.evp::after{content:'›';font-size:17px;line-height:1;opacity:.8}.evp.ok{background:#E4F4ED;color:#1E7A46;border-color:#9BD3B3}.evp.go{background:var(--brand);color:#fff;border-color:var(--brand)}.evp.c{background:#F1EDE9;color:#8A827C;border-color:#D9D1CA}
   .nav button{position:relative}.nav .nbn{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#E5484D;color:#fff;font-size:11px;font-weight:800;line-height:18px;box-sizing:border-box}
   .chk{display:flex;gap:8px;align-items:center;margin:12px 4px 4px;font-size:14.5px;font-weight:700}
   .cphadd{display:flex;align-items:center;justify-content:center;gap:6px;border:1.5px dashed var(--line);border-radius:14px;padding:14px;font-weight:700;color:var(--muted);background:#fff}
@@ -1439,8 +1439,8 @@
     const WD = ['일', '월', '화', '수', '목', '금', '토'], th = themes || {};
     const block = (d0, n, L, sun) => {
       const ks = []; for (let i = 0; i < n; i++) ks.push(K(d0 + i));
-      const cls = (L.some(x => x.kind === '수련') ? ' f' : '') + (L.some(x => x.kind === '휴관') ? ' ho' : '') + (n >= 3 ? ' s3' : '') + (ks.includes(td) && n === 1 ? ' t' : '') + (ks.includes(pk) ? ' pk' : '');
-      const dnum = n > 1 && ks.includes(td) ? '<span class="r ds">' + ks.map((k2, i) => k2 === td ? '<em>' + (d0 + i) + '</em>' : '<i>' + (d0 + i) + '</i>').join('') + '</span>' : ''; // 오늘은 빨간 네모 (2026-11-19 사용자 요청)
+      const cls = (L.some(x => x.kind === '수련') ? ' f' : '') + (L.some(x => x.kind === '휴관') ? ' ho' : '') + (n >= 3 ? ' s3' : '') + (ks.includes(td) ? ' t' : '') + (ks.includes(pk) ? ' pk' : '');
+      const dnum = ''; // 오늘이 든 칸은 칸 전체를 네모로 (2026-11-19 사용자 요청)
       if (!L.length) return '<div class="' + cls + '"' + (o.empty ? ' data-day="' + ks[0] + '"' : '') + ' style="grid-column:span ' + n + '"><span class="n">' + d0 + '</span>' + (sun ? '<span class="sun">☺</span>' : '') + '</div>';
       if (sun) return '<div class="' + cls + '" data-day="' + ks[0] + '"><span class="r">' + d0 + '</span>' + L.map(x => '<i class="dot' + (x.kind === '휴관' ? ' h' : '') + '" title="' + E(x.title) + '"></i>').join('') + '</div>'; // 일요일 칸은 좁아서 점만 (자세한 건 아래 목록)
       return '<div class="' + cls + '" data-day="' + ks[0] + '" style="grid-column:span ' + n + '">' + (dnum || '<span class="r">' + d0 + (n > 1 ? ' ~ ' + (d0 + n - 1) : '') + '일</span>') +
@@ -1510,15 +1510,14 @@
         }
         planItems = items; // 날짜를 누르면 그날 일정 창 (2026-11-15 사용자: 예전처럼 창이 떠야 함)
         const rng = x => { const d = md(x.date); if (!x.end || x.end === x.date) return { top: d.w, big: d.d }; const e = md(x.end); return { top: d.m === e.m ? d.d + '~' + e.d : '', big: d.d, sub: '~' + (d.m === e.m ? '' : e.m + '/') + e.d }; };
-        // 2026-11-19 사용자 요청: 이번 주 수련(빨간 카드) → 이달의 공지사항(전체 보기) → 달력(오늘은 빨간 네모) → 요일별 운동테마(누르면 보이게). 글로 된 'ㅇ월 수련 계획'·도장 일정 목록은 뺌(달력과 같은 내용)
+        // 2026-11-19 사용자 요청: 일정(달력, 오늘이 든 칸 전체 네모) → 요일별 운동테마 → 이달의 공지사항 순. 이번 주 수련 카드는 뺌
         const td = today(), wk = month === td.slice(0, 7) ? items.find(x => x.kind === '수련' && x.date <= td && td <= (x.end || x.date)) : null;
         const one = d => (+d.slice(5, 7)) + '.' + (+d.slice(8));
         const NT = ((((site.monthly || {}).months) || []).find(x => x.month === month) || {}).notices || [];
         h += (f === '전체' ? '<div class="msec">' + mLabel(month) + ' 일정</div>' : '') +
-          (wk ? '<div class="wkc"><small>이번 주 수련 (' + esc(weekLabel(wk.date)) + ' · ' + one(wk.date) + (wk.end && wk.end > wk.date ? '~' + one(wk.end) : '') + ')</small><b>' + esc(wk.title) + '</b></div>' : '') +
-          (NT.length ? '<div class="ntc' + (NT.length > 2 ? ' fold' : '') + '" id="ntc"><div class="nh"><b>' + (+month.slice(5)) + '월의 공지사항</b>' + (NT.length > 2 ? '<button data-ntall>전체 보기 ∨</button>' : '') + '</div><ul>' + NT.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>' : '') +
           '<div class="mhead"><button data-m="-1">' + ICON.left + '</button><b>' + mLabel(month) + '</b><button data-m="1">' + ICON.right + '</button></div>' +
           planGrid(month, items, (site.monthly || {}).weekday, '', { today: td }) +
+          (NT.length ? '<div class="ntc' + (NT.length > 2 ? ' fold' : '') + '" id="ntc" style="margin-top:12px"><div class="nh"><b>' + (+month.slice(5)) + '월의 공지사항</b>' + (NT.length > 2 ? '<button data-ntall>전체 보기 ∨</button>' : '') + '</div><ul>' + NT.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></div>' : '') +
           (items.length ? '' : '<div class="calm" style="margin-top:12px"><span>이 달 수련 계획이 없어요</span></div>');
       }
     }
