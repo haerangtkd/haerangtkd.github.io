@@ -146,7 +146,7 @@ function momHtml(ev) {
 function bindPub() {
   const go = async on => { const j = await api('/api/grec-pub', { m: S.mo, on }); S.sure = '';
     if (!j.ok) { draw(); return toast(j.error === 'not found' ? '업무 서버를 새로 반영해야 쓸 수 있어요' : (j.error || '올리지 못했어요')); }
-    S.pub = j.pub || {}; draw(); toast(on ? S.mo + '월 기록을 올렸어요' + (j.sent ? ' · 제자 ' + j.sent + '명에게 알림' : '') : S.mo + '월 기록을 앱에서 내렸어요'); };
+    S.pub = j.pub || {}; draw(); toast(on ? S.mo + '월 기록을 올렸어요' + (j.sent ? ' · 제자 ' + j.sent + '명에게 알림' : ' · 기록이 없어서 알림은 안 보냈어요') : S.mo + '월 기록을 앱에서 내렸어요'); };
   const arm = k => { S.sure = k; draw(); clearTimeout(S.sureT); S.sureT = setTimeout(() => { if (S.sure === k) { S.sure = ''; draw(); } }, 4000); };
   const g = $('#pubGo'); if (g) g.onclick = () => S.sure === 'go' ? (g.disabled = true, go(true)) : arm('go');
   const mdI = $('#momD'); if (mdI) mdI.onchange = () => { const v = mdI.value, p = $('#momP'); if (p) p.textContent = v ? '알림: "' + S.mo + '월 ' + (+v.slice(8)) + '일에 측정한 ' + (S.events.find(e => (e.months || []).includes(S.mo)) || {}).name + ' 기록…"' : '측정한 날을 먼저 적어 주세요'; };

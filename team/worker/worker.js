@@ -488,7 +488,7 @@ async function route(path, req, env, ctx) {
     if (b.on) pub[key] = { at: Date.now(), by: me.name }; else delete pub[key];
     await run(env, "INSERT INTO kv (k, v) VALUES ('grecPub', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify(pub));
     let sent = null;
-    if (b.on && await onceAt(env, 'grecpubsent:' + key)) {
+    if (b.on && !(await one(env, 'SELECT v FROM kv WHERE k = ?', 'grecpubsent:' + key))) { // 기록이 한 명도 없으면 알림 안 보내고 '보냄' 표시도 안 함 (2026-11-19: 기록 없이 올렸는데 제자 앱에 알림이 갔음)
       const E = (d.events || []).find(e => (e.months || []).includes(m)), ro = await attSync(env, '/sync/roster', { all: true }), RL = ro.ok ? ro.students : [], items = [];
       if (E) { const bySid = new Map(RL.filter(s => s.id).map(s => [s.id, s])), fmt = v => (Math.round(+v * 100) / 100) + (E.unit || '');
         const best = guinBest(recPubOnly(d, pub), RL, grecYear(d), m).find(x => x.q === key), win = new Map();
@@ -499,7 +499,7 @@ async function route(path, req, env, ctx) {
           const prev = (E.months || []).filter(x => x < m).map(x => k.rec[E.name][x]).filter(x => typeof x === 'number'), n = +v;
           const up = typeof v === 'number' && prev.length && (E.lower ? n < Math.min(...prev) : n > Math.max(...prev));
           items.push({ name, title: up ? '🏆 ' + m + '월 기네스 · 최고 기록 갱신! 🎉' : '🏆 ' + m + '월 기네스 결과가 나왔어요', body: E.name + ' ' + (typeof v === 'object' ? '도전 ' + (+v.f || 0) + '장' : fmt(v)) + (up ? ' · 지난 최고보다 좋아졌어요' : !prev.length && typeof v === 'number' ? ' · 첫 기록이에요' : '') + ' · 내 기록은 제자 앱에서 봐요' }); }
-        ctx.waitUntil(kidPushMany(env, items, { title: '🏆 ' + m + '월 기네스 결과가 나왔어요', body: '명예의 전당에서 이번 달 최우수 수련생을 확인해 봐요' }).catch(() => {})); sent = items.length; }
+        if (items.length && await onceAt(env, 'grecpubsent:' + key)) { ctx.waitUntil(kidPushMany(env, items, { title: '🏆 ' + m + '월 기네스 결과가 나왔어요', body: '명예의 전당에서 이번 달 최우수 수련생을 확인해 봐요' }).catch(() => {})); sent = items.length; } }
     }
     return json({ ok: true, pub, sent });
   }
