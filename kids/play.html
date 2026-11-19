@@ -142,6 +142,7 @@
   .runner span{display:inline-block;}
   .feet{display:flex;gap:10px;}
   .feet .big{flex:1;touch-action:manipulation;}
+  .codeIn{width:100%;border:2px solid #e6d5bb;border-radius:14px;padding:12px 14px;font:inherit;font-size:18px;color:var(--ink);background:#fff;margin-bottom:12px;}
   .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--soft);}
 </style>
 </head>
@@ -180,7 +181,7 @@
     <div class="label">머리 색</div><div class="chips" id="hairChips"></div>
     <div id="shopCats"></div>
   </div>
-  <p class="note">띠는 제자 앱에 있는 내 진짜 띠예요. 산 꾸미기는 계속 내 것이라 언제든 별 없이 다시 고를 수 있어요.</p>
+  <p class="note">띠는 제자 앱에 있는 내 진짜 띠예요. 도복 바지 색은 품에 따라 저절로 바뀌어요(1품 파랑 · 2품 빨강 · 3품 검정). 산 꾸미기는 계속 내 것이라 언제든 별 없이 다시 고를 수 있어요.</p>
 </div>
 
 <div class="sheet" id="gameSheet">
@@ -221,6 +222,12 @@
   <div class="sheetHead"><b id="fameTitle">🏆 명예의 전당</b><button class="x" data-close>닫기</button></div>
   <p class="note" style="margin:0 0 10px">놀이별 이번 달 1~3위 · 매달 1일에 새로 시작해요</p>
   <div class="fame" id="fameList"></div>
+</div>
+
+<div class="sheet" id="codeSheet">
+  <div class="sheetHead"><b>🔑 선생님 코드</b><button class="x" data-close>닫기</button></div>
+  <input class="codeIn" id="codeIn" type="text" autocomplete="off" placeholder="코드를 써 주세요">
+  <button class="big" id="codeBtn">확인</button>
 </div>
 
 <div class="sheet" id="ropeSheet">
@@ -288,23 +295,18 @@ const HAIRS = [
 /* ---------- 👕 탈의실 상점 (2026-11-19) ----------
    별은 놀이에서 받고, 꾸미기를 사면 바로 입혀짐. 산 것은 계속 내 것(다시 고를 때 별 안 듦).
    새 놀이(왕복달리기)도 별로 엶. 선범단·수련으로 얻는 꾸미기는 여기서 팔지 않음(제자 앱 프로필). */
-const SHOP_CATS = [['band','머리띠'], ['dobok','도복'], ['kihap','기합 소리'], ['tag','이름표 테두리']];
+const SHOP_CATS = [['band','머리띠'], ['kihap','기합 소리'], ['tag','이름표 테두리']];
 const SHOP = [
   {cat:'band', id:'', n:'없음', p:0},
   {cat:'band', id:'bWhite', n:'흰 머리띠', p:10, c:'#ffffff'},
   {cat:'band', id:'bRed', n:'빨간 머리띠', p:15, c:'#d92d20'},
   {cat:'band', id:'bBlue', n:'파란 머리띠', p:15, c:'#2f6fde'},
   {cat:'band', id:'bGold', n:'금색 머리띠', p:40, c:'#e0b43a'},
-  {cat:'dobok', id:'', n:'흰 도복', p:0, c:'#fbfaf6'},
-  {cat:'dobok', id:'dSky', n:'하늘색', p:20, c:'#a9d3f0', t:'#7fb2d8'},
-  {cat:'dobok', id:'dPink', n:'분홍색', p:20, c:'#f6c0d2', t:'#e39ab4'},
-  {cat:'dobok', id:'dNavy', n:'남색', p:25, c:'#34467d', t:'#d92d20'},
-  {cat:'dobok', id:'dBlack', n:'시범단 검정', p:30, c:'#2b2a2e', t:'#d92d20'},
-  {cat:'kihap', id:'', n:'얍!', p:0},
-  {cat:'kihap', id:'kHa', n:'하앗!', p:10},
-  {cat:'kihap', id:'kIya', n:'이얍!', p:10},
-  {cat:'kihap', id:'kTae', n:'태권!', p:15},
-  {cat:'kihap', id:'kHr', n:'해랑!', p:15},
+  {cat:'kihap', id:'', n:'얍!', p:0, v:'얍', pi:1.5, f:[[520,.07],[700,.12]]},
+  {cat:'kihap', id:'kHa', n:'하앗!', p:10, v:'하앗', pi:1.1, f:[[380,.1],[300,.16]]},
+  {cat:'kihap', id:'kIya', n:'이얍!', p:10, v:'이얍', pi:1.8, f:[[660,.06],[880,.06],[1040,.12]]},
+  {cat:'kihap', id:'kTae', n:'태권!', p:15, v:'태권', pi:1.2, f:[[440,.09],[560,.09],[440,.14]]},
+  {cat:'kihap', id:'kHr', n:'해랑!', p:15, v:'해랑', pi:1.6, f:[[600,.09],[800,.09],[1000,.16]]},
   {cat:'tag', id:'', n:'기본', p:0},
   {cat:'tag', id:'tSky', n:'하늘 테두리', p:20, c:'#5b8fc7'},
   {cat:'tag', id:'tGold', n:'금색 테두리', p:40, c:'#e0b43a'},
@@ -314,6 +316,17 @@ const shopItem = (cat, id) => SHOP.find(x => x.cat === cat && x.id === (id || ''
 const owns = id => !id || S.own.indexOf(id) >= 0;
 const kihapWord = () => (shopItem('kihap', S.eq.kihap) || {n:'얍!'}).n;
 const RUN_PRICE = 50;
+/* 예전에 산 도복 색은 별을 돌려줌 (2026-11-19 도복은 품에 따라 저절로로 바뀜) */
+{ const OLD = {dSky:20, dPink:20, dNavy:25, dBlack:30}; let back = 0;
+  S.own = S.own.filter(id => { if(OLD[id]){ back += OLD[id]; return false; } return true; });
+  if(back){ S.stars += back; } if(S.eq.dobok || back){ S.eq.dobok = ''; save(); } }
+/* 도복 바지 색: 1품 파랑 · 2품 빨강 · 3품 이상(단 포함) 검정 · 나머지 흰색 */
+function pantsColor(b){
+  b = String(b || ''); const m = b.match(/(\d+)\s*품/);
+  if(m){ const n = +m[1]; return n === 1 ? '#2f5fc4' : n === 2 ? '#c8302a' : '#1f1d1c'; }
+  if(/단|검은띠/.test(b)) return '#1f1d1c';
+  return null;
+}
 
 /* ---------- 소리 ---------- */
 let AC = null;
@@ -609,7 +622,7 @@ const OBST = [
   {x:6.3,z:-12.2,r:.6},{x:-6.2,z:12.2,r:.6},{x:6.2,z:12.2,r:.6},
   ...PILLARS.map(p => ({x:p.x, z:p.z, r:.75}))
 ];
-const BOUND = {x0:-6.5, x1:6.5, z0:-12.4, z1:12.6};
+const BOUND = {x0:-6.6, x1:6.6, z0:-12.4, z1:12.6};
 const CR = .35;
 
 /* ---------- 캐릭터 ---------- */
@@ -619,6 +632,7 @@ const P = {
 };
 P.root.position.set(0, .08, 2); scene.add(P.root);
 const skin = M('#ffdcc2'), dobok = new THREE.MeshLambertMaterial({color:'#fbfaf6'}), trim = new THREE.MeshLambertMaterial({color:'#dedbd2'});
+const pantsMat = new THREE.MeshLambertMaterial({color: pantsColor(MYBELT) || '#fbfaf6'});
 const beltMat = new THREE.MeshLambertMaterial({color:LOOK.c});
 const knotMat = new THREE.MeshLambertMaterial({color:LOOK.k});
 const hairMat = new THREE.MeshLambertMaterial({color:HAIRS[0].c});
@@ -626,7 +640,7 @@ const hairMat = new THREE.MeshLambertMaterial({color:HAIRS[0].c});
 const hips = new THREE.Group(); hips.position.y = .66; P.root.add(hips);
 function leg(s){
   const p = new THREE.Group(); p.position.x = s*.17; hips.add(p);
-  box(.27,.6,.3,dobok,0,-.3,0,p);
+  box(.27,.6,.3,pantsMat,0,-.3,0,p);
   box(.22,.08,.32,skin,0,-.62,.04,p);
   return p;
 }
@@ -682,7 +696,7 @@ function drawTag(){
 function applyLook(){
   beltMat.color.set(LOOK.c); knotMat.color.set(LOOK.k); hairMat.color.set(HAIRS[S.hair].c);
   const bd = shopItem('band', S.eq.band); bandG.visible = !!(bd && bd.c); if(bandG.visible) bandMat.color.set(bd.c);
-  const dk = shopItem('dobok', S.eq.dobok) || {c:'#fbfaf6'}; dobok.color.set(dk.c); trim.color.set(dk.t || '#dedbd2');
+  pantsMat.color.set(pantsColor(MYBELT) || '#fbfaf6');
   drawTag();
 }
 applyLook();
@@ -748,6 +762,22 @@ function collide(p){
 function angDiff(a,b){ let d = b - a; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2; return d; }
 
 /* ---------- 버튼 ---------- */
+/* 기합 소리 (2026-11-19 사용자: 아무 소리도 안 나고 다 똑같음 → 목소리 + 기합마다 다른 소리) */
+function sayKihap(){
+  const it = shopItem('kihap', S.eq.kihap) || shopItem('kihap', '');
+  floatText(it.n);
+  if(!S.sound) return;
+  tone(it.f || [[600,.1]]); noise(.12, 1800, .35);
+  try {
+    if(window.speechSynthesis){
+      const u = new SpeechSynthesisUtterance(it.v || it.n);
+      u.lang = 'ko-KR'; u.rate = 1.35; u.pitch = it.pi || 1.4; u.volume = 1;
+      const vs = speechSynthesis.getVoices().filter(v => /^ko/i.test(v.lang)); if(vs.length) u.voice = vs[0];
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+    }
+  } catch(e){}
+}
+try { if(window.speechSynthesis) speechSynthesis.getVoices(); } catch(e){}
 let punchSide = 1, bagBusy = false;
 function bagPunches(n){
   if(n <= 0){ bagBusy = false; return; }
@@ -789,10 +819,6 @@ function label(txt, x, y, z){
   };
   s.userData.draw(txt); return s;
 }
-/* 구역 글자 (바닥) */
-[['🥋 태권도 수업', 1.2, -4.6], ['🏃 운동', -.2, -2.1], ['🎲 놀이', 0, 6.7]].forEach(([t, x, z]) => {
-  floorTex(512, 128, (g,w,h) => { g.fillStyle = 'rgba(255,255,255,.55)'; roundRect(g,0,10,w,h-20,54); g.fill(); g.fillStyle = 'rgba(90,70,50,.75)'; g.font = '64px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, w/2, h/2+2); }, 3.2, .8, x, z);
-});
 /* 파란 기둥 */
 { const pm = new THREE.MeshLambertMaterial({color:'#2f6fde', transparent:true, opacity:.78});
   PILLARS.forEach(p => { box(.95, 1.9, .95, pm, p.x, .95, p.z); box(1.0, .25, 1.0, '#f4f1ea', p.x, .125, p.z); }); } /* 화면을 덜 가리게 낮게 */
@@ -947,7 +973,7 @@ function goStand(){
 }
 const ACTS = {
   bow:  () => { if(doAct('bow', 1.4)) { floatText('안녕하세요!'); } },
-  kick: () => { if(doAct('kick', .6, () => { sfx.kick(); floatText(kihapWord()); })) {} },
+  kick: () => { if(doAct('kick', .6, () => { sfx.kick(); sayKihap(); })) {} },
   bag:  goBag,
   play: () => openSheet('playSheet'),
   dress: () => goStation('locker'),
@@ -995,6 +1021,19 @@ function endMode(){
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
 $('rkBack').addEventListener('click', () => openSheet('fameSheet'));
 openSheetFn = openSheet;
+/* 🔑 선생님 테스트: '레크리에이션' 글자를 3초 길게 누름 → 코드 맞으면 별 200개 (2026-11-19 사용자) */
+{ const tb = document.querySelector('.title b'); let lt = null;
+  const stop = () => { if(lt){ clearTimeout(lt); lt = null; } };
+  tb.style.pointerEvents = 'auto'; tb.style.webkitTouchCallout = 'none';
+  tb.addEventListener('pointerdown', e => { stop(); lt = setTimeout(() => { lt = null; audio(); openSheet('codeSheet'); $('codeIn').value = ''; setTimeout(() => $('codeIn').focus(), 300); }, 3000); });
+  ['pointerup','pointerleave','pointercancel'].forEach(t => tb.addEventListener(t, stop));
+  tb.addEventListener('contextmenu', e => e.preventDefault());
+  $('codeBtn').addEventListener('click', () => {
+    audio(); const v = $('codeIn').value.trim();
+    if(v === '한코치123'){ S.stars += 200; save(); updateStars(); closeSheets(); sfx.star(); toast('별 200개를 받았어요 ⭐'); }
+    else { sfx.fail(); toast('코드가 달라요'); }
+  });
+}
 
 function fillChar(){
   $('rStars').textContent = S.stars; $('rRope').textContent = S.bestRope + '번'; $('rBest').textContent = S.best + '단계'; $('rTg').textContent = S.bestTg < 0 ? '-' : (S.bestTg === 0 ? '만점' : S.bestTg + '번 틀림');
@@ -1024,11 +1063,11 @@ function fillChar(){
 }
 let askBuy = null;
 function pickShop(it){
-  if(owns(it.id)){ askBuy = null; S.eq[it.cat] = it.id; save(); applyLook(); fillChar(); sfx.pop(); if(it.cat === 'kihap'){ floatText(kihapWord()); } return; }
+  if(owns(it.id)){ askBuy = null; S.eq[it.cat] = it.id; save(); applyLook(); fillChar(); sfx.pop(); if(it.cat === 'kihap'){ sayKihap(); } return; }
   if(S.stars < it.p){ askBuy = null; sfx.fail(); toast('별이 ' + (it.p - S.stars) + '개 더 필요해요'); fillChar(); return; }
   if(askBuy !== it.id){ askBuy = it.id; sfx.tick(); fillChar(); return; }
   askBuy = null; S.stars -= it.p; S.own.push(it.id); S.eq[it.cat] = it.id; save(); updateStars(); applyLook(); fillChar();
-  sfx.star(); toast(it.n + ' 샀어요! 바로 입었어요'); floatText('✨', 2.6);
+  sfx.star(); toast(it.n + ' 샀어요! 바로 ' + (it.cat === 'kihap' ? '바뀌었어요' : '입었어요')); if(it.cat === 'kihap') setTimeout(sayKihap, 300); else floatText('✨', 2.6);
 }
 
 /* ---------- 격파 놀이 ---------- */
@@ -1210,7 +1249,7 @@ function playTg(st, done){
     P.act.from = from; P.act.to = to;
   });
   steps.push(() => {
-    doAct(st.t, st.t === 'punch' ? .45 : .55, () => { sfx.hit(); if(st.kihap) floatText('기합!', 2.6); }, st.arm);
+    doAct(st.t, st.t === 'punch' ? .45 : .55, () => { sfx.hit(); if(st.kihap) sayKihap(); }, st.arm);
     P.act.h = st.h || 0; P.act.lead = st.lead; P.act.deep = !!st.deep;
   });
   let k = 0;
@@ -1567,9 +1606,12 @@ let down = null;
 canvas.addEventListener('pointerdown', e => { down = {x:e.clientX, y:e.clientY, ly:e.clientY, t:performance.now(), pan:false}; audio(); if(P.mode === 'rope' && R.on){ ropeJump(); down = null; } });
 canvas.addEventListener('pointermove', e => {
   if(!down || P.mode) return;
-  if(!down.pan && Math.abs(e.clientY - down.y) > 12){ down.pan = true; camFree = true; camFZ = camT.z; hideHint(); }
-  if(down.pan){ camFZ = Math.max(CAM_Z0, Math.min(CAM_Z1, camFZ - (e.clientY - down.ly) * .045 * camK)); }
-  down.ly = e.clientY;
+  if(!down.pan && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 12){ down.pan = true; camFree = true; camFZ = camT.z; camFX = camT.x; down.lx = e.clientX; hideHint(); }
+  if(down.pan){
+    camFZ = Math.max(CAM_Z0, Math.min(CAM_Z1, camFZ - (e.clientY - down.ly) * .045 * camK));
+    camFX = Math.max(-CAM_X, Math.min(CAM_X, camFX - (e.clientX - (down.lx == null ? e.clientX : down.lx)) * .035 * camK));
+  }
+  down.ly = e.clientY; down.lx = e.clientX;
 });
 canvas.addEventListener('pointerup', e => {
   if(!down) return;
@@ -1603,7 +1645,8 @@ function resize(){
 window.addEventListener('resize', resize); resize();
 const camT = new THREE.Vector3(0,0,2), camOff = new THREE.Vector3(0, 10.5, 11.5);
 const CAM_Z0 = -9.6, CAM_Z1 = 10.4;
-let camFree = false, camFZ = 2;
+let camFree = false, camFZ = 2, camFX = 0;
+const CAM_X = 4.6; /* 2026-11-19 사용자: 벽 쪽 좌우로 잘 안 움직여짐 → 화면도 벽까지 따라감 */
 
 /* ---------- 매 장면 ---------- */
 let last = performance.now();
@@ -1750,7 +1793,7 @@ function loop(now){
   else ring.material.opacity = 0;
 
   /* 사진기 */
-  const tx = Math.max(-3.2, Math.min(3.2, pos.x)), tz = camFree ? camFZ : Math.max(CAM_Z0, Math.min(CAM_Z1, pos.z));
+  const tx = camFree ? camFX : Math.max(-CAM_X, Math.min(CAM_X, pos.x)), tz = camFree ? camFZ : Math.max(CAM_Z0, Math.min(CAM_Z1, pos.z));
   const ck = camFree ? 10 : (P.target ? 6 : 3);
   camT.x += (tx - camT.x) * Math.min(1, dt*ck); camT.z += (tz - camT.z) * Math.min(1, dt*ck);
   camera.position.set(camT.x + camOff.x*camK, camOff.y*camK, camT.z + camOff.z*camK);
