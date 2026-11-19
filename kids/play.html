@@ -129,7 +129,7 @@
   .goInfo div b{font-weight:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .big:disabled{background:#cdbfae;box-shadow:none;}
   .big.no{animation:shake .35s;}
-  .fame{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:58vh;overflow:auto;}
+  .fame{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:72vh;overflow:auto;} /* 2026-11-19 사용자: 카드 칸 더 높게 */
   .fcard{background:#f6eee2;border-radius:16px;padding:10px 12px;font-size:13px;color:var(--soft);min-width:0;}
   .fcard>b{display:block;font-size:16px;color:var(--ink);font-weight:normal;margin-bottom:4px;}
   .fcard .r{display:flex;justify-content:space-between;gap:4px;line-height:1.65;}
@@ -609,7 +609,7 @@ const fame = textTex(768, 384, (g,w,h)=>{
   }
 });
 const fameM = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.1), new THREE.MeshLambertMaterial({map:fame.tex}));
-fameM.position.set(-W/2+.02, 1.9, -5.9); /* 탈의실과 조금 띄움 */ fameM.rotation.y = Math.PI/2; scene.add(fameM);
+fameM.position.set(-W/2+.02, 1.9, -1.6); /* 탈의실과 넉넉히 띄움 */ fameM.rotation.y = Math.PI/2; scene.add(fameM);
 fameM.scale.set(.85,.85,1);
 
 /* 창문 (오른쪽 벽) */
@@ -660,7 +660,7 @@ plant(6.3,-12.2); plant(-6.2,12.2); plant(6.2,12.2);
 })();
 
 /* 샌드백 */
-const BAG = {x:-3.7, z:-8.4};
+const BAG = {x:-3.6, z:-10.0};
 const bag = new THREE.Group(); bag.position.set(BAG.x, 0, BAG.z); scene.add(bag);
 cyl(.72,.78,.25,'#5c5d6b',0,.13,0,bag,24);
 const bagSwing = new THREE.Group(); bagSwing.position.y = .25; bag.add(bagSwing);
@@ -671,7 +671,7 @@ cyl(.47,.47,.12,'#9e3f38',0,.5,0,bagSwing,24);
 const bagState = {a:0, v:0};
 
 /* 격파대 */
-const STAND = {x:5, z:-10.2};
+const STAND = {x:3.8, z:-10.2};
 const stand = new THREE.Group(); stand.position.set(STAND.x, 0, STAND.z); scene.add(stand);
 box(1.7,.12,.7,'#8a6a4f',0,.06,0,stand);
 box(.14,1.25,.14,'#8a6a4f',-.62,.68,0,stand);
@@ -684,7 +684,7 @@ halves.forEach(h => { for(let k=0;k<3;k++){ const l = new THREE.Mesh(new THREE.P
 const brk = {t:-1};
 
 /* 부딪힘 */
-const PILLARS = [{x:-1.9, z:-3.4}, {x:2.1, z:3.9}];
+const PILLARS = []; /* 2026-11-19 사용자: 기둥 없앰 */
 const ZONE_Z = 3.2; /* 이 줄 앞 = 수업 시간, 뒤 = 쉬는 시간 */
 const OBST = [
   {x:BAG.x, z:BAG.z, r:.8}, {x:STAND.x, z:STAND.z, r:.75},
@@ -868,7 +868,7 @@ function near(x, z, d){ return Math.hypot(P.root.position.x - x, P.root.position
 
 const BAG_SPOT = {x:BAG.x, z:BAG.z+1.3}, STAND_SPOT = {x:STAND.x, z:STAND.z+1.05};
 
-const TG_START_POS = {x:.6, z:-6.2}, CENTER_ROPE = {x:-2.4, z:.4};
+const TG_START_POS = {x:0, z:-5.6}, CENTER_ROPE = {x:-3.6, z:-2.2};
 /* ---------- 🗺️ 도장 지도 (2026-11-19 사용자 그림) ----------
    앞(거울 쪽): 왼쪽 위 탈의실(왼 여자 · 오 남자) · 그 옆 명예의 전당 · 거울 앞 품새 · 격파 · 겨루기(샌드백 · 표적)
    가운데: 줄넘기 · 왕복달리기(별로 엶)   뒤: 띠 순서 · 짝 맞추기 · 퀴즈 */
@@ -899,7 +899,7 @@ function label(txt, x, y, z){
 /* 탈의실 문 (앞쪽 벽 왼쪽: 왼 여자 · 오 남자) */
 const lockerG = new THREE.Group(); scene.add(lockerG);
 /* 왼쪽 벽 (2026-11-19): 앞에서부터 남자 · 여자 탈의실, 그 뒤 명예의 전당 */
-[[-11.5, '#6fa3dc', '남자', '♂'], [-9.8, '#f3a6bd', '여자', '♀']].forEach(([z, c, n, sym]) => {
+[[-8.4, '#6fa3dc', '남자', '♂'], [-6.7, '#f3a6bd', '여자', '♀']].forEach(([z, c, n, sym]) => {
   const dg = new THREE.Group(); dg.position.set(-W/2, 0, z); dg.rotation.y = Math.PI/2; lockerG.add(dg);
   const x = 0, D2 = 0, lg = dg;
   box(1.5, 2.45, .12, '#f4f1ea', 0, 1.23, .06, dg, false);
@@ -912,16 +912,16 @@ pickable(lockerG, 'locker');
 pickable(fameM, 'fame');
 
 /* 품새 자리 (거울 앞) */
-const tgMark = floorTex(256, 256, (g,w,h) => { g.strokeStyle = 'rgba(224,122,95,.9)'; g.lineWidth = 14; g.setLineDash([26,16]); roundRect(g,14,14,w-28,h-28,30); g.stroke(); g.setLineDash([]); g.fillStyle = 'rgba(224,122,95,.9)'; g.font = '64px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('품새', w/2, h/2); }, 1.4, 1.4, .6, -6.2);
+const tgMark = floorTex(256, 256, (g,w,h) => { g.strokeStyle = 'rgba(224,122,95,.9)'; g.lineWidth = 14; g.setLineDash([26,16]); roundRect(g,14,14,w-28,h-28,30); g.stroke(); g.setLineDash([]); g.fillStyle = 'rgba(224,122,95,.9)'; g.font = '64px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('품새', w/2, h/2); }, 1.4, 1.4, 0, -5.6);
 pickable(tgMark, 'tg');
 
 /* 표적 (겨루기 미트) */
-const whackG = new THREE.Group(); whackG.position.set(-4.4, 0, -4.9); scene.add(whackG);
+const whackG = new THREE.Group(); whackG.position.set(-3.6, 0, -6.2); scene.add(whackG);
 cyl(.4,.45,.12,'#5c5d6b',0,.06,0,whackG,20); cyl(.06,.06,1.1,'#8d8f99',0,.65,0,whackG,10);
 { const pad = cyl(.36,.36,.16,'#d92d20',0,1.3,0,whackG,24); pad.rotation.x = Math.PI/2;
   const in1 = cyl(.24,.24,.17,'#ffffff',0,1.3,.005,whackG,24); in1.rotation.x = Math.PI/2;
   const in2 = cyl(.11,.11,.18,'#2f6fde',0,1.3,.01,whackG,20); in2.rotation.x = Math.PI/2; }
-pickable(whackG, 'whack'); OBST.push({x:-4.4, z:-4.9, r:.5});
+pickable(whackG, 'whack'); OBST.push({x:-3.6, z:-6.2, r:.5});
 
 /* 줄넘기 자리 */
 const ropeMark = floorTex(256, 256, (g,w,h) => { g.fillStyle = 'rgba(122,166,194,.35)'; g.beginPath(); g.arc(128,128,118,0,7); g.fill(); g.font = '120px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🪢', 128, 132); }, 1.5, 1.5, CENTER_ROPE.x, CENTER_ROPE.z);
@@ -930,8 +930,8 @@ pickable(ropeMark, 'rope');
 /* 왕복달리기 길 (별로 엶) */
 const runG = new THREE.Group(); scene.add(runG);
 { const t = textTex(256, 640, (g,w,h) => { g.fillStyle = '#c97b5a'; g.fillRect(0,0,w,h); g.strokeStyle = '#ffffff'; g.lineWidth = 6; [4,128,252].forEach(x => { g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); }); g.fillStyle = '#ffffff'; g.fillRect(0,40,w,10); g.fillRect(0,h-50,w,10); });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 5.4), new THREE.MeshLambertMaterial({map:t.tex})); m.rotation.x = -Math.PI/2; m.position.set(3.9, .086, -.3); m.receiveShadow = true; runG.add(m);
-  [[3.45,-2.75],[4.35,-2.75],[3.45,2.15],[4.35,2.15]].forEach(([x,z]) => { cyl(.03,.17,.4,'#f08a24',x,.28,z,runG,12); }); }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 5.4), new THREE.MeshLambertMaterial({map:t.tex})); m.rotation.x = -Math.PI/2; m.position.set(3.8, .086, -.9); m.receiveShadow = true; runG.add(m);
+  [[3.35,-3.35],[4.25,-3.35],[3.35,1.55],[4.25,1.55]].forEach(([x,z]) => { cyl(.03,.17,.4,'#f08a24',x,.28,z,runG,12); }); }
 pickable(runG, 'run');
 
 /* 놀이 탁자 (뒤쪽) */
@@ -958,21 +958,21 @@ BOOTHS.forEach((b, i) => { const x = [-4.2, 0, 4.2][i % 3], z = [5.8, 8.2, 10.6]
 /* 겨루기 (준비 중) — 거울 앞 오른쪽 */
 const kyoG = new THREE.Group(); scene.add(kyoG);
 { const t = textTex(256, 256, (g,w,h) => { g.fillStyle = '#2f6fde'; g.fillRect(0,0,w,h); g.fillStyle = '#f2c94c'; g.fillRect(14,14,w-28,h-28); g.fillStyle = '#d92d20'; g.fillRect(14,14,w-28,(h-28)/2); g.fillStyle = 'rgba(255,255,255,.85)'; g.font = '46px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('겨루기', w/2, h/2); });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), new THREE.MeshLambertMaterial({map:t.tex, transparent:true, opacity:.75})); m.rotation.x = -Math.PI/2; m.position.set(4.4, .087, -6.3); m.receiveShadow = true; kyoG.add(m); }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), new THREE.MeshLambertMaterial({map:t.tex, transparent:true, opacity:.75})); m.rotation.x = -Math.PI/2; m.position.set(3.8, .087, -6.2); m.receiveShadow = true; kyoG.add(m); }
 pickable(kyoG, 'kyo');
 pickable(bag, 'bag'); pickable(stand, 'brk');
 
 /* 자리마다: 어디 서서 · 어디 보고 · 도착하면 무엇 */
 const ST = {
-  locker:{z:'side', n:'탈의실', e:'👕', spot:{x:-5.6, z:-10.65}, face:{x:-7, z:-10.65}, ly:3.0, open:() => openSheet('charSheet')},
-  fame:{z:'side', n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-5.9}, face:{x:-7, z:-5.9}, lp:{x:-6.2, z:-5.9}, ly:3.3, open:() => openSheet('fameSheet')},
-  tg:{z:'class', n:'품새', e:'🥋', g:'tg', spot:TG_START_POS, face:{x:TG_START_POS.x, z:-13}, lp:{x:.6, z:-7.6}, ly:2.0, start:() => startTg(tgSel)},
+  locker:{z:'side', n:'탈의실', e:'👕', spot:{x:-5.6, z:-7.55}, face:{x:-7, z:-7.55}, ly:3.0, open:() => openSheet('charSheet')},
+  fame:{z:'side', n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-1.6}, face:{x:-7, z:-1.6}, lp:{x:-6.2, z:-1.6}, ly:3.3, open:() => openSheet('fameSheet')},
+  tg:{z:'class', n:'품새', e:'🥋', g:'tg', spot:TG_START_POS, face:{x:TG_START_POS.x, z:-13}, lp:{x:0, z:-7.0}, ly:2.0, start:() => startTg(tgSel)},
   brk:{z:'class', n:'격파 놀이', e:'🪵', g:'brk', spot:STAND_SPOT, face:STAND, lp:STAND, ly:2.3, start:() => openGame()},
   bag:{z:'class', n:'샌드백', e:'🥊', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, open:() => { bagBusy = true; bagPunches(4); }},
-  whack:{z:'class', n:'표적 치기', e:'🎯', g:'whack', spot:{x:-4.4, z:-3.8}, face:{x:-4.4, z:-4.9}, lp:{x:-4.4, z:-4.9}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
-  kyo:{z:'class', n:'겨루기', e:'🤜', soon:1, spot:{x:4.4, z:-5.0}, face:{x:4.4, z:-6.3}, lp:{x:4.4, z:-6.3}, ly:1.7},
+  whack:{z:'class', n:'표적 치기', e:'🎯', g:'whack', spot:{x:-3.6, z:-5.1}, face:{x:-3.6, z:-6.2}, lp:{x:-3.6, z:-6.2}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
+  kyo:{z:'class', n:'겨루기', e:'🤜', soon:1, spot:{x:3.8, z:-4.9}, face:{x:3.8, z:-6.2}, lp:{x:3.8, z:-6.2}, ly:1.7},
   rope:{z:'class', n:'줄넘기', e:'🪢', g:'rope', spot:CENTER_ROPE, face:{x:CENTER_ROPE.x, z:-13}, lp:{x:CENTER_ROPE.x, z:CENTER_ROPE.z-1.3}, ly:2.0, start:() => startRope()},
-  run:{z:'class', n:'왕복달리기', e:'🏃', g:'run', lock:'gRun', price:RUN_PRICE, spot:{x:3.9, z:2.6}, face:{x:3.9, z:-2}, lp:{x:3.9, z:-.3}, ly:1.6, start:() => openPanel('왕복달리기', gameRun)},
+  run:{z:'class', n:'왕복달리기', e:'🏃', g:'run', lock:'gRun', price:RUN_PRICE, spot:{x:3.8, z:2.3}, face:{x:3.8, z:-2}, lp:{x:3.8, z:-.9}, ly:1.6, start:() => openPanel('왕복달리기', gameRun)},
   belt:{z:'rest', n:'띠 순서', e:'🎗️', g:'belt', spot:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z+1.25}, face:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z}, lp:BOOTH_POS.belt, ly:2.3, start:() => openPanel('띠 순서 맞추기', gameBelt)},
   mem:{z:'rest', n:'짝 맞추기', e:'🃏', g:'mem', spot:{x:BOOTH_POS.mem.x, z:BOOTH_POS.mem.z+1.25}, face:{x:BOOTH_POS.mem.x, z:BOOTH_POS.mem.z}, lp:BOOTH_POS.mem, ly:2.3, start:() => openPanel('짝 맞추기', gameMem)},
   quiz:{z:'rest', n:'해랑경희 퀴즈', e:'💡', g:'quiz', spot:{x:BOOTH_POS.quiz.x, z:BOOTH_POS.quiz.z+1.25}, face:{x:BOOTH_POS.quiz.x, z:BOOTH_POS.quiz.z}, lp:BOOTH_POS.quiz, ly:2.3, start:() => openPanel('해랑경희 퀴즈', gameQuiz)},
@@ -983,7 +983,7 @@ const ST = {
   rps:{z:'rest', n:'가위바위보', e:'✌️', soon:1, spot:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z+1.25}, face:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z}, lp:BOOTH_POS.rps, ly:2.3},
   tug:{z:'rest', n:'줄다리기', e:'💪', soon:1, spot:{x:BOOTH_POS.tug.x, z:BOOTH_POS.tug.z+1.25}, face:{x:BOOTH_POS.tug.x, z:BOOTH_POS.tug.z}, lp:BOOTH_POS.tug, ly:2.3}
 };
-ST.locker.lp = {x:-6.4, z:-10.65};
+ST.locker.lp = {x:-6.4, z:-7.55};
 const stLabel = id => { const s = ST[id]; return s.e + ' ' + s.n + (s.soon ? ' · 준비 중' : s.lock && !owns(s.lock) ? ' 🔒' + s.price : ''); };
 Object.keys(ST).forEach(id => { const s = ST[id]; s.lb = label(stLabel(id), s.lp.x, s.ly, s.lp.z); pickable(s.lb, id); });
 
@@ -1213,7 +1213,7 @@ let TRY = null;
 function tryOn(it){
   audio(); TRY = {cat: it.cat, id: it.id};
   PREV = {}; PREV[it.cat] = it.cat === 'dobok' ? it.id : it.id;
-  applyLook(); if(it.cat === 'kihap') sayKihap(); else { sfx.pop(); doAct('bow', 1.0); }
+  applyLook(); if(it.cat === 'kihap') sayKihap(); else { sfx.pop(); floatText('✨', 2.6); }
   fillChar();
 }
 function stopTry(){ PREV = null; TRY = null; applyLook(); }
@@ -1863,7 +1863,7 @@ function resize(){
 window.addEventListener('resize', resize); resize();
 const camT = new THREE.Vector3(0,0,2), camOff = new THREE.Vector3(0, 10.5, 11.5);
 const CAM_Z0 = -9.6, CAM_Z1 = 10.4;
-let camFree = false, camFZ = 2, camFX = 0, zoneNow = '';
+let camFree = false, camFZ = 2, camFX = 0, zoneNow = '', zoomK = 1;
 const CAM_X = 4.6; /* 2026-11-19 사용자: 벽 쪽 좌우로 잘 안 움직여짐 → 화면도 벽까지 따라감 */
 
 /* ---------- 매 장면 ---------- */
@@ -2011,14 +2011,17 @@ function loop(now){
   else ring.material.opacity = 0;
 
   /* 사진기 */
-  const tx = camFree ? camFX : Math.max(-CAM_X, Math.min(CAM_X, pos.x)), tz = camFree ? camFZ : Math.max(CAM_Z0, Math.min(CAM_Z1 + 3, pos.z + (openId === 'charSheet' ? 3.2 : 0)));
+  const dress = openId === 'charSheet'; /* 탈의실: 캐릭터 확대 (2026-11-19 사용자) */
+  zoomK += ((dress ? .34 : 1) - zoomK) * Math.min(1, dt*5);
+  const tx = dress ? pos.x : camFree ? camFX : Math.max(-CAM_X, Math.min(CAM_X, pos.x)), tz = dress ? pos.z + 1.05 : camFree ? camFZ : Math.max(CAM_Z0, Math.min(CAM_Z1, pos.z));
   /* 수업 시간(앞) · 쉬는 시간(뒤): 지금 있는 쪽 놀이 이름표만 */
   const zn = pos.z < ZONE_Z ? 'class' : 'rest';
-  if(zn !== zoneNow){ zoneNow = zn; Object.values(ST).forEach(st2 => { if(st2.lb) st2.lb.visible = st2.z === 'side' || st2.z === zn; }); $('zoneName').textContent = zn === 'class' ? '🥋 수업 시간' : '🎈 쉬는 시간'; }
+  if(dress && zoneNow !== 'dress'){ zoneNow = 'dress'; Object.values(ST).forEach(st2 => { if(st2.lb) st2.lb.visible = false; }); } /* 갈아입을 땐 이름표 숨김 */
+  if(!dress && zn !== zoneNow){ zoneNow = zn; Object.values(ST).forEach(st2 => { if(st2.lb) st2.lb.visible = st2.z === 'side' || st2.z === zn; }); $('zoneName').textContent = zn === 'class' ? '🥋 수업 시간' : '🎈 쉬는 시간'; }
   const ck = camFree ? 10 : (P.target ? 6 : 3);
   camT.x += (tx - camT.x) * Math.min(1, dt*ck); camT.z += (tz - camT.z) * Math.min(1, dt*ck);
-  camera.position.set(camT.x + camOff.x*camK, camOff.y*camK, camT.z + camOff.z*camK);
-  camera.lookAt(camT.x, .9, camT.z - .5);
+  camera.position.set(camT.x + camOff.x*camK*zoomK, camOff.y*camK*zoomK + (1 - zoomK)*1.2, camT.z + camOff.z*camK*zoomK);
+  camera.lookAt(camT.x, .9 - (1 - zoomK)*.9, camT.z - .5*zoomK);
 
   /* 떠오르는 글자 */
   for(let i = floats.length-1; i >= 0; i--){
