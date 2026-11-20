@@ -53,6 +53,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS kcodes (name TEXT PRIMARY KEY, code TEXT UNIQUE, created INTEGER)', // 제자 모드 개인 코드 (관장님이 도장에서 넣어 줌, 2026-11-14)
   'CREATE TABLE IF NOT EXISTS ksess (tok TEXT PRIMARY KEY, name TEXT, created INTEGER, seen INTEGER)',
   'CREATE TABLE IF NOT EXISTS kposts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, body TEXT, at INTEGER, del INTEGER DEFAULT 0)', // 선범단 커뮤니티 (선범단만, 글만)
+  'CREATE TABLE IF NOT EXISTS kphotos (id TEXT PRIMARY KEY, name TEXT, img TEXT, at INTEGER)', // 📸 놀이터 사진관 사진 전시 — 친구들도 봄, 제자마다 3장 (2026-11-20)
   'CREATE TABLE IF NOT EXISTS kgame (ym TEXT, g TEXT, name TEXT, v INTEGER, at INTEGER, PRIMARY KEY (ym, g, name))', // 🎮 우리 도장 놀이터 이번 달 최고 기록 (2026-11-17)
   'CREATE TABLE IF NOT EXISTS jlikes (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 알림장 하트 (2026-11-19 사용자 요청)
   'CREATE TABLE IF NOT EXISTS jcmts (id INTEGER PRIMARY KEY AUTOINCREMENT, post INTEGER, parent TEXT, rel TEXT, kids TEXT, text TEXT, pub INTEGER DEFAULT 1, at INTEGER, upd INTEGER, del INTEGER DEFAULT 0)', // 알림장 댓글 (공개가 기본, 비공개 = 쓴 분과 도장만)
@@ -200,6 +201,25 @@ async function route(path, req, env) {
     for (const r of tgw) { const n = String(r.k).slice(5); if (r.v) (prof[n] = prof[n] || { av: '', bg: '' }).tg = String(r.v); }
     const months = b.months ? (await all(env, 'SELECT DISTINCT ym FROM kgame ORDER BY ym DESC LIMIT 24')).map(r => r.ym) : undefined;
     return json({ ok: true, ym: qym, me, top, prof, months });
+    }
+    // 📸 놀이터 사진관 (2026-11-20 사용자: 다른 친구들도 보게, 명예의 전당처럼) — 놀이터 안에서 그린 캐릭터 사진만 (jpg, 작게)
+    if (path === '/k/photos' || path === '/k/photo-add' || path === '/k/photo-del') {
+      const me = ks.name;
+      if (path === '/k/photo-add') {
+        if (viaP) return json({ ok: false, error: '제자 앱에서 찍어 주세요' });
+        const img = String(b.img || '');
+        if (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(img) || img.length > 90000) return json({ ok: false, error: '사진이 너무 커요' });
+        const day = await one(env, 'SELECT COUNT(*) AS n FROM kphotos WHERE name = ? AND at > ?', me, Date.now() - 864e5);
+        if (day && day.n >= 20) return json({ ok: false, error: '오늘은 사진을 많이 찍었어요. 내일 또 찍어요' });
+        await run(env, 'INSERT INTO kphotos (id, name, img, at) VALUES (?, ?, ?, ?)', rid(12), me, img, Date.now());
+        await run(env, 'DELETE FROM kphotos WHERE name = ? AND id NOT IN (SELECT id FROM kphotos WHERE name = ? ORDER BY at DESC LIMIT 3)', me, me);
+      }
+      if (path === '/k/photo-del') await run(env, 'DELETE FROM kphotos WHERE id = ? AND name = ?', String(b.id || ''), me);
+      const list = await all(env, 'SELECT id, name, img, at FROM kphotos ORDER BY at DESC LIMIT 30');
+      const nm = [...new Set(list.map(x => x.name))];
+      const pr = nm.length ? await all(env, 'SELECT k, v FROM kv WHERE k IN (' + nm.flatMap(() => ['?', '?']).join(',') + ')', ...nm.flatMap(n => ['kprof:' + n, 'ktag:' + n])) : [], prof = {};
+      for (const r of pr) { if (r.k.startsWith('kprof:')) { const p = J(r.v, {}) || {}; const n = r.k.slice(6); prof[n] = Object.assign(prof[n] || {}, { av: p.av || '', bg: p.bg || '' }); } else { const n = r.k.slice(5); if (r.v) (prof[n] = prof[n] || {}).tg = String(r.v); } }
+      return json({ ok: true, me, list, prof });
     }
     const name = ks.name, km = J(((await one(env, "SELECT v FROM kv WHERE k = 'kmode'")) || {}).v, {}) || {};
     const t = await teamSync(env, '/sync/kmode', { name });
@@ -1212,7 +1232,7 @@ async function renameKid(env, from, to) {
     q(env, 'UPDATE kids SET name = ? WHERE name = ?', to, from),
     q(env, 'UPDATE att SET name = ? WHERE name = ?', to, from),
     q(env, 'UPDATE fees SET name = ? WHERE name = ?', to, from),
-    ...['kday:', 'kprof:', 'kqr:', 'ksbph:', 'ktag:'].map(p => q(env, 'UPDATE OR IGNORE kv SET k = ? WHERE k = ?', p + to, p + from)), // 제자 앱 기록도 같이 (2026-11-15)
+    ...['kday:', 'kprof:', 'kqr:', 'ksbph:', 'ktag:'].map(p => q(env, 'UPDATE OR IGNORE kv SET k = ? WHERE k = ?', p + to, p + from)), q(env, 'UPDATE kphotos SET name = ? WHERE name = ?', to, from), // 제자 앱 기록도 같이 (2026-11-15)
   ]);
   const swap = a => [...new Set(a.map(k => (k === from ? to : k)))];
   for (const p of await all(env, 'SELECT id, kids FROM parents')) { const ks = J(p.kids, []); if (ks.includes(from)) await run(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify(swap(ks)), p.id); }
@@ -1258,7 +1278,7 @@ async function kidRemove(env, name, dry) {
   for (const p of ps) st.push(only(p) ? q(env, 'DELETE FROM parents WHERE id = ?', p.id) : q(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify(J(p.kids, []).filter(k => k !== name)), p.id));
   for (const i of ivs) st.push(only(i) ? q(env, 'DELETE FROM invites WHERE code = ?', i.code) : q(env, 'UPDATE invites SET kids = ? WHERE code = ?', JSON.stringify(J(i.kids, []).filter(k => k !== name)), i.code));
   for (const t of ['kids', 'att', 'kcodes', 'ksess']) st.push(q(env, 'DELETE FROM ' + t + ' WHERE name = ?', name));
-  st.push(q(env, 'DELETE FROM kv WHERE k IN (?, ?, ?, ?, ?)', 'kqr:' + name, 'kprof:' + name, 'ksbph:' + name, 'kday:' + name, 'ktag:' + name), q(env, "DELETE FROM kv WHERE k = 'kidStatus'"));
+  st.push(q(env, 'DELETE FROM kv WHERE k IN (?, ?, ?, ?, ?)', 'kqr:' + name, 'kprof:' + name, 'ksbph:' + name, 'kday:' + name, 'ktag:' + name), q(env, 'DELETE FROM kphotos WHERE name = ?', name), q(env, "DELETE FROM kv WHERE k = 'kidStatus'"));
   await env.DB.batch(st);
   return out;
 }
@@ -1489,7 +1509,7 @@ const BK_HIDE = ['salt', 'pin', 'tok', 'asrc', 'p256', 'auth', 'ep'];
 async function bkTables(env) { return (await all(env, "SELECT name FROM sqlite_master WHERE type = 'table'")).map(r => r.name).filter(n => /^[a-z0-9]+$/.test(n) && !BK_SKIP.includes(n)); }
 async function bkDump(env, table, after) {
   if (!(await bkTables(env)).includes(String(table))) return { ok: false, error: '없는 표' };
-  const lim = ['photos', 'contracts'].includes(table) ? 10 : 500;
+  const lim = ['photos', 'contracts', 'kphotos'].includes(table) ? 10 : 500;
   const rows = await all(env, 'SELECT rowid AS _r, * FROM ' + table + ' WHERE rowid > ? ORDER BY rowid LIMIT ?', Math.max(0, Number(after) || 0), lim);
   const out = rows.filter(r => !(table === 'kv' && /vapid|dlpin|^sent:|^bktok:/i.test(r.k || ''))).map(r => { const o = {}; for (const [k, v] of Object.entries(r)) if (k !== '_r' && !BK_HIDE.includes(k)) o[k] = v; return o; });
   return { ok: true, rows: out, next: rows.length === lim ? rows[rows.length - 1]._r : 0 };
