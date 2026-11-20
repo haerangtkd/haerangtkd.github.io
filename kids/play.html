@@ -273,6 +273,14 @@
   <button class="big" id="ropeBtn">시작</button>
 </div>
 
+<div class="sheet" id="bagSheet">
+  <div class="sheetHead"><b>🥊 샌드백 치기</b><button class="x" data-close>그만하기</button></div>
+  <div class="gInfo"><span id="bgT">20초</span><span id="bgBest">최고 기록 0번</span></div>
+  <div class="bigCount" id="bgN">0</div>
+  <p class="gMsg" id="bgMsg">👊 버튼을 빠르게 눌러요! 20초 동안 몇 번 칠까요?</p>
+  <button class="big" id="bgBtn" style="font-size:30px;padding:22px;touch-action:manipulation">👊 치기</button>
+</div>
+
 <div class="sheet" id="tgSheet">
   <div class="sheetHead"><b id="tgTitle">태극 1장 맞추기</b><button class="x" data-close>그만하기</button></div>
   <div class="tgStep" id="tgStep">준비</div>
@@ -995,7 +1003,7 @@ const ST = {
   fame:{z:'side', n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-1.6}, face:{x:-7, z:-1.6}, lp:{x:-6.2, z:-1.6}, ly:3.3, open:() => openSheet('fameSheet')},
   tg:{z:'class', n:'품새', e:'🥋', g:'tg', spot:TG_START_POS, face:{x:TG_START_POS.x, z:-13}, lp:{x:0, z:-7.0}, ly:2.0, start:() => startTg(tgSel)},
   brk:{z:'class', n:'격파 놀이', e:'🪵', g:'brk', spot:STAND_SPOT, face:STAND, lp:STAND, ly:2.3, start:() => openGame()},
-  bag:{z:'class', n:'샌드백 치기', e:'🥊', g:'bag', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, start:() => openPanel('🥊 샌드백 치기', gameBag)}, /* 2026-11-20 사용자: 20초 안에 몇 번 치는지 */
+  bag:{z:'class', n:'샌드백 치기', e:'🥊', g:'bag', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, start:() => startBag()}, /* 2026-11-20 사용자: 20초 안에 몇 번 치는지 · 도장 화면 그대로 버튼만 */
   whack:{z:'class', n:'표적 치기', e:'🎯', g:'whack', spot:{x:-3.6, z:-5.1}, face:{x:-3.6, z:-6.2}, lp:{x:-3.6, z:-6.2}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
   kyo:{z:'class', n:'겨루기', e:'🤜', soon:1, spot:{x:3.8, z:-4.9}, face:{x:3.8, z:-6.2}, lp:{x:3.8, z:-6.2}, ly:1.7},
   rope:{z:'class', n:'줄넘기', e:'🪢', g:'rope', spot:CENTER_ROPE, face:{x:CENTER_ROPE.x, z:-13}, lp:{x:CENTER_ROPE.x, z:CENTER_ROPE.z-1.3}, ly:2.0, start:() => startRope()},
@@ -1180,6 +1188,7 @@ function closeSheets(){
   document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
   if(openId==='gameSheet') G.on = false;
   if(openId==='ropeSheet' || openId==='tgSheet') endMode();
+  if(openId==='bagSheet') bagStop(true);
   if(openId==='charSheet' && (PREV || TRY)) stopTry();
   openId = null;
 }
@@ -1663,42 +1672,44 @@ function gameRun(body){
 }
 
 
-/* 🥊 샌드백 치기 (2026-11-20 사용자: 20초 안에 몇 번 치는지) — 왼손·오른손 번갈아 */
-function gameBag(body){
-  const T0 = 20;
-  const stat = el('div','stat','<span id="bgN">0번</span><span id="bgT">' + T0 + '초</span>');
-  const bagV = el('div','bagV','<span id="bgE">🥊</span>');
-  const msg = el('p','gMsg','👊 버튼을 빠르게 눌러요! 20초 동안 몇 번 칠까요?');
-  const hands = el('div','feet'); const bL = el('button','big','👊 치기'); bL.style.fontSize = '30px'; bL.style.padding = '26px'; hands.append(bL); /* 2026-11-20 사용자: 버튼 한 개만 */
-  const again = el('button','big','다시 하기'); again.style.display = 'none';
-  body.append(stat, bagV, msg, hands, again);
-  let n = 0, last = 0, t0 = 0, timer = null, done = false;
-  function reset(){ n = 0; last = 0; t0 = 0; done = false; clearInterval(timer); timer = null; $('bgN').textContent = '0번'; $('bgT').textContent = T0 + '초'; msg.textContent = '👊 버튼을 빠르게 눌러요! 20초 동안 몇 번 칠까요?'; hands.style.display = ''; again.style.display = 'none'; }
-  function hit(f, b){
-    audio(); if(done) return;
-    if(!t0){ t0 = performance.now(); timer = setInterval(() => { const left = Math.max(0, T0 - (performance.now() - t0)/1000); $('bgT').textContent = Math.ceil(left) + '초'; if(left <= 0) finish(); }, 100); msg.textContent = '빨리빨리!'; }
-    n++; $('bgN').textContent = n + '번'; sfx.hit();
-    const e = $('bgE'); e.classList.remove('hit'); void e.offsetWidth; e.classList.add('hit');
-    try { bagState.v -= 1.2; } catch(_){}
-  }
-  function finish(){
-    if(done) return; done = true; clearInterval(timer);
-    $('bgT').textContent = '0초';
-    let m = n + '번 쳤어요!';
-    if(!S.bestBag || n > S.bestBag){ S.bestBag = n; m = '새 기록! ' + m; }
-    if(n > 0) monthRec('bag', n);
-    const st = n >= 140 ? 3 : n >= 100 ? 2 : n >= 50 ? 1 : 0; /* 버튼 하나라 기준을 올림 */
-    if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
-    msg.textContent = m; hands.style.display = 'none'; again.style.display = '';
-  }
-  /* 달리는 중에 나가면 그 판은 무효 (왕복달리기와 같게) */
-  const onHide = () => { if(document.hidden && t0 && !done){ done = true; clearInterval(timer); msg.textContent = '중간에 나갔어요. 기록은 남지 않아요. 다시 해 봐요!'; hands.style.display = 'none'; again.style.display = ''; } };
-  document.addEventListener('visibilitychange', onHide);
-  bL.addEventListener('pointerdown', e => { e.preventDefault(); hit(1, bL); });
-  again.onclick = () => { audio(); reset(); };
-  reset();
-  return () => { done = true; clearInterval(timer); document.removeEventListener('visibilitychange', onHide); };
+/* 🥊 샌드백 치기 (2026-11-20 사용자: 20초 안에 몇 번 치는지 · 도장 화면은 그대로, 아래에 버튼만) */
+const BG = {T0:20, n:0, t0:0, timer:null, done:false};
+function startBag(){
+  faceTo(BAG.x, BAG.z); openSheet('bagSheet'); P.mode = 'bag';
+  BG.n = 0; BG.t0 = 0; BG.done = false; clearInterval(BG.timer); BG.timer = null;
+  $('bgN').textContent = '0'; $('bgT').textContent = BG.T0 + '초'; $('bgBest').textContent = '최고 기록 ' + (S.bestBag || 0) + '번';
+  $('bgMsg').textContent = '👊 버튼을 빠르게 눌러요! 20초 동안 몇 번 칠까요?'; $('bgBtn').textContent = '👊 치기';
 }
+function bagStop(quit){
+  clearInterval(BG.timer); BG.timer = null;
+  if(quit){ BG.done = true; if(P.mode === 'bag') P.mode = null; }
+}
+function bagFinish(){
+  if(BG.done) return; BG.done = true; bagStop(false);
+  const n = BG.n; $('bgT').textContent = '0초';
+  let m = n + '번 쳤어요!';
+  if(!S.bestBag || n > S.bestBag){ S.bestBag = n; m = '새 기록! ' + m; }
+  if(n > 0) monthRec('bag', n);
+  const st = n >= 140 ? 3 : n >= 100 ? 2 : n >= 50 ? 1 : 0; /* 버튼 하나라 기준을 올림 */
+  if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
+  $('bgMsg').textContent = m; $('bgBtn').textContent = '다시 하기'; $('bgBest').textContent = '최고 기록 ' + S.bestBag + '번';
+  floatText(n + '번!');
+}
+$('bgBtn').addEventListener('pointerdown', e => {
+  e.preventDefault(); audio();
+  if(BG.done){ startBag(); return; }
+  if(!BG.t0){
+    BG.t0 = performance.now(); $('bgMsg').textContent = '빨리빨리!';
+    BG.timer = setInterval(() => { const left = Math.max(0, BG.T0 - (performance.now() - BG.t0)/1000); $('bgT').textContent = Math.ceil(left) + '초'; if(left <= 0) bagFinish(); }, 100);
+  }
+  BG.n++; $('bgN').textContent = BG.n; sfx.hit();
+  bagState.v -= 1.2;
+  punchSide = -punchSide; faceTo(BAG.x, BAG.z);
+  if(!P.act) doAct('punch', .16, null, punchSide);
+  if(BG.n % 10 === 0) floatText(BG.n + '!');
+});
+/* 치는 중에 앱을 나가면 그 판은 무효 */
+document.addEventListener('visibilitychange', () => { if(document.hidden && P.mode === 'bag' && BG.t0 && !BG.done){ BG.done = true; bagStop(false); $('bgMsg').textContent = '중간에 나갔어요. 기록은 남지 않아요. 다시 해 봐요!'; $('bgBtn').textContent = '다시 하기'; } });
 
 /* 📏 자를 잡아라 (2026-11-20 새로 엶): 자가 떨어지는 순간 눌러요 · 5번 평균 반응 속도 · 너무 일찍 누르면 그 번은 다시 */
 function gameRuler(body){
