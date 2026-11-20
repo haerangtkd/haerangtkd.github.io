@@ -242,6 +242,7 @@
   </div>
   <div class="tryBar" id="tryBar"></div>
   <p class="note">눌러서 먼저 입어 볼 수 있어요. 사는 건 별이 있어야 해요. 품도복은 그 품이 되면 입을 수 있어요(1품 파랑 · 2품 빨강 · 3품 검정 바지).</p>
+  <button class="x" id="codeLink" style="display:block;margin:4px auto 0;font-size:12px;opacity:.6">🔑 선생님 코드</button>
 </div>
 
 <div class="sheet" id="gameSheet">
@@ -1377,13 +1378,18 @@ function endMode(){
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
 $('rkBack').addEventListener('click', () => { openSheet('fameSheet'); });
 openSheetFn = openSheet;
+function openCode(){ audio(); openSheet('codeSheet'); $('codeIn').value = ''; setTimeout(() => $('codeIn').focus(), 300); }
 /* 🔑 선생님 테스트: '레크리에이션' 글자를 3초 길게 누름 → 코드 맞으면 별 500개 (2026-11-19 사용자, 11/20 500개 · 몇 번이든) */
 { const tb = document.querySelector('.title b'); let lt = null;
   const stop = () => { if(lt){ clearTimeout(lt); lt = null; } };
   tb.style.pointerEvents = 'auto'; tb.style.webkitTouchCallout = 'none';
-  tb.addEventListener('pointerdown', e => { stop(); lt = setTimeout(() => { lt = null; audio(); openSheet('codeSheet'); $('codeIn').value = ''; setTimeout(() => $('codeIn').focus(), 300); }, 3000); });
+  tb.addEventListener('pointerdown', e => { stop(); lt = setTimeout(() => { lt = null; openCode(); }, 3000); });
   ['pointerup','pointerleave','pointercancel'].forEach(t => tb.addEventListener(t, stop));
   tb.addEventListener('contextmenu', e => e.preventDefault());
+  tb.style.userSelect = tb.style.webkitUserSelect = 'none';
+  /* 2026-11-20 사용자: 코드 창이 안 나옴 → 제목을 빠르게 5번 눌러도 열림 + 탈의실 아래 '🔑 선생님 코드' */
+  let taps = 0, tapT = 0; tb.addEventListener('click', () => { const n = Date.now(); taps = n - tapT < 600 ? taps + 1 : 1; tapT = n; if(taps >= 5){ taps = 0; stop(); openCode(); } });
+  $('codeLink').addEventListener('click', () => { audio(); openCode(); });
   $('codeBtn').addEventListener('click', () => {
     audio(); const v = $('codeIn').value.trim();
     if(v === '한코치123'){ S.stars += 500; save(); updateStars(); closeSheets(); sfx.star(); toast('별 500개를 받았어요 ⭐'); }
