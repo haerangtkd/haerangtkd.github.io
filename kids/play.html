@@ -107,6 +107,8 @@
   .rulerBox{position:relative;height:330px;border-radius:20px;background:#fff6e8;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none;}
   .ruler{position:absolute;left:50%;top:16px;transform:translateY(-260px);width:46px;height:200px;margin-left:-23px;background:#f2b134;border-radius:6px;box-shadow:0 3px 0 #c98c1f;display:flex;flex-direction:column;justify-content:space-between;padding:8px 0;}
   .ruler i{display:block;height:3px;width:20px;background:#7a5a1e;}
+  .rlMarks{display:flex;justify-content:center;gap:8px;margin-top:10px;min-height:28px;}
+  .rlMarks span{background:#fff6e8;border-radius:12px;padding:4px 10px;font-size:14px;}
   .hole{aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 60%,#bfa27f,#d9c3a2 70%);border:none;font-size:44px;display:flex;align-items:center;justify-content:center;padding:0;}
   .hole.hit{background:radial-gradient(circle,#c9e7b5,#d9c3a2 70%);}
   .hole.bad{background:radial-gradient(circle,#f3b8ab,#d9c3a2 70%);}
@@ -1017,7 +1019,17 @@ function goStation(id){
   closeSheets(); closePanel(); hideHint();
   if(P.act) P.act = null; bagBusy = false;
   const arrive = () => { faceTo(s.face.x, s.face.z); s.open ? s.open() : openGo(id); };
-  if(near(s.spot.x, s.spot.z, .35)) arrive(); else walkTo(s.spot.x, s.spot.z, arrive);
+  if(near(s.spot.x, s.spot.z, .35)) return arrive();
+  /* 2026-11-20 사용자: 뒤쪽 놀이 탁자를 누르면 엉뚱한 데로 감(앞줄 탁자에 막힘) → 탁자 사이 통로로 걸어감 */
+  if(s.z === 'rest'){
+    const px = P.root.position.x, pz = P.root.position.z, ax = s.spot.x < -1 ? -2.1 : s.spot.x > 1 ? 2.1 : (px < 0 ? -2.1 : 2.1);
+    const legs = [];
+    if(pz < 4.7) legs.push([ax, 4.7]); else if(Math.abs(px - ax) > .3) legs.push([ax, Math.min(pz, 12)]);
+    legs.push([ax, s.spot.z], [s.spot.x, s.spot.z]);
+    const go = i => i >= legs.length ? arrive() : walkTo(legs[i][0], legs[i][1], () => go(i + 1));
+    return go(0);
+  }
+  walkTo(s.spot.x, s.spot.z, arrive);
 }
 /* 도착하면 '○○ 할까?' 창 */
 const BESTS = {
@@ -1698,12 +1710,21 @@ function gameRuler(body){
   const box = el('div','rulerBox','<div class="ruler" id="rlR"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>');
   const msg = el('p','gMsg','자가 나타나서 떨어지면 바로 화면을 눌러 잡아요! 3번 중 가장 빠른 기록이 남아요');
   const btn = el('button','big','시작');
-  body.append(stat, box, msg, btn);
-  let round = 0, times = [], state = 'idle', t0 = 0, wait = null, raf = 0;
+  const mk = el('div','rlMarks'); mk.id = 'rlM';
+  body.append(stat, box, mk, msg, btn);
+  let round = 0, times = [], marks = [], state = 'idle', t0 = 0, wait = null, raf = 0;
   const ruler = () => $('rlR');
   function setY(px){ ruler().style.transform = 'translateY(' + px + 'px)'; }
   /* 2026-11-20 사용자: 자가 안 보였는데 잡혔다고 기록됨 → 숨길 땐 칸 위로 완전히 올려 두고(아이폰에서 visibility가 늦게 그려지는 일 막기), 화면에 그려진 다음 장면부터 시간을 잼 */
   const HIDE = -260;
+  /* 2026-11-20 사용자: '너무 빨라요'로 다시 하지 말고 그 판은 0으로 기록 (가장 빠른 기록은 잡은 판에서만) */
+  function zero(why){
+    sfx.fail(); round++; marks.push(0); drawMarks();
+    msg.textContent = why + ' · ' + round + '번째는 0으로 기록';
+    if(round >= R) return setTimeout(finish, 900);
+    setTimeout(next, 1000);
+  }
+  function drawMarks(){ $('rlM').innerHTML = marks.map((v, i) => '<span>' + (i + 1) + '번 ' + (v ? (v/1000).toFixed(3) + '초' : '0') + '</span>').join(''); }
   function next(){
     state = 'wait'; setY(HIDE); msg.textContent = '집중… 자가 나타나면 바로 눌러요!';
     $('rlN').textContent = (round + 1) + ' / ' + R;
@@ -1713,17 +1734,17 @@ function gameRuler(body){
     if(state !== 'fall') return;
     const dt = (performance.now() - t0) / 1000, y = 0.5 * 1600 * dt * dt; /* 화면에서 떨어지는 느낌 */
     setY(Math.min(y, 320));
-    if(y >= 320){ state = 'miss'; setY(HIDE); sfx.fail(); msg.textContent = '놓쳤어요! 다시 해 봐요'; setTimeout(next, 900); return; }
+    if(y >= 320){ state = 'miss'; setY(HIDE); zero('놓쳤어요'); return; }
     raf = requestAnimationFrame(fall);
   }
   function tap(e){
     if(e) e.preventDefault(); audio();
-    if(state === 'wait' || state === 'show'){ clearTimeout(wait); state = 'early'; setY(HIDE); sfx.fail(); msg.textContent = '너무 빨라요! 자가 떨어질 때 눌러요'; setTimeout(next, 900); return; }
+    if(state === 'wait' || state === 'show'){ clearTimeout(wait); state = 'early'; setY(HIDE); zero('자가 나오기 전에 눌렀어요'); return; }
     if(state !== 'fall') return;
     cancelAnimationFrame(raf); state = 'got';
     const ms = Math.round(performance.now() - t0);
-    if(!(ms >= 100)){ state = 'early'; setY(HIDE); sfx.fail(); msg.textContent = '너무 빨라요! 자가 떨어지는 걸 보고 눌러요'; setTimeout(next, 900); return; } /* 미리 누른 것 */
-    times.push(ms); round++; sfx.tick();
+    if(!(ms >= 100)){ state = 'early'; setY(HIDE); zero('자가 나오기 전에 눌렀어요'); return; } /* 미리 누른 것 */
+    times.push(ms); marks.push(ms); round++; sfx.tick(); drawMarks();
     $('rlL').textContent = '최고 ' + (Math.min(...times)/1000).toFixed(3) + '초';
     msg.textContent = '잡았다! ' + (ms/1000).toFixed(3) + '초';
     if(round >= R) return setTimeout(finish, 700);
@@ -1731,7 +1752,7 @@ function gameRuler(body){
   }
   function finish(){
     state = 'end';
-    if(!times.length) return; /* 잡은 기록이 없으면 아무것도 안 남김 */
+    if(!times.length){ msg.textContent = '3번 모두 0이에요. 다시 도전해 봐요!'; btn.style.display = ''; btn.textContent = '다시 하기'; return; } /* 잡은 기록이 없으면 순위에 안 남김 */
     const best = Math.min(...times);
     let m = '가장 빠른 기록 ' + (best/1000).toFixed(3) + '초!';
     if(!S.bestRuler || best < S.bestRuler){ S.bestRuler = best; m = '새 기록! ' + m; }
@@ -1741,7 +1762,7 @@ function gameRuler(body){
     btn.style.display = ''; btn.textContent = '다시 하기';
   }
   box.addEventListener('pointerdown', tap);
-  btn.onclick = () => { audio(); round = 0; times = []; $('rlL').textContent = '최고 -'; btn.style.display = 'none'; next(); };
+  btn.onclick = () => { audio(); round = 0; times = []; marks = []; drawMarks(); $('rlL').textContent = '최고 -'; btn.style.display = 'none'; next(); };
   return () => { state = 'end'; clearTimeout(wait); cancelAnimationFrame(raf); };
 }
 
