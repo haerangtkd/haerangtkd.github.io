@@ -846,7 +846,7 @@
   }
   // ── 🎮 레크리에이션 (play.html, 혼자 하는 놀이 7가지 · 캐릭터 띠 = 내 띠) + 이번 달 순위 1~3위 · 더보기 10위 (2026-11-17 사용자) ──
   // 서버 부담 줄이기: 즐기기 화면을 열 때만 한 번(1분 안에 다시 열면 안 부름), 놀이터에서 못 보낸 기록이 있으면 같이 보냄
-  const RG = { rope: ['🪢', '줄넘기', v => v + '번'], tg: ['🥋', '태극 1장', v => v === 0 ? '만점' : v + '번 틀림'], brk: ['🪵', '격파 놀이', v => v + '단계'], belt: ['🎗️', '띠 순서', v => (v / 10).toFixed(1) + '초'], whack: ['🎯', '표적 치기', v => v + '점'], mem: ['🃏', '짝 맞추기', v => v + '번 만에'], quiz: ['💡', '해랑경희 퀴즈', v => v + '/8'], run: ['🏃', '왕복달리기', v => (v / 10).toFixed(1) + '초'] };
+  const RG = { rope: ['🪢', '줄넘기', v => v + '번'], tg: ['🥋', '태극 1장', v => v === 0 ? '만점' : v + '번 틀림'], brk: ['🪵', '격파 놀이', v => v + '단계'], belt: ['🎗️', '띠 순서', v => (v / 10).toFixed(1) + '초'], whack: ['🎯', '표적 치기', v => v + '점'], mem: ['🃏', '짝 맞추기', v => v + '번 만에'], quiz: ['💡', '해랑경희 퀴즈', v => v + '/8'], run: ['🏃', '왕복달리기', v => (v / 10).toFixed(1) + '초'], bag: ['🥊', '샌드백 치기', v => v + '번'], ruler: ['📏', '자를 잡아라', v => (v / 1000).toFixed(3) + '초'] };
 [2, 3, 4, 5, 6, 7, 8].forEach(n => { RG['tg' + n] = ['🥋', '태극 ' + n + '장', v => v === 0 ? '만점' : v + '번 틀림']; }); // 2026-11-19 품새 2~8장
 const recAv = n => { const p = ((recTop || {}).prof || {})[n] || {}, e = p.av || firstName(n).slice(0, 1); return '<span class="rav" style="background:' + esc(p.bg || 'var(--brand)') + '">' + avHtml(e) + '</span>'; };
 const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.today.slice(5, 7) - 2, 1)); return d.toISOString().slice(0, 7); };

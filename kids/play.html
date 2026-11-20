@@ -100,6 +100,14 @@
   .bbtn.used{visibility:hidden;}
   .bbtn.no{animation:shake .35s;}
   .holes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .bagV{display:flex;justify-content:center;align-items:center;height:200px;font-size:130px;}
+  .bagV span{display:inline-block;transform-origin:50% 0;}
+  .bagV span.hit{animation:bagHit .18s ease-out;}
+  @keyframes bagHit{0%{transform:rotate(0) scale(1);}40%{transform:rotate(10deg) scale(.92);}100%{transform:rotate(0) scale(1);}}
+  .rulerBox{position:relative;height:330px;border-radius:20px;background:#fff6e8;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none;}
+  .rulerHand{position:absolute;left:50%;top:6px;transform:translateX(-50%);font-size:44px;z-index:2;}
+  .ruler{position:absolute;left:50%;top:40px;width:46px;height:200px;margin-left:-23px;background:#f2b134;border-radius:6px;box-shadow:0 3px 0 #c98c1f;display:flex;flex-direction:column;justify-content:space-between;padding:8px 0;will-change:transform;}
+  .ruler i{display:block;height:3px;width:20px;background:#7a5a1e;}
   .hole{aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 60%,#bfa27f,#d9c3a2 70%);border:none;font-size:44px;display:flex;align-items:center;justify-content:center;padding:0;}
   .hole.hit{background:radial-gradient(circle,#c9e7b5,#d9c3a2 70%);}
   .hole.bad{background:radial-gradient(circle,#f3b8ab,#d9c3a2 70%);}
@@ -447,6 +455,8 @@ const GAMES = {
   mem:  {n:'짝 맞추기', d:-1, f:v => v + '번 만에'},
   quiz: {n:'해랑경희 퀴즈', d:1, f:v => v + '/8'},
   run:  {n:'왕복달리기', d:-1, f:v => (v/10).toFixed(1) + '초'},
+  bag:  {n:'샌드백 치기', d:1, f:v => v + '번'},
+  ruler:{n:'자를 잡아라', d:-1, f:v => (v/1000).toFixed(3) + '초'},
   tg2:  {n:'태극 2장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
   tg3:  {n:'태극 3장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
   tg4:  {n:'태극 4장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
@@ -894,11 +904,19 @@ function label(txt, x, y, z){
     const g = t.g; g.clearRect(0,0,512,128);
     g.fillStyle = 'rgba(255,250,242,.95)'; roundRect(g,6,14,500,100,50); g.fill();
     g.strokeStyle = 'rgba(90,70,50,.18)'; g.lineWidth = 3; roundRect(g,6,14,500,100,50); g.stroke();
-    g.fillStyle = '#5a4632'; g.font = '56px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt2, 256, 67);
+    /* 2026-11-20 사용자: 글씨가 한쪽으로 치우침 → 그림 글자(이모지)와 글을 따로 재서 가운데에, 길면 글씨를 줄임 */
+    const m = String(txt2).match(/^(\S+)\s+(.*)$/), em = m && /[^\u0000-\u024f\uac00-\ud7a3\u3130-\u318f]/.test(m[1]) ? m[1] : '', body = em ? m[2] : String(txt2);
+    let fs = 56; g.font = fs + 'px ' + FONT; while(fs > 30 && g.measureText(body).width + (em ? fs + 10 : 0) > 470){ fs -= 2; g.font = fs + 'px ' + FONT; }
+    const tw = g.measureText(body).width, ew = em ? fs + 10 : 0, x0 = 256 - (tw + ew) / 2;
+    g.textBaseline = 'middle';
+    if(em){ g.textAlign = 'center'; g.font = fs + 'px sans-serif'; g.fillText(em, x0 + fs / 2, 67); }
+    g.textAlign = 'left'; g.font = fs + 'px ' + FONT; g.fillStyle = '#5a4632'; g.fillText(body, x0 + ew, 67);
     t.tex.needsUpdate = true;
   };
-  s.userData.draw(txt); return s;
+  s.userData.draw(txt); s.userData.txt = txt; LABELS.push(s); return s;
 }
+const LABELS = [];
+try { document.fonts && document.fonts.ready.then(() => LABELS.forEach(l => l.userData.draw(l.userData.txt))); } catch(e){}
 /* 파란 기둥 */
 { const pm = new THREE.MeshLambertMaterial({color:'#2f6fde', transparent:true, opacity:.78});
   PILLARS.forEach(p => { box(.95, 1.9, .95, pm, p.x, .95, p.z); box(1.0, .25, 1.0, '#f4f1ea', p.x, .125, p.z); }); } /* 화면을 덜 가리게 낮게 */
@@ -955,7 +973,7 @@ function booth(id, x, z, emoji, name, col, soon){
 /* 쉬는 시간 (뒤쪽): 3줄 × 3칸 — 준비 중 놀이는 2026-11-19 사용자가 보낸 놀이 목록에서 고름 */
 const BOOTHS = [
   ['belt','🎗️','띠 순서','#e07a5f'], ['mem','🃏','짝 맞추기','#5b8fc7'], ['quiz','💡','해랑경희 퀴즈','#6aa84f'],
-  ['ruler','📏','자를 잡아라','#b9b2a8',1], ['balloon','🎈','풍선 터뜨리기','#b9b2a8',1], ['order','🔢','순서대로','#b9b2a8',1],
+  ['ruler','📏','자를 잡아라','#f2b134'], ['balloon','🎈','풍선 터뜨리기','#b9b2a8',1], ['order','🔢','순서대로','#b9b2a8',1],
   ['lr','↔️','좌우로','#b9b2a8',1], ['rps','✌️','가위바위보','#b9b2a8',1], ['tug','💪','줄다리기','#b9b2a8',1]
 ];
 const BOOTH_POS = {};
@@ -975,7 +993,7 @@ const ST = {
   fame:{z:'side', n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-1.6}, face:{x:-7, z:-1.6}, lp:{x:-6.2, z:-1.6}, ly:3.3, open:() => openSheet('fameSheet')},
   tg:{z:'class', n:'품새', e:'🥋', g:'tg', spot:TG_START_POS, face:{x:TG_START_POS.x, z:-13}, lp:{x:0, z:-7.0}, ly:2.0, start:() => startTg(tgSel)},
   brk:{z:'class', n:'격파 놀이', e:'🪵', g:'brk', spot:STAND_SPOT, face:STAND, lp:STAND, ly:2.3, start:() => openGame()},
-  bag:{z:'class', n:'샌드백', e:'🥊', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, open:() => { bagBusy = true; bagPunches(4); }},
+  bag:{z:'class', n:'샌드백 치기', e:'🥊', g:'bag', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, start:() => openPanel('🥊 샌드백 치기', gameBag)}, /* 2026-11-20 사용자: 20초 안에 몇 번 치는지 */
   whack:{z:'class', n:'표적 치기', e:'🎯', g:'whack', spot:{x:-3.6, z:-5.1}, face:{x:-3.6, z:-6.2}, lp:{x:-3.6, z:-6.2}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
   kyo:{z:'class', n:'겨루기', e:'🤜', soon:1, spot:{x:3.8, z:-4.9}, face:{x:3.8, z:-6.2}, lp:{x:3.8, z:-6.2}, ly:1.7},
   rope:{z:'class', n:'줄넘기', e:'🪢', g:'rope', spot:CENTER_ROPE, face:{x:CENTER_ROPE.x, z:-13}, lp:{x:CENTER_ROPE.x, z:CENTER_ROPE.z-1.3}, ly:2.0, start:() => startRope()},
@@ -983,7 +1001,7 @@ const ST = {
   belt:{z:'rest', n:'띠 순서', e:'🎗️', g:'belt', spot:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z+1.25}, face:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z}, lp:BOOTH_POS.belt, ly:2.3, start:() => openPanel('띠 순서 맞추기', gameBelt)},
   mem:{z:'rest', n:'짝 맞추기', e:'🃏', g:'mem', spot:{x:BOOTH_POS.mem.x, z:BOOTH_POS.mem.z+1.25}, face:{x:BOOTH_POS.mem.x, z:BOOTH_POS.mem.z}, lp:BOOTH_POS.mem, ly:2.3, start:() => openPanel('짝 맞추기', gameMem)},
   quiz:{z:'rest', n:'해랑경희 퀴즈', e:'💡', g:'quiz', spot:{x:BOOTH_POS.quiz.x, z:BOOTH_POS.quiz.z+1.25}, face:{x:BOOTH_POS.quiz.x, z:BOOTH_POS.quiz.z}, lp:BOOTH_POS.quiz, ly:2.3, start:() => openPanel('해랑경희 퀴즈', gameQuiz)},
-  ruler:{z:'rest', n:'자를 잡아라', e:'📏', soon:1, spot:{x:BOOTH_POS.ruler.x, z:BOOTH_POS.ruler.z+1.25}, face:{x:BOOTH_POS.ruler.x, z:BOOTH_POS.ruler.z}, lp:BOOTH_POS.ruler, ly:2.3},
+  ruler:{z:'rest', n:'자를 잡아라', e:'📏', g:'ruler', start:() => openPanel('📏 자를 잡아라', gameRuler), spot:{x:BOOTH_POS.ruler.x, z:BOOTH_POS.ruler.z+1.25}, face:{x:BOOTH_POS.ruler.x, z:BOOTH_POS.ruler.z}, lp:BOOTH_POS.ruler, ly:2.3},
   balloon:{z:'rest', n:'풍선 터뜨리기', e:'🎈', soon:1, spot:{x:BOOTH_POS.balloon.x, z:BOOTH_POS.balloon.z+1.25}, face:{x:BOOTH_POS.balloon.x, z:BOOTH_POS.balloon.z}, lp:BOOTH_POS.balloon, ly:2.3},
   order:{z:'rest', n:'순서대로', e:'🔢', soon:1, spot:{x:BOOTH_POS.order.x, z:BOOTH_POS.order.z+1.25}, face:{x:BOOTH_POS.order.x, z:BOOTH_POS.order.z}, lp:BOOTH_POS.order, ly:2.3},
   lr:{z:'rest', n:'좌우로', e:'↔️', soon:1, spot:{x:BOOTH_POS.lr.x, z:BOOTH_POS.lr.z+1.25}, face:{x:BOOTH_POS.lr.x, z:BOOTH_POS.lr.z}, lp:BOOTH_POS.lr, ly:2.3},
@@ -1010,7 +1028,9 @@ const BESTS = {
   run: () => S.bestRun ? S.bestRun.toFixed(1) + '초' : '아직 없어요',
   belt: () => S.bestBelt ? S.bestBelt.toFixed(1) + '초' : '아직 없어요',
   mem: () => S.bestMem ? S.bestMem + '번 만에' : '아직 없어요',
-  quiz: () => S.bestQuiz ? S.bestQuiz + '/8' : '아직 없어요'
+  quiz: () => S.bestQuiz ? S.bestQuiz + '/8' : '아직 없어요',
+  bag: () => S.bestBag ? S.bestBag + '번' : '아직 없어요',
+  ruler: () => S.bestRuler ? (S.bestRuler/1000).toFixed(3) + '초' : '아직 없어요'
 };
 let goId = null;
 function openGo(id){
@@ -1062,7 +1082,7 @@ $('goBtn').addEventListener('click', () => {
   }
   if(s.lock && !owns(s.lock)){
     if(S.stars < s.price){ sfx.fail(); return; }
-    S.stars -= s.price; S.own.push(s.lock); save(); updateStars(); s.lb.userData.draw(stLabel(goId));
+    S.stars -= s.price; S.own.push(s.lock); save(); updateStars(); s.lb.userData.txt = stLabel(goId); s.lb.userData.draw(s.lb.userData.txt);
     sfx.star(); toast(s.n + '이(가) 열렸어요! 🎉'); openGo(goId); return;
   }
   sfx.pop(); closeSheets(); s.start();
@@ -1156,7 +1176,6 @@ function fillPlay(){
     if(st2.soon) return '준비 중';
     if(st2.lock && !owns(st2.lock)) return '🔒 별 ' + st2.price + '개로 열기';
     if(id === 'tg') return '태극 1~8장';
-    if(id === 'bag') return '10번 치면 별 하나';
     const bb = BESTS[id] && BESTS[id](); return bb && bb !== '아직 없어요' ? '최고 ' + bb : ''; };
   const sec = (z, title) => '<div class="glab">' + title + '</div>' + Object.keys(ST).filter(id => ST[id].z === z).map(id =>
     '<button class="game' + (ST[id].soon ? ' soon' : '') + '" data-st="' + id + '"><i>' + ST[id].e + '</i><b>' + ST[id].n + '</b><small>' + sub(id) + '</small></button>').join('');
@@ -1629,6 +1648,99 @@ function gameRun(body){
   again.onclick = () => { audio(); reset(); };
   reset();
   return () => { done = true; clearInterval(timer); document.removeEventListener('visibilitychange', onHide); removeEventListener('pagehide', onHide); };
+}
+
+
+/* 🥊 샌드백 치기 (2026-11-20 사용자: 20초 안에 몇 번 치는지) — 왼손·오른손 번갈아 */
+function gameBag(body){
+  const T0 = 20;
+  const stat = el('div','stat','<span id="bgN">0번</span><span id="bgT">' + T0 + '초</span>');
+  const bagV = el('div','bagV','<span id="bgE">🥊</span>');
+  const msg = el('p','gMsg','👊 왼손 · 오른손을 번갈아 눌러요! 20초 동안 몇 번 칠까요?');
+  const hands = el('div','feet'); const bL = el('button','big blue','👊 왼손'), bR = el('button','big','오른손 👊'); hands.append(bL, bR);
+  const again = el('button','big','다시 하기'); again.style.display = 'none';
+  body.append(stat, bagV, msg, hands, again);
+  let n = 0, last = 0, t0 = 0, timer = null, done = false;
+  function reset(){ n = 0; last = 0; t0 = 0; done = false; clearInterval(timer); timer = null; $('bgN').textContent = '0번'; $('bgT').textContent = T0 + '초'; msg.textContent = '👊 왼손 · 오른손을 번갈아 눌러요! 20초 동안 몇 번 칠까요?'; hands.style.display = ''; again.style.display = 'none'; }
+  function hit(f, b){
+    audio(); if(done) return;
+    if(f === last){ b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); sfx.fail(); msg.textContent = '번갈아 쳐요!'; return; }
+    last = f;
+    if(!t0){ t0 = performance.now(); timer = setInterval(() => { const left = Math.max(0, T0 - (performance.now() - t0)/1000); $('bgT').textContent = Math.ceil(left) + '초'; if(left <= 0) finish(); }, 100); msg.textContent = '빨리빨리!'; }
+    n++; $('bgN').textContent = n + '번'; sfx.hit();
+    const e = $('bgE'); e.classList.remove('hit'); void e.offsetWidth; e.classList.add('hit');
+    try { bagState.v -= 1.2; } catch(_){}
+  }
+  function finish(){
+    if(done) return; done = true; clearInterval(timer);
+    $('bgT').textContent = '0초';
+    let m = n + '번 쳤어요!';
+    if(!S.bestBag || n > S.bestBag){ S.bestBag = n; m = '새 기록! ' + m; }
+    if(n > 0) monthRec('bag', n);
+    const st = n >= 100 ? 3 : n >= 70 ? 2 : n >= 30 ? 1 : 0;
+    if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
+    msg.textContent = m; hands.style.display = 'none'; again.style.display = '';
+  }
+  /* 달리는 중에 나가면 그 판은 무효 (왕복달리기와 같게) */
+  const onHide = () => { if(document.hidden && t0 && !done){ done = true; clearInterval(timer); msg.textContent = '중간에 나갔어요. 기록은 남지 않아요. 다시 해 봐요!'; hands.style.display = 'none'; again.style.display = ''; } };
+  document.addEventListener('visibilitychange', onHide);
+  bL.addEventListener('pointerdown', e => { e.preventDefault(); hit(1, bL); });
+  bR.addEventListener('pointerdown', e => { e.preventDefault(); hit(2, bR); });
+  again.onclick = () => { audio(); reset(); };
+  reset();
+  return () => { done = true; clearInterval(timer); document.removeEventListener('visibilitychange', onHide); };
+}
+
+/* 📏 자를 잡아라 (2026-11-20 새로 엶): 자가 떨어지는 순간 눌러요 · 5번 평균 반응 속도 · 너무 일찍 누르면 그 번은 다시 */
+function gameRuler(body){
+  const R = 5;
+  const stat = el('div','stat','<span id="rlN">1 / ' + R + '</span><span id="rlL">평균 -</span>');
+  const box = el('div','rulerBox','<div class="rulerHand">✋</div><div class="ruler" id="rlR"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>');
+  const msg = el('p','gMsg','자가 떨어지면 바로 화면을 눌러 잡아요!');
+  const btn = el('button','big','시작');
+  body.append(stat, box, msg, btn);
+  let round = 0, times = [], state = 'idle', t0 = 0, wait = null, raf = 0;
+  const ruler = () => $('rlR');
+  function setY(px){ ruler().style.transform = 'translateY(' + px + 'px)'; }
+  function next(){
+    state = 'wait'; setY(0); msg.textContent = '집중… 자가 떨어지면 눌러요!';
+    $('rlN').textContent = (round + 1) + ' / ' + R;
+    wait = setTimeout(() => { state = 'fall'; t0 = performance.now(); fall(); }, 1200 + Math.random() * 2600);
+  }
+  function fall(){
+    if(state !== 'fall') return;
+    const dt = (performance.now() - t0) / 1000, y = 0.5 * 1600 * dt * dt; /* 화면에서 떨어지는 느낌 */
+    setY(Math.min(y, 260));
+    if(y >= 260){ state = 'miss'; sfx.fail(); msg.textContent = '놓쳤어요! 다시 해 봐요'; setTimeout(next, 900); return; }
+    raf = requestAnimationFrame(fall);
+  }
+  function tap(e){
+    if(e) e.preventDefault(); audio();
+    if(state === 'wait'){ clearTimeout(wait); state = 'early'; sfx.fail(); msg.textContent = '너무 빨라요! 자가 떨어질 때 눌러요'; setTimeout(next, 900); return; }
+    if(state !== 'fall') return;
+    cancelAnimationFrame(raf); state = 'got';
+    const ms = Math.round(performance.now() - t0);
+    if(ms < 100){ state = 'early'; sfx.fail(); msg.textContent = '너무 빨라요! 자가 떨어지는 걸 보고 눌러요'; setTimeout(next, 900); return; } /* 미리 누른 것 */
+    times.push(ms); round++; sfx.tick();
+    const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    $('rlL').textContent = '평균 ' + (avg/1000).toFixed(3) + '초';
+    msg.textContent = '잡았다! ' + (ms/1000).toFixed(3) + '초';
+    if(round >= R) return setTimeout(finish, 700);
+    setTimeout(next, 900);
+  }
+  function finish(){
+    state = 'end';
+    const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    let m = '평균 ' + (avg/1000).toFixed(3) + '초!';
+    if(!S.bestRuler || avg < S.bestRuler){ S.bestRuler = avg; m = '새 기록! ' + m; }
+    monthRec('ruler', avg);
+    const st = avg <= 250 ? 3 : avg <= 350 ? 2 : 1;
+    addStars(st); msg.textContent = m + ' 별 ' + st + '개 ⭐';
+    btn.style.display = ''; btn.textContent = '다시 하기';
+  }
+  box.addEventListener('pointerdown', tap);
+  btn.onclick = () => { audio(); round = 0; times = []; $('rlL').textContent = '평균 -'; btn.style.display = 'none'; next(); };
+  return () => { state = 'end'; clearTimeout(wait); cancelAnimationFrame(raf); };
 }
 
 /* 표적 치기 */
