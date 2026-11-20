@@ -171,6 +171,9 @@ async function route(path, req, env) {
     // 🎮 우리 도장 놀이터 이번 달 순위 (2026-11-17 사용자) — 판마다 안 부름: 놀이터를 열 때·나갈 때·놀이 목록을 볼 때만 (기록 묶음 저장 + 순위)
     if (path === '/k/game') {
       const me = ks.name, ym = kstDay(new Date()).slice(0, 7), qym = /^\d{4}-\d{2}$/.test(String(b.ym || '')) && String(b.ym) <= ym ? String(b.ym) : ym; // 지난달 명예의 전당 보기 (2026-11-19 사용자)
+      if (!(await one(env, "SELECT v FROM kv WHERE k = 'rulerReset1120b'"))) { // 2026-11-20 사용자: 자를 잡아라(3번 중 최고) 규칙 바뀜 → 기록 한 번 지움
+        await run(env, "DELETE FROM kgame WHERE g = 'ruler'"); await run(env, "INSERT OR REPLACE INTO kv (k, v) VALUES ('rulerReset1120b', ?)", String(Date.now()));
+      }
       if (!(await one(env, "SELECT v FROM kv WHERE k = 'runReset1120'"))) { // 2026-11-20 사용자: 왕복달리기 기록만 한 번 초기화 (중간에 나가도 기록이 남던 오류 고친 뒤)
         await run(env, "DELETE FROM kgame WHERE g = 'run'"); await run(env, "INSERT OR REPLACE INTO kv (k, v) VALUES ('runReset1120', ?)", String(Date.now()));
       }

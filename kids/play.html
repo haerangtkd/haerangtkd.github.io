@@ -105,8 +105,7 @@
   .bagV span.hit{animation:bagHit .18s ease-out;}
   @keyframes bagHit{0%{transform:rotate(0) scale(1);}40%{transform:rotate(10deg) scale(.92);}100%{transform:rotate(0) scale(1);}}
   .rulerBox{position:relative;height:330px;border-radius:20px;background:#fff6e8;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none;}
-  .rulerHand{position:absolute;left:50%;top:6px;transform:translateX(-50%);font-size:44px;z-index:2;}
-  .ruler{position:absolute;left:50%;top:40px;width:46px;height:200px;margin-left:-23px;background:#f2b134;border-radius:6px;box-shadow:0 3px 0 #c98c1f;display:flex;flex-direction:column;justify-content:space-between;padding:8px 0;will-change:transform;}
+  .ruler{position:absolute;left:50%;top:16px;visibility:hidden;width:46px;height:200px;margin-left:-23px;background:#f2b134;border-radius:6px;box-shadow:0 3px 0 #c98c1f;display:flex;flex-direction:column;justify-content:space-between;padding:8px 0;will-change:transform;}
   .ruler i{display:block;height:3px;width:20px;background:#7a5a1e;}
   .hole{aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 60%,#bfa27f,#d9c3a2 70%);border:none;font-size:44px;display:flex;align-items:center;justify-content:center;padding:0;}
   .hole.hit{background:radial-gradient(circle,#c9e7b5,#d9c3a2 70%);}
@@ -304,6 +303,7 @@ if(!Array.isArray(S.own)) S.own = [];
 S.eq = Object.assign({band:'', dobok:'', kihap:'', tag:''}, (S.eq && typeof S.eq === 'object') ? S.eq : {});
 if(!(S.bestRun >= 0)) S.bestRun = 0;
 /* 2026-11-20 사용자: 왕복달리기 기록만 초기화 (기기마다 한 번) — 서버 순위도 같은 날 지움 */
+if(S.rulerReset !== '2026-11-20b'){ S.bestRuler = 0; if(S.mb){ if(S.mb.v) delete S.mb.v.ruler; if(S.mb.q) delete S.mb.q.ruler; } S.rulerReset = '2026-11-20b'; try{ localStorage.setItem('haerang-dojang-v1', JSON.stringify(S)); }catch(e){} } /* 2026-11-20 사용자: 자를 잡아라 규칙 바뀜 → 기록 리셋 */
 if(S.runReset !== '2026-11-20'){ S.bestRun = 0; if(S.mb){ if(S.mb.v) delete S.mb.v.run; if(S.mb.q) delete S.mb.q.run; } S.runReset = '2026-11-20'; try{ localStorage.setItem('haerang-dojang-v1', JSON.stringify(S)); }catch(e){} }
 
 /* 띠: 제자 앱이 넘겨준 내 띠(주소 ?b=) — 제자 앱과 같은 색 · 순서 */
@@ -1693,25 +1693,26 @@ function gameBag(body){
 
 /* 📏 자를 잡아라 (2026-11-20 새로 엶): 자가 떨어지는 순간 눌러요 · 5번 평균 반응 속도 · 너무 일찍 누르면 그 번은 다시 */
 function gameRuler(body){
-  const R = 5;
-  const stat = el('div','stat','<span id="rlN">1 / ' + R + '</span><span id="rlL">평균 -</span>');
-  const box = el('div','rulerBox','<div class="rulerHand">✋</div><div class="ruler" id="rlR"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>');
-  const msg = el('p','gMsg','자가 떨어지면 바로 화면을 눌러 잡아요!');
+  const R = 3; /* 2026-11-20 사용자: 3번 중 가장 빠른 기록 · 자는 숨었다가 갑자기 나타나서 떨어짐 */
+  const stat = el('div','stat','<span id="rlN">1 / ' + R + '</span><span id="rlL">최고 -</span>');
+  const box = el('div','rulerBox','<div class="ruler" id="rlR"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>');
+  const msg = el('p','gMsg','자가 나타나서 떨어지면 바로 화면을 눌러 잡아요! 3번 중 가장 빠른 기록이 남아요');
   const btn = el('button','big','시작');
   body.append(stat, box, msg, btn);
   let round = 0, times = [], state = 'idle', t0 = 0, wait = null, raf = 0;
   const ruler = () => $('rlR');
   function setY(px){ ruler().style.transform = 'translateY(' + px + 'px)'; }
+  const show = on => { ruler().style.visibility = on ? 'visible' : 'hidden'; };
   function next(){
-    state = 'wait'; setY(0); msg.textContent = '집중… 자가 떨어지면 눌러요!';
+    state = 'wait'; show(false); setY(0); msg.textContent = '집중… 자가 나타나면 바로 눌러요!';
     $('rlN').textContent = (round + 1) + ' / ' + R;
-    wait = setTimeout(() => { state = 'fall'; t0 = performance.now(); fall(); }, 1200 + Math.random() * 2600);
+    wait = setTimeout(() => { state = 'fall'; show(true); t0 = performance.now(); fall(); }, 1200 + Math.random() * 2600);
   }
   function fall(){
     if(state !== 'fall') return;
     const dt = (performance.now() - t0) / 1000, y = 0.5 * 1600 * dt * dt; /* 화면에서 떨어지는 느낌 */
-    setY(Math.min(y, 260));
-    if(y >= 260){ state = 'miss'; sfx.fail(); msg.textContent = '놓쳤어요! 다시 해 봐요'; setTimeout(next, 900); return; }
+    setY(Math.min(y, 320));
+    if(y >= 320){ state = 'miss'; show(false); sfx.fail(); msg.textContent = '놓쳤어요! 다시 해 봐요'; setTimeout(next, 900); return; }
     raf = requestAnimationFrame(fall);
   }
   function tap(e){
@@ -1722,24 +1723,23 @@ function gameRuler(body){
     const ms = Math.round(performance.now() - t0);
     if(ms < 100){ state = 'early'; sfx.fail(); msg.textContent = '너무 빨라요! 자가 떨어지는 걸 보고 눌러요'; setTimeout(next, 900); return; } /* 미리 누른 것 */
     times.push(ms); round++; sfx.tick();
-    const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-    $('rlL').textContent = '평균 ' + (avg/1000).toFixed(3) + '초';
+    $('rlL').textContent = '최고 ' + (Math.min(...times)/1000).toFixed(3) + '초';
     msg.textContent = '잡았다! ' + (ms/1000).toFixed(3) + '초';
     if(round >= R) return setTimeout(finish, 700);
     setTimeout(next, 900);
   }
   function finish(){
     state = 'end';
-    const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-    let m = '평균 ' + (avg/1000).toFixed(3) + '초!';
-    if(!S.bestRuler || avg < S.bestRuler){ S.bestRuler = avg; m = '새 기록! ' + m; }
-    monthRec('ruler', avg);
-    const st = avg <= 250 ? 3 : avg <= 350 ? 2 : 1;
+    const best = Math.min(...times);
+    let m = '가장 빠른 기록 ' + (best/1000).toFixed(3) + '초!';
+    if(!S.bestRuler || best < S.bestRuler){ S.bestRuler = best; m = '새 기록! ' + m; }
+    monthRec('ruler', best);
+    const st = best <= 220 ? 3 : best <= 300 ? 2 : 1;
     addStars(st); msg.textContent = m + ' 별 ' + st + '개 ⭐';
     btn.style.display = ''; btn.textContent = '다시 하기';
   }
   box.addEventListener('pointerdown', tap);
-  btn.onclick = () => { audio(); round = 0; times = []; $('rlL').textContent = '평균 -'; btn.style.display = 'none'; next(); };
+  btn.onclick = () => { audio(); round = 0; times = []; $('rlL').textContent = '최고 -'; btn.style.display = 'none'; next(); };
   return () => { state = 'end'; clearTimeout(wait); cancelAnimationFrame(raf); };
 }
 
