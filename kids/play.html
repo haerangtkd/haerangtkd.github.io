@@ -1668,16 +1668,14 @@ function gameBag(body){
   const T0 = 20;
   const stat = el('div','stat','<span id="bgN">0번</span><span id="bgT">' + T0 + '초</span>');
   const bagV = el('div','bagV','<span id="bgE">🥊</span>');
-  const msg = el('p','gMsg','👊 왼손 · 오른손을 번갈아 눌러요! 20초 동안 몇 번 칠까요?');
-  const hands = el('div','feet'); const bL = el('button','big blue','👊 왼손'), bR = el('button','big','오른손 👊'); hands.append(bL, bR);
+  const msg = el('p','gMsg','👊 버튼을 빠르게 눌러요! 20초 동안 몇 번 칠까요?');
+  const hands = el('div','feet'); const bL = el('button','big','👊 치기'); bL.style.fontSize = '30px'; bL.style.padding = '26px'; hands.append(bL); /* 2026-11-20 사용자: 버튼 한 개만 */
   const again = el('button','big','다시 하기'); again.style.display = 'none';
   body.append(stat, bagV, msg, hands, again);
   let n = 0, last = 0, t0 = 0, timer = null, done = false;
-  function reset(){ n = 0; last = 0; t0 = 0; done = false; clearInterval(timer); timer = null; $('bgN').textContent = '0번'; $('bgT').textContent = T0 + '초'; msg.textContent = '👊 왼손 · 오른손을 번갈아 눌러요! 20초 동안 몇 번 칠까요?'; hands.style.display = ''; again.style.display = 'none'; }
+  function reset(){ n = 0; last = 0; t0 = 0; done = false; clearInterval(timer); timer = null; $('bgN').textContent = '0번'; $('bgT').textContent = T0 + '초'; msg.textContent = '👊 버튼을 빠르게 눌러요! 20초 동안 몇 번 칠까요?'; hands.style.display = ''; again.style.display = 'none'; }
   function hit(f, b){
     audio(); if(done) return;
-    if(f === last){ b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); sfx.fail(); msg.textContent = '번갈아 쳐요!'; return; }
-    last = f;
     if(!t0){ t0 = performance.now(); timer = setInterval(() => { const left = Math.max(0, T0 - (performance.now() - t0)/1000); $('bgT').textContent = Math.ceil(left) + '초'; if(left <= 0) finish(); }, 100); msg.textContent = '빨리빨리!'; }
     n++; $('bgN').textContent = n + '번'; sfx.hit();
     const e = $('bgE'); e.classList.remove('hit'); void e.offsetWidth; e.classList.add('hit');
@@ -1689,7 +1687,7 @@ function gameBag(body){
     let m = n + '번 쳤어요!';
     if(!S.bestBag || n > S.bestBag){ S.bestBag = n; m = '새 기록! ' + m; }
     if(n > 0) monthRec('bag', n);
-    const st = n >= 100 ? 3 : n >= 70 ? 2 : n >= 30 ? 1 : 0;
+    const st = n >= 140 ? 3 : n >= 100 ? 2 : n >= 50 ? 1 : 0; /* 버튼 하나라 기준을 올림 */
     if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
     msg.textContent = m; hands.style.display = 'none'; again.style.display = '';
   }
@@ -1697,7 +1695,6 @@ function gameBag(body){
   const onHide = () => { if(document.hidden && t0 && !done){ done = true; clearInterval(timer); msg.textContent = '중간에 나갔어요. 기록은 남지 않아요. 다시 해 봐요!'; hands.style.display = 'none'; again.style.display = ''; } };
   document.addEventListener('visibilitychange', onHide);
   bL.addEventListener('pointerdown', e => { e.preventDefault(); hit(1, bL); });
-  bR.addEventListener('pointerdown', e => { e.preventDefault(); hit(2, bR); });
   again.onclick = () => { audio(); reset(); };
   reset();
   return () => { done = true; clearInterval(timer); document.removeEventListener('visibilitychange', onHide); };
