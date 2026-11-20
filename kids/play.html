@@ -922,7 +922,12 @@ function walkTo(x, z, cb){
   if(P.act) return;
   const goal = inBound({x, z});
   const from = {x:P.root.position.x, z:P.root.position.z};
-  const path = route(from, goal, 0);
+  let path;
+  if((goal.x > ANX.x0) !== (from.x > ANX.x0)){ /* 사진관 방을 드나들 땐 문 가운데로 (벽에 끼지 않게) */
+    const mz = Math.max(ANX.z0 + .8, Math.min(ANX.z1 - .8, (from.x > ANX.x0 ? from.z : goal.z))), out = {x: ANX.x0 - .8, z: mz}, inn = {x: ANX.x0 + .6, z: mz};
+    const a1 = from.x > ANX.x0 ? inn : out, a2 = from.x > ANX.x0 ? out : inn;
+    path = route(from, a1, 0).concat([a2], route(a2, goal, 0));
+  } else path = route(from, goal, 0);
   let len = 0, a = from; path.forEach(p => { len += Math.hypot(p.x - a.x, p.z - a.z); a = p; });
   P.path = path; P.target = P.path.shift();
   P.onArrive = cb || null; P.stuck = 0; bagBusy = false; camFree = false;
@@ -1120,14 +1125,12 @@ const PH_SPOT = {x:9.7, z:2.5};
   const mk = textTex(256, 256, (g,W2,H2) => { g.fillStyle = 'rgba(164,15,22,.18)'; g.beginPath(); g.arc(128,128,120,0,7); g.fill(); g.strokeStyle = 'rgba(164,15,22,.55)'; g.lineWidth = 8; g.setLineDash([18,12]); g.beginPath(); g.arc(128,128,108,0,7); g.stroke(); });
   const rug = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), new THREE.MeshBasicMaterial({map:mk.tex, transparent:true})); rug.rotation.x = -Math.PI/2; rug.position.set(PH_SPOT.x, .09, PH_SPOT.z); scene.add(rug);
   /* 조명 두 개 · 사진기 */
-  [[ANX.x0 + .7, ANX.z0 + .6], [ANX.x1 - .6, ANX.z0 + .6]].forEach(([x, z]) => { cyl(.04, .04, 2.2, '#5a4632', x, 1.1, z); const l = cyl(.28, .16, .4, '#fff6e0', x, 2.3, z); l.rotation.x = -.5; OBST.push({x, z, r:.25}); });
+  [[ANX.x0 + 1.7, ANX.z0 + .45], [ANX.x1 - .6, ANX.z0 + .45]].forEach(([x, z]) => { cyl(.04, .04, 2.2, '#5a4632', x, 1.1, z); const l = cyl(.28, .16, .4, '#fff6e0', x, 2.3, z); l.rotation.x = -.5; OBST.push({x, z, r:.25}); });
   const cam = new THREE.Group(); cam.position.set(ANX.x1 - .9, 0, ANX.z1 - .8); cam.rotation.y = -2.5; scene.add(cam);
   [-1, 0, 1].forEach(k => { const lg = cyl(.03, .03, 1.4, '#3a332c', Math.sin(k*2.1)*.22, .68, Math.cos(k*2.1)*.22, cam); lg.rotation.z = Math.sin(k*2.1)*.18; lg.rotation.x = -Math.cos(k*2.1)*.18; });
   box(.45, .32, .3, '#2b2420', 0, 1.5, 0, cam); cyl(.1, .12, .2, '#2b2420', 0, 1.5, .22, cam).rotation.x = Math.PI/2;
   OBST.push({x: ANX.x1 - .9, z: ANX.z1 - .8, r:.35});
-  /* 문 위 간판 */
-  const sg = textTex(512, 120, (g,W2,H2) => { g.fillStyle = '#A40F16'; roundRect(g,0,0,W2,H2,24); g.fill(); g.fillStyle = '#fff'; g.font = '62px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('📸 해랑 사진관', W2/2, H2/2 + 4); });
-  const sgM = new THREE.Mesh(new THREE.PlaneGeometry(2.6, .61), new THREE.MeshBasicMaterial({map:sg.tex, transparent:true})); sgM.position.set(W/2 - .02, 3.1, cz); sgM.rotation.y = -Math.PI/2; scene.add(sgM); }
+}
 /* 사진 전시 벽 = 모두의 사진 (2026-11-20 사용자: 다른 친구도 보게, 명예의 전당처럼) */
 let PHOTOS = [], PHME = '';
 const gal = textTex(1024, 600, () => {});
@@ -1187,12 +1190,6 @@ function goStation(id){
     const legs = [];
     if(pz < 4.7) legs.push([ax, 4.7]); else if(Math.abs(px - ax) > .3) legs.push([ax, Math.min(pz, 12)]);
     legs.push([ax, s.spot.z], [s.spot.x, s.spot.z]);
-    const go = i => i >= legs.length ? arrive() : walkTo(legs[i][0], legs[i][1], () => go(i + 1));
-    return go(0);
-  }
-  /* 사진관 방: 문(가운데)을 지나서 */
-  if(s.spot.x > ANX.x0 !== P.root.position.x > ANX.x0){
-    const mz = (ANX.z0 + ANX.z1)/2, legs = [[P.root.position.x > ANX.x0 ? ANX.x0 + .6 : ANX.x0 - .7, mz], [P.root.position.x > ANX.x0 ? ANX.x0 - .7 : ANX.x0 + .6, mz], [s.spot.x, s.spot.z]];
     const go = i => i >= legs.length ? arrive() : walkTo(legs[i][0], legs[i][1], () => go(i + 1));
     return go(0);
   }
@@ -2251,7 +2248,7 @@ canvas.addEventListener('pointermove', e => {
   if(!down.pan && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 12){ down.pan = true; camFree = true; camFZ = camT.z; camFX = camT.x; down.lx = e.clientX; hideHint(); }
   if(down.pan){
     camFZ = Math.max(CAM_Z0, Math.min(CAM_Z1, camFZ - (e.clientY - down.ly) * .045 * camK));
-    camFX = Math.max(-CAM_X, Math.min(CAM_X, camFX - (e.clientX - (down.lx == null ? e.clientX : down.lx)) * .035 * camK));
+    camFX = Math.max(-CAM_X, Math.min(camFZ > ANX.z0 - 4 && camFZ < ANX.z1 + 4 ? ANX.x1 - 2.4 : CAM_X, camFX - (e.clientX - (down.lx == null ? e.clientX : down.lx)) * .035 * camK)); /* 사진관 방 쪽은 오른쪽으로 더 */
   }
   down.ly = e.clientY; down.lx = e.clientX;
 });
