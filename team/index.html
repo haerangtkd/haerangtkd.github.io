@@ -1392,7 +1392,8 @@ function renderHome() {
   const sch = [0, 1, 2, 3, 4, 5, 6].flatMap(i => { const d = addDays(t, i); return schedFor(d).map(x => ({ ...x, date: d })); }).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
   const pushOk = 'Notification' in window && Notification.permission === 'granted' && localStorage.getItem('haerang-team-push') === '1';
   const pmN = pmList().filter(x => !x.ack).length, cw = cleanWho(t), clT = cleanTasks(t).filter(x => !cleanDone(t, x)), wk = weekKey(t), clW = wd(t) === '금' ? ((S.clean && S.clean.daily) || []).filter(x => !cleanDone(wk, x)) : [];
-  const clLate = kNow().getUTCHours() >= 18 && (clT.length || clW.length), left = todayT.length + clT.length + clW.length;
+  const clM = S.clean ? cleanMissed() : [], clMN = clM.reduce((a, m) => a + m.left.length, 0); // 지난 청소 안 한 것 (2026-11-20 사용자)
+  const clLate = clMN || (kNow().getUTCHours() >= 18 && (clT.length || clW.length)), left = todayT.length + clT.length + clW.length + clMN;
   loadKids(); loadDash(); loadDs(); const ks = S.kids ? kidStats() : null;
   const tdRow = x => '<div class="todo' + (isLate(x) ? ' blink' : '') + '" data-id="' + x.id + '"><button class="ck"></button><div class="t"><b><span class="kt t1">' + esc(x.cat === '할 일' || !x.cat ? '할일' : x.cat) + '</span>' + esc(x.title) + '</b>' +
     '<small>' + (isLate(x) ? '<span class="tag r">' + md(x.due) + ' 지남</span>' : x.due && x.due > t ? '<span class="tag y">' + md(x.due) + '까지</span>' : '') + chkChip(x) + (whosOf(x).length ? '<span class="avs2">' + whosOf(x).map(n => av(midOf(n), 'xs')).join('') + '</span>' : '') + '</small>' +
@@ -1415,7 +1416,7 @@ function renderHome() {
     '<div class="attl"><button data-kh="1"><b>오늘 출석</b><span>' + (ks ? '출석 ' + ks.here.length + ' · 결석 ' + ks.absent.length + ' · <em' + (ks.notYet.length ? ' class="r"' : '') + '>미확인 ' + ks.notYet.length + '</em>' : '불러오는 중…') + '</span></button><button class="lbtn" data-app="appAtt">출석부 ›</button></div>' +
     pickupCard() +
     '<div class="sec' + (clLate ? ' blink' : '') + '" id="tdSec"><div class="sh"><h2>오늘 할 일 · 청소</h2>' + (left ? '<em class="lft">' + left + '개 남음</em>' : '') + '<button class="more" data-go="task">전체 보기 ›</button></div>' +
-      (left ? todayT.map(tdRow).join('') + clT.map(x => clRow(t, x)).join('') + clW.map(x => clRow(wk, x)).join('') : '<p class="empty">오늘 할 일·청소를 다 했어요 👍</p>') +
+      (left ? clM.map(m => m.left.map(x => '<button class="todo cl2 blink" data-cl="' + esc(x) + '" data-cd="' + m.day + '"' + (m.who === S.me.id ? '' : ' disabled') + '><span class="ck"></span><span class="t"><b><span class="kt t2">청소</span>' + esc(x) + ' <small style="display:inline;color:var(--no)">' + missLbl(m) + ' 안 함</small></b></span><span class="who">' + (m.who ? esc(nameOf(m.who)) : '') + '</span></button>').join('')).join('') + todayT.map(tdRow).join('') + clT.map(x => clRow(t, x)).join('') + clW.map(x => clRow(wk, x)).join('') : '<p class="empty">오늘 할 일·청소를 다 했어요 👍</p>') +
       (clT.length && cw !== S.me.id ? '<p class="help" style="margin:6px 0 0">청소는 이번 주 담당자만 체크해요</p>' : '') +
       '<button class="big" id="todoAdd" style="margin-top:10px">+ 할 일 추가</button></div>' +
     '<div class="sec" id="evSec"><div class="sh"><h2>행사 신청 · 등록</h2><button class="more" data-go="table">행사표 ›</button></div>' +
@@ -2819,17 +2820,22 @@ function cleanTasks(day) { const c = S.clean, w = wd(day); if (!c || !CW.include
 const weekKey = day => 'w:' + addDays(day, -((dObj(day).getUTCDay() + 6) % 7)); // '이번 주 안에' 청소 체크 (쓰레기 비우기 등)
 const cleanDone = (day, t) => (S.cleanchk || []).find(x => x.day === day && x.task === t);
 function cleanMissed() { // 지난 평일 중 다 안 한 날 (2주 안)
-  const out = []; for (let i = 1; i <= 14; i++) { const d = addDays(today(), -i); if (S.clean && d < (S.clean.since || S.clean.start)) break; const l = cleanTasks(d).filter(t => !cleanDone(d, t)); if (l.length) out.push({ day: d, left: l, who: cleanWho(d) }); } return out;
+  const out = [], from = S.clean ? (S.clean.since || S.clean.start || '') : ''; for (let i = 1; i <= 14; i++) { const d = addDays(today(), -i); if (S.clean && d < from) break; const l = cleanTasks(d).filter(t => !cleanDone(d, t)); if (l.length) out.push({ day: d, left: l, who: cleanWho(d) }); }
+  // 지난주 '이번 주 안에' 청소도 (2026-11-20 사용자: 지난 청소를 안 했는데 화면에 안 나옴)
+  const wkT = (S.clean && S.clean.daily) || [], mon0 = weekKey(today()).slice(2);
+  for (let k = 1; k <= 2 && wkT.length; k++) { const mon = addDays(mon0, -7 * k); if (S.clean && addDays(mon, 4) < from) break; const l = wkT.filter(t => !cleanDone('w:' + mon, t)); if (l.length) out.push({ day: 'w:' + mon, left: l, who: cleanWho(mon) }); }
+  return out;
 }
+const missLbl = m => /^w:/.test(m.day) ? md(m.day.slice(2)) + ' 주 안에' : md(m.day) + '(' + wd(m.day) + ')';
 function cleanCard() {
-  const t = today(), tasks = cleanTasks(t), who = cleanWho(t), me = who === S.me.id, miss = cleanMissed().filter(x => x.who === S.me.id), wk = weekKey(t), wkT = (S.clean && S.clean.daily) || [], wkLeft = wkT.filter(x => !cleanDone(wk, x));
+  const t = today(), tasks = cleanTasks(t), who = cleanWho(t), me = who === S.me.id, miss = cleanMissed(), /* 2026-11-20: 담당자가 아니어도 지난 청소가 보이게 (체크는 그날 담당자만) */ wk = weekKey(t), wkT = (S.clean && S.clean.daily) || [], wkLeft = wkT.filter(x => !cleanDone(wk, x));
   if (!S.clean || (!tasks.length && !miss.length && !wkT.length)) return '';
   const left = tasks.filter(x => !cleanDone(t, x)).length, late = kNow().getUTCHours() >= 18 && (left || (wd(t) === '금' && wkLeft.length));
   const row = (d, x) => { const dn = cleanDone(d, x); return '<button class="cln' + (dn ? ' on' : '') + '" data-cl="' + esc(x) + '" data-cd="' + d + '"' + (who === S.me.id || (d !== t && cleanWho(d.replace(/^w:/, '')) === S.me.id) ? '' : ' disabled') + '><span class="ck">' + (dn ? '✓' : '') + '</span>' + esc(x) + (dn && dn.at ? '<small>' + hm(dn.at) + '</small>' : '') + '</button>'; };
   return '<div class="sec' + (late || miss.length ? ' blink' : '') + '" id="clSec"><div class="sh"><h2>🧹 오늘 청소</h2><small>' + (who ? (me ? '이번 주 내 담당' : esc(nameOf(who)) + ' 담당') : '담당자 없음') + '</small><button class="more" id="clDays" style="margin-left:auto">다른 날 ›</button></div>' +
     (tasks.length ? '<p class="pksum">' + (left ? left + '개 남음 · 21시까지' : '다 했어요 👍') + '</p><div class="clist">' + tasks.map(x => row(t, x)).join('') + '</div>' : '<p class="empty">오늘은 요일 청소가 없어요</p>') +
     (wkT.length && CW.includes(wd(t)) ? '<p class="pksum" style="margin-top:12px">이번 주 안에 · ' + (wkLeft.length ? wkLeft.length + '개 남음 (금요일까지)' : '다 했어요 👍') + '</p><div class="clist">' + wkT.map(x => row(wk, x)).join('') + '</div>' : '') +
-    miss.map(m => '<p class="pksum" style="color:var(--no);margin-top:10px"><b>' + md(m.day) + ' 청소 ' + m.left.length + '개 안 끝남</b></p><div class="clist">' + m.left.map(x => row(m.day, x)).join('') + '</div>').join('') +
+    miss.map(m => '<p class="pksum" style="color:var(--no);margin-top:10px"><b>' + missLbl(m) + ' 청소 ' + m.left.length + '개 안 끝남</b> · ' + (m.who ? esc(nameOf(m.who)) + ' 담당' : '담당자 없음') + '</p><div class="clist">' + m.left.map(x => row(m.day, x)).join('') + '</div>').join('') +
     (!me && tasks.length ? '<p class="help">담당자만 체크할 수 있어요. 보기만 돼요.</p>' : '') + '</div>';
 }
 // 다른 날 청소 보기 (2026-11-13): 지난 2주는 한 것·안 한 것, 앞날은 담당·할 일. 그 날 담당자는 여기서도 체크
