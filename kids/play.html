@@ -785,7 +785,7 @@ function setStyle(id){
   if(id === 'sBuzz'){ hairM.scale.set(.975,.86,.975); hairM.position.set(0,.13,-.1); }
   else if(id === 'sBangs'){ hsBall(.3, 0,.27,.24, 1.4,.42,.62); [-1,1].forEach(s => hsBall(.14, s*.36,.08,.12, .55,1.4,.8)); }
   else if(id === 'sBun'){ hsBall(.17, 0,.56,-.12); hsBall(.07, 0,.42,-.06, 2.2,.6,2.2); }
-  else if(id === 'sPony'){ hsBall(.12, 0,.18,-.54); hsBall(.11, 0,-.08,-.62, 1,2.3,1); }
+  else if(id === 'sPony'){ hsBall(.13, 0,.4,-.44); const t = hsBall(.15, 0,.42,-.74, 1,2.6,1); t.rotation.x = 1.05; hsBall(.12, 0,.12,-.86, 1,1.6,1).rotation.x = .3; } /* 높이 묶어 뒤로 뻗게 — 앞에서도 보임 */
   else if(id === 'sPig'){ [-1,1].forEach(s => { hsBall(.13, s*.44,.08,-.16); hsBall(.1, s*.55,-.12,-.16, .9,2,.9); }); }
   else if(id === 'sLong'){ hsBall(.4, 0,-.2,-.24, 1.12,1.2,.62); [-1,1].forEach(s => hsBall(.13, s*.4,-.16,-.02, .6,1.8,.7)); }
   else if(id === 'sSpike'){ [V(0,1,-.2), V(.5,.8,-.1), V(-.5,.8,-.1), V(.25,.9,.35), V(-.25,.9,.35), V(.35,.6,-.7), V(-.35,.6,-.7), V(0,.5,-1), V(0,.95,.25)].forEach(d => hsCone(d, .1, .3)); }
