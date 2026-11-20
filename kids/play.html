@@ -310,7 +310,7 @@ try { S = Object.assign({}, DEF, JSON.parse(localStorage.getItem(KEY) || '{}'));
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
 /* 2026-11-19 탈의실 상점: 산 것(own)은 계속 내 것, 입은 것(eq) */
 if(!Array.isArray(S.own)) S.own = [];
-S.eq = Object.assign({band:'', dobok:'', kihap:'', tag:''}, (S.eq && typeof S.eq === 'object') ? S.eq : {});
+S.eq = Object.assign({band:'', dobok:'', kihap:'', tag:'', hstyle:''}, (S.eq && typeof S.eq === 'object') ? S.eq : {});
 if(!(S.bestRun >= 0)) S.bestRun = 0;
 /* 2026-11-20 사용자: 왕복달리기 기록만 초기화 (기기마다 한 번) — 서버 순위도 같은 날 지움 */
 if(S.rulerReset !== '2026-11-20c'){ S.bestRuler = 0; if(S.mb){ if(S.mb.v) delete S.mb.v.ruler; if(S.mb.q) delete S.mb.q.ruler; } S.rulerReset = '2026-11-20c'; try{ localStorage.setItem('haerang-dojang-v1', JSON.stringify(S)); }catch(e){} } /* 2026-11-20 사용자: 자를 잡아라 규칙 바뀜 → 기록 리셋 */
@@ -342,8 +342,20 @@ const HAIRS = [ /* 예전 저장값(S.hair 번호) 옮기기용 */
    눌러서 먼저 입어 보기 → 별이 있으면 사기. 산 것은 계속 내 것(다시 고를 때 별 안 듦).
    품도복은 살 수 없고, 그 품이 되면 입을 수 있음(입어 보기는 누구나). 새 놀이(왕복달리기·품새)도 별로 엶.
    선범단·수련으로 얻는 꾸미기는 여기서 팔지 않음(제자 앱 프로필). */
-const SHOP_CATS = [['hair','머리 색'], ['dobok','도복'], ['band','머리띠'], ['kihap','기합 소리'], ['tag','이름표 테두리']];
+const SHOP_CATS = [['hstyle','머리 모양'], ['hair','머리 색'], ['dobok','도복'], ['band','머리띠'], ['kihap','기합 소리'], ['tag','이름표 테두리']];
 const SHOP = [
+  /* 머리 모양 (2026-11-20 사용자: 머리 스타일도 별로 사게) */
+  {cat:'hstyle', id:'', n:'동글 머리', p:0, ic:'🙂'},
+  {cat:'hstyle', id:'sBuzz', n:'짧은 머리', p:0, ic:'👦'},
+  {cat:'hstyle', id:'sBangs', n:'앞머리', p:15, ic:'💇'},
+  {cat:'hstyle', id:'sBun', n:'똥머리', p:20, ic:'🍡'},
+  {cat:'hstyle', id:'sPony', n:'포니테일', p:20, ic:'🎀'},
+  {cat:'hstyle', id:'sPig', n:'양갈래', p:25, ic:'👧'},
+  {cat:'hstyle', id:'sLong', n:'긴 머리', p:25, ic:'👩'},
+  {cat:'hstyle', id:'sSpike', n:'뾰족 머리', p:30, ic:'⚡'},
+  {cat:'hstyle', id:'sCurly', n:'뽀글 머리', p:30, ic:'🌀'},
+  {cat:'hstyle', id:'sMohawk', n:'닭벼슬 머리', p:40, ic:'🐓'},
+  {cat:'hstyle', id:'sAfro', n:'아프로 머리', p:50, ic:'☁️'},
   {cat:'hair', id:'', n:'밤색', p:0, c:'#4a3426'},
   {cat:'hair', id:'hBlack', n:'검정', p:0, c:'#262222'},
   {cat:'hair', id:'hBrown', n:'갈색', p:0, c:'#7a5134'},
@@ -759,6 +771,28 @@ const armL = arm(-1), armR = arm(1);
 const head = new THREE.Group(); head.position.y = 1.2; upper.add(head);
 const headM = new THREE.Mesh(new THREE.SphereGeometry(.45,28,20), skin); headM.castShadow = true; head.add(headM);
 const hairM = new THREE.Mesh(new THREE.SphereGeometry(.47,28,20), hairMat); hairM.position.set(0,.06,-.08); hairM.castShadow = true; head.add(hairM);
+/* 머리 모양 (탈의실에서 삼, 색은 머리 색 그대로) */
+const styleG = new THREE.Group(); head.add(styleG); let curStyle = null;
+const HC = new THREE.Vector3(0,.06,-.08), UPV = new THREE.Vector3(0,1,0);
+function hs(geo, x, y, z, sx, sy, sz){ const m = new THREE.Mesh(geo, hairMat); m.position.set(x,y,z); if(sx) m.scale.set(sx,sy,sz); m.castShadow = true; styleG.add(m); return m; }
+function hsBall(r, x, y, z, sx, sy, sz){ return hs(new THREE.SphereGeometry(r,16,12), x, y, z, sx, sy, sz); }
+function hsCone(dir, r, h, out){ const d = dir.clone().normalize(); const p = HC.clone().add(d.clone().multiplyScalar(out || .44)); const m = hs(new THREE.ConeGeometry(r, h, 8), p.x, p.y, p.z); m.quaternion.setFromUnitVectors(UPV, d); m.position.add(d.clone().multiplyScalar(h/2 - .05)); return m; }
+function setStyle(id){
+  id = id || ''; if(id === curStyle) return; curStyle = id;
+  while(styleG.children.length){ const c = styleG.children.pop(); c.geometry.dispose(); }
+  hairM.visible = true; hairM.scale.set(1,1,1); hairM.position.copy(HC);
+  const V = (x,y,z) => new THREE.Vector3(x,y,z);
+  if(id === 'sBuzz'){ hairM.scale.set(.975,.86,.975); hairM.position.set(0,.13,-.1); }
+  else if(id === 'sBangs'){ hsBall(.3, 0,.27,.24, 1.4,.42,.62); [-1,1].forEach(s => hsBall(.14, s*.36,.08,.12, .55,1.4,.8)); }
+  else if(id === 'sBun'){ hsBall(.17, 0,.56,-.12); hsBall(.07, 0,.42,-.06, 2.2,.6,2.2); }
+  else if(id === 'sPony'){ hsBall(.12, 0,.18,-.54); hsBall(.11, 0,-.08,-.62, 1,2.3,1); }
+  else if(id === 'sPig'){ [-1,1].forEach(s => { hsBall(.13, s*.44,.08,-.16); hsBall(.1, s*.55,-.12,-.16, .9,2,.9); }); }
+  else if(id === 'sLong'){ hsBall(.4, 0,-.2,-.24, 1.12,1.2,.62); [-1,1].forEach(s => hsBall(.13, s*.4,-.16,-.02, .6,1.8,.7)); }
+  else if(id === 'sSpike'){ [V(0,1,-.2), V(.5,.8,-.1), V(-.5,.8,-.1), V(.25,.9,.35), V(-.25,.9,.35), V(.35,.6,-.7), V(-.35,.6,-.7), V(0,.5,-1), V(0,.95,.25)].forEach(d => hsCone(d, .1, .3)); }
+  else if(id === 'sMohawk'){ hairM.scale.set(.97,.86,.97); hairM.position.set(0,.12,-.1); [.55,.2,-.15,-.5,-.85].forEach((a, i) => hsCone(V(0, Math.cos(a), -Math.sin(a)), .1, i === 1 || i === 2 ? .42 : .32, .4)); }
+  else if(id === 'sCurly'){ for(let a = 0; a < 12; a++) for(let b = 0; b < 4; b++){ const ph = .25 + b*.42, th = a/12*Math.PI*2, d = V(Math.sin(ph)*Math.cos(th), Math.cos(ph), Math.sin(ph)*Math.sin(th)); if(d.z > .3 && d.y < .55) continue; const p = HC.clone().add(d.multiplyScalar(.46)); hsBall(.1, p.x, p.y, p.z); } }
+  else if(id === 'sAfro'){ hairM.scale.set(1.36,1.3,1.36); hairM.position.set(0,.22,-.22); }
+}
 /* 머리띠 (탈의실에서 삼) */
 const bandMat = new THREE.MeshLambertMaterial({color:'#d92d20'});
 const bandG = new THREE.Group(); head.add(bandG); bandG.visible = false;
@@ -794,7 +828,7 @@ function drawTag(){
 }
 function applyLook(){
   const e = EQ();
-  beltMat.color.set(LOOK.c); knotMat.color.set(LOOK.k); hairMat.color.set((shopItem('hair', e.hair) || shopItem('hair', '')).c);
+  beltMat.color.set(LOOK.c); knotMat.color.set(LOOK.k); hairMat.color.set((shopItem('hair', e.hair) || shopItem('hair', '')).c); setStyle(e.hstyle);
   const bd = shopItem('band', e.band); bandG.visible = !!(bd && bd.c); if(bandG.visible) bandMat.color.set(bd.c);
   const dk = dobokOf(e); dobok.color.set(dk.top); trim.color.set(dk.trim); pantsMat.color.set(dk.pants);
   drawTag();
@@ -1249,7 +1283,7 @@ function fillChar(){
       const mine = ownsItem(it), on = curId(cat) === it.id, tr = TRY && TRY.cat === cat && TRY.id === it.id;
       const b = document.createElement('button');
       b.className = 'chip' + (on ? ' on' : '') + (tr ? ' try' : '') + (!mine && it.poom ? ' lockp' : '') + (!mine && !it.poom && S.stars < it.p ? ' poor' : '');
-      const dot = it.c ? '<span class="dot" style="background:' + (it.c === 'rainbow' ? 'linear-gradient(90deg,#e74c3c,#f1c40f,#2ecc71,#3498db,#9b59b6)' : it.c) + '"></span>' : '';
+      const dot = it.ic ? '<span style="margin-right:4px">' + it.ic + '</span>' : it.c ? '<span class="dot" style="background:' + (it.c === 'rainbow' ? 'linear-gradient(90deg,#e74c3c,#f1c40f,#2ecc71,#3498db,#9b59b6)' : it.c) + '"></span>' : '';
       const tail = on ? '<small>입는 중</small>' : mine ? ((it.p || it.poom) ? '<small>내 것</small>' : '') : it.poom ? '<small>🔒 ' + it.poom + '품</small>' : '<small>⭐' + it.p + '</small>';
       b.innerHTML = dot + it.n + ' ' + tail;
       b.onclick = () => tryOn(it);
@@ -1259,7 +1293,7 @@ function fillChar(){
   drawTryBar();
 }
 /* 입어 보기 → 입기 / 사기 */
-let TRY = null, shopTab = 'hair';
+let TRY = null, shopTab = 'hstyle';
 function tryOn(it){
   audio(); TRY = {cat: it.cat, id: it.id};
   PREV = {}; PREV[it.cat] = it.cat === 'dobok' ? it.id : it.id;
