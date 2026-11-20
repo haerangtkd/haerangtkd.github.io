@@ -171,14 +171,14 @@ async function route(path, req, env) {
     // 🎮 우리 도장 놀이터 이번 달 순위 (2026-11-17 사용자) — 판마다 안 부름: 놀이터를 열 때·나갈 때·놀이 목록을 볼 때만 (기록 묶음 저장 + 순위)
     if (path === '/k/game') {
       const me = ks.name, ym = kstDay(new Date()).slice(0, 7), qym = /^\d{4}-\d{2}$/.test(String(b.ym || '')) && String(b.ym) <= ym ? String(b.ym) : ym; // 지난달 명예의 전당 보기 (2026-11-19 사용자)
-      if (!(await one(env, "SELECT v FROM kv WHERE k = 'rulerReset1120b'"))) { // 2026-11-20 사용자: 자를 잡아라(3번 중 최고) 규칙 바뀜 → 기록 한 번 지움
-        await run(env, "DELETE FROM kgame WHERE g = 'ruler'"); await run(env, "INSERT OR REPLACE INTO kv (k, v) VALUES ('rulerReset1120b', ?)", String(Date.now()));
+      if (!(await one(env, "SELECT v FROM kv WHERE k = 'rulerReset1120c'"))) { // 2026-11-20 사용자: 자를 잡아라(3번 중 최고) 규칙 바뀜 → 기록 한 번 지움
+        await run(env, "DELETE FROM kgame WHERE g = 'ruler'"); await run(env, "INSERT OR REPLACE INTO kv (k, v) VALUES ('rulerReset1120c', ?)", String(Date.now()));
       }
       if (!(await one(env, "SELECT v FROM kv WHERE k = 'runReset1120'"))) { // 2026-11-20 사용자: 왕복달리기 기록만 한 번 초기화 (중간에 나가도 기록이 남던 오류 고친 뒤)
         await run(env, "DELETE FROM kgame WHERE g = 'run'"); await run(env, "INSERT OR REPLACE INTO kv (k, v) VALUES ('runReset1120', ?)", String(Date.now()));
       }
       if (!viaP && b.recs && typeof b.recs === 'object') for (const [g, v0] of Object.entries(b.recs).slice(0, 20)) {
-        const d = GAME_DIR[g], v = Math.round(Number(v0)); if (!d || !Number.isFinite(v) || v < 0 || v > 100000) continue;
+        const d = GAME_DIR[g], v = Math.round(Number(v0)); if (!d || !Number.isFinite(v) || v < 0 || v > 100000 || (g === 'ruler' && v < 100)) continue; // 자를 잡아라 0.1초 안 = 미리 누른 것
         const better = d > 0 ? 'excluded.v > kgame.v' : 'excluded.v < kgame.v';
         await run(env, 'INSERT INTO kgame (ym, g, name, v, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(ym, g, name) DO UPDATE SET v = CASE WHEN ' + better + ' THEN excluded.v ELSE kgame.v END, at = CASE WHEN ' + better + ' THEN excluded.at ELSE kgame.at END', ym, g, me, v, Date.now());
       }
