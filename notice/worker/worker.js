@@ -182,6 +182,10 @@ async function route(path, req, env) {
         const better = d > 0 ? 'excluded.v > kgame.v' : 'excluded.v < kgame.v';
         await run(env, 'INSERT INTO kgame (ym, g, name, v, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(ym, g, name) DO UPDATE SET v = CASE WHEN ' + better + ' THEN excluded.v ELSE kgame.v END, at = CASE WHEN ' + better + ' THEN excluded.at ELSE kgame.at END', ym, g, me, v, Date.now());
       }
+      if (!viaP && typeof b.tag === 'string' && /^[A-Za-z0-9]{0,16}$/.test(b.tag)) { // 놀이터 이름표 테두리 → 명예의 전당에도 (2026-11-20 사용자)
+        const ot = await one(env, 'SELECT v FROM kv WHERE k = ?', 'ktag:' + me);
+        if ((ot ? ot.v : '') !== b.tag) await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'ktag:' + me, b.tag);
+      }
       if (!b.top) return json({ ok: true });
       const rows = await all(env, 'SELECT g, name, v, at FROM kgame WHERE ym = ?', qym), top = {};
       for (const g of Object.keys(GAME_DIR)) {
@@ -192,6 +196,8 @@ async function route(path, req, env) {
     const pnm = [...new Set(Object.values(top).flatMap(t => t.list.map(x => x.n)))].slice(0, 90);
     const prw = pnm.length ? await all(env, 'SELECT k, v FROM kv WHERE k IN (' + pnm.map(() => '?').join(',') + ')', ...pnm.map(n => 'kprof:' + n)) : [];
     const prof = Object.fromEntries(prw.map(r => { const p = J(r.v, {}) || {}; return [String(r.k).slice(6), { av: p.av || '', bg: p.bg || '' }]; }));
+    const tgw = pnm.length ? await all(env, 'SELECT k, v FROM kv WHERE k IN (' + pnm.map(() => '?').join(',') + ')', ...pnm.map(n => 'ktag:' + n)) : [];
+    for (const r of tgw) { const n = String(r.k).slice(5); if (r.v) (prof[n] = prof[n] || { av: '', bg: '' }).tg = String(r.v); }
     const months = b.months ? (await all(env, 'SELECT DISTINCT ym FROM kgame ORDER BY ym DESC LIMIT 24')).map(r => r.ym) : undefined;
     return json({ ok: true, ym: qym, me, top, prof, months });
     }
@@ -1206,7 +1212,7 @@ async function renameKid(env, from, to) {
     q(env, 'UPDATE kids SET name = ? WHERE name = ?', to, from),
     q(env, 'UPDATE att SET name = ? WHERE name = ?', to, from),
     q(env, 'UPDATE fees SET name = ? WHERE name = ?', to, from),
-    ...['kday:', 'kprof:', 'kqr:', 'ksbph:'].map(p => q(env, 'UPDATE OR IGNORE kv SET k = ? WHERE k = ?', p + to, p + from)), // 제자 앱 기록도 같이 (2026-11-15)
+    ...['kday:', 'kprof:', 'kqr:', 'ksbph:', 'ktag:'].map(p => q(env, 'UPDATE OR IGNORE kv SET k = ? WHERE k = ?', p + to, p + from)), // 제자 앱 기록도 같이 (2026-11-15)
   ]);
   const swap = a => [...new Set(a.map(k => (k === from ? to : k)))];
   for (const p of await all(env, 'SELECT id, kids FROM parents')) { const ks = J(p.kids, []); if (ks.includes(from)) await run(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify(swap(ks)), p.id); }
@@ -1252,7 +1258,7 @@ async function kidRemove(env, name, dry) {
   for (const p of ps) st.push(only(p) ? q(env, 'DELETE FROM parents WHERE id = ?', p.id) : q(env, 'UPDATE parents SET kids = ? WHERE id = ?', JSON.stringify(J(p.kids, []).filter(k => k !== name)), p.id));
   for (const i of ivs) st.push(only(i) ? q(env, 'DELETE FROM invites WHERE code = ?', i.code) : q(env, 'UPDATE invites SET kids = ? WHERE code = ?', JSON.stringify(J(i.kids, []).filter(k => k !== name)), i.code));
   for (const t of ['kids', 'att', 'kcodes', 'ksess']) st.push(q(env, 'DELETE FROM ' + t + ' WHERE name = ?', name));
-  st.push(q(env, 'DELETE FROM kv WHERE k IN (?, ?, ?, ?)', 'kqr:' + name, 'kprof:' + name, 'ksbph:' + name, 'kday:' + name), q(env, "DELETE FROM kv WHERE k = 'kidStatus'"));
+  st.push(q(env, 'DELETE FROM kv WHERE k IN (?, ?, ?, ?, ?)', 'kqr:' + name, 'kprof:' + name, 'ksbph:' + name, 'kday:' + name, 'ktag:' + name), q(env, "DELETE FROM kv WHERE k = 'kidStatus'"));
   await env.DB.batch(st);
   return out;
 }

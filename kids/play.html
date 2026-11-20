@@ -168,6 +168,17 @@
   .tryBar p{flex:1;margin:0;font-size:14px;color:var(--soft);text-align:center;}
   .glab{grid-column:1/-1;font-size:14px;color:var(--soft);margin:6px 2px 0;}
   .game.soon{opacity:.55;}
+  .tgw{display:inline-flex;align-items:center;gap:5px;padding:1px 7px 1px 1px;border-radius:99px;min-width:0;max-width:100%;overflow:hidden;}
+  .phList{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px;}
+  .phList img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+  .phView{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:60;padding:20px;}
+  .phView.on{display:flex;}
+  .phView>div{background:#fffaf2;border-radius:18px;padding:12px;max-width:360px;width:100%;}
+  .phView img{width:100%;border-radius:12px;display:block;}
+  .phBtns{display:flex;gap:8px;margin-top:10px;align-items:center;}
+  .phBtns .big{flex:1;}
+  .flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:70;transition:opacity .35s;}
+  .flash.on{opacity:1;transition:none;}
   .avs{display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;font-size:14px;line-height:1;overflow:hidden;flex:none;color:#fff;background:#c9b49a;vertical-align:middle;}
   .avs img{width:100%;height:100%;object-fit:cover;}
   .fcard .r span:first-child{display:flex;align-items:center;gap:5px;min-width:0;}
@@ -281,6 +292,17 @@
   <button class="big" id="bgBtn" style="font-size:30px;padding:22px;touch-action:manipulation">👊 치기</button>
 </div>
 
+<div class="sheet" id="photoSheet">
+  <div class="sheetHead"><b>📸 사진관</b><button class="x" data-close>닫기</button></div>
+  <p class="note" style="margin:0 0 6px">포즈를 골라 사진을 찍으면 벽에 전시돼요 (이 휴대폰에만 저장, 6장까지)</p>
+  <div class="chips" id="poseChips"></div>
+  <div class="tryBar" id="poseBar"></div>
+  <button class="big" id="shotBtn" style="font-size:22px;margin-top:8px">📸 찰칵!</button>
+  <div class="phList" id="phList"></div>
+</div>
+<div class="phView" id="phView"><div><img id="phImg" alt=""><div class="phBtns"><button class="x" id="phDel">전시에서 빼기</button><button class="x" id="phSave">저장</button><button class="big" id="phClose">닫기</button></div></div></div>
+<div class="flash" id="flash"></div>
+
 <div class="sheet" id="tgSheet">
   <div class="sheetHead"><b id="tgTitle">태극 1장 맞추기</b><button class="x" data-close>그만하기</button></div>
   <div class="tgStep" id="tgStep">준비</div>
@@ -310,7 +332,7 @@ try { S = Object.assign({}, DEF, JSON.parse(localStorage.getItem(KEY) || '{}'));
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
 /* 2026-11-19 탈의실 상점: 산 것(own)은 계속 내 것, 입은 것(eq) */
 if(!Array.isArray(S.own)) S.own = [];
-S.eq = Object.assign({band:'', dobok:'', kihap:'', tag:'', hstyle:''}, (S.eq && typeof S.eq === 'object') ? S.eq : {});
+S.eq = Object.assign({band:'', dobok:'', kihap:'', tag:'', hstyle:'', pose:''}, (S.eq && typeof S.eq === 'object') ? S.eq : {});
 if(!(S.bestRun >= 0)) S.bestRun = 0;
 /* 2026-11-20 사용자: 왕복달리기 기록만 초기화 (기기마다 한 번) — 서버 순위도 같은 날 지움 */
 if(S.rulerReset !== '2026-11-20c'){ S.bestRuler = 0; if(S.mb){ if(S.mb.v) delete S.mb.v.ruler; if(S.mb.q) delete S.mb.q.ruler; } S.rulerReset = '2026-11-20c'; try{ localStorage.setItem('haerang-dojang-v1', JSON.stringify(S)); }catch(e){} } /* 2026-11-20 사용자: 자를 잡아라 규칙 바뀜 → 기록 리셋 */
@@ -387,9 +409,30 @@ const SHOP = [
   {cat:'kihap', id:'kTae', n:'태권!', p:15, v:'태권', pi:1.2, f:[[440,.09],[560,.09],[440,.14]]},
   {cat:'kihap', id:'kCha', n:'차앗!', p:15, v:'차앗', pi:1.6, f:[[700,.06],[950,.14]]},
   {cat:'tag', id:'', n:'기본', p:0},
+  {cat:'tag', id:'tRed', n:'빨강 테두리', p:15, c:'#d92d20'},
+  {cat:'tag', id:'tGreen', n:'초록 테두리', p:15, c:'#3fa35b'},
   {cat:'tag', id:'tSky', n:'하늘 테두리', p:20, c:'#5b8fc7'},
+  {cat:'tag', id:'tPink', n:'분홍 테두리', p:20, c:'#f08bb4'},
+  {cat:'tag', id:'tPurple', n:'보라 테두리', p:25, c:'#8a5bd1'},
+  {cat:'tag', id:'tBlack', n:'검정 테두리', p:25, c:'#1f1d1c'},
   {cat:'tag', id:'tGold', n:'금색 테두리', p:40, c:'#e0b43a'},
-  {cat:'tag', id:'tRain', n:'무지개 테두리', p:80, c:'rainbow'}
+  {cat:'tag', id:'tFire', n:'불꽃 테두리', p:60, c:'grad', g:['#d92d20','#f08a24','#f6c21c']},
+  {cat:'tag', id:'tSea', n:'바다 테두리', p:60, c:'grad', g:['#2f6fde','#6cc3ea','#5fd3b4']},
+  {cat:'tag', id:'tCandy', n:'사탕 테두리', p:70, c:'grad', g:['#f08bb4','#ffffff','#8a5bd1']},
+  {cat:'tag', id:'tRain', n:'무지개 테두리', p:80, c:'rainbow'},
+  {cat:'tag', id:'tDia', n:'다이아 테두리', p:100, c:'grad', g:['#c9ccd3','#ffffff','#6cc3ea','#ffffff','#c9ccd3']},
+  /* 사진관 포즈 (2026-11-20 사용자: 포즈는 별로 삼) — 탈의실 칸에는 안 나옴 */
+  {cat:'pose', id:'', n:'차렷', p:0, ic:'🧍'},
+  {cat:'pose', id:'pV', n:'브이', p:0, ic:'✌️'},
+  {cat:'pose', id:'pBow', n:'공손 인사', p:10, ic:'🙇'},
+  {cat:'pose', id:'pWave', n:'손 흔들기', p:10, ic:'👋'},
+  {cat:'pose', id:'pFight', n:'화이팅', p:15, ic:'💪'},
+  {cat:'pose', id:'pGuard', n:'겨루기 자세', p:15, ic:'🥊'},
+  {cat:'pose', id:'pThink', n:'생각 중', p:20, ic:'🤔'},
+  {cat:'pose', id:'pHeart', n:'머리 위 하트', p:20, ic:'🫶'},
+  {cat:'pose', id:'pHurray', n:'만세 점프', p:25, ic:'🙌'},
+  {cat:'pose', id:'pKick', n:'옆차기', p:25, ic:'🦵'},
+  {cat:'pose', id:'pStar', n:'별 자세', p:30, ic:'⭐'}
 ];
 const shopItem = (cat, id) => SHOP.find(x => x.cat === cat && x.id === (id || ''));
 const owns = id => !id || S.own.indexOf(id) >= 0;
@@ -489,6 +532,17 @@ const GAMES = {
 };
 const BASE_GAMES = ['rope','tg','brk','belt','whack','mem','quiz']; /* 명예의 전당에 늘 보이는 놀이 (나머지는 기록이 있을 때만) */
 const PATCH = { p1:'patch-1.png', p2:'patch-2.png', p3:'patch-3.png', p4:'patch-4.png', sbl:'sb-av.png' }; /* 제자 앱 프로필과 같은 그림 */
+/* 이름표 테두리 (명예의 전당에서도 보임, 2026-11-20 사용자) */
+function tagGrad(it){ return it.c === 'rainbow' ? ['#e74c3c','#f39c12','#f1c40f','#2ecc71','#3498db','#9b59b6'] : it.g; }
+function tagCss(id){
+  const it = shopItem('tag', id); if(!it || !it.c) return '';
+  if(it.c === 'rainbow' || it.c === 'grad') return 'border:3px solid transparent;background:linear-gradient(#fffaf2,#fffaf2) padding-box,linear-gradient(90deg,' + tagGrad(it).join(',') + ') border-box;';
+  return 'border:3px solid ' + it.c + ';background:#fffaf2;';
+}
+function tagName(n, pr){
+  const p = (pr || {})[n] || {}, css = tagCss(p.tg);
+  return css ? '<span class="tgw" style="' + css + '">' + avSpan(n, pr) + '<span style="overflow:hidden;text-overflow:ellipsis">' + escH(n) + '</span></span>' : avSpan(n, pr) + escH(n);
+}
 function avSpan(n, pr){
   const p = (pr || {})[n] || {}, e = p.av || String(n || '').slice(1, 2) || '?';
   return '<span class="avs" style="background:' + escH(p.bg || '#c9b49a') + '">' + (PATCH[e] ? '<img src="' + PATCH[e] + '" alt="">' : escH(e)) + '</span>';
@@ -507,7 +561,7 @@ async function gameSync(wantTop){
   const q = pendQ();
   if(!q && !wantTop) return null;
   try {
-    const r = await fetch(API + '/k/game', {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tok: TOK, recs: q || undefined, top: !!wantTop, months: !!wantTop})}).then(x => x.json());
+    const r = await fetch(API + '/k/game', {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tok: TOK, recs: q || undefined, top: !!wantTop, months: !!wantTop, tag: S.eq.tag || ''})}).then(x => x.json());
     if(r && r.ok){
       if(q && S.mb && S.mb.q === q){ S.mb.q = {}; save(); }
       if(r.top){ TOP = r; topAt = Date.now(); }
@@ -548,7 +602,7 @@ function showRank(g, D){
   if(openSheetFn) openSheetFn('rankSheet');
   const cur = D.ym === nowYm();
   $('rkTitle').textContent = '🏆 ' + GAMES[g].n + ' · ' + (+D.ym.slice(5)) + '월';
-  $('rkList').innerHTML = (t.list || []).map((x,i) => '<div class="r' + (x.n === D.me ? ' me' : '') + '"><i>' + medal(i) + '</i><span>' + avSpan(x.n, D.prof) + escH(x.n) + (x.n === D.me ? ' (나)' : '') + '</span><b>' + GAMES[g].f(x.v) + '</b></div>').join('') || '<div class="r"><span>아직 기록이 없어요</span></div>';
+  $('rkList').innerHTML = (t.list || []).map((x,i) => '<div class="r' + (x.n === D.me ? ' me' : '') + '"><i>' + medal(i) + '</i><span>' + tagName(x.n, D.prof) + (x.n === D.me ? ' (나)' : '') + '</span><b>' + GAMES[g].f(x.v) + '</b></div>').join('') || '<div class="r"><span>아직 기록이 없어요</span></div>';
   $('rkMe').textContent = t.me ? '내 순위: ' + t.cnt + '명 중 ' + t.me.rank + '위 (' + GAMES[g].f(t.me.v) + ')' : (cur ? '이번 달 내 기록이 아직 없어요. 한 판 해 볼까요?' : '이 달에는 내 기록이 없어요.');
 }
 
@@ -810,13 +864,13 @@ mouth.position.set(0,-.13,.44); mouth.rotation.z = Math.PI; head.add(mouth);
 /* 이름표 */
 const tag = textTex(320, 96, ()=>{});
 const tagS = new THREE.Sprite(new THREE.SpriteMaterial({map:tag.tex, transparent:true, depthTest:false}));
-tagS.scale.set(1.5,.45,1); tagS.position.y = 2.75; tagS.renderOrder = 10; P.root.add(tagS);
+tagS.scale.set(1.5,.45,1); tagS.position.y = 3.2; /* 2026-11-20 사용자: 이름을 좀 더 위로 */ tagS.renderOrder = 10; P.root.add(tagS);
 function drawTag(){
   const g = tag.g; g.clearRect(0,0,320,96);
   g.fillStyle='rgba(255,250,242,.95)'; roundRect(g,10,12,300,70,35); g.fill();
   const tg = shopItem('tag', EQ().tag);
   if(tg && tg.c){
-    if(tg.c === 'rainbow'){ const gr = g.createLinearGradient(10,0,310,0); ['#e74c3c','#f39c12','#f1c40f','#2ecc71','#3498db','#9b59b6'].forEach((c,i)=>gr.addColorStop(i/5,c)); g.strokeStyle = gr; }
+    if(tg.c === 'rainbow' || tg.c === 'grad'){ const gr = g.createLinearGradient(10,0,310,0), L = tagGrad(tg); L.forEach((c,i)=>gr.addColorStop(i/(L.length-1),c)); g.strokeStyle = gr; }
     else g.strokeStyle = tg.c;
     g.lineWidth = 7; roundRect(g,13,15,294,64,32); g.stroke();
   }
@@ -1031,8 +1085,48 @@ const kyoG = new THREE.Group(); scene.add(kyoG);
 pickable(kyoG, 'kyo');
 pickable(bag, 'bag'); pickable(stand, 'brk');
 
+/* 📸 사진관 (2026-11-20 사용자: 포즈 잡고 사진 찍으면 전시) — 오른쪽, 쉬는 시간 줄 앞 */
+const PH_SPOT = {x:5.5, z:2.3};
+const photoG = new THREE.Group(); photoG.position.set(5.5, 0, 1.0); scene.add(photoG);
+{ const t = textTex(512, 560, (g,w,h) => {
+    const gr = g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#fde7d8'); gr.addColorStop(1,'#f7c9b8'); g.fillStyle = gr; g.fillRect(0,0,w,h);
+    g.fillStyle = 'rgba(255,255,255,.55)'; for(let i = 0; i < 26; i++){ g.beginPath(); g.arc((i*97)%w, (i*61)%h, 6 + (i%4)*4, 0, 7); g.fill(); }
+    g.fillStyle = '#A40F16'; g.font = '62px ' + FONT; g.textAlign = 'center'; g.fillText('해랑경희', w/2, 92); g.font = '40px ' + FONT; g.fillText('📸 포토존', w/2, 148); });
+  box(2.3, 2.6, .12, '#b8865b', 0, 1.3, 0, photoG);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.1, 2.4), new THREE.MeshBasicMaterial({map:t.tex})); m.position.set(0, 1.3, .07); photoG.add(m);
+  box(.12, .12, .9, '#8a5a3b', -1.05, .06, -.3, photoG); box(.12, .12, .9, '#8a5a3b', 1.05, .06, -.3, photoG); }
+pickable(photoG, 'photo'); OBST.push({x:4.9, z:1.0, r:.55}, {x:6.1, z:1.0, r:.55});
+/* 사진 전시 벽 (오른쪽 벽) */
+const PH_KEY = 'haerang-dojang-photos';
+let PHOTOS = []; try { PHOTOS = JSON.parse(localStorage.getItem(PH_KEY) || '[]'); if(!Array.isArray(PHOTOS)) PHOTOS = []; } catch(e){ PHOTOS = []; }
+const savePhotos = () => { try { localStorage.setItem(PH_KEY, JSON.stringify(PHOTOS)); return true; } catch(e){ return false; } };
+const gal = textTex(1024, 620, () => {});
+const galM = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 2.0), new THREE.MeshLambertMaterial({map:gal.tex}));
+galM.position.set(W/2 - .03, 1.85, 4.7); galM.rotation.y = -Math.PI/2; scene.add(galM); pickable(galM, 'photo');
+function drawGallery(){
+  const g = gal.g, w = 1024, h = 620;
+  g.fillStyle = '#b8865b'; roundRect(g,0,0,w,h,28); g.fill(); g.fillStyle = '#fff8ec'; roundRect(g,14,14,w-28,h-28,20); g.fill();
+  g.fillStyle = '#8a5a3b'; g.font = '50px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('📸 나의 사진 전시', w/2, 78);
+  const slots = [];
+  for(let k = 0; k < 6; k++) slots.push({x: 70 + (k%3)*305, y: 108 + Math.floor(k/3)*250, s: 220});
+  slots.forEach((sl, k) => {
+    g.save(); g.translate(sl.x + 125, sl.y + 115); g.rotate(((k*37)%7 - 3) * .012);
+    g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(-117, -104, 244, 236); g.fillStyle = '#ffffff'; g.fillRect(-122, -110, 244, 236);
+    g.fillStyle = '#efe6d8'; g.fillRect(-110, -98, 220, 190);
+    if(!PHOTOS[k]){ g.fillStyle = '#c9b49a'; g.font = '30px ' + FONT; g.textAlign = 'center'; g.fillText('빈 자리', 0, 8); }
+    g.restore();
+  });
+  gal.tex.needsUpdate = true;
+  PHOTOS.slice(0, 6).forEach((ph, k) => { const im = new Image(); im.onload = () => {
+    const sl = slots[k]; g.save(); g.translate(sl.x + 125, sl.y + 115); g.rotate(((k*37)%7 - 3) * .012);
+    g.drawImage(im, -110, -98, 220, 190); g.fillStyle = '#8a7a66'; g.font = '22px ' + FONT; g.textAlign = 'center'; g.fillText(ph.d || '', 0, 116); g.restore();
+    gal.tex.needsUpdate = true; }; im.src = ph.u; });
+}
+drawGallery();
+
 /* 자리마다: 어디 서서 · 어디 보고 · 도착하면 무엇 */
 const ST = {
+  photo:{z:'side', n:'사진관', e:'📸', spot:PH_SPOT, face:{x:PH_SPOT.x, z:12}, lp:{x:5.5, z:1.0}, ly:3.0, open:() => openPhoto()},
   locker:{z:'side', n:'탈의실', e:'👕', spot:{x:-5.6, z:-7.55}, face:{x:-7, z:-7.55}, ly:3.0, open:() => openSheet('charSheet')},
   fame:{z:'side', n:'명예의 전당', e:'🏆', spot:{x:-5.8, z:-1.6}, face:{x:-7, z:-1.6}, lp:{x:-6.2, z:-1.6}, ly:3.3, open:() => openSheet('fameSheet')},
   tg:{z:'class', n:'품새', e:'🥋', g:'tg', spot:TG_START_POS, face:{x:TG_START_POS.x, z:-13}, lp:{x:0, z:-7.0}, ly:2.0, start:() => startTg(tgSel)},
@@ -1173,7 +1267,7 @@ function drawFame(){
   }
   box3.innerHTML = gs.map(g => {
     const t = D.top[g] || {}, L = t.list || [];
-    const rows = L.length ? L.slice(0,3).map((x,i) => '<div class="r' + (x.n === D.me ? ' me' : '') + '"><span>' + medal(i) + avSpan(x.n, D.prof) + escH(x.n) + '</span><span>' + GAMES[g].f(x.v) + '</span></div>').join('') : '<div class="r"><span>' + (cur ? '1등이 되어 보세요!' : '기록 없음') + '</span></div>';
+    const rows = L.length ? L.slice(0,3).map((x,i) => '<div class="r' + (x.n === D.me ? ' me' : '') + '"><span>' + medal(i) + tagName(x.n, D.prof) + '</span><span>' + GAMES[g].f(x.v) + '</span></div>').join('') : '<div class="r"><span>' + (cur ? '1등이 되어 보세요!' : '기록 없음') + '</span></div>';
     const more = L.length ? '<button class="more" data-rank="' + g + '">더보기' + (t.me && t.me.rank > 3 ? ' · 나 ' + t.me.rank + '위' : '') + '</button>' : '';
     const ic = g === 'run' ? '🏃' : /^tg/.test(g) ? '🥋' : (ST[g] ? ST[g].e : '');
     return '<div class="fcard"><b>' + ic + ' ' + GAMES[g].n + '</b>' + rows + more + '</div>';
@@ -1223,6 +1317,7 @@ function closeSheets(){
   if(openId==='gameSheet') G.on = false;
   if(openId==='ropeSheet' || openId==='tgSheet') endMode();
   if(openId==='bagSheet') bagStop(true);
+  if(openId==='photoSheet'){ P.mode = null; P.pose = null; }
   if(openId==='charSheet' && (PREV || TRY)) stopTry();
   openId = null;
 }
@@ -1234,7 +1329,7 @@ function fillPlay(){
     const bb = BESTS[id] && BESTS[id](); return bb && bb !== '아직 없어요' ? '최고 ' + bb : ''; };
   const sec = (z, title) => '<div class="glab">' + title + '</div>' + Object.keys(ST).filter(id => ST[id].z === z).map(id =>
     '<button class="game' + (ST[id].soon ? ' soon' : '') + '" data-st="' + id + '"><i>' + ST[id].e + '</i><b>' + ST[id].n + '</b><small>' + sub(id) + '</small></button>').join('');
-  $('gameList').innerHTML = sec('class', '🥋 수업 시간 (앞쪽)') + sec('rest', '🎈 쉬는 시간 (뒤쪽)');
+  $('gameList').innerHTML = sec('class', '🥋 수업 시간 (앞쪽)') + sec('rest', '🎈 쉬는 시간 (뒤쪽)') + '<div class="glab">📸 사진관</div><button class="game" data-st="photo"><i>📸</i><b>사진관</b><small>포즈 잡고 찰칵 · 벽에 전시</small></button>';
   $('gameList').querySelectorAll('[data-st]').forEach(b => b.onclick = () => { audio(); sfx.pop(); goStation(b.dataset.st); });
 }
 function addStars(n, msg){ if(n <= 0) return; S.stars += n; updateStars(); save(); sfx.star(); if(msg) toast(msg); }
@@ -1283,7 +1378,7 @@ function fillChar(){
       const mine = ownsItem(it), on = curId(cat) === it.id, tr = TRY && TRY.cat === cat && TRY.id === it.id;
       const b = document.createElement('button');
       b.className = 'chip' + (on ? ' on' : '') + (tr ? ' try' : '') + (!mine && it.poom ? ' lockp' : '') + (!mine && !it.poom && S.stars < it.p ? ' poor' : '');
-      const dot = it.ic ? '<span style="margin-right:4px">' + it.ic + '</span>' : it.c ? '<span class="dot" style="background:' + (it.c === 'rainbow' ? 'linear-gradient(90deg,#e74c3c,#f1c40f,#2ecc71,#3498db,#9b59b6)' : it.c) + '"></span>' : '';
+      const dot = it.ic ? '<span style="margin-right:4px">' + it.ic + '</span>' : it.c ? '<span class="dot" style="background:' + (it.c === 'rainbow' || it.c === 'grad' ? 'linear-gradient(90deg,' + tagGrad(it).join(',') + ')' : it.c) + '"></span>' : '';
       const tail = on ? '<small>입는 중</small>' : mine ? ((it.p || it.poom) ? '<small>내 것</small>' : '') : it.poom ? '<small>🔒 ' + it.poom + '품</small>' : '<small>⭐' + it.p + '</small>';
       b.innerHTML = dot + it.n + ' ' + tail;
       b.onclick = () => tryOn(it);
@@ -1317,8 +1412,76 @@ function drawTryBar(){
 function equip(it){
   S.eq[it.cat] = it.cat === 'dobok' ? (it.id === 'p' + MYPOOM ? '' : it.id) : it.id;
   save(); PREV = null; TRY = null; applyLook(); fillChar();
+  if(it.cat === 'tag' && API && TOK) try { fetch(API + '/k/game', {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({tok: TOK, tag: S.eq.tag || ''})}); TOP = null; } catch(e){} /* 명예의 전당에 내 테두리 */
 }
 let askBuy = null;
+
+/* ---------- 📸 사진관 (2026-11-20 사용자) ---------- */
+function poseAnim(id, t){
+  const A = armL, B = armR;
+  if(id === 'pV'){ B.rotation.x = -2.5; B.rotation.z = .35; A.rotation.z = -.07; head.rotation.z = -.12; }
+  else if(id === 'pBow'){ upper.rotation.x = .55; head.rotation.x = .2; }
+  else if(id === 'pWave'){ B.rotation.z = 2.5 + Math.sin(t*9)*.35; A.rotation.z = -.07; }
+  else if(id === 'pFight'){ A.rotation.x = -1.3; B.rotation.x = -1.3; A.rotation.z = -.35; B.rotation.z = .35; hips.position.y = .66 + Math.abs(Math.sin(t*5))*.04; }
+  else if(id === 'pGuard'){ A.rotation.x = -1.5; A.rotation.z = .25; B.rotation.x = -1.1; B.rotation.z = -.15; legL.rotation.x = -.35; legR.rotation.x = .3; upper.rotation.y = .35; hips.position.y = .62; }
+  else if(id === 'pThink'){ B.rotation.x = -2.2; B.rotation.z = -.55; A.rotation.x = -.9; A.rotation.z = .5; head.rotation.z = .18; }
+  else if(id === 'pHeart'){ A.rotation.z = -2.75; B.rotation.z = 2.75; A.rotation.x = -.25; B.rotation.x = -.25; }
+  else if(id === 'pHurray'){ const j = Math.abs(Math.sin(t*4)); A.rotation.z = -2.85; B.rotation.z = 2.85; hips.position.y = .66 + j*.18; legL.rotation.x = legR.rotation.x = -.25*j; }
+  else if(id === 'pKick'){ legR.rotation.z = 1.45; upper.rotation.z = .4; A.rotation.x = -1.3; B.rotation.x = -1.0; B.rotation.z = .3; }
+  else if(id === 'pStar'){ A.rotation.z = -2.2; B.rotation.z = 2.2; legL.rotation.z = -.4; legR.rotation.z = .4; }
+  else { A.rotation.z = -.07; B.rotation.z = .07; }
+}
+let PTRY = null, PHV = -1;
+function openPhoto(){
+  openSheet('photoSheet'); P.mode = 'pose'; P.yawT = 0;
+  P.pose = ownsItem(shopItem('pose', S.eq.pose)) ? (S.eq.pose || '') : ''; PTRY = null; fillPhoto();
+}
+function fillPhoto(){
+  const box = $('poseChips'); box.innerHTML = '';
+  SHOP.filter(x => x.cat === 'pose').forEach(it => {
+    const mine = ownsItem(it), on = (P.pose || '') === it.id;
+    const b = el('button', 'chip' + (on ? ' on' : '') + (!mine && S.stars < it.p ? ' poor' : ''), '<span style="margin-right:4px">' + it.ic + '</span>' + it.n + ' ' + (mine ? '' : '<small>⭐' + it.p + '</small>'));
+    b.onclick = () => { audio(); sfx.pop(); P.pose = it.id; PTRY = it; if(mine){ S.eq.pose = it.id; save(); } fillPhoto(); };
+    box.appendChild(b);
+  });
+  const cur = shopItem('pose', P.pose || ''), ok = ownsItem(cur), bar = $('poseBar'); bar.innerHTML = '';
+  if(!ok){
+    const btn = el('button', 'big', S.stars < cur.p ? '별이 ' + (cur.p - S.stars) + '개 더 있어야 살 수 있어요' : '⭐' + cur.p + ' 내고 ' + cur.n + ' 사기');
+    btn.disabled = S.stars < cur.p;
+    btn.onclick = () => { audio(); if(S.stars < cur.p) return; S.stars -= cur.p; S.own.push(cur.id); S.eq.pose = cur.id; save(); updateStars(); sfx.star(); toast(cur.n + ' 포즈를 샀어요!'); fillPhoto(); };
+    bar.appendChild(btn);
+  } else bar.innerHTML = '<p>' + cur.ic + ' ' + cur.n + ' 포즈로 찍어요</p>';
+  const sb = $('shotBtn'); sb.disabled = !ok; sb.textContent = ok ? '📸 찰칵!' : '🔒 포즈를 사면 찍을 수 있어요';
+  $('phList').innerHTML = PHOTOS.map((p, i) => '<img src="' + p.u + '" data-ph="' + i + '" alt="">').join('');
+  $('phList').querySelectorAll('[data-ph]').forEach(im => im.onclick = () => { audio(); PHV = +im.dataset.ph; $('phImg').src = PHOTOS[PHV].u; $('phView').classList.add('on'); });
+}
+const phRT = new THREE.WebGLRenderTarget(480, 480), phCam = new THREE.PerspectiveCamera(38, 1, .1, 60);
+function shoot(){
+  const pos = P.root.position, y = P.yaw, d = 4.2;
+  phCam.position.set(pos.x + Math.sin(y)*d, 1.8, pos.z + Math.cos(y)*d); phCam.lookAt(pos.x, 1.4, pos.z);
+  const tv = tagS.visible; tagS.visible = false;
+  renderer.setRenderTarget(phRT); renderer.render(scene, phCam);
+  const buf = new Uint8Array(480*480*4); renderer.readRenderTargetPixels(phRT, 0, 0, 480, 480, buf); renderer.setRenderTarget(null); tagS.visible = tv;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 480; const g = cv.getContext('2d'), im = g.createImageData(480, 480);
+  for(let r = 0; r < 480; r++) im.data.set(buf.subarray((479 - r)*1920, (480 - r)*1920), r*1920);
+  g.putImageData(im, 0, 0);
+  const k = new Date(Date.now() + 9*3600e3), dd = (k.getUTCMonth()+1) + '.' + k.getUTCDate();
+  g.fillStyle = 'rgba(164,15,22,.88)'; g.fillRect(0, 428, 480, 52); g.fillStyle = '#fff'; g.font = '28px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('해랑경희 태권도 · ' + dd, 240, 455);
+  const sm = document.createElement('canvas'); sm.width = sm.height = 320; sm.getContext('2d').drawImage(cv, 0, 0, 320, 320);
+  PHOTOS.unshift({u: sm.toDataURL('image/jpeg', .82), d: dd, at: Date.now()});
+  PHOTOS = PHOTOS.slice(0, 6); while(PHOTOS.length && !savePhotos()) PHOTOS.pop();
+  drawGallery();
+}
+$('shotBtn').addEventListener('click', () => {
+  audio(); if(!ownsItem(shopItem('pose', P.pose || ''))) return;
+  const f = $('flash'); f.classList.add('on'); sfx.tick && sfx.tick();
+  try { shoot(); } catch(e){ toast('사진을 찍지 못했어요'); }
+  setTimeout(() => f.classList.remove('on'), 60);
+  sfx.star(); toast('찰칵! 벽에 전시했어요 📸'); fillPhoto();
+});
+$('phClose').addEventListener('click', () => $('phView').classList.remove('on'));
+$('phDel').addEventListener('click', () => { if(PHV < 0) return; audio(); PHOTOS.splice(PHV, 1); savePhotos(); drawGallery(); $('phView').classList.remove('on'); PHV = -1; fillPhoto(); toast('전시에서 뺐어요'); });
+$('phSave').addEventListener('click', () => { if(PHV < 0) return; const a = document.createElement('a'); a.href = PHOTOS[PHV].u; a.download = '해랑경희-사진-' + (PHOTOS[PHV].d || '') + '.jpg'; document.body.appendChild(a); a.click(); a.remove(); });
 
 /* ---------- 격파 놀이 ---------- */
 const G = {on:false, level:1, x:0, dir:1, wait:0, z0:.4, zw:.26, over:false};
@@ -2147,6 +2310,8 @@ function loop(now){
       hips.position.y = a.deep ? .6 : .65;
     }
     if(a.t >= a.dur){ P.act = null; if(a.next) a.next(); }
+  } else if(P.mode === 'pose'){
+    poseAnim(P.pose || '', P.t);
   } else if(P.mode === 'rope'){
     armL.rotation.z = -.75; armR.rotation.z = .75; armL.rotation.x = -.25; armR.rotation.x = -.25;
     if(P.jt >= 0){ legL.rotation.x = -.3; legR.rotation.x = -.3; }

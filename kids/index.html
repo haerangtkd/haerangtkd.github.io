@@ -848,7 +848,8 @@
   // 서버 부담 줄이기: 즐기기 화면을 열 때만 한 번(1분 안에 다시 열면 안 부름), 놀이터에서 못 보낸 기록이 있으면 같이 보냄
   const RG = { rope: ['🪢', '줄넘기', v => v + '번'], tg: ['🥋', '태극 1장', v => v === 0 ? '만점' : v + '번 틀림'], brk: ['🪵', '격파 놀이', v => v + '단계'], belt: ['🎗️', '띠 순서', v => (v / 10).toFixed(1) + '초'], whack: ['🎯', '표적 치기', v => v + '점'], mem: ['🃏', '짝 맞추기', v => v + '번 만에'], quiz: ['💡', '해랑경희 퀴즈', v => v + '/8'], run: ['🏃', '왕복달리기', v => (v / 10).toFixed(1) + '초'], bag: ['🥊', '샌드백 치기', v => v + '번'], ruler: ['📏', '자를 잡아라', v => (v / 1000).toFixed(3) + '초'] };
 [2, 3, 4, 5, 6, 7, 8].forEach(n => { RG['tg' + n] = ['🥋', '태극 ' + n + '장', v => v === 0 ? '만점' : v + '번 틀림']; }); // 2026-11-19 품새 2~8장
-const recAv = n => { const p = ((recTop || {}).prof || {})[n] || {}, e = p.av || firstName(n).slice(0, 1); return '<span class="rav" style="background:' + esc(p.bg || 'var(--brand)') + '">' + avHtml(e) + '</span>'; };
+const TAGC = { tRed:'#d92d20', tGreen:'#3fa35b', tSky:'#5b8fc7', tPink:'#f08bb4', tPurple:'#8a5bd1', tBlack:'#1f1d1c', tGold:'#e0b43a', tFire:'linear-gradient(90deg,#d92d20,#f08a24,#f6c21c)', tSea:'linear-gradient(90deg,#2f6fde,#6cc3ea,#5fd3b4)', tCandy:'linear-gradient(90deg,#f08bb4,#ffffff,#8a5bd1)', tRain:'linear-gradient(90deg,#e74c3c,#f39c12,#f1c40f,#2ecc71,#3498db,#9b59b6)', tDia:'linear-gradient(90deg,#c9ccd3,#ffffff,#6cc3ea,#ffffff,#c9ccd3)' }; // 놀이터 이름표 테두리 (2026-11-20)
+const recAv = n => { const p = ((recTop || {}).prof || {})[n] || {}, e = p.av || firstName(n).slice(0, 1), av = '<span class="rav" style="background:' + esc(p.bg || 'var(--brand)') + '">' + avHtml(e) + '</span>', tc = TAGC[p.tg]; return tc ? '<span style="display:inline-flex;padding:2.5px;border-radius:50%;background:' + tc + ';flex:none">' + av + '</span>' : av; };
 const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.today.slice(5, 7) - 2, 1)); return d.toISOString().slice(0, 7); };
   const MEDAL = ['🥇', '🥈', '🥉'];
   let recTop = null, recAt = 0, recBusy = false;
