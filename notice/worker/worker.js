@@ -53,7 +53,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS kcodes (name TEXT PRIMARY KEY, code TEXT UNIQUE, created INTEGER)', // 제자 모드 개인 코드 (관장님이 도장에서 넣어 줌, 2026-11-14)
   'CREATE TABLE IF NOT EXISTS ksess (tok TEXT PRIMARY KEY, name TEXT, created INTEGER, seen INTEGER)',
   'CREATE TABLE IF NOT EXISTS kposts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, body TEXT, at INTEGER, del INTEGER DEFAULT 0)', // 선범단 커뮤니티 (선범단만, 글만)
-  'CREATE TABLE IF NOT EXISTS kphotos (id TEXT PRIMARY KEY, name TEXT, img TEXT, at INTEGER)', // 📸 놀이터 사진관 사진 전시 — 친구들도 봄, 제자마다 3장 (2026-11-20)
+  'CREATE TABLE IF NOT EXISTS kphotos (id TEXT PRIMARY KEY, name TEXT, img TEXT, at INTEGER)', // 📸 놀이터 사진관 사진 전시 — 친구들도 봄, 제자마다 한 장 (2026-11-20)
   'CREATE TABLE IF NOT EXISTS kgame (ym TEXT, g TEXT, name TEXT, v INTEGER, at INTEGER, PRIMARY KEY (ym, g, name))', // 🎮 우리 도장 놀이터 이번 달 최고 기록 (2026-11-17)
   'CREATE TABLE IF NOT EXISTS jlikes (post INTEGER, parent TEXT, at INTEGER, PRIMARY KEY (post, parent))', // 알림장 하트 (2026-11-19 사용자 요청)
   'CREATE TABLE IF NOT EXISTS jcmts (id INTEGER PRIMARY KEY AUTOINCREMENT, post INTEGER, parent TEXT, rel TEXT, kids TEXT, text TEXT, pub INTEGER DEFAULT 1, at INTEGER, upd INTEGER, del INTEGER DEFAULT 0)', // 알림장 댓글 (공개가 기본, 비공개 = 쓴 분과 도장만)
@@ -212,10 +212,10 @@ async function route(path, req, env) {
         const day = await one(env, 'SELECT COUNT(*) AS n FROM kphotos WHERE name = ? AND at > ?', me, Date.now() - 864e5);
         if (day && day.n >= 20) return json({ ok: false, error: '오늘은 사진을 많이 찍었어요. 내일 또 찍어요' });
         await run(env, 'INSERT INTO kphotos (id, name, img, at) VALUES (?, ?, ?, ?)', rid(12), me, img, Date.now());
-        await run(env, 'DELETE FROM kphotos WHERE name = ? AND id NOT IN (SELECT id FROM kphotos WHERE name = ? ORDER BY at DESC LIMIT 3)', me, me);
+        await run(env, 'DELETE FROM kphotos WHERE name = ? AND id NOT IN (SELECT id FROM kphotos WHERE name = ? ORDER BY at DESC LIMIT 1)', me, me); // 2026-11-20 사용자: 사진은 한 장만 (새로 올리면 바뀜)
       }
       if (path === '/k/photo-del') await run(env, 'DELETE FROM kphotos WHERE id = ? AND name = ?', String(b.id || ''), me);
-      const list = await all(env, 'SELECT id, name, img, at FROM kphotos ORDER BY at DESC LIMIT 30');
+      const list = await all(env, 'SELECT id, name, img, at FROM kphotos k WHERE at = (SELECT MAX(at) FROM kphotos WHERE name = k.name) ORDER BY at DESC LIMIT 30'); // 제자마다 가장 새 사진 한 장
       const nm = [...new Set(list.map(x => x.name))];
       const pr = nm.length ? await all(env, 'SELECT k, v FROM kv WHERE k IN (' + nm.flatMap(() => ['?', '?']).join(',') + ')', ...nm.flatMap(n => ['kprof:' + n, 'ktag:' + n])) : [], prof = {};
       for (const r of pr) { if (r.k.startsWith('kprof:')) { const p = J(r.v, {}) || {}; const n = r.k.slice(6); prof[n] = Object.assign(prof[n] || {}, { av: p.av || '', bg: p.bg || '' }); } else { const n = r.k.slice(5); if (r.v) (prof[n] = prof[n] || {}).tg = String(r.v); } }
