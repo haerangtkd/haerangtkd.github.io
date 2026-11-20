@@ -295,6 +295,8 @@ function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){
 if(!Array.isArray(S.own)) S.own = [];
 S.eq = Object.assign({band:'', dobok:'', kihap:'', tag:''}, (S.eq && typeof S.eq === 'object') ? S.eq : {});
 if(!(S.bestRun >= 0)) S.bestRun = 0;
+/* 2026-11-20 사용자: 왕복달리기 기록만 초기화 (기기마다 한 번) — 서버 순위도 같은 날 지움 */
+if(S.runReset !== '2026-11-20'){ S.bestRun = 0; if(S.mb){ if(S.mb.v) delete S.mb.v.run; if(S.mb.q) delete S.mb.q.run; } S.runReset = '2026-11-20'; try{ localStorage.setItem('haerang-dojang-v1', JSON.stringify(S)); }catch(e){} }
 
 /* 띠: 제자 앱이 넘겨준 내 띠(주소 ?b=) — 제자 앱과 같은 색 · 순서 */
 const BC = { 흰:'#F4F1EA', 노란:'#F6C21C', 초록:'#2E9E4F', 보라:'#7B4FB8', 파란:'#2F6FDE', 주황:'#F08A24', 분홍:'#F07AA8', 밤:'#6B3E26', 빨간:'#D92D20' };
@@ -1367,7 +1369,7 @@ const TG2 = [
   {d:'왼발 앞차고', s:'왼앞굽이', m:'얼굴반대지르기', kick:-1, step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
   {d:'왼쪽으로 돌아', s:'왼앞서기', m:'얼굴막기', turn:'L', step:.8, t:'block', h:2, arm:-1, lead:-1},
   {d:'앞으로', s:'오른앞서기', m:'얼굴막기', step:.8, t:'block', h:2, arm:1, lead:1},
-  {d:'오른쪽으로 돌아', s:'왼앞서기', m:'몸통안막기', turn:'R', step:.8, t:'block', h:1, arm:1, lead:-1},
+  {d:'왼쪽으로 돌아 오른쪽 보기', s:'왼앞서기', m:'몸통안막기', turn:'L3', step:.8, t:'block', h:1, arm:1, lead:-1},
   {d:'뒤로 돌아', s:'오른앞서기', m:'몸통안막기', turn:'B', step:.8, t:'block', h:1, arm:-1, lead:1},
   {d:'처음 자리 쪽으로 돌아', s:'왼앞서기', m:'아래막기', turn:'S', step:.8, t:'block', h:0, arm:-1, lead:-1},
   {d:'오른발 앞차고', s:'오른앞서기', m:'몸통반대지르기', kick:1, step:.8, t:'punch', arm:1, lead:1},
@@ -1387,7 +1389,7 @@ const TG3 = [
   {d:'그 자리에서', s:'오른앞굽이', m:'몸통바로지르기', step:.4, t:'punch', arm:-1, lead:1, deep:1},
   {d:'왼쪽으로 돌아', s:'왼앞서기', m:'몸통안막기', turn:'L', step:.8, t:'block', h:1, arm:1, lead:-1},
   {d:'앞으로', s:'오른앞서기', m:'몸통안막기', step:.8, t:'block', h:1, arm:-1, lead:1},
-  {d:'오른쪽으로 돌아', s:'왼앞서기', m:'아래막기', turn:'R', step:.8, t:'block', h:0, arm:-1, lead:-1},
+  {d:'왼쪽으로 돌아 오른쪽 보기', s:'왼앞서기', m:'아래막기', turn:'L3', step:.8, t:'block', h:0, arm:-1, lead:-1},
   {d:'오른발 앞차고', s:'오른앞굽이', m:'몸통두번지르기', kick:1, step:1.1, t:'punch', arm:1, lead:1, deep:1},
   {d:'뒤로 돌아', s:'오른앞서기', m:'아래막기', turn:'B', step:.8, t:'block', h:0, arm:1, lead:1},
   {d:'왼발 앞차고', s:'왼앞굽이', m:'몸통두번지르기', kick:-1, step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
@@ -1401,7 +1403,7 @@ const TG_PRICE = {2:30, 3:35, 4:40, 5:45, 6:50, 7:55, 8:60};
 let CUR = null;
 const DIR_SWAP = {'왼쪽으로':'오른쪽으로','오른쪽으로':'왼쪽으로','왼쪽으로 돌아':'오른쪽으로 돌아','오른쪽으로 돌아':'왼쪽으로 돌아',
   '앞으로':'뒤로 돌아','뒤로 돌아':'왼쪽으로','그 자리에서':'앞으로','오른발 앞차고':'왼발 앞차고','왼발 앞차고':'오른발 앞차고',
-  '처음 자리 쪽으로 돌아':'앞으로'};
+  '처음 자리 쪽으로 돌아':'앞으로', '왼쪽으로 돌아 오른쪽 보기':'왼쪽으로 돌아'}; /* 2026-11-20 김병수 사범님: 2·3장 13번은 왼쪽으로 크게 돌아 오른쪽을 봄 */
 TGS[1] = TG; CUR = TG;
 const TG_START = TG_START_POS;
 const T = {on:false, i:0, miss:0, stepMiss:0, busy:false, dir:{x:0,z:-1}};
@@ -1457,14 +1459,21 @@ function turnDir(d, turn){
   if(turn === 'R') return {x:-d.z, z:d.x};
   if(turn === 'B') return {x:-d.x, z:-d.z};
   if(turn === 'S') return {x:0, z:1};
+  if(turn === 'L3') return {x:-d.z, z:d.x}; /* 왼쪽으로 270° = 오른쪽을 봄 */
   return d;
 }
 function playTg(st, done){
   P.act = null;
   const steps = [];
   if(st.kick){ steps.push(() => { doAct('kick', .55, () => sfx.kick(), st.kick); }); }
+  if(st.turn === 'L3'){ /* 왼쪽으로 크게 도는 모습: 왼쪽으로 두 번 먼저 돈 뒤 한 번 더 */
+    for(let r=0;r<2;r++) steps.push(() => {
+      const L = turnDir(T.dir, 'L'); P.yawT = Math.atan2(L.x, L.z); T.dir = L;
+      doAct('step', .15, null, 1); const at = {x:P.root.position.x, z:P.root.position.z}; P.act.from = at; P.act.to = at;
+    });
+  }
   steps.push(() => {
-    T.dir = turnDir(T.dir, st.turn);
+    T.dir = turnDir(T.dir, st.turn === 'L3' ? 'L' : st.turn);
     P.yawT = Math.atan2(T.dir.x, T.dir.z);
     const from = {x:P.root.position.x, z:P.root.position.z};
     const to = {x: from.x + T.dir.x*st.step, z: from.z + T.dir.z*st.step};
@@ -1569,7 +1578,18 @@ function gameRun(body){
   const feet = el('div','feet'); const bL = el('button','big blue','👣 왼발'), bR = el('button','big','오른발 👣'); feet.append(bL, bR);
   const again = el('button','big','다시 하기'); again.style.display = 'none';
   body.append(stat, tr, msg, feet, again);
-  let pos = 0, last = 0, t0 = 0, timer = null, done = false;
+  let pos = 0, last = 0, t0 = 0, tLast = 0, timer = null, done = false;
+  /* 2026-11-20 사용자: 중간에 나갔다 오면 기록이 남던 것 → 달리는 중에 화면을 벗어나거나(앱 나감·꺼짐) 2.5초 넘게 멈추면 그 판은 무효 */
+  const RUN_GAP = 2500, RUN_MIN = 3;
+  function voidRun(why){
+    if(!t0 || done) return;
+    done = true; clearInterval(timer); timer = null;
+    msg.textContent = why + ' 기록은 남지 않아요. 다시 해 봐요!';
+    feet.style.display = 'none'; again.style.display = '';
+  }
+  const onHide = () => { if(document.hidden) voidRun('중간에 나갔어요.'); };
+  document.addEventListener('visibilitychange', onHide);
+  addEventListener('pagehide', onHide);
   function draw(){
     const p = pos <= N ? pos/N : 2 - pos/N;
     $('rnR').style.left = (7 + 86*p) + '%';
@@ -1577,15 +1597,17 @@ function gameRun(body){
     $('rnLeg').textContent = pos < N ? '출발 →' : '← 돌아오기';
   }
   function reset(){
-    pos = 0; last = 0; t0 = 0; done = false; clearInterval(timer); timer = null;
+    pos = 0; last = 0; t0 = 0; tLast = 0; done = false; clearInterval(timer); timer = null;
     $('rnTime').textContent = '0.0초'; msg.textContent = '왼발 · 오른발을 번갈아 눌러요! 끝까지 갔다가 돌아와요';
     feet.style.display = ''; again.style.display = 'none'; draw();
   }
   function step(f, b){
     audio(); if(done) return;
     if(f === last){ b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); sfx.fail(); msg.textContent = '번갈아 눌러요!'; return; }
-    last = f;
-    if(!t0){ t0 = performance.now(); timer = setInterval(() => { $('rnTime').textContent = ((performance.now()-t0)/1000).toFixed(1) + '초'; }, 100); }
+    const now = performance.now();
+    if(t0 && now - tLast > RUN_GAP) return voidRun('중간에 멈췄어요.');
+    last = f; tLast = now;
+    if(!t0){ t0 = now; timer = setInterval(() => { if(t0 && !done && performance.now() - tLast > RUN_GAP) return voidRun('중간에 멈췄어요.'); $('rnTime').textContent = ((performance.now()-t0)/1000).toFixed(1) + '초'; }, 100); }
     pos++; sfx.tick();
     if(pos === N){ msg.textContent = '반환점! 이제 돌아와요'; sfx.pop(); }
     draw();
@@ -1595,6 +1617,7 @@ function gameRun(body){
     done = true; clearInterval(timer);
     const sec = Math.round((performance.now()-t0)/100)/10;
     $('rnTime').textContent = sec.toFixed(1) + '초';
+    if(sec < RUN_MIN){ msg.textContent = '너무 빨라요! 기록은 남지 않아요. 왼발 · 오른발을 한 번씩 번갈아 눌러요'; feet.style.display = 'none'; again.style.display = ''; return; }
     let m = sec.toFixed(1) + '초에 들어왔어요!';
     if(!S.bestRun || sec < S.bestRun){ S.bestRun = sec; m = '새 기록! ' + m; }
     monthRec('run', Math.round(sec * 10));
@@ -1606,7 +1629,7 @@ function gameRun(body){
   bR.addEventListener('pointerdown', e => { e.preventDefault(); step(2, bR); });
   again.onclick = () => { audio(); reset(); };
   reset();
-  return () => clearInterval(timer);
+  return () => { done = true; clearInterval(timer); document.removeEventListener('visibilitychange', onHide); removeEventListener('pagehide', onHide); };
 }
 
 /* 표적 치기 */

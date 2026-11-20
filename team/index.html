@@ -493,7 +493,7 @@
   .toast.show{opacity:1}
   /* 목록 짧게 보기 (2026-11-14, 의견 정리 2번): 4~5줄 높이 · 칸 안 스크롤 · 아래 흐리게 · 'n명 더 ↓' */
   .clipw{position:relative}
-  .clip{position:relative;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .clip{position:relative;overflow-y:auto;overscroll-behavior:auto;-webkit-overflow-scrolling:touch} /* 2026-11-20 사용자: 목록 끝에서 화면이 이어서 움직이게 (contain이면 목록 칸에서 화면 스크롤이 막힘) */
   .clip.more{-webkit-mask-image:linear-gradient(#000 calc(100% - 34px),transparent);mask-image:linear-gradient(#000 calc(100% - 34px),transparent)}
   .clipmore{display:none;margin:4px auto 0;border:0;background:var(--soft);color:var(--brand);font-weight:800;font-size:13px;border-radius:99px;padding:5px 14px}
   .clipmore.on{display:block}
@@ -766,7 +766,7 @@ async function sync(first) {
   if (first && !S.logRead && S.logs.length) { S.logRead = S.logs[S.logs.length - 1].id; try { localStorage.setItem('haerang-team-logread', S.logRead); } catch (_) {} } // 처음 쓰는 기기는 예전 기록을 새 알림으로 세지 않음
   if ('notice' in j && JSON.stringify(j.notice) !== JSON.stringify(S.notice)) { S.notice = j.notice; changed = true; }
   S.since = j.now - 2000;
-  if (first || changed || j.items.length || j.comments.length || j.pickup.length) render(newIn);
+  if (first || changed || j.items.length || j.comments.length || j.pickup.length) { if (first || S.tab === 'room') render(newIn); else renderIdle(); }
   setBadge(); return true;
 }
 function chatUnread() { const rs = new Set(['', ...S.msgs.map(roomOf)]); let n = 0; for (const r of rs) if (!(S.tab === 'room' && r === S.room)) n += unreadIn(r); return n; }
@@ -1179,7 +1179,7 @@ function noteSheet(id, pre) { // pre: 학부모 연락에서 넣을 때 미리 �
     ov.querySelector('#nTmp').hidden = type !== 'temp'; ov.querySelector('#nEndW').hidden = rep !== 'weekly';
     const d = ov.querySelector('#nDay').value || t; ov.querySelector('#nRepW').textContent = '매주 ' + nDow(d) + '요일 계속';
   };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📌 ' + esc(s.name) + ' 중요사항</h2></div>' + (pre && pre.title ? '<div class="notice" style="margin:4px 0 8px"><b>' + esc(pre.title) + '</b></div><p class="help">내용·날짜를 확인하고 \'넣기\'를 누르면 학부모님께 \'도장에서 확인했어요\' 알림이 가요.</p>' : '') + '<p class="help">출석부 오늘 출석 화면에서 이름 밑에 보여요. 🔔 알림을 켜면 그날 출석한 수업 시작 45분 뒤 업무 앱으로 알려 줘요.</p>' +
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📌 ' + esc(s.name) + ' 중요사항</h2></div>' + (pre && pre.title ? '<div class="notice" style="margin:4px 0 8px"><b>' + esc(pre.title) + '</b></div><p class="help">내용·날짜를 확인하고 \'넣기\'를 누르면 학부모님께 \'네 알겠습니다 체크해놓도록 하겠습니다😊\' 답장이 가요.</p>' : '') + '<p class="help">출석부 오늘 출석 화면에서 이름 밑에 보여요. 🔔 알림을 켜면 그날 출석한 수업 시작 45분 뒤 업무 앱으로 알려 줘요.</p>' +
     '<div id="nL" class="kcl" style="max-height:220px"></div>' +
     '<label class="f">새로 넣기</label><textarea class="inp" id="nText" rows="2" maxlength="120" placeholder="예: 엄마가 4시 50분에 데리러 옴 / 무릎 다쳐서 점프 빼기">' + esc(pre ? pre.text || '' : '') + '</textarea>' +
     '<label class="f">종류</label><div class="chips" id="nType"><button data-v="always">지속 (늘)</button><button data-v="temp">임시</button></div>' +
@@ -1306,7 +1306,7 @@ function clipMark(el) {
 let clipRaf = 0; const clipAll = () => { clipRaf = 0; document.querySelectorAll('.clip').forEach(clipFit); };
 new MutationObserver(() => { if (!clipRaf) clipRaf = requestAnimationFrame(clipAll); }).observe(document.body, { childList: true, subtree: true });
 window.addEventListener('resize', () => { document.querySelectorAll('.clip').forEach(el => { el._h = 0; }); clipAll(); });
-document.addEventListener('scroll', e => { const el = e.target; if (el.classList && el.classList.contains('clip')) { clipPos[el.dataset.ck] = el.scrollTop; clipMark(el); } }, true);
+let clipSR = 0; document.addEventListener('scroll', e => { const el = e.target; if (el.classList && el.classList.contains('clip')) { clipPos[el.dataset.ck] = el.scrollTop; if (!clipSR) clipSR = requestAnimationFrame(() => { clipSR = 0; clipMark(el); }); } }, { capture: true, passive: true }); // 스크롤마다 줄 계산하던 것 → 한 화면에 한 번 (끊김 줄이기)
 document.addEventListener('click', e => { const b = e.target.closest('.clipmore'); if (!b) return; e.stopPropagation(); const el = b.parentNode.querySelector('.clip'); el.scrollBy({ top: el.clientHeight - 30, behavior: 'smooth' }); }, true);
 // ═════════ 대시보드 (2026-11-18 개편, 사용자 시안) ═════════
 // 바로가기 4개 → 숫자 4칸(학부모 연락 · 등원·픽업 · 행사 신청 · 할 일·청소) → 확인할 것(학부모 연락·앱 행사 신청·가입 승인) → 오늘 출석 → 등원·픽업 → 할 일·청소 → 행사 → 참고 현황
@@ -2166,7 +2166,7 @@ function eventSheet(ev0) {
       compBox() + (act.filter(r => !r.guest).length && catOf(ev) !== 'buy' ? '<button class="btn" id="evJournal" style="width:100%;margin-top:10px">📣 ' + W + '한 제자 보호자에게 알림장 쓰기</button>' : '') + // 2026-11-16: 행사·물품 신청표 → 알림장
       (rows.some(r => r.guest && !r.appCancel) ? '<button class="btn" id="evGuests" style="width:100%;margin-top:10px">📋 비회원 ' + rows.filter(r => r.guest && !r.appCancel).length + '명 연락처 모아 보기</button>' : '') +
       '<div class="row" style="margin-top:12px"><button class="btn g" id="evAdd" style="flex:1">+ 사람 추가</button><button class="btn" id="evSet">설정</button><button class="btn" id="evDone">' + (ev.closed ? '다시 진행' : '완료로') + '</button></div>' +
-      (rows.length ? clip('ev' + ev.id, rows.map(card).join(''), '명') : '<p class="empty">+ 사람 추가로 명단을 넣어 주세요</p>') +
+      (rows.length ? '<div class="evrows">' + rows.map(card).join('') + '</div>' : '<p class="empty">+ 사람 추가로 명단을 넣어 주세요</p>') + // 2026-11-20 사용자: 명단 칸 안 스크롤 때문에 화면이 끊겨서 → 칸 없이 화면 전체로 스크롤
       '<h3>댓글 ' + cms.length + '</h3>' + cmList(cms) + '<div class="row" style="margin-top:8px"><input class="inp" id="evC" placeholder="댓글 달기"><button class="btn g" id="evCo">등록</button></div>';
     return body();
   };
@@ -2354,7 +2354,7 @@ function kidSheet(id) {
     '<div class="card" id="kTg" style="margin-top:10px;padding:4px 14px">' + [['noAsk', '🔕 태블릿 등원 알림 안 묻기', '태블릿을 안 눌러도 출석부에서 등원 알림을 묻지 않아요 (보호자가 데려다주는 제자)'], ['noInfo', '📋 정보 입력이 필요 없는 제자', '출석번호·연락처가 없어도 알림 카드에 안 나와요']].map(([k, t, h]) => '<label style="display:flex;gap:10px;align-items:center;padding:10px 0;font-size:15px"><input type="checkbox" data-tg="' + k + '"' + (s[k] ? ' checked' : '') + ' style="width:22px;height:22px;accent-color:var(--brand);flex:none"><span><b>' + t + '</b><small style="display:block;color:var(--muted);font-size:12.5px">' + h + '</small></span></label>').join('') + '</div>' +
     '<div class="row" style="margin-top:12px"><button class="btn g" id="kSt" style="flex:1">회원 상태</button><button class="btn" id="kTp" style="flex:1">임시변경</button><button class="btn" id="kEd" style="flex:1">정보 수정</button></div>' +
     (log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).length ? '<h3>회원 상태 기록</h3>' + log.filter(x => isBoss() || (x.from !== '퇴관' && x.to !== '퇴관')).map(x => '<div class="kh"><b>' + esc((x.from ? x.from + ' → ' : '') + x.to) + '</b> ' + esc(x.date) + (x.why ? ' · ' + esc(x.why) : '') + '<small>' + esc(x.who || '') + '</small></div>').join('') : '') +
-    (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return L.length ? '<h3>학부모 연락</h3>' + clip('kPm' + s.id, L.map(x => pmRow(x, false)).join(''), '건') : ''; })() +
+    (() => { const L = pmList().filter(x => x.kid === s.name).slice(0, 10); return '<h3>학부모 연락</h3><button class="btn g" data-pmnew="' + esc(s.name) + '" data-pmback="' + esc(s.id) + '" style="width:100%;margin-bottom:8px">✉ 학부모님께 연락 보내기</button>' + (L.length ? clip('kPm' + s.id, L.map(x => pmRow(x, false)).join(''), '건') : ''); })() +
     (s.sb ? '<div id="kSbPh"></div>' : '') + '<div id="kSib"></div><div id="kFam"></div><div id="kGoal"></div><div id="kDocs"></div><h3>바뀐 기록</h3>' + clip('kHist' + s.id, '<p class="help">불러오는 중…</p>', '개', '', 'kHist') +
     (isBoss() ? '<div style="margin:28px 0 8px;text-align:center"><button class="btn" id="kDel" style="color:#C62828;background:#FDECEC">🗑 원생 삭제 (관리자)</button><p class="help">그만둔 제자는 보통 퇴관으로 바꿔요. 잘못 넣은 원생·시험용만 지워 주세요.</p></div>' : ''), ov => {
     ov.classList.add('full');
@@ -2925,7 +2925,7 @@ function pmThread(x0, back) {
   const draw = ov => { const x = S.pmsg.get(x0.id) || x0, R = repsOf(x);
     const bub = (me2, who, text, ids, at, emo) => '<div class="pbb ' + (me2 ? 'dj' : 'pa') + '"><div class="bx"><b>' + esc(who) + '</b>' + esc(text) + pmPhH(ids, who) + '</div><small>' + whenAt(at) + '</small>' + (emo || '') + '</div>';
     const emoRow = (i, cur) => '<div class="emo">' + PM_EMO.map(e => '<button data-emo="' + i + '|' + e + '" class="' + (cur === e ? 'on' : '') + '">' + e + '</button>').join('') + '</div>';
-    ov.querySelector('#thL').innerHTML = bub(false, x.rel || '학부모', pmLine(x) || '📷 사진', pmPhs(x), x.at, emoRow(-1, x.re)) +
+    ov.querySelector('#thL').innerHTML = (x.kind === 'dojang' ? '' : bub(false, x.rel || '학부모', pmLine(x) || '📷 사진', pmPhs(x), x.at, emoRow(-1, x.re))) +
       R.map((r, i) => r.p ? bub(false, r.by || '학부모', r.text || '📷 사진', r.phs || [], r.at, emoRow(i, r.re)) : bub(true, r.by + ' 사범님', r.text || '📷 사진', r.phs || [], r.at, r.re ? '<span class="rx">' + esc(r.re) + '</span>' : '')).join('');
     ov.querySelector('#thP').innerHTML = ph.map((p, i) => '<span><img src="data:image/jpeg;base64,' + p.thumb + '"><button data-phx="' + i + '">✕</button></span>').join('') + (ph.length < 3 ? '<label class="btn">📷 사진 (' + ph.length + '/3)<input type="file" accept="image/*" multiple id="thIn" hidden></label>' : '');
     ov.querySelectorAll('#thL img[data-ph]').forEach(loadPhoto); };
@@ -2979,11 +2979,40 @@ function pmChatRow(x) {
 function pmAllSheet() {
   const draw = ov => { const L = pmList().filter(x => x.label !== '가족 추가 요청').sort((a, b) => pmLastAt(b) - pmLastAt(a));
     ov.querySelector('#pmA').innerHTML = L.length ? L.map(pmChatRow).join('') : '<p class="empty">학부모님 연락이 없어요</p>'; };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 학부모님 연락</h2></div><div id="pmA" class="kchats"></div>', ov => {
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 학부모님 연락</h2></div><button class="big" id="pmNewB" style="margin:4px 0 10px">✉ 학부모님께 먼저 연락하기</button><div id="pmA" class="kchats"></div>', ov => {
     ov.classList.add('full'); draw(ov);
+    ov.querySelector('#pmNewB').onclick = () => kidPick('✉ 학부모님께 연락', '어느 제자 학부모님께 보낼까요? 그 제자 보호자 휴대폰(학부모 앱)으로 가요.', () => '', x => pmNewSheet(x.name, pmAllSheet));
     ov.addEventListener('click', e => { const r = e.target.closest('[data-pmc]'); if (r) pmThread(S.pmsg.get(+r.dataset.pmc), pmAllSheet); });
   });
 }
+// ✉ 도장에서 먼저 학부모님께 연락 (2026-11-20 사용자: 학부모 연락이 안 와도 보내게) → 학부모 앱 '사범님께 연락' 창 + 휴대폰 알림
+function pmNewSheet(kid, back) {
+  const ph = []; let busy = false;
+  const drawPh = ov => { ov.querySelector('#pnP').innerHTML = ph.map((p, i) => '<span><img src="data:image/jpeg;base64,' + p.thumb + '"><button data-phx="' + i + '">✕</button></span>').join('') + (ph.length < 3 ? '<label class="btn">📷 사진 (' + ph.length + '/3)<input type="file" accept="image/*" multiple id="pnIn" hidden></label>' : ''); };
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>✉ ' + esc(kid) + ' 학부모님께</h2></div>' +
+    '<div class="chips" id="pnQ">' + ['오늘 수업 정말 잘했어요 👏', '준비물 챙겨 주세요 😊', '잠깐 통화 가능하실까요?', '오늘 컨디션이 조금 안 좋아 보였어요'].map(t => '<button data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>' +
+    '<textarea class="inp" id="pnT" rows="4" maxlength="300" placeholder="학부모님께 보낼 말" style="margin-top:8px"></textarea><div class="phl" id="pnP"></div>' +
+    '<p class="help">보내면 학부모님 휴대폰에 알림이 가고, 학부모 앱 \'사범님께 연락\'에서 보고 답장할 수 있어요.</p>' +
+    '<div class="foot"><span class="sp"></span><button data-close>취소</button><button class="save" id="pnOk">보내기</button></div>', ov => {
+    drawPh(ov); if (back) sheetOnClose = () => setTimeout(back, 50);
+    ov.querySelector('#pnQ').onclick = e => { const b = e.target.closest('[data-t]'); if (b) ov.querySelector('#pnT').value = b.dataset.t; };
+    ov.addEventListener('change', async e => { if (e.target.id !== 'pnIn') return; const fs = [...e.target.files].slice(0, 3 - ph.length); if (e.target.files.length > fs.length) toast('사진은 3장까지예요');
+      for (const f of fs) { try { const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(f); });
+        const sh = (max, q) => { const r = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * r); c.height = Math.round(img.height * r); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', q).split(',')[1]; };
+        ph.push({ full: sh(1400, .8), thumb: sh(400, .7) }); } catch (_) { toast('사진을 열지 못했어요'); } }
+      drawPh(ov); });
+    ov.addEventListener('click', async e => {
+      const px = e.target.closest('[data-phx]'); if (px) { ph.splice(+px.dataset.phx, 1); return drawPh(ov); }
+      if (e.target.id !== 'pnOk' || busy) return; const t = ov.querySelector('#pnT').value.trim(); if (!t && !ph.length) return toast('보낼 말을 적거나 사진을 넣어 주세요');
+      busy = true; e.target.disabled = true; e.target.textContent = ph.length ? '사진 올리는 중…' : '보내는 중…';
+      try { const ids = []; for (const p of ph) { const u = await api('/api/photo-up', p); if (!u.ok) throw new Error(u.error || '사진을 올리지 못했어요'); ids.push(u.id); }
+        const j = await api('/api/pmsg-new', { kid, text: t, phs: ids }); if (!j.ok) throw new Error(j.error);
+        toast(j.pushed ? kid + ' 학부모님께 보냈어요' : '보냈어요 · 학부모님 알림이 꺼져 있거나 앱 가입 전이에요'); if (typeof sync === 'function') sync(); closeSheet(); }
+      catch (er) { toast(er.message || '보내지 못했어요'); busy = false; e.target.disabled = false; e.target.textContent = '보내기'; }
+    });
+  });
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-pmnew]'); if (b) { e.stopPropagation(); const bk = b.dataset.pmback; pmNewSheet(b.dataset.pmnew, bk ? () => kidSheet(bk) : null); } }, true);
 // 새 등록 서류 (원생 연결 전) — 학부모 연락처럼 대시보드에 (2026-11-13)
 function docCard() {
   if (!S.docNew || !isBoss()) return ''; // 등록 서류는 관리자만 (2026-11-13)
@@ -3476,6 +3505,10 @@ function setTab(t) {
   render(true); if (t !== 'room') { scrollTo(0, 0); const mw = document.querySelector('#app>main'); if (mw) mw.scrollTop = 0; } poll(); setBadge();
 }
 $('tabs').onclick = e => { const b = e.target.closest('button'); if (b) setTab(b.dataset.t); };
+// 2026-11-20 사용자: 스크롤이 자꾸 끊김 → 손가락으로 움직이는 중에는 새 내용으로 다시 그리지 않고, 멈춘 뒤에 그림
+let lastMove = 0, idleT = 0; ['touchstart', 'touchmove', 'wheel'].forEach(t => document.addEventListener(t, () => { lastMove = Date.now(); }, { passive: true, capture: true }));
+document.addEventListener('scroll', () => { lastMove = Date.now(); }, { passive: true, capture: true });
+function renderIdle() { clearTimeout(idleT); const w = 1200 - (Date.now() - lastMove); if (w > 0) { idleT = setTimeout(renderIdle, w); return; } render(); }
 function render(scroll) {
   if (!S.me) return;
   const t = S.tab, ae = document.activeElement;
