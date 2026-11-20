@@ -1580,7 +1580,7 @@ function gameRun(body){
   body.append(stat, tr, msg, feet, again);
   let pos = 0, last = 0, t0 = 0, tLast = 0, timer = null, done = false;
   /* 2026-11-20 사용자: 중간에 나갔다 오면 기록이 남던 것 → 달리는 중에 화면을 벗어나거나(앱 나감·꺼짐) 2.5초 넘게 멈추면 그 판은 무효 */
-  const RUN_GAP = 2500, RUN_MIN = 3;
+  const RUN_GAP = 2500; /* 3초 미만 무효는 뺌 (2026-11-20 사용자: 3초 전에도 들어와요) */
   function voidRun(why){
     if(!t0 || done) return;
     done = true; clearInterval(timer); timer = null;
@@ -1617,7 +1617,6 @@ function gameRun(body){
     done = true; clearInterval(timer);
     const sec = Math.round((performance.now()-t0)/100)/10;
     $('rnTime').textContent = sec.toFixed(1) + '초';
-    if(sec < RUN_MIN){ msg.textContent = '너무 빨라요! 기록은 남지 않아요. 왼발 · 오른발을 한 번씩 번갈아 눌러요'; feet.style.display = 'none'; again.style.display = ''; return; }
     let m = sec.toFixed(1) + '초에 들어왔어요!';
     if(!S.bestRun || sec < S.bestRun){ S.bestRun = sec; m = '새 기록! ' + m; }
     monthRec('run', Math.round(sec * 10));
