@@ -319,7 +319,7 @@ async function route(path, req, env, ctx) {
         .map(x => ({ id: x.id, title: str(x.d.title, 100), date: x.d.date || '', closed: !!x.d.closed, goods: x.d.kind === 'goods', names: [...new Set((x.d.rows || []).filter(y => y && y.name && !y.wait && !y.appCancel && !y.guest).map(y => str(y.name, 20)))] })) });
     }
     if (path === '/sync/jtpl') return json({ ok: true, tpl: await jtplGet(env) }); // 알림 관리 '알림장 쓰기' 양식
-    if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, queued: kids.length ? (await all(env, 'SELECT id, kid, due, data FROM pmsgq WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY due', ...kids)).map(r => { const d = J(r.data, {}); return { id: r.id, kid: r.kid, due: r.due, text: d.text || '', n: (d.phIds || []).length }; }) : [], msgs: kids.length ? (await all(env, "SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt, reps, ph, re FROM pmsg WHERE label <> '가족 추가 요청' AND kid IN (" + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 300', ...kids)).map(r => ({ id: r.id, kid: r.kid, dj: r.kind === 'dojang', label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, rel: r.rel || '', ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r), phs: pmPhs(r.ph), re: r.re || '', reps: J(r.reps, []).map(x => ({ p: !!x.p, by: x.p ? (x.by || '보호자') : '도장', text: x.text || '', at: x.at, phs: Array.isArray(x.phs) ? x.phs : [], re: x.re || '' })) })) : [] }); // 2026-11-19: 대화(학부모·도장)·사진 여러 장·이모티콘, 달력으로 보게 300건까지
+    if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, queued: kids.length ? (await all(env, 'SELECT id, kid, due, data FROM pmsgq WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY due', ...kids)).map(r => { const d = J(r.data, {}); return { id: r.id, kid: r.kid, due: r.due, text: [d.tpl ? (PTPL0.find(t => t.id === d.tpl) || {}).label || '' : '', d.who, d.why, d.text].filter(Boolean).join(' · '), n: (d.phIds || []).length }; }) : [], msgs: kids.length ? (await all(env, "SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt, reps, ph, re FROM pmsg WHERE label <> '가족 추가 요청' AND kid IN (" + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 300', ...kids)).map(r => ({ id: r.id, kid: r.kid, dj: r.kind === 'dojang', label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, rel: r.rel || '', ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r), phs: pmPhs(r.ph), re: r.re || '', reps: J(r.reps, []).map(x => ({ p: !!x.p, by: x.p ? (x.by || '보호자') : '도장', text: x.text || '', at: x.at, phs: Array.isArray(x.phs) ? x.phs : [], re: x.re || '' })) })) : [] }); // 2026-11-19: 대화(학부모·도장)·사진 여러 장·이모티콘, 달력으로 보게 300건까지
     if (path === '/sync/pmsg-reply' || path === '/sync/pmsg-react' || path === '/sync/pmsg-photo') return json(await pmsgParent(env, path, b, kids, ctx)); // 학부모 앱 '사범님께 연락' 대화 (2026-11-19)
     if (path === '/sync/pmsg-send') return json(b.due ? await pmsgQueue(env, b, kids) : await pmsgSend(env, b, kids, ctx)); // due = 예약 전송 (2026-11-22)
     if (path === '/sync/pmsg-cancel') { const q = await one(env, 'SELECT * FROM pmsgq WHERE id = ?', b.id | 0); if (!q || !kids.includes(q.kid)) return json({ ok: false, error: '이미 보냈거나 없는 예약이에요' }); await run(env, 'DELETE FROM pmsgq WHERE id = ?', q.id); const ph = J(q.data, {}).phIds || []; for (const id of ph) await run(env, 'DELETE FROM photos WHERE id = ?', id); return json({ ok: true }); }
@@ -1792,12 +1792,13 @@ function okDue(ms) { const d = new Date(ms + 9 * 3600e3), w = d.getUTCDay(), m =
 async function pmsgQueue(env, b, kids) {
   const kid = str(b.kid, 20); if (!kids.includes(kid)) return { ok: false, error: '제자 이름을 확인해 주세요' };
   const due = Math.floor(+b.due / 60000) * 60000, now = Date.now(), text = str(b.text, 200).trim();
-  if (!text && !(Array.isArray(b.photos) && b.photos.length)) return { ok: false, error: '보낼 내용을 적어 주세요' };
+  const tpl = (await ptplGet(env)).find(t => t.id === str(b.tpl, 20)); // 기본 연락(등원·하원·살살·결석)도 예약 가능 (2026-11-22)
+  if (!tpl && !text && !(Array.isArray(b.photos) && b.photos.length)) return { ok: false, error: '보낼 내용을 적어 주세요' };
   if (!(due > now) || due > now + 60 * 86400e3) return { ok: false, error: '예약 시간을 다시 골라 주세요' };
   if (!okDue(due)) return { ok: false, error: '예약은 평일 12시~22시 사이로 할 수 있어요' };
   if ((await one(env, 'SELECT COUNT(*) AS n FROM pmsgq WHERE kid = ?', kid)).n >= 10) return { ok: false, error: '예약한 연락이 너무 많아요. 지난 예약을 먼저 확인해 주세요' };
   const phIds = await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : [], now);
-  const data = { kid, tpl: str(b.tpl, 20), who: str(b.who, 10), why: str(b.why, 30), text, rel: str(b.rel, 10), phIds };
+  const data = { kid, tpl: tpl ? tpl.id : '', who: str(b.who, 10), why: str(b.why, 30), text, rel: str(b.rel, 10), phIds, day: isDay(b.day) ? b.day : '', swap: Array.isArray(b.swap) ? b.swap.slice(0, 5).map(x => str(x, 1)) : [] };
   await run(env, 'INSERT INTO pmsgq (kid, due, data, at) VALUES (?, ?, ?, ?)', kid, due, JSON.stringify(data), now);
   return { ok: true, queued: true, due };
 }
@@ -1805,7 +1806,7 @@ async function runPmsgQueue(env) {
   const L = await all(env, 'SELECT * FROM pmsgq WHERE due <= ? ORDER BY due LIMIT 20', Date.now());
   for (const q of L) {
     const c = await env.DB.prepare('DELETE FROM pmsgq WHERE id = ?').bind(q.id).run(); if (!(c.meta && c.meta.changes)) continue; // 두 번 보내지 않게 먼저 지움
-    const d = J(q.data, {}); try { await pmsgSend(env, { ...d, day: kstDay(), _phIds: d.phIds || [], _queued: true }, [q.kid], { waitUntil: () => {} }); } catch (_) {}
+    const d = J(q.data, {}); try { await pmsgSend(env, { ...d, day: d.day && d.day > kstDay() ? d.day : kstDay(), _phIds: d.phIds || [], _queued: true }, [q.kid], { waitUntil: () => {} }); } catch (_) {}
   }
 }
 async function pmsgSend(env, b, kids, ctx) {
