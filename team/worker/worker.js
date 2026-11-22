@@ -45,6 +45,7 @@ const SCHEMA = [
   // 쉬는 시간에 모아서 보낼 휴대폰 알림
   'CREATE TABLE IF NOT EXISTS pushq (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, at INTEGER)',
   // 직원 알림은 평일 12:00~22:00 에만 울림 — 그 밖에 생긴 알림은 사람마다 모아 두었다가 다음 평일 12시에 (2026-11-12 사용자 결정)
+  'CREATE TABLE IF NOT EXISTS pushlog (at INTEGER, mid TEXT, svc TEXT, st INTEGER, title TEXT)', // 2026-11-22: 알림이 서버에서 언제 나갔는지 (3일, 늦게 온다는 말 확인용)
   'CREATE TABLE IF NOT EXISTS pushhold (id INTEGER PRIMARY KEY AUTOINCREMENT, mid TEXT, title TEXT, body TEXT, view TEXT, at INTEGER)',
   // 청소 체크 (day: 날짜, task: 청소 이름, mid: 체크한 사람)
   'CREATE TABLE IF NOT EXISTS cleanchk (day TEXT, task TEXT, mid TEXT, at INTEGER, PRIMARY KEY (day, task))',
@@ -1563,15 +1564,17 @@ async function pushTo(env, subs, title, body, view, now) {
   let sent = 0;
   // 사람마다 가장 최근 기기 2대까지만 (예전 기기가 쌓여 12대 제한에 다른 직원이 밀리던 것, 무료 CPU 한도도 아낌 — 2026-11-13)
   const per = new Map(); [...subs].sort((a, b) => (b.created || 0) - (a.created || 0)).forEach(s => { const l = per.get(s.mid) || []; if (l.length < 2) l.push(s); per.set(s.mid, l); });
-  const pick = [...per.values()].flat().slice(0, 12), okEps = [];
+  const pick = [...per.values()].flat().slice(0, 12), okEps = [], plog = [];
   await Promise.all(pick.map(async s => {
     try {
       const aud = new URL(s.ep).origin;
       if (!auths.has(aud)) auths.set(aud, vapidHeader(s.ep, vapid));
       const res = await webPush({ endpoint: s.ep, p256dh: s.p256, auth: s.auth }, payload, await auths.get(aud));
       if (res.status === 404 || res.status === 410) await run(env, 'DELETE FROM subs WHERE ep = ?', s.ep); else if (res.ok) { sent++; okEps.push(s.ep); }
-    } catch (_) {}
+      plog.push([s.mid, aud.includes('apple') ? 'apple' : aud.includes('google') ? 'fcm' : aud.slice(8, 30), res.status]);
+    } catch (_) { plog.push([s.mid, 'err', 0]); }
   }));
+  try { const at = Date.now(); if (plog.length) await env.DB.batch([q(env, 'DELETE FROM pushlog WHERE at < ?', at - 3 * 864e5), ...plog.map(x => q(env, 'INSERT INTO pushlog (at, mid, svc, st, title) VALUES (?, ?, ?, ?, ?)', at, x[0], x[1], x[2], str(title, 40)))]); } catch (_) {}
   if (okEps.length) try { await run(env, 'UPDATE subs SET last = ? WHERE ep IN (' + okEps.map(() => '?').join(',') + ')', Date.now(), ...okEps); } catch (_) {} // 마지막으로 알림이 간 때 (설정 '직원 알림 상태')
   return { sent, total: subs.length };
 }
@@ -2315,7 +2318,7 @@ function unb64u(str) {
 }
 function hex(b) { return [...b].map(x => x.toString(16).padStart(2, '0')).join(''); }
 // ─────────── 한 파일 백업 (업무 앱 관리자가 매달 말일에 받음, 2026-11-13) — 로그인 열쇠·PIN 값은 빼고 ───────────
-const BK_SKIP = ['sessions', 'subs', 'fails', 'kiosks', 'asess', 'devices', 'pushhold', 'pushq', 'pushq2'];
+const BK_SKIP = ['sessions', 'subs', 'fails', 'kiosks', 'asess', 'devices', 'pushhold', 'pushq', 'pushq2', 'pushlog'];
 const BK_HIDE = ['salt', 'pin', 'tok', 'asrc', 'p256', 'auth', 'ep'];
 async function bkTables(env) { return (await all(env, "SELECT name FROM sqlite_master WHERE type = 'table'")).map(r => r.name).filter(n => /^[a-z0-9]+$/.test(n) && !BK_SKIP.includes(n)); }
 async function bkDump(env, table, after) {
