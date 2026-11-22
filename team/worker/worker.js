@@ -86,7 +86,7 @@ const PTPL0 = [
   { id: 'in', label: '보호자가 등원시킬게요', ask: 'who', act: 'in', reasons: [] },
   { id: 'out', label: '보호자가 하원시킬게요', ask: 'who', act: 'out', reasons: [] },
   { id: 'cond', label: '운동 살살 부탁드려요', ask: 'why', act: '', reasons: ['감기 기운이 있어요', '배가 아파요', '피곤해해요', '다친 곳이 있어요'] },
-  { id: 'abs', label: '오늘 결석해요', ask: 'why', act: 'absent', reasons: ['아파요', '가족 일정', '학교·학원 일정', '여행'] },
+  { id: 'abs', label: '결석해야 해요', ask: 'why', act: 'absent', reasons: ['아파요', '가족 일정', '학교·학원 일정', '여행'] },
 ];
 // 청소 기본 설정 (이사범님이 설정에서 바꿀 수 있음): 한 주씩 돌아가며, 요일별 청소 + 매일 쓰레기
 const CLEAN0 = { start: '2026-11-09', names: ['한코치', '이사범', '김사범'], order: [],
@@ -1733,7 +1733,7 @@ async function staffCancel(env, ev, oldD, newD, names, rm, me) {
   }
 }
 // ─────────── 학부모 연락 · 미션 ───────────
-async function ptplGet(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'ptpl'"); const l = r ? J(r.v, PTPL0) : PTPL0; const NEWL = { '오늘 컨디션이 안 좋아요': '운동 살살 부탁드려요', '오늘은 운동을 살살 부탁드려요': '운동 살살 부탁드려요', '오늘 결석할게요': '오늘 결석해요' }; return l.map(t => NEWL[t.label] ? { ...t, label: NEWL[t.label] } : t); } // 2026-11-19 사용자 문구 // 2026-11-13 문구 바꿈 (예전에 저장한 목록도)
+async function ptplGet(env) { const r = await one(env, "SELECT v FROM kv WHERE k = 'ptpl'"); const l = r ? J(r.v, PTPL0) : PTPL0; const NEWL = { '오늘 컨디션이 안 좋아요': '운동 살살 부탁드려요', '오늘은 운동을 살살 부탁드려요': '운동 살살 부탁드려요', '오늘 결석할게요': '결석해야 해요', '오늘 결석해요': '결석해야 해요' }; /* 2026-11-22 사용자: 날짜를 고르니 '오늘'을 뺌 */ return l.map(t => NEWL[t.label] ? { ...t, label: NEWL[t.label] } : t); } // 2026-11-19 사용자 문구 // 2026-11-13 문구 바꿈 (예전에 저장한 목록도)
 // 학부모 연락 짧게: '엄마 하원' · '결석 · 아파요' (업무 앱 카드·학부모 앱 목록·확인 알림이 같이 씀)
 function pmShort(m) {
   const t = m.text ? ' · ' + m.text : '';
@@ -1822,7 +1822,7 @@ async function pmsgSend(env, b, kids, ctx) {
   const text2 = sw.length ? ('이번 주만 ' + sw.join('·') + '요일로 바꿔서 올게요' + (text ? ' · ' + text : '')) : text;
   const phIds = Array.isArray(b._phIds) ? b._phIds.map(x => str(x, 20)) : await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : [], now), ph = phIds.length ? phIds.join(',') : null; // 사진 3장까지 (2026-11-19)
   await run(env, 'INSERT INTO pmsg (kid, kind, label, act, who, why, text, day, rel, at, upd, ph) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', kid, tpl ? tpl.id : 'text', label, act, who, why, text2, day, str(b.rel, 10), now, now, ph);
-  const line = kid + ' · ' + label.replace(/오늘 /, day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ') + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text2 ? ' · ' + text2 : '') + (phIds.length ? ' · 📷 사진 ' + phIds.length + '장' : '');
+  const dTxt = day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ', line = kid + ' · ' + (/오늘 /.test(label) ? label.replace(/오늘 /, dTxt) : act === 'absent' ? dTxt + label : label) + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text2 ? ' · ' + text2 : '') + (phIds.length ? ' · 📷 사진 ' + phIds.length + '장' : '');
   await addLog(env, '', 'pickup', '💬 ' + line + ' · ' + (str(b.rel, 10) || '학부모'), day);
   await pushAll(env, '', '💬 학부모 연락', line, 'home'); // 2026-11-19 사용자: 밤에도 바로 (예전엔 밤 9시~아침 8시는 모았다가 아침에 — 그래서 밤에 시험한 연락 알림이 안 왔음)
   return { ok: true };
