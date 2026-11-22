@@ -637,6 +637,9 @@
   .whband{position:absolute;left:6px;right:6px;top:80px;height:40px;background:#F1EEEB;border-radius:10px;pointer-events:none}
   .dnote{font-size:12.5px;color:var(--muted);margin:10px 2px 0;line-height:1.45}.dnote.bad{color:var(--brand);font-weight:700}
   .sheet .dsx:disabled{background:#D9D4CF}
+  .cgo2{display:flex;gap:8px;margin-top:16px}.cgo2 button{flex:1;border-radius:14px;padding:15px 8px;font:inherit;font-size:16px;font-weight:800;border:1.5px solid var(--brand)}
+  .cgo2 .pri{background:var(--brand);color:#fff}.cgo2 .sub{background:#fff;color:var(--brand)}.cgo2 button:disabled{opacity:.5}
+  .tbase{display:inline-block;margin-right:6px;padding:1px 7px;border-radius:99px;background:var(--brand-soft);color:var(--brand);font-size:11.5px;font-weight:800;vertical-align:2px}
 </style>
 </head>
 <body>
@@ -1096,7 +1099,7 @@
     if (!contact) return '';
     const KS = myKids(), M = (contact.msgs || []).filter(x => KS.includes(x.kid)), L = M.filter(x => dayOfMs(x.at) === todayK()); // 홈엔 오늘 것만, 나머지는 소식 → 사범님 연락
     const H = (myTpl || []).filter(t => t.home).slice(0, 4); // 2026-11-22 사용자: 홈 버튼 = 학부모 개인 템플릿(홈 표시 4개까지)
-    return '<section class="sec" id="secCt"><h2 class="h2s">사범님께 연락<small>' + (H.length ? '누르면 바로 보낼 수 있어요' : '자주 보내는 말은 템플릿으로 저장해 두세요') + '</small>' + (M.length ? '<button data-ctpg="" style="white-space:nowrap">지난 연락 ›</button>' : '') + '</h2><div class="cgrid">' + H.map(t => '<button data-mt="' + esc(t.id) + '">' + esc(t.text) + '</button>').join('') + '<button class="tx" data-wr>✏️ 연락 쓰기 <small>(예약 · 템플릿 · 사진 3장)</small></button></div>' +
+    return '<section class="sec" id="secCt"><h2 class="h2s">사범님께 연락<small>' + (H.length ? '누르면 바로 보낼 수 있어요' : '자주 보내는 말은 템플릿으로 저장해 두세요') + '</small>' + (M.length ? '<button data-ctpg="" style="white-space:nowrap">지난 연락 ›</button>' : '') + '</h2><div class="cgrid">' + H.map(t => '<button data-mt="' + esc(t.id) + '">' + esc(tplText(t)) + '</button>').join('') + '<button class="tx" data-wr>✏️ 연락 쓰기 <small>(사진 보낼 수 있어요. 예약, 템플릿)</small></button></div>' +
       queuedRows(KS) + L.map(x => cmsgRow(x, KS.length > 1)).join('') + '</section>';
   }
   // 다가오는 일정 + 행사 신청 (2026-11-19 사용자: 행사 신청을 일정에 연동 — 일정 옆에 '신청했어요' / '신청하기')
@@ -1164,7 +1167,7 @@
     const swapDays = () => { const d0 = new Date(st.day + 'T00:00:00Z'), mon = new Date(d0.getTime() - ((d0.getUTCDay() + 6) % 7) * 864e5); return W5.map((w, i) => ({ w, d: new Date(mon.getTime() + i * 864e5).toISOString().slice(0, 10) })).filter(x => x.d >= todayK() && x.d !== st.day); };
     const draw = () => {
       const sd = absent ? swapDays() : []; st.swap = st.swap.filter(w => sd.some(x => x.w === w));
-      sh.innerHTML = '<div class="in"><h3>' + esc(t.label) + '</h3><p class="help-l">보내면 사범님 휴대폰에 바로 알림이 가요</p>' +
+      sh.innerHTML = '<div class="in" style="max-height:92vh;overflow-y:auto"><h3>' + esc(t.label) + '</h3>' + (pre ? '<p class="help-l">보내면 사범님 휴대폰에 바로 알림이 가요</p>' : !isWork(Date.now()) ? '<div class="offb">' + ICON_CLOCK + '<span><b>지금은 쉬는 시간이에요.</b> 예약으로 보내 드릴까요?<br>' + OFF_TXT + '</span></div>' : '<p class="help-l">세부사항을 고른 뒤 아래에서 보내 주세요</p>') +
         (KS.length > 1 ? '<label class="f">누구 연락이에요?</label><div class="opts" data-g="kid">' + KS.map(kk => '<button data-v="' + esc(kk) + '" class="' + (st.kid === kk ? 'on' : '') + '">' + esc(kk) + '</button>').join('') + '</div>' : '<p class="help-l" style="margin-top:-4px"><b>' + esc(st.kid) + '</b></p>') +
         (pre && pre.noDay ? '' : '<label class="f">언제</label><div class="opts" data-g="day"><button data-v="' + todayK() + '" class="' + (st.day === todayK() ? 'on' : '') + '">오늘</button><button data-v="' + tom + '" class="' + (st.day === tom ? 'on' : '') + '">내일</button><input type="date" class="m' + (st.day !== todayK() && st.day !== tom ? ' on' : '') + '" id="cD" style="width:auto;flex:1" min="' + todayK() + '" value="' + (st.day !== todayK() && st.day !== tom ? st.day : '') + '"></div>') +
         (t.ask === 'who' ? '<label class="f">누가</label><div class="opts" data-g="who">' + (contact.rels || []).map(r => '<button data-v="' + esc(r) + '" class="' + (st.who === r ? 'on' : '') + '">' + esc(r) + '</button>').join('') + '</div>' : '') +
@@ -1175,7 +1178,7 @@
         (isText ? '<textarea class="m" id="cT" rows="4" maxlength="200" placeholder="' + esc((pre && pre.ph) || '도장에 전달할 내용을 적어 주세요 (예: 오늘은 5시에 데리러 갈게요)') + '">' + esc(st.text) + '</textarea>' : '<input class="m" id="cT" maxlength="200" value="' + esc(st.text) + '">') +
         (isText ? '<label class="f">사진 (3장까지 · 안 넣어도 돼요)</label>' + phPick(st.photos, 'cPh') : '') +
         (isText && !(pre && pre.noSave) ? '<label style="display:flex;gap:8px;align-items:center;margin:10px 4px 0;font-size:14px"><input type="checkbox" id="cS"' + (st.save ? ' checked' : '') + '> 이 말을 자주 쓰는 말로 저장 (이 휴대폰에만)</label>' + (saved.length ? '<button class="cx" id="cPhClr" style="padding:6px">자주 쓰는 말 지우기</button>' : '') : '') +
-        '<button class="btn" id="cGo">보내기</button><button class="cx" id="cX">닫기</button></div>';
+        (pre ? '<button class="btn" id="cGo">보내기</button>' : '<div class="cgo2"><button class="' + (isWork(Date.now()) ? 'sub' : 'pri') + '" id="cRes">예약하기</button><button class="' + (isWork(Date.now()) ? 'pri' : 'sub') + '" id="cGo">지금 보내기</button></div>') + '<button class="cx" id="cX">닫기</button></div>'; // 2026-11-22 사용자: 세부 선택 뒤 아래에 예약하기 · 지금 보내기
     };
     const keep = () => { const i = sh.querySelector('#cT'); if (i) st.text = i.value; const c = sh.querySelector('#cS'); if (c) st.save = c.checked; };
     // 날짜를 고르는 동안 창을 다시 그리지 않음 (달력이 닫히던 것, 2026-11-16)
@@ -1190,20 +1193,26 @@
       const px = e.target.closest('[data-phx]'); if (px) { keep(); st.photos.splice(+px.dataset.phx, 1); return draw(); }
       const b = e.target.closest('.opts button'); if (b) { keep(); const g = b.parentNode.dataset.g, v = b.dataset.v; if (g === 'day') { st.day = v; const d = sh.querySelector('#cD'); if (d) d.value = ''; if (absent && st.swapOn) return draw(); markDay(); return; } if (g === 'kid') st.kid = v; if (g === 'who') st.who = v; if (g === 'why') st.why = st.why === v ? '' : v; if (g === 'swap') st.swap = st.swap.includes(v) ? st.swap.filter(x => x !== v) : [...st.swap, v]; if (g === 'ph') st.text = saved[+v]; return draw(); }
       if (e.target.closest('#cPhClr')) { if (confirm('자주 쓰는 말을 모두 지울까요?')) { saved = []; localStorage.removeItem(PH); draw(); } return; }
-      if (e.target.closest('#cGo')) {
+      const goB = e.target.closest('#cGo'), resB = e.target.closest('#cRes');
+      if (goB || resB) {
         keep();
         if (t.ask === 'who' && !st.who) return toast('누가 오시는지 골라 주세요');
         if (t.ask === 'why' && !st.why && !st.text.trim() && !st.swap.length) return toast('사유를 고르거나 적어 주세요');
         if (absent && st.swapOn && !st.swap.length) return toast('바꿔서 올 요일을 골라 주세요');
         if (isText && !st.text.trim()) return toast('도장에 전달할 내용을 적어 주세요');
-        const btn = sh.querySelector('#cGo'); btn.disabled = true; btn.textContent = st.photos.length ? '사진 보내는 중…' : '보내는 중…';
-        try {
-          const text = ((pre && pre.prefix) || '') + st.text.trim();
-          const j = await post('/p/contact-send', { kid: st.kid, tpl: t.id, who: st.who, why: st.why, text, day: st.day, swap: st.swap, photos: st.photos.map(x => ({ full: x.full, thumb: x.thumb })) });
-          if (!j.ok) throw new Error(j.error);
-          if (isText && st.save) { saved = [st.text.trim(), ...saved.filter(x => x !== st.text.trim())].slice(0, 10); localStorage.setItem(PH, JSON.stringify(saved)); }
-          sh.remove(); toast((pre && pre.done) || '사범님께 보냈어요'); loadContact(); if (curPg === 'contact' && !$('v-page').hidden) { ctSel = todayK(); ctMon = ''; drawContact(); }
-        } catch (er) { btn.disabled = false; btn.textContent = '보내기'; toast(er.message || '잠시 후 다시 해 주세요'); }
+        const send = async due => {
+          const btn = sh.querySelector('#cGo'), rb = sh.querySelector('#cRes'); btn.disabled = true; if (rb) rb.disabled = true; const b0 = due ? rb : btn, t0 = b0.textContent; b0.textContent = st.photos.length ? '사진 보내는 중…' : '보내는 중…';
+          try {
+            const text = ((pre && pre.prefix) || '') + st.text.trim();
+            const j = await post('/p/contact-send', { kid: st.kid, tpl: t.id, who: st.who, why: st.why, text, day: st.day, swap: st.swap, due: due || 0, photos: st.photos.map(x => ({ full: x.full, thumb: x.thumb })) });
+            if (!j.ok) throw new Error(j.error);
+            if (due) { const d = kstD(due); store.set('haerang-due-hm', p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes())); }
+            if (isText && st.save) { saved = [st.text.trim(), ...saved.filter(x => x !== st.text.trim())].slice(0, 10); localStorage.setItem(PH, JSON.stringify(saved)); }
+            sh.remove(); toast(due ? dueText(due) + '에 보낼게요' : (pre && pre.done) || '사범님께 보냈어요'); loadContact(); if (curPg === 'contact' && !$('v-page').hidden) { ctSel = todayK(); ctMon = ''; drawContact(); }
+          } catch (er) { btn.disabled = false; if (rb) rb.disabled = false; b0.textContent = t0; toast(er.message || '잠시 후 다시 해 주세요'); }
+        };
+        if (resB) return pickDue(0, due => send(due));
+        return send(0);
       }
     };
     draw(); document.body.appendChild(sh);
@@ -1276,16 +1285,25 @@
   // ── 개인 템플릿: 서버(보호자마다) + 이 휴대폰에 사본 ──
   const TPK = 'haerang-my-tpl', TPL_MAX = 10, HOME_MAX = 4;
   let myTpl = store.get(TPK);
+  const openTpl = (id, kid) => isBase(id) && ((contact && contact.tpl) || []).some(x => x.id === id) ? contactSheet(id) : quickSend(id, kid); // 기본 연락은 세부 선택 창
   const newId = () => Math.random().toString(36).slice(2, 10);
-  const seedTpl = () => { // 처음 한 번: 예전 홈 버튼 4개 + 이 휴대폰 '자주 쓰는 말'을 내 템플릿으로 옮김
+  // 기본 연락 4개 (2026-11-22 사용자): 지우기·고치기 안 됨, 홈 표시만. 누르면 예전처럼 누가·사유·언제를 고름 (도장 연락 양식 id 그대로)
+  const BASE = [['in', '보호자가 등원시킬게요'], ['out', '보호자가 하원시킬게요'], ['cond', '운동 살살 부탁드려요'], ['abs', '오늘 결석해요']];
+  const isBase = id => BASE.some(b => b[0] === id);
+  const baseLabel = id => { const d = ((contact && contact.tpl) || []).find(x => x.id === id); return (d && d.label) || (BASE.find(b => b[0] === id) || [])[1] || ''; };
+  const tplText = t => isBase(t.id) ? baseLabel(t.id) : t.text;
+  const fixBase = (L, nh) => { // 기본 4개가 늘 맨 앞에 있게 (예전에 글로 옮겨 둔 것은 기본으로 바꿈)
+    L = (L || []).slice(); const out = BASE.map(([id, tx]) => { let i = L.findIndex(x => x.id === id); if (i < 0) i = L.findIndex(x => x.text === tx); const o = i >= 0 ? L.splice(i, 1)[0] : { home: !!nh }; // 없던 기본은 처음 만들 때만 홈에 return { id, text: tx, home: !!o.home }; });
+    const rest = L.filter(x => !isBase(x.id)), all = [...out, ...rest].slice(0, TPL_MAX); let n = 0; all.forEach(x => { if (x.home && ++n > HOME_MAX) x.home = false; }); return all;
+  };
+  const seedTpl = () => { // 처음 한 번: 기본 4개 + 이 휴대폰 '자주 쓰는 말'을 내 템플릿으로 옮김
     let ph = []; try { ph = JSON.parse(localStorage.getItem(PH) || '[]'); } catch (_) {}
-    const base = ['보호자가 등원시킬게요', '보호자가 하원시킬게요', '운동 살살 부탁드려요', '오늘 결석해요'];
-    return [...base.map(t => ({ id: newId(), text: t, home: true })), ...ph.filter(t => t && !base.includes(t)).map(t => ({ id: newId(), text: String(t), home: false }))].slice(0, TPL_MAX);
+    return fixBase(ph.filter(t => t && !BASE.some(b => b[1] === t)).map(t => ({ id: newId(), text: String(t), home: false })), true);
   };
   async function loadTpl() {
     if (!me()) return;
     try { const j = await post('/p/tpl-get'); if (!j.ok) return;
-      if (j.tpl) { myTpl = j.tpl; store.set(TPK, myTpl); } else { if (!myTpl) myTpl = seedTpl(); saveTpl(true); }
+      if (j.tpl) { const f = fixBase(j.tpl); const ch = JSON.stringify(f) !== JSON.stringify(j.tpl); myTpl = f; store.set(TPK, myTpl); if (ch) saveTpl(true); } else { myTpl = myTpl ? fixBase(myTpl) : seedTpl(); saveTpl(true); }
       if (tab === 'home' && !$('v-home').hidden) drawHome();
     } catch (_) {}
   }
@@ -1320,22 +1338,21 @@
   }
   // ── 홈 템플릿 버튼: 한 번 확인 후 보내기. 업무 시간 밖이면 '예약으로 도와드릴까요?' ──
   function quickSend(id) {
-    const t = (myTpl || []).find(x => x.id === id); if (!t) return;
+    const t0 = (myTpl || []).find(x => x.id === id); if (!t0) return; const t = { ...t0, text: tplText(t0) };
     if (!(me() || {}).approved) return toast('도장에서 확인이 끝나면 보낼 수 있어요');
     const KS = myKids(), st = { kid: curKid() }, off = !isWork(Date.now());
     const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
     const draw = () => {
       sh.innerHTML = '<div class="in"><h3>사범님께 보낼까요?</h3><p class="qtx">' + esc(t.text) + '</p>' +
         (KS.length > 1 ? '<div class="wkid" style="border:0">' + KS.map(kk => '<button data-k="' + esc(kk) + '" class="' + (st.kid === kk ? 'on' : '') + '">' + esc(kk) + '</button>').join('') + '</div>' : '') +
-        (off ? '<div class="offb">' + ICON_CLOCK + '<span><b>지금은 쉬는 시간이에요.</b> 예약으로 보내 드릴까요?<br>' + OFF_TXT + '</span></div><button class="btn" id="qRes">예, 예약할게요</button><button class="cx" id="qNow" style="font-weight:700;color:var(--ink)">아니요, 지금 보낼게요</button>' : '<button class="btn" id="qNow">보내기</button>') +
-        '<button class="cx" id="qEd">고쳐서 보내기</button><button class="cx" id="qX">닫기</button></div>';
+        (off ? '<div class="offb">' + ICON_CLOCK + '<span><b>지금은 쉬는 시간이에요.</b> 예약으로 보내 드릴까요?<br>' + OFF_TXT + '</span></div>' : '') +
+        '<div class="cgo2"><button class="' + (off ? 'pri' : 'sub') + '" id="qRes">예약하기</button><button class="' + (off ? 'sub' : 'pri') + '" id="qNow">지금 보내기</button></div><button class="cx" id="qX">닫기</button></div>';
     };
     sh.onclick = async e => {
       if (e.target === sh || e.target.closest('#qX')) return sh.remove();
       const k = e.target.closest('[data-k]'); if (k) { st.kid = k.dataset.k; return draw(); }
-      if (e.target.closest('#qEd')) { sh.remove(); return openWrite({ text: t.text, kid: st.kid }); }
-      if (e.target.closest('#qRes')) { sh.remove(); return pickDue(0, async due => { try { await sendMsg({ kid: st.kid, text: t.text, due }); } catch (er) { toast(er.message); } }); }
-      const b = e.target.closest('#qNow'); if (b) { b.disabled = true; b.textContent = '보내는 중…'; try { await sendMsg({ kid: st.kid, text: t.text }); sh.remove(); } catch (er) { b.disabled = false; b.textContent = off ? '아니요, 지금 보낼게요' : '보내기'; toast(er.message); } }
+      if (e.target.closest('#qRes')) return pickDue(0, async due => { try { await sendMsg({ kid: st.kid, text: t.text, due }); sh.remove(); } catch (er) { toast(er.message); } });
+      const b = e.target.closest('#qNow'); if (b) { b.disabled = true; b.textContent = '보내는 중…'; try { await sendMsg({ kid: st.kid, text: t.text }); sh.remove(); } catch (er) { b.disabled = false; b.textContent = '지금 보내기'; toast(er.message); } }
     };
     draw(); document.body.appendChild(sh);
   }
@@ -1397,8 +1414,8 @@
       if (st.mode === 'tpl') {
         const ed = st.ed ? '<div class="ted"><textarea id="tT" maxlength="200" placeholder="자주 보내는 말을 적어 주세요 (예: 오늘은 할머니가 데리러 가요)">' + esc(st.ed.text) + '</textarea><label class="wchk"><input type="checkbox" id="tH"' + (st.ed.home ? ' checked' : '') + '> 홈 화면에 표시</label><div class="row2"><button class="cx" data-tcx>취소</button><button class="btn" data-tok>저장</button></div></div>' : '';
         b = '<div class="tph"><span>내 템플릿 ' + T.length + '/' + TPL_MAX + ' · 홈 화면 ' + nH + '/' + HOME_MAX + '</span>' + (T.length < TPL_MAX && !st.ed ? '<button data-tnew>＋ 새 템플릿</button>' : '') + '</div>' + (st.ed && !st.ed.id ? ed : '') +
-          (T.length ? T.map(t => st.ed && st.ed.id === t.id ? ed : '<div class="trow"><button class="tt" data-tuse="' + esc(t.id) + '">' + esc(t.text) + '</button><div class="ta"><label class="hm"><input type="checkbox" data-thome="' + esc(t.id) + '"' + (t.home ? ' checked' : '') + '> 홈 화면에 표시</label><button data-ted="' + esc(t.id) + '">고치기</button><button data-tdel="' + esc(t.id) + '">지우기</button></div></div>').join('') : (st.ed ? '' : '<div class="empty">아직 템플릿이 없어요.<br>자주 보내는 말을 저장해 두면 한 번에 보낼 수 있어요.</div>')) +
-          '<p class="help-l">템플릿을 누르면 그 말로 연락을 쓸 수 있어요. 템플릿은 보호자님마다 따로 저장돼요.</p>';
+          (T.length ? T.map(t => st.ed && st.ed.id === t.id ? ed : '<div class="trow"><button class="tt" data-tuse="' + esc(t.id) + '">' + (isBase(t.id) ? '<span class="tbase">기본</span>' : '') + esc(tplText(t)) + '</button><div class="ta"><label class="hm"><input type="checkbox" data-thome="' + esc(t.id) + '"' + (t.home ? ' checked' : '') + '> 홈 화면에 표시</label>' + (isBase(t.id) ? '' : '<button data-ted="' + esc(t.id) + '">고치기</button><button data-tdel="' + esc(t.id) + '">지우기</button>') + '</div></div>').join('') : (st.ed ? '' : '<div class="empty">아직 템플릿이 없어요.<br>자주 보내는 말을 저장해 두면 한 번에 보낼 수 있어요.</div>')) +
+          '<p class="help-l">템플릿을 누르면 그 말로 연락을 쓸 수 있어요. \'기본\' 4개는 홈 화면 표시만 바꿀 수 있어요. 템플릿은 보호자님마다 따로 저장돼요.</p>';
       } else {
         b = (st.mode === 'res' ? '<button class="wdue" data-due>' + ICON_CLOCK + '<span>' + (st.due ? dueText(st.due) + ' 예약' : '예약시간을 설정해 주세요') + '</span>' + ICON.right + '</button>' : '') +
           (off ? '<div class="offb">' + ICON_CLOCK + '<span><b>지금은 업무 시간이 아니에요.</b> ' + OFF_TXT + (st.mode === 'now' ? '<button data-wm="res">예약으로 보내기 ›</button>' : '') + '</span></div>' : '') + kidRow +
@@ -1443,14 +1460,15 @@
       if (e.target.closest('[data-due]')) { keep(); return askDue(); }
       const px = e.target.closest('[data-phx]'); if (px) { keep(); st.photos.splice(+px.dataset.phx, 1); return draw(); }
       if (e.target.closest('#wGo') || e.target.closest('#wGo2')) return go();
-      const tu = e.target.closest('[data-tuse]'); if (tu) { const t = tplOf().find(x => x.id === tu.dataset.tuse); if (t) { st.text = t.text; st.mode = 'now'; st.save = false; draw(); } return; }
+      const tu = e.target.closest('[data-tuse]'); if (tu && isBase(tu.dataset.tuse)) { wrClose(false); return openTpl(tu.dataset.tuse); }
+      if (tu) { const t = tplOf().find(x => x.id === tu.dataset.tuse); if (t) { st.text = t.text; st.mode = 'now'; st.save = false; draw(); } return; }
       if (e.target.closest('[data-tnew]')) { keep(); st.ed = { id: '', text: '', home: false }; draw(); const t = el.querySelector('#tT'); if (t) t.focus(); return; }
       const te = e.target.closest('[data-ted]'); if (te) { keep(); const t = tplOf().find(x => x.id === te.dataset.ted); if (t) { st.ed = { ...t }; draw(); } return; }
       if (e.target.closest('[data-tcx]')) { st.ed = null; return draw(); }
       if (e.target.closest('[data-tok]')) { keep(); const x = st.ed, text = (x.text || '').trim(); if (!text) return toast('템플릿 내용을 적어 주세요');
         if (x.id) myTpl = tplOf().map(t => t.id === x.id ? { ...t, text, home: x.home } : t); else { if (tplOf().length >= TPL_MAX) return toast('템플릿은 ' + TPL_MAX + '개까지예요'); myTpl = [...tplOf(), { id: newId(), text, home: x.home }]; }
         st.ed = null; saveTpl(); toast('템플릿을 저장했어요'); draw(); if (tab === 'home') drawHome(); return; }
-      const td = e.target.closest('[data-tdel]'); if (td) { if (!confirm('이 템플릿을 지울까요?')) return; keep(); myTpl = tplOf().filter(t => t.id !== td.dataset.tdel); saveTpl(); draw(); if (tab === 'home') drawHome(); }
+      const td = e.target.closest('[data-tdel]'); if (td && !isBase(td.dataset.tdel)) { if (!confirm('이 템플릿을 지울까요?')) return; keep(); myTpl = tplOf().filter(t => t.id !== td.dataset.tdel); saveTpl(); draw(); if (tab === 'home') drawHome(); }
     };
     draw(); document.body.appendChild(el);
   }
@@ -1599,7 +1617,7 @@
     if (isAndroid && home && s.push && !store.get('haerang-x-notitip')) h += '<div class="tip"><b class="t">알림이 화면 위에 안 뜨나요?</b>갤럭시는 알림이 알림창에만 쌓이게 설정돼 있는 경우가 있어요.<ol><li><b>설정</b> → <b>애플리케이션</b> → <b>' + (standalone ? '해랑경희' : (/SamsungBrowser/i.test(ua) ? '삼성 인터넷' : 'Chrome')) + '</b></li><li><b>알림</b> → <b>알림 카테고리</b>(또는 알림 유형)</li><li><b>팝업</b>(화면 위에 표시)과 <b>소리</b> 켜기</li></ol><div class="row"><button id="hNotiTest">테스트 알림 보내기</button><button id="hNotiX">닫기</button></div></div>';
     tbody(h); cacheHomeSoon();
     $('tBody').onclick = async e => {
-      const mt = e.target.closest('[data-mt]'); if (mt) return quickSend(mt.dataset.mt);
+      const mt = e.target.closest('[data-mt]'); if (mt) return openTpl(mt.dataset.mt);
       if (e.target.closest('[data-wr]')) return openWrite();
       const qx = e.target.closest('[data-qx]'); if (qx) return cancelQ(+qx.dataset.qx, qx);
       const g = e.target.closest('[data-go-tab]'); if (g) return showTab(g.dataset.goTab);
