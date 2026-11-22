@@ -1798,7 +1798,7 @@ async function pmsgQueue(env, b, kids) {
   if (!okDue(due)) return { ok: false, error: '예약은 평일 12시~22시 사이로 할 수 있어요' };
   if ((await one(env, 'SELECT COUNT(*) AS n FROM pmsgq WHERE kid = ?', kid)).n >= 10) return { ok: false, error: '예약한 연락이 너무 많아요. 지난 예약을 먼저 확인해 주세요' };
   const phIds = await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : [], now);
-  const data = { kid, tpl: tpl ? tpl.id : '', who: str(b.who, 10), why: str(b.why, 30), text, rel: str(b.rel, 10), phIds, day: isDay(b.day) ? b.day : '', swap: Array.isArray(b.swap) ? b.swap.slice(0, 5).map(x => str(x, 1)) : [] };
+  const data = { kid, tpl: tpl ? tpl.id : '', who: str(b.who, 10), why: str(b.why, 30), text, rel: str(b.rel, 10), phIds, day: isDay(b.day) ? b.day : '', swap: Array.isArray(b.swap) ? b.swap.slice(0, 5).map(x => str(x, 10)) : [] };
   await run(env, 'INSERT INTO pmsgq (kid, due, data, at) VALUES (?, ?, ?, ?)', kid, due, JSON.stringify(data), now);
   return { ok: true, queued: true, due };
 }
@@ -1819,7 +1819,8 @@ async function pmsgSend(env, b, kids, ctx) {
   if (!b._queued && (await one(env, "SELECT COUNT(*) AS n FROM pmsg WHERE kid = ? AND at > ? AND COALESCE(kind, '') <> 'dojang'", kid, now - 3600e3)).n >= 10) return { ok: false, error: '연락을 너무 많이 보냈어요. 잠시 뒤에 해 주세요' };
   const act = tpl ? tpl.act : (!b.family && !b.dayreq ? guessAct(text) : ''); // 직접 쓴 말도 결석·하원·등원이면 저절로 나눔 (2026-11-18)
   const WK = ['월', '화', '수', '목', '금', '토'], sw = tpl && tpl.act === 'absent' && Array.isArray(b.swap) ? [...new Set(b.swap.map(x => str(x, 1)).filter(x => WK.includes(x)))].sort((x, y) => WK.indexOf(x) - WK.indexOf(y)) : []; // 이번 주만 다른 요일로 (2026-11-19)
-  const text2 = sw.length ? ('이번 주만 ' + sw.join('·') + '요일로 바꿔서 올게요' + (text ? ' · ' + text : '')) : text;
+  const swD = tpl && tpl.act === 'absent' && Array.isArray(b.swap) ? b.swap.map(x => str(x, 10)).filter(x => isDay(x) && x >= kstDay() && x <= addDays(kstDay(), 70)).sort()[0] || '' : ''; // 다른 날로 바꿔서 오기 = 날짜 (2026-11-22)
+  const text2 = swD ? ((+swD.slice(5, 7)) + '/' + (+swD.slice(8)) + '(' + dayW(swD) + ')에 대신 올게요' + (text ? ' · ' + text : '')) : sw.length ? ('이번 주만 ' + sw.join('·') + '요일로 바꿔서 올게요' + (text ? ' · ' + text : '')) : text;
   const phIds = Array.isArray(b._phIds) ? b._phIds.map(x => str(x, 20)) : await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : [], now), ph = phIds.length ? phIds.join(',') : null; // 사진 3장까지 (2026-11-19)
   await run(env, 'INSERT INTO pmsg (kid, kind, label, act, who, why, text, day, rel, at, upd, ph) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', kid, tpl ? tpl.id : 'text', label, act, who, why, text2, day, str(b.rel, 10), now, now, ph);
   const dTxt = day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ', line = kid + ' · ' + (/오늘 /.test(label) ? label.replace(/오늘 /, dTxt) : act === 'absent' ? dTxt + label : label) + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text2 ? ' · ' + text2 : '') + (phIds.length ? ' · 📷 사진 ' + phIds.length + '장' : '');
