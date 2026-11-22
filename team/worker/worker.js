@@ -52,6 +52,7 @@ const SCHEMA = [
   // 학부모 앱 '사범님께 연락' (kind: 버튼 종류, act: absent 결석 / in·out 보호자 등·하원, ack: 확인한 직원)
   'CREATE TABLE IF NOT EXISTS pmsg (id INTEGER PRIMARY KEY AUTOINCREMENT, kid TEXT, kind TEXT, label TEXT, act TEXT, who TEXT, why TEXT, text TEXT, day TEXT, rel TEXT, at INTEGER, ack TEXT, ackAt INTEGER, applied INTEGER DEFAULT 0, upd INTEGER)',
   'CREATE INDEX IF NOT EXISTS pmsg_upd ON pmsg (upd)',
+  'CREATE TABLE IF NOT EXISTS pmsgq (id INTEGER PRIMARY KEY AUTOINCREMENT, kid TEXT, due INTEGER, data TEXT, at INTEGER)', // 학부모 예약 연락 (2026-11-22): 정한 시각에 cron이 보냄
   'CREATE TABLE IF NOT EXISTS pushq2 (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, at INTEGER)', // 밤 9시~아침 8시에 온 연락 → 아침에
   'CREATE TABLE IF NOT EXISTS contracts (id TEXT PRIMARY KEY, kind TEXT, name TEXT, birth TEXT, data TEXT, sign TEXT, at INTEGER, sid TEXT, upd INTEGER, del INTEGER DEFAULT 0)', // 태블릿 등록 서류 (기본정보 + 제자희망서 서명)
   // 미션 (mode: once 한 번 / daily 기간 동안 매일) + 학부모 체크
@@ -176,7 +177,7 @@ async function renameMember(env, id, from, to) {
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
   // 2026-11-13: 하나가 실패해도 나머지는 돌게 각각 따로, 시간이 정해진 알림(runTimed)을 먼저
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate, sbMigrate, recRollover, runKidAlerts]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runPmsgQueue, runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate, sbMigrate, recRollover, runKidAlerts]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -318,9 +319,10 @@ async function route(path, req, env, ctx) {
         .map(x => ({ id: x.id, title: str(x.d.title, 100), date: x.d.date || '', closed: !!x.d.closed, goods: x.d.kind === 'goods', names: [...new Set((x.d.rows || []).filter(y => y && y.name && !y.wait && !y.appCancel && !y.guest).map(y => str(y.name, 20)))] })) });
     }
     if (path === '/sync/jtpl') return json({ ok: true, tpl: await jtplGet(env) }); // 알림 관리 '알림장 쓰기' 양식
-    if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, msgs: kids.length ? (await all(env, "SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt, reps, ph, re FROM pmsg WHERE label <> '가족 추가 요청' AND kid IN (" + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 300', ...kids)).map(r => ({ id: r.id, kid: r.kid, dj: r.kind === 'dojang', label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, rel: r.rel || '', ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r), phs: pmPhs(r.ph), re: r.re || '', reps: J(r.reps, []).map(x => ({ p: !!x.p, by: x.p ? (x.by || '보호자') : '도장', text: x.text || '', at: x.at, phs: Array.isArray(x.phs) ? x.phs : [], re: x.re || '' })) })) : [] }); // 2026-11-19: 대화(학부모·도장)·사진 여러 장·이모티콘, 달력으로 보게 300건까지
+    if (path === '/sync/ptpl') return json({ ok: true, tpl: await ptplGet(env), rels: RELS, queued: kids.length ? (await all(env, 'SELECT id, kid, due, data FROM pmsgq WHERE kid IN (' + kids.map(() => '?').join(',') + ') ORDER BY due', ...kids)).map(r => { const d = J(r.data, {}); return { id: r.id, kid: r.kid, due: r.due, text: d.text || '', n: (d.phIds || []).length }; }) : [], msgs: kids.length ? (await all(env, "SELECT id, kid, kind, label, act, who, why, text, day, rel, at, ack, ackAt, reps, ph, re FROM pmsg WHERE label <> '가족 추가 요청' AND kid IN (" + kids.map(() => '?').join(',') + ') ORDER BY id DESC LIMIT 300', ...kids)).map(r => ({ id: r.id, kid: r.kid, dj: r.kind === 'dojang', label: r.label, who: r.who, why: r.why, text: r.text, day: r.day, at: r.at, rel: r.rel || '', ack: !!r.ack, ackAt: r.ackAt, short: pmShort(r), phs: pmPhs(r.ph), re: r.re || '', reps: J(r.reps, []).map(x => ({ p: !!x.p, by: x.p ? (x.by || '보호자') : '도장', text: x.text || '', at: x.at, phs: Array.isArray(x.phs) ? x.phs : [], re: x.re || '' })) })) : [] }); // 2026-11-19: 대화(학부모·도장)·사진 여러 장·이모티콘, 달력으로 보게 300건까지
     if (path === '/sync/pmsg-reply' || path === '/sync/pmsg-react' || path === '/sync/pmsg-photo') return json(await pmsgParent(env, path, b, kids, ctx)); // 학부모 앱 '사범님께 연락' 대화 (2026-11-19)
-    if (path === '/sync/pmsg-send') return json(await pmsgSend(env, b, kids, ctx));
+    if (path === '/sync/pmsg-send') return json(b.due ? await pmsgQueue(env, b, kids) : await pmsgSend(env, b, kids, ctx)); // due = 예약 전송 (2026-11-22)
+    if (path === '/sync/pmsg-cancel') { const q = await one(env, 'SELECT * FROM pmsgq WHERE id = ?', b.id | 0); if (!q || !kids.includes(q.kid)) return json({ ok: false, error: '이미 보냈거나 없는 예약이에요' }); await run(env, 'DELETE FROM pmsgq WHERE id = ?', q.id); const ph = J(q.data, {}).phIds || []; for (const id of ph) await run(env, 'DELETE FROM photos WHERE id = ?', id); return json({ ok: true }); }
     if (path === '/sync/jcmt-alert') { // 알림장 댓글 → 직원 알림 (2026-11-19)
       const line = (kids.join('·') || '학부모') + ' ' + (str(b.rel, 10) || '보호자') + ' · ' + str(b.title, 60) + (b.pub ? '' : ' (비공개)') + ' · ' + str(b.text, 80);
       await addLog(env, '', 'notice', '💬 알림장 댓글: ' + line, ''); return json({ ok: true }); // 2026-11-19 사용자: 알림장 댓글·좋아요는 휴대폰 알림 안 울림 (알림 기록에만)
@@ -1785,6 +1787,27 @@ async function pmsgParent(env, path, b, kids, ctx) {
   ctx.waitUntil(pushAll(env, '', '💬 학부모 답장', line, 'home').catch(() => {}));
   return { ok: true };
 }
+// 학부모 예약 연락 (2026-11-22 사용자): 예약 가능 = 평일 12:00~22:00 (한국 시간). 사진은 지금 저장해 두고, 정한 시각에 cron(5분마다)이 pmsgSend로 보냄
+function okDue(ms) { const d = new Date(ms + 9 * 3600e3), w = d.getUTCDay(), m = d.getUTCHours() * 60 + d.getUTCMinutes(); return w >= 1 && w <= 5 && m >= 12 * 60 && m <= 22 * 60; }
+async function pmsgQueue(env, b, kids) {
+  const kid = str(b.kid, 20); if (!kids.includes(kid)) return { ok: false, error: '제자 이름을 확인해 주세요' };
+  const due = Math.floor(+b.due / 60000) * 60000, now = Date.now(), text = str(b.text, 200).trim();
+  if (!text && !(Array.isArray(b.photos) && b.photos.length)) return { ok: false, error: '보낼 내용을 적어 주세요' };
+  if (!(due > now) || due > now + 60 * 86400e3) return { ok: false, error: '예약 시간을 다시 골라 주세요' };
+  if (!okDue(due)) return { ok: false, error: '예약은 평일 12시~22시 사이로 할 수 있어요' };
+  if ((await one(env, 'SELECT COUNT(*) AS n FROM pmsgq WHERE kid = ?', kid)).n >= 10) return { ok: false, error: '예약한 연락이 너무 많아요. 지난 예약을 먼저 확인해 주세요' };
+  const phIds = await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : [], now);
+  const data = { kid, tpl: str(b.tpl, 20), who: str(b.who, 10), why: str(b.why, 30), text, rel: str(b.rel, 10), phIds };
+  await run(env, 'INSERT INTO pmsgq (kid, due, data, at) VALUES (?, ?, ?, ?)', kid, due, JSON.stringify(data), now);
+  return { ok: true, queued: true, due };
+}
+async function runPmsgQueue(env) {
+  const L = await all(env, 'SELECT * FROM pmsgq WHERE due <= ? ORDER BY due LIMIT 20', Date.now());
+  for (const q of L) {
+    const c = await env.DB.prepare('DELETE FROM pmsgq WHERE id = ?').bind(q.id).run(); if (!(c.meta && c.meta.changes)) continue; // 두 번 보내지 않게 먼저 지움
+    const d = J(q.data, {}); try { await pmsgSend(env, { ...d, day: kstDay(), _phIds: d.phIds || [], _queued: true }, [q.kid], { waitUntil: () => {} }); } catch (_) {}
+  }
+}
 async function pmsgSend(env, b, kids, ctx) {
   const kid = str(b.kid, 20); if (!kids.includes(kid)) return { ok: false, error: '제자 이름을 확인해 주세요' };
   const tpl = (await ptplGet(env)).find(t => t.id === str(b.tpl, 20)), text = str(b.text, 200).trim();
@@ -1792,11 +1815,11 @@ async function pmsgSend(env, b, kids, ctx) {
   const day = isDay(b.day) && b.day >= kstDay() && b.day <= addDays(kstDay(), 60) ? b.day : kstDay(), now = Date.now();
   const who = tpl && tpl.ask === 'who' ? str(b.who, 10) : '', why = tpl && tpl.ask === 'why' ? str(b.why, 30) : '';
   const label = tpl ? tpl.label : b.family ? '가족 추가 요청' : b.dayreq ? '수련 요일 변경 요청' : '직접 쓴 연락';
-  if ((await one(env, "SELECT COUNT(*) AS n FROM pmsg WHERE kid = ? AND at > ? AND COALESCE(kind, '') <> 'dojang'", kid, now - 3600e3)).n >= 10) return { ok: false, error: '연락을 너무 많이 보냈어요. 잠시 뒤에 해 주세요' };
+  if (!b._queued && (await one(env, "SELECT COUNT(*) AS n FROM pmsg WHERE kid = ? AND at > ? AND COALESCE(kind, '') <> 'dojang'", kid, now - 3600e3)).n >= 10) return { ok: false, error: '연락을 너무 많이 보냈어요. 잠시 뒤에 해 주세요' };
   const act = tpl ? tpl.act : (!b.family && !b.dayreq ? guessAct(text) : ''); // 직접 쓴 말도 결석·하원·등원이면 저절로 나눔 (2026-11-18)
   const WK = ['월', '화', '수', '목', '금', '토'], sw = tpl && tpl.act === 'absent' && Array.isArray(b.swap) ? [...new Set(b.swap.map(x => str(x, 1)).filter(x => WK.includes(x)))].sort((x, y) => WK.indexOf(x) - WK.indexOf(y)) : []; // 이번 주만 다른 요일로 (2026-11-19)
   const text2 = sw.length ? ('이번 주만 ' + sw.join('·') + '요일로 바꿔서 올게요' + (text ? ' · ' + text : '')) : text;
-  const phIds = await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : [], now), ph = phIds.length ? phIds.join(',') : null; // 사진 3장까지 (2026-11-19)
+  const phIds = Array.isArray(b._phIds) ? b._phIds.map(x => str(x, 20)) : await pmPhotoSave(env, Array.isArray(b.photos) ? b.photos : b.photo ? [b.photo] : [], now), ph = phIds.length ? phIds.join(',') : null; // 사진 3장까지 (2026-11-19)
   await run(env, 'INSERT INTO pmsg (kid, kind, label, act, who, why, text, day, rel, at, upd, ph) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', kid, tpl ? tpl.id : 'text', label, act, who, why, text2, day, str(b.rel, 10), now, now, ph);
   const line = kid + ' · ' + label.replace(/오늘 /, day === kstDay() ? '오늘 ' : (+day.slice(5, 7)) + '/' + (+day.slice(8)) + ' ') + (who ? ' (' + who + ')' : '') + (why ? ' · ' + why : '') + (text2 ? ' · ' + text2 : '') + (phIds.length ? ' · 📷 사진 ' + phIds.length + '장' : '');
   await addLog(env, '', 'pickup', '💬 ' + line + ' · ' + (str(b.rel, 10) || '학부모'), day);
