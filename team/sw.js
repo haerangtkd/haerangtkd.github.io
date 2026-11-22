@@ -1,5 +1,5 @@
 // 해랑 업무 — 홈 화면 설치 + 알림 (범위: /team/ 만)
-const CACHE = 'haerang-team-v2';
+const CACHE = 'haerang-team-v3';
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', 'config.js', 'icon-192.png']))); });
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
@@ -10,7 +10,7 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: '해랑 업무', body: e.data ? e.data.text() : '' }; }
   e.waitUntil(Promise.all([
-    self.registration.showNotification(d.title || '해랑 업무', { body: d.body || '', icon: '/team/icon-192.png', badge: '/notice/badge.png', tag: d.tag, vibrate: [150, 80, 150], data: { url: d.url || '/team/' } }),
+    self.registration.showNotification(d.title || '해랑 업무', { body: d.body || '', icon: '/team/icon-192.png', badge: '/notice/badge.png', tag: d.tag || ('team-' + Date.now()), renotify: true, silent: false, requireInteraction: false, timestamp: Date.now(), vibrate: [200, 100, 200], data: { url: d.url || '/team/' } }), // 2026-11-22: 화면 위 배너(팝업)로 뜨게 — 매번 새 알림으로 울리고 보이게
     self.clients.matchAll({ type: 'window' }).then(cs => cs.forEach(c => c.postMessage({ type: 'push' }))),
     self.navigator && self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : null,
   ]));
