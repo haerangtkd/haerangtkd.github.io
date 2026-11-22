@@ -1288,12 +1288,12 @@
   const openTpl = (id, kid) => isBase(id) && ((contact && contact.tpl) || []).some(x => x.id === id) ? contactSheet(id) : quickSend(id, kid); // 기본 연락은 세부 선택 창
   const newId = () => Math.random().toString(36).slice(2, 10);
   // 기본 연락 4개 (2026-11-22 사용자): 지우기·고치기 안 됨, 홈 표시만. 누르면 예전처럼 누가·사유·언제를 고름 (도장 연락 양식 id 그대로)
-  const BASE = [['in', '보호자가 등원시킬게요'], ['out', '보호자가 하원시킬게요'], ['cond', '운동 살살 부탁드려요'], ['abs', '오늘 결석해요']];
+  const BASE = [['in', '보호자가 등원시킬게요'], ['out', '보호자가 하원시킬게요'], ['cond', '운동 살살 부탁드려요'], ['abs', '결석해야 해요']];
   const isBase = id => BASE.some(b => b[0] === id);
   const baseLabel = id => { const d = ((contact && contact.tpl) || []).find(x => x.id === id); return (d && d.label) || (BASE.find(b => b[0] === id) || [])[1] || ''; };
   const tplText = t => isBase(t.id) ? baseLabel(t.id) : t.text;
   const fixBase = (L, nh) => { // 기본 4개가 늘 맨 앞에 있게 (예전에 글로 옮겨 둔 것은 기본으로 바꿈)
-    L = (L || []).slice(); const out = BASE.map(([id, tx]) => { let i = L.findIndex(x => x.id === id); if (i < 0) i = L.findIndex(x => x.text === tx); const o = i >= 0 ? L.splice(i, 1)[0] : { home: !!nh }; // 없던 기본은 처음 만들 때만 홈에 return { id, text: tx, home: !!o.home }; });
+    L = (L || []).slice(); const out = BASE.map(([id, tx]) => { let i = L.findIndex(x => x.id === id); if (i < 0) i = L.findIndex(x => x.text === tx || (id === 'abs' && x.text === '오늘 결석해요')); const o = i >= 0 ? L.splice(i, 1)[0] : { home: !!nh }; return { id, text: tx, home: !!o.home }; }); // 없던 기본은 처음 만들 때만 홈에
     const rest = L.filter(x => !isBase(x.id)), all = [...out, ...rest].slice(0, TPL_MAX); let n = 0; all.forEach(x => { if (x.home && ++n > HOME_MAX) x.home = false; }); return all;
   };
   const seedTpl = () => { // 처음 한 번: 기본 4개 + 이 휴대폰 '자주 쓰는 말'을 내 템플릿으로 옮김
