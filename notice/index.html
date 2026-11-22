@@ -1158,21 +1158,25 @@
   }
   function contactSheet(id, pre) {
     const s0 = me() || {}, KS = s0.children || [], isText = id === '__text', t = isText ? { id: '', label: pre && pre.title || '직접 적어서 보내기', ask: '' } : (contact.tpl || []).find(x => x.id === id); if (!t) return;
-    const st = { kid: curKid(), day: todayK(), who: t.ask === 'who' ? (s0.relation || '') : '', why: '', text: (pre && pre.text) || '', save: false, swapOn: false, swap: [], photos: [] };
+    const st = { kid: curKid(), day: todayK(), who: t.ask === 'who' ? (s0.relation || '') : '', why: '', text: (pre && pre.text) || '', save: false, swapOn: false, swap: [], swW: '', swD: '', photos: [] };
     let saved = []; try { saved = JSON.parse(localStorage.getItem(PH) || '[]'); } catch (_) {}
     const sh = document.createElement('div'); sh.className = 'sheet ev-sh';
     const tom = new Date(Date.parse(todayK()) + 864e5).toISOString().slice(0, 10);
     const absent = t.act === 'absent', W5 = ['월', '화', '수', '목', '금'];
     // 이번 주만 다른 요일로 (2026-11-19 사용자): 결석하는 날이 든 주의 남은 요일 (오늘 이후, 결석하는 날 빼고)
-    const swapDays = () => { const d0 = new Date(st.day + 'T00:00:00Z'), mon = new Date(d0.getTime() - ((d0.getUTCDay() + 6) % 7) * 864e5); return W5.map((w, i) => ({ w, d: new Date(mon.getTime() + i * 864e5).toISOString().slice(0, 10) })).filter(x => x.d >= todayK() && x.d !== st.day); };
-    const draw = () => {
-      const sd = absent ? swapDays() : []; st.swap = st.swap.filter(w => sd.some(x => x.w === w));
+    // 다른 날로 바꿔서 오기 (2026-11-22 사용자): 요일을 먼저 고르고, 밑에 휠에서 그 요일 날짜 고르기 (이번 주에 안 묶임)
+    const WDN = ['일', '월', '화', '수', '목', '금', '토'];
+    const swDates = w => { const out = []; for (let i = 0; out.length < 8 && i < 70; i++) { const d = new Date(Date.parse(todayK()) + i * 864e5).toISOString().slice(0, 10); if (WDN[new Date(d + 'T00:00:00Z').getUTCDay()] === w && d !== st.day) out.push(d); } return out; };
+    const swLab = d => (+d.slice(5, 7)) + '월 ' + (+d.slice(8)) + '일 (' + WDN[new Date(d + 'T00:00:00Z').getUTCDay()] + ')';
+    let draw = () => {
+      const sd = absent && st.swapOn && st.swW ? swDates(st.swW) : []; if (st.swD && !sd.includes(st.swD)) st.swD = sd[0] || ''; if (!st.swD && sd.length) st.swD = sd[0];
       sh.innerHTML = '<div class="in" style="max-height:92vh;overflow-y:auto"><h3>' + esc(t.label) + '</h3>' + (pre ? '<p class="help-l">보내면 사범님 휴대폰에 바로 알림이 가요</p>' : !isWork(Date.now()) ? '<div class="offb">' + ICON_CLOCK + '<span><b>지금은 쉬는 시간이에요.</b> 예약으로 보내 드릴까요?<br>' + OFF_TXT + '</span></div>' : '<p class="help-l">세부사항을 고른 뒤 아래에서 보내 주세요</p>') +
         (KS.length > 1 ? '<label class="f">누구 연락이에요?</label><div class="opts" data-g="kid">' + KS.map(kk => '<button data-v="' + esc(kk) + '" class="' + (st.kid === kk ? 'on' : '') + '">' + esc(kk) + '</button>').join('') + '</div>' : '<p class="help-l" style="margin-top:-4px"><b>' + esc(st.kid) + '</b></p>') +
         (pre && pre.noDay ? '' : '<label class="f">언제</label><div class="opts" data-g="day"><button data-v="' + todayK() + '" class="' + (st.day === todayK() ? 'on' : '') + '">오늘</button><button data-v="' + tom + '" class="' + (st.day === tom ? 'on' : '') + '">내일</button><input type="date" class="m' + (st.day !== todayK() && st.day !== tom ? ' on' : '') + '" id="cD" style="width:auto;flex:1" min="' + todayK() + '" value="' + (st.day !== todayK() && st.day !== tom ? st.day : '') + '"></div>') +
         (t.ask === 'who' ? '<label class="f">누가</label><div class="opts" data-g="who">' + (contact.rels || []).map(r => '<button data-v="' + esc(r) + '" class="' + (st.who === r ? 'on' : '') + '">' + esc(r) + '</button>').join('') + '</div>' : '') +
         (t.ask === 'why' ? '<label class="f">사유</label><div class="opts" data-g="why">' + (t.reasons || []).map(r => '<button data-v="' + esc(r) + '" class="' + (st.why === r ? 'on' : '') + '">' + esc(r) + '</button>').join('') + '</div>' : '') +
-        (absent ? '<label class="chk"><input type="checkbox" id="cSw"' + (st.swapOn ? ' checked' : '') + '> 이번 주만 다른 요일로 바꿔서 올게요</label>' + (st.swapOn ? (sd.length ? '<div class="opts" data-g="swap">' + sd.map(x => '<button data-v="' + x.w + '" class="' + (st.swap.includes(x.w) ? 'on' : '') + '">' + x.w + ' <small>' + (+x.d.slice(5, 7)) + '/' + (+x.d.slice(8)) + '</small></button>').join('') + '</div><p class="help-l">바꿔서 올 요일을 골라 주세요 (여러 날 가능). 도장에서 확인하고 맞춰 드려요.</p>' : '<p class="help-l">이번 주에 남은 요일이 없어요. 다음 주는 \'정보 확인 → 수련 요일 변경 요청\'으로 알려 주세요.</p>') : '') : '') +
+        (absent ? '<label class="chk"><input type="checkbox" id="cSw"' + (st.swapOn ? ' checked' : '') + '> 다른 날로 바꿔서 올게요</label>' + (st.swapOn ? '<label class="f">요일</label><div class="opts" data-g="swap">' + W5.map(w => '<button data-v="' + w + '" class="' + (st.swW === w ? 'on' : '') + '">' + w + '</button>').join('') + '</div>' +
+          (st.swW ? '<label class="f">날짜</label><div class="whl" id="swWh"><i class="whband"></i><div class="whc" data-c="sw">' + sd.map((d, i) => '<div data-i="' + i + '" class="' + (d === st.swD ? 'on' : '') + '">' + swLab(d) + '</div>').join('') + '</div></div><p class="help-l">' + (st.swD ? swLab(st.swD) + '에 대신 와요. ' : '') + '도장에서 확인하고 맞춰 드려요.</p>' : '<p class="help-l">대신 올 요일을 먼저 골라 주세요</p>') : '') : '') +
         (isText && saved.length ? '<label class="f">자주 쓰는 말</label><div class="opts" data-g="ph">' + saved.map((x, i) => '<button data-v="' + i + '">' + esc(x) + '</button>').join('') + '</div>' : '') +
         '<label class="f">' + (isText ? '도장에 전달할 내용' : t.ask === 'why' ? '직접 적기 (안 적어도 돼요)' : '더 남길 말 (안 적어도 돼요)') + '</label>' +
         (isText ? '<textarea class="m" id="cT" rows="4" maxlength="200" placeholder="' + esc((pre && pre.ph) || '도장에 전달할 내용을 적어 주세요 (예: 오늘은 5시에 데리러 갈게요)') + '">' + esc(st.text) + '</textarea>' : '<input class="m" id="cT" maxlength="200" value="' + esc(st.text) + '">') +
@@ -1181,30 +1185,33 @@
         (pre ? '<button class="btn" id="cGo">보내기</button>' : '<div class="cgo2"><button class="' + (isWork(Date.now()) ? 'sub' : 'pri') + '" id="cRes">예약하기</button><button class="' + (isWork(Date.now()) ? 'pri' : 'sub') + '" id="cGo">지금 보내기</button></div>') + '<button class="cx" id="cX">닫기</button></div>'; // 2026-11-22 사용자: 세부 선택 뒤 아래에 예약하기 · 지금 보내기
     };
     const keep = () => { const i = sh.querySelector('#cT'); if (i) st.text = i.value; const c = sh.querySelector('#cS'); if (c) st.save = c.checked; };
+    const draw0 = draw; draw = () => { const y = sh.querySelector('.in') ? sh.querySelector('.in').scrollTop : 0; draw0(); const w = sh.querySelector('.whc[data-c="sw"]'); if (w) { const L = absent && st.swW ? swDates(st.swW) : []; w.scrollTop = Math.max(0, L.indexOf(st.swD)) * 40; } const n = sh.querySelector('.in'); if (n) n.scrollTop = y; };
+    let swT = 0; sh.addEventListener('scroll', e => { const c = e.target.closest && e.target.closest('.whc[data-c="sw"]'); if (!c) return; clearTimeout(swT); swT = setTimeout(() => { const L = swDates(st.swW), i = Math.max(0, Math.min(L.length - 1, Math.round(c.scrollTop / 40))); st.swD = L[i] || ''; c.querySelectorAll('div').forEach(x => x.classList.toggle('on', +x.dataset.i === i)); const h = c.closest('.whl').nextElementSibling; if (h) h.textContent = (st.swD ? swLab(st.swD) + '에 대신 와요. ' : '') + '도장에서 확인하고 맞춰 드려요.'; }, 110); }, true);
     // 날짜를 고르는 동안 창을 다시 그리지 않음 (달력이 닫히던 것, 2026-11-16)
     const markDay = () => { sh.querySelectorAll('.opts[data-g="day"] button').forEach(b => b.classList.toggle('on', b.dataset.v === st.day)); const d = sh.querySelector('#cD'); if (d) d.classList.toggle('on', st.day !== todayK() && st.day !== tom); };
     sh.addEventListener('change', async e => {
       if (e.target.id === 'cD') { if (e.target.value) { st.day = e.target.value < todayK() ? todayK() : e.target.value; markDay(); if (absent && st.swapOn) { keep(); draw(); } } return; }
-      if (e.target.id === 'cSw') { keep(); st.swapOn = e.target.checked; if (!st.swapOn) st.swap = []; return draw(); }
+      if (e.target.id === 'cSw') { keep(); st.swapOn = e.target.checked; if (!st.swapOn) { st.swW = ''; st.swD = ''; } return draw(); }
       if (e.target.id === 'cPh') { keep(); await phAdd(st.photos, e.target.files); return draw(); }
     });
     sh.onclick = async e => {
       if (e.target === sh || e.target.closest('#cX')) return sh.remove();
       const px = e.target.closest('[data-phx]'); if (px) { keep(); st.photos.splice(+px.dataset.phx, 1); return draw(); }
-      const b = e.target.closest('.opts button'); if (b) { keep(); const g = b.parentNode.dataset.g, v = b.dataset.v; if (g === 'day') { st.day = v; const d = sh.querySelector('#cD'); if (d) d.value = ''; if (absent && st.swapOn) return draw(); markDay(); return; } if (g === 'kid') st.kid = v; if (g === 'who') st.who = v; if (g === 'why') st.why = st.why === v ? '' : v; if (g === 'swap') st.swap = st.swap.includes(v) ? st.swap.filter(x => x !== v) : [...st.swap, v]; if (g === 'ph') st.text = saved[+v]; return draw(); }
+      const wi = e.target.closest('.whc[data-c="sw"] div'); if (wi) { wi.parentNode.scrollTo({ top: +wi.dataset.i * 40, behavior: 'smooth' }); return; }
+      const b = e.target.closest('.opts button'); if (b) { keep(); const g = b.parentNode.dataset.g, v = b.dataset.v; if (g === 'day') { st.day = v; const d = sh.querySelector('#cD'); if (d) d.value = ''; if (absent && st.swapOn) return draw(); markDay(); return; } if (g === 'kid') st.kid = v; if (g === 'who') st.who = v; if (g === 'why') st.why = st.why === v ? '' : v; if (g === 'swap') { st.swW = v; st.swD = ''; } if (g === 'ph') st.text = saved[+v]; return draw(); }
       if (e.target.closest('#cPhClr')) { if (confirm('자주 쓰는 말을 모두 지울까요?')) { saved = []; localStorage.removeItem(PH); draw(); } return; }
       const goB = e.target.closest('#cGo'), resB = e.target.closest('#cRes');
       if (goB || resB) {
         keep();
         if (t.ask === 'who' && !st.who) return toast('누가 오시는지 골라 주세요');
-        if (t.ask === 'why' && !st.why && !st.text.trim() && !st.swap.length) return toast('사유를 고르거나 적어 주세요');
-        if (absent && st.swapOn && !st.swap.length) return toast('바꿔서 올 요일을 골라 주세요');
+        if (t.ask === 'why' && !st.why && !st.text.trim() && !st.swD) return toast('사유를 고르거나 적어 주세요');
+        if (absent && st.swapOn && !st.swD) return toast('대신 올 요일과 날짜를 골라 주세요');
         if (isText && !st.text.trim()) return toast('도장에 전달할 내용을 적어 주세요');
         const send = async due => {
           const btn = sh.querySelector('#cGo'), rb = sh.querySelector('#cRes'); btn.disabled = true; if (rb) rb.disabled = true; const b0 = due ? rb : btn, t0 = b0.textContent; b0.textContent = st.photos.length ? '사진 보내는 중…' : '보내는 중…';
           try {
             const text = ((pre && pre.prefix) || '') + st.text.trim();
-            const j = await post('/p/contact-send', { kid: st.kid, tpl: t.id, who: st.who, why: st.why, text, day: st.day, swap: st.swap, due: due || 0, photos: st.photos.map(x => ({ full: x.full, thumb: x.thumb })) });
+            const j = await post('/p/contact-send', { kid: st.kid, tpl: t.id, who: st.who, why: st.why, text, day: st.day, swap: absent && st.swapOn && st.swD ? [st.swD] : [], due: due || 0, photos: st.photos.map(x => ({ full: x.full, thumb: x.thumb })) });
             if (!j.ok) throw new Error(j.error);
             if (due) { const d = kstD(due); store.set('haerang-due-hm', p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes())); }
             if (isText && st.save) { saved = [st.text.trim(), ...saved.filter(x => x !== st.text.trim())].slice(0, 10); localStorage.setItem(PH, JSON.stringify(saved)); }
