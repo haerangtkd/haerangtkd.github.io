@@ -494,7 +494,14 @@ async function route(path, req, env) {
       await teamSync(env, '/sync/pmsg-send', { kids, kid: kids[0], tpl: '', text: rel + ' (전화 뒷자리 ' + ph + ') — 앱 주소를 보내 주시고, 가입하면 알림 관리에서 승인해 주세요', rel: p.rel, family: true });
       return json({ ok: true });
     }
-    if (['/p/contact', '/p/contact-send', '/p/contact-reply', '/p/contact-react', '/p/contact-photo', '/p/hw', '/p/hw-check'].includes(path)) {
+    if (path === '/p/tpl-get' || path === '/p/tpl-set') { // 학부모 개인 템플릿 (2026-11-22 사용자: 도장이 아니라 보호자마다 관리, 10개 · 홈 표시 4개)
+      if (path === '/p/tpl-get') { const r = await one(env, 'SELECT v FROM kv WHERE k = ?', 'ptpl:' + p.id); return json({ ok: true, tpl: r ? J(r.v, null) : null }); }
+      const L = (Array.isArray(b.tpl) ? b.tpl : []).slice(0, 10).map(x => ({ id: String((x && x.id) || '').slice(0, 12), text: String((x && x.text) || '').trim().slice(0, 200), home: !!(x && x.home) })).filter(x => x.id && x.text);
+      let n = 0; L.forEach(x => { if (x.home && ++n > 4) x.home = false; });
+      await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'ptpl:' + p.id, JSON.stringify(L));
+      return json({ ok: true, tpl: L });
+    }
+    if (['/p/contact', '/p/contact-send', '/p/contact-cancel', '/p/contact-reply', '/p/contact-react', '/p/contact-photo', '/p/hw', '/p/hw-check'].includes(path)) {
       const kst = await kidStatus(env), kids = myKids.filter(k => kst[k] !== '퇴관');
       if (path === '/p/contact') { const r = await teamSync(env, '/sync/ptpl', { kids }); return json(r.ok ? { ...r, kids } : r); }
       // 사진 3장까지 (2026-11-19 사용자 요청, 예전 1장 photo도 받음)
@@ -503,8 +510,9 @@ async function route(path, req, env) {
         return out; };
       if (path === '/p/contact-send') { // · 이번 주만 다른 요일로 (swap)
         const photos = phList(); if (!photos) return json({ ok: false, error: '사진이 너무 커요. 다른 사진으로 해 주세요' });
-        return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel, dayreq: !!b.dayreq, photos, swap: Array.isArray(b.swap) ? b.swap.slice(0, 5) : [] }));
+        return json(await teamSync(env, '/sync/pmsg-send', { kids, kid: b.kid, tpl: b.tpl, who: b.who, why: b.why, text: b.text, day: b.day, rel: p.rel, dayreq: !!b.dayreq, photos, due: +b.due || 0, swap: Array.isArray(b.swap) ? b.swap.slice(0, 5) : [] }));
       }
+      if (path === '/p/contact-cancel') return json(await teamSync(env, '/sync/pmsg-cancel', { kids, id: b.id | 0 })); // 예약 연락 취소 (2026-11-22)
       if (path === '/p/contact-reply') { const photos = phList(); if (!photos) return json({ ok: false, error: '사진이 너무 커요. 다른 사진으로 해 주세요' }); return json(await teamSync(env, '/sync/pmsg-reply', { kids, id: b.id | 0, text: b.text, rel: p.rel, photos })); } // 도장 답장에 다시 말하기 (2026-11-19)
       if (path === '/p/contact-react') return json(await teamSync(env, '/sync/pmsg-react', { kids, id: b.id | 0, i: b.i | 0, e: String(b.e || '') }));
       if (path === '/p/contact-photo') return json(await teamSync(env, '/sync/pmsg-photo', { kids, id: b.id | 0, ph: String(b.ph || ''), full: !!b.full }));
