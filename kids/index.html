@@ -127,6 +127,12 @@
   .prep .vid{display:block;text-align:center;background:#1C1A19;color:#fff;border-radius:16px;padding:12px;font-weight:900;text-decoration:none;margin-top:6px}
   .dd{background:var(--brand);color:#fff;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:900}
   .exr{background:#FFF7E6;border-radius:14px;padding:10px 12px;font-weight:800;font-size:15px}
+  /* 태권도 영어 */
+  .engt{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}.engt button{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:800}.engt button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .engh{width:100%;border:1.5px dashed var(--line);background:transparent;color:var(--muted);border-radius:14px;padding:9px;font-size:13.5px;font-weight:800;margin-bottom:4px}.engh.on{border-style:solid;border-color:var(--brand);color:var(--brand)}
+  .engr{display:flex;align-items:center;gap:10px;border-top:1px dashed var(--line);padding:11px 0}.engr .ek{flex:0 0 38%;font-size:16px;font-weight:900;word-break:keep-all}.engr .ee{flex:1;min-width:0}.engr .ee b{display:block;font-size:16px;color:var(--brand)}.engr .ee small{color:var(--muted);font-size:12.5px}
+  .engr .es{flex:none;border:0;background:rgba(164,15,22,.08);border-radius:12px;width:40px;height:40px;font-size:18px}
+  .engr.hid .ee b,.engr.hid .ee small{color:transparent;background:var(--line);border-radius:6px}.engr.hid{cursor:pointer}
   .tag{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11.5px;font-weight:900;margin-right:4px;vertical-align:1px}.tag.w{background:#E5F0FF;color:#1D63B0}.tag.s{background:#E4F4ED;color:#2F6B55}.tag.g{background:#FFF0C2;color:#8A5B00}
   /* 선범단 카드 */
   /* 선범단 카드 (2026-11-15 사용자 요청: 품 증서 카드처럼 — 빨간 표지 + 흰 신분 카드 + 아래 남색 띠) */
@@ -773,6 +779,34 @@
       (p.notes.kick ? '<div class="it"><b>🦵 발차기</b><p>' + esc(p.notes.kick) + '</p></div>' : '') + (p.notes.poom ? '<div class="it"><b>🥋 품새</b><p>' + esc(p.notes.poom) + '</p></div>' : '') +
       (p.vid ? '<a class="vid" href="' + esc(p.vid) + '" target="_blank" rel="noopener">▶ ' + esc(D.belt) + ' 품새 영상 보기</a>' : '') + (res ? '<div style="margin-top:10px">' + res + '</div>' : '') + '</section>';
   }
+  // 🔤 심사 준비 태권도 영어 (2026-11-23 사용자: 도장 벽 영어 표 그대로 · 심사 준비용) — 한글 · 영어 · 읽는 법
+  const ENG = [
+    ['기본', [['도복', 'Uniform', '유니폼'], ['띠', 'Belt', '벨트'], ['차렷', 'Attention', '어텐션'], ['경례', 'Bow', '바우'], ['일어서', 'Stand up', '스탠드 업'], ['태권도', 'Taekwondo', '태권도'], ['품새', 'Poomsae', '품새'], ['겨루기', 'Sparring', '스파링'], ['팔굽혀펴기', 'Push up', '푸쉬 업'], ['윗몸 일으키기', 'Sit up', '싯 업']]],
+    ['방향·몸', [['공격', 'Attack', '어택'], ['방어/막기', 'Block', '블락'], ['밑/아래', 'Low', '로우'], ['위', 'High', '하이'], ['앞', 'Front', '프론트'], ['뒤', 'Back', '백'], ['왼쪽', 'Left', '레프트'], ['오른쪽', 'Right', '라이트'], ['명치', 'Solar plexus', '솔라 플렉서스'], ['인중', 'Philtrum', '필트럼']]],
+    ['발차기', [['앞차기', 'Front kick', '프론트 킥'], ['돌려차기', 'Roundhouse kick', '라운드하우스 킥'], ['내려차기', 'Axe kick', '액스 킥'], ['옆차기', 'Side kick', '사이드 킥'], ['뒤차기', 'Back kick', '백 킥'], ['뒤후려차기', 'Back spin kick', '백 스핀 킥'], ['나래차기', 'Narae kick', '나래 킥'], ['앞후려차기', 'Front spin kick', '프론트 스핀 킥'], ['턴(돌개)차기', 'Tornado kick', '토네이도 킥']]],
+    ['막기', [['아래막기', 'Low block', '로우 블락'], ['몸통막기', 'Middle block', '미들 블락'], ['얼굴막기', 'High block', '하이 블락'], ['손날막기', 'Handblade block', '핸드블레이드 블락'], ['안막기', 'Inward block', '인워드 블락'], ['바깥막기', 'Outward block', '아웃워드 블락'], ['가위막기', 'Scissor block', '시저 블락'], ['산틀막기', 'Mountain shape block', '마운틴 쉐입 블락'], ['헤쳐막기', 'Scattered block', '스캐터드 블락']]],
+    ['서기', [['모아서기', 'Close stance', '클로즈 스탠스'], ['나란히서기', 'Parallel stance', '패럴렐 스탠스'], ['주춤서기', 'Riding stance', '라이딩 스탠스'], ['앞서기', 'Walking stance', '워킹 스탠스'], ['앞굽이', 'Front stance', '프론트 스탠스'], ['뒷굽이', 'Back stance', '백 스탠스'], ['꼬아서기', 'Front twist stance', '프론트 트위스트 스탠스'], ['범서기', 'Tiger stance', '타이거 스탠스'], ['학다리서기', 'Crane stance', '크레인 스탠스']]],
+    ['인사', [['어머니(아버지) 태권도 다녀왔습니다', "Mommy (Daddy), I'm back from Taekwondo!", '마미(대디) 암 백 프롬 태권도']]],
+  ];
+  let engI = 0, engHide = false;
+  const canSay = 'speechSynthesis' in window;
+  function engBody() {
+    const [, L] = ENG[engI];
+    return '<section class="card eng"><h2>🔤 태권도 영어<small>심사 준비</small></h2>' +
+      '<div class="engt">' + ENG.map((c, i) => '<button data-eg="' + i + '"' + (i === engI ? ' class="on"' : '') + '>' + esc(c[0]) + '</button>').join('') + '</div>' +
+      '<button class="engh' + (engHide ? ' on' : '') + '" data-eh>' + (engHide ? '🙈 영어 가리기 켜짐 · 누르면 보여요' : '🙈 영어 가리고 외우기') + '</button>' +
+      L.map((w, i) => '<div class="engr' + (engHide ? ' hid' : '') + '" data-er="' + i + '"><div class="ek">' + esc(w[0]) + '</div><div class="ee"><b>' + esc(w[1]) + '</b><small>' + esc(w[2]) + '</small></div>' + (canSay ? '<button class="es" data-es="' + i + '" aria-label="듣기">🔊</button>' : '') + '</div>').join('') +
+      '<p class="sub">' + (engHide ? '칸을 누르면 영어가 보여요. 먼저 말해 보고 눌러서 확인해요!' : '🔊 를 누르면 영어 소리를 들을 수 있어요') + '</p></section>';
+  }
+  function engSay(t) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'en-US'; u.rate = .85; speechSynthesis.speak(u); } catch (_) {} }
+  function prepPage() {
+    return page('📝 심사 준비', prepCard() + '<div class="engw">' + engBody() + '</div>', (e, el) => {
+      const s = e.target.closest('[data-es]'); if (s) { const w = ENG[engI][1][+s.dataset.es]; return engSay(w[1]); }
+      const g = e.target.closest('[data-eg]'); if (g) { engI = +g.dataset.eg; el.querySelector('.engw').innerHTML = engBody(); return; }
+      if (e.target.closest('[data-eh]')) { engHide = !engHide; el.querySelector('.engw').innerHTML = engBody(); return; }
+      const r = e.target.closest('.engr.hid'); if (r) r.classList.remove('hid');
+    });
+  }
   // 🏆 이달의 최우수 수련생 (2026-11-15 사용자: 매달 바뀌고 지난 기록도 보기 · 프로필 보이게 · 중고등부 하나 / 초등부 남·여 / 유치부 남·여)
   const BG5 = ['중고등부', '초등부 남', '초등부 여', '유치부 남', '유치부 여', '중고등부 남', '중고등부 여'];
   let bestI = null;
@@ -1006,7 +1040,7 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
     if (e.target.closest('#hwB,#hwAll')) return hwPage();
     const en = e.target.closest('[data-env]'); if (en) return envOpen(en.dataset.env);
     if (e.target.closest('#repB')) return reportPage();
-    if (e.target.closest('#prepB')) { const p = D.prep; if (p && !p.closed && (p.topic || p.notes.speech || p.notes.eng || p.vid || p.date)) return page('📝 심사 준비', prepCard()); return alert('이번 달 심사 준비가 아직 올라오지 않았어요'); } // 2026-11-16: 홈 심사 칸을 없애서 새 창으로
+    if (e.target.closest('#prepB')) return prepPage(); // 2026-11-23: 태권도 영어는 늘 볼 수 있게 (심사 준비가 안 올라와도 열림) // 2026-11-16: 홈 심사 칸을 없애서 새 창으로
     if (e.target.closest('#goalB')) return textSheet('🎯 내 목표', 'mygoal', 100, '예: 이번 달 돌려차기 높이 차기!');
     if (e.target.closest('#pledB')) return textSheet('⭐ 나의 선범단 다짐', 'pledge', 200, '예: 동생들에게 먼저 인사하고, 모르는 친구를 도와줄게요');
     if (e.target.closest('#allB')) return allBadgeSheet();
