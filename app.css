@@ -1171,3 +1171,18 @@ em.done{font-style:normal;display:inline-block;margin-left:6px;font-size:11px;fo
   .wc p{font-size:12.5px;letter-spacing:-.03em;word-break:break-all}
   .wc small{font-size:11px}
 }
+
+/* 처음 오시는 어머님께 */
+.fv{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.fv-c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 14px;word-break:keep-all}
+.fv-c small{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.fv-c b{display:block;font-size:16px;font-weight:900;color:var(--brand);line-height:1.4;margin:4px 0 6px}
+.fv-c p{font-size:13.5px;color:var(--ink);line-height:1.55}
+.fvq{margin-top:12px;background:var(--ink);color:#fff;border-radius:12px;padding:18px 18px 16px;word-break:keep-all}
+.fvq h3{font-size:16px;font-weight:900;margin-bottom:8px}
+.fvq ul{list-style:none;padding:0;margin:0}
+.fvq li{position:relative;padding:7px 0 7px 16px;font-size:14px;line-height:1.55;border-top:1px solid rgba(255,255,255,.12)}
+.fvq li:first-child{border-top:0}
+.fvq li::before{content:"";position:absolute;left:2px;top:15px;width:6px;height:6px;border-radius:50%;background:#E8B649}
+@media (max-width:899px){ .fvq li{white-space:pre-line} }
+@media (min-width:900px){ .fv{grid-template-columns:repeat(4,1fr)} .fv-c b{font-size:17px} .fvq{padding:22px 26px} }

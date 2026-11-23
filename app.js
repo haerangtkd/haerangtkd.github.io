@@ -302,6 +302,7 @@ function render(d){
           ${tileIds.map(id => `<a class="sc" href="${go(id)}"><span class="ic">${svg(S[id].icon)}</span>${esc(S[id].short || S[id].label)}</a>`).join('')}
         </div>
         <a class="cta-line" href="${go('contact')}">${svg('phone')}<span>상담 문의하기</span><i>›</i></a>
+        ${firstBlock(d)}
         ${classesBlock(d)}
         ${whyBlock(d)}
         ${scenesBlock(d)}
@@ -723,6 +724,15 @@ function growthSample(d){
     </div></div>`;
 }
 // 해랑경희만의 수련: 함께 배우고 → 서로 가르치고 → 바르게 자라고 → 기록하고 → 성장을 확인 (하나의 흐름으로)
+// 처음 오시는 어머님께: data.json firstVisit (도장 밖 예절 + 낯가림 걱정)
+function firstBlock(d){
+  const f = d.firstVisit; if(!f) return '';
+  const it = list(f.items).filter(x => x && x.t), q = list(f.q).filter(Boolean);
+  if(!it.length && !q.length) return '';
+  return `<div class="seg seg2"><h2>${esc(f.title || '처음 오시는 어머님께')}</h2>${f.sub ? `<p>${esc(f.sub)}</p>` : ''}</div>
+    ${it.length ? `<div class="fv">${it.map(x => `<div class="fv-c"><small>${esc(x.k || '')}</small><b>${esc(x.t)}</b><p>${esc(x.p || '')}</p></div>`).join('')}</div>` : ''}
+    ${q.length ? `<div class="fvq"><h3>${esc(f.qTitle || '')}</h3><ul>${q.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}`;
+}
 function whyBlock(d){
   const gp = d.guinnessPage || {}, gr = d.growth || {};
   const mixed = list(d.columns).find(c => /함께\s*수업|혼합\s*연령/.test(c.title || '') && c.url);
