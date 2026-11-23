@@ -1186,3 +1186,6 @@ em.done{font-style:normal;display:inline-block;margin-left:6px;font-size:11px;fo
 .fvq li::before{content:"";position:absolute;left:2px;top:15px;width:6px;height:6px;border-radius:50%;background:#E8B649}
 @media (max-width:899px){ .fvq li{white-space:pre-line} }
 @media (min-width:900px){ .fv{grid-template-columns:repeat(4,1fr)} .fv-c b{font-size:17px} .fvq{padding:22px 26px} }
+
+/* 빠른 상담 탭 숨김 (아래 체험 예약·전화·카카오톡 바와 겹쳐서, 2026-11-23) */
+.qp{display:none !important}
