@@ -1492,7 +1492,7 @@ const attAbsOf = day => ((S.attAbs || new Map()).get(day) || {}).names || [];
 // 더보기 = 지도 (2026-11-18 사용자: 헤매지 않게 영역별로 — 기능은 지우지 않고 4개 영역으로 나눔)
 const MORE_MAP = [ // 2026-11-19 사용자: ① 제자 관리 맨 앞에 제자 코드, 학부모님 연락
   ['① 제자 관리', '제자 코드 · 학부모님 연락 · 원생 정보 · 요일 · 중요사항 · 서류', [['kcode', '🔑', '제자 코드'], ['pcon', '💬', '학부모님 연락'], ['kids', '🥋', '원생'], ['note', '📌', '중요사항'], ['days', '📅', '요일 변경'], ['temp', '🗓', '임시변경'], ['pqr', '📱', '학부모 앱 QR'], ['docs', '📝', '등록 서류']]],
-  ['② 수련 · 성장', '출석 · 심사 · 기록 · 제자 앱', [['appAtt', '📋', '출석부'], ['appExam', '🏅', '심사'], ['appRec', '🏆', '기네스'], ['tword', '✍', '사범님 한마디'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지'], ['kapp', '🎽', '제자 앱 열기']]],
+  ['② 수련 · 성장', '출석 · 심사 · 기록 · 제자 앱', [['appAtt', '📋', '출석부'], ['appExam', '🏅', '심사'], ['appRec', '🏆', '기네스'], ['tword', '✍', '사범님 한마디'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지'], ['kpush', '📣', '제자 앱 알림'], ['kapp', '🎽', '제자 앱 열기']]],
   ['③ 도장 운영', '학부모 앱 · 행사 · 소식', [['appNtc', '📣', '알림 관리'], ['table', '🎟', '행사·구매'], ['notice', '📢', '공지'], ['photo', '🖼', '사진']]],
   ['④ 업무 앱 · 시스템', '내 업무 · 기록 · 설정', [['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['log', '🔔', '알림 기록'], ['widget', '📱', '위젯'], ['backup', '📦', '백업'], ['settings', '⚙', '설정']]],
 ];
@@ -1510,6 +1510,7 @@ $('v-more').onclick = async e => {
     if (k === 'hw') return hwListSheet();
     if (k === 'tword') return twSheet();
     if (k === 'kcode') return kcodeSheet();
+    if (k === 'kpush') return kpushSheet();
     if (k === 'pcon') return pmAllSheet();
     if (['kapp', 'days', 'temp', 'pqr', 'note'].includes(k)) return kidAct(k);
     if (k === 'sun') return sunSheet();
@@ -3148,6 +3149,18 @@ function hwStat(h) {
   const tgt = (h.kids || []).length ? h.kids : S.roster, n = tgt.length, kidsDone = new Set(h.chk.map(c => c.kid));
   if (h.mode === 'daily') { const td = today(), d = h.chk.filter(c => c.day === td).length; return { n, done: kidsDone.size, line: '오늘 ' + d + '명 · 한 번이라도 ' + kidsDone.size + '/' + n + '명' }; }
   return { n, done: kidsDone.size, line: kidsDone.size + '/' + n + '명 했어요' };
+}
+// 📣 제자 앱 알림 (2026-11-23 사용자: 제자 앱 알림을 켠 제자 모두에게 글 한 번 보내기)
+function kpushSheet() {
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📣 제자 앱 알림</h2></div><p class="help">제자 앱에서 알림을 켠 제자 휴대폰에 모두 가요. 학부모 앱에는 가지 않아요.</p>' +
+    '<label class="f">제목</label><input class="inp" id="kpT" maxlength="60" value="📝 심사 준비에 영어 단어가 올라왔어요!">' +
+    '<label class="f">내용</label><textarea class="inp" id="kpB" rows="4" maxlength="200">이제 심사 준비에서 영어 단어를 볼 수 있어요. 이번 심사 준비를 열심히 해서 승급할 수 있도록 해 봐요. 화이팅! 💪</textarea>' +
+    '<button class="btn g" id="kpS" style="width:100%;margin-top:12px">제자 모두에게 보내기</button>', ov => {
+    ov.querySelector('#kpS').onclick = async e => { const t = ov.querySelector('#kpT').value.trim(), b = ov.querySelector('#kpB').value.trim(); if (!t) return toast('제목을 적어 주세요');
+      if (!confirm('제자 앱 알림을 켠 제자 모두에게 보낼까요?\n\n' + t + '\n' + b)) return; e.target.disabled = true;
+      const j = await api('/api/kid-notice', { title: t, body: b }); e.target.disabled = false;
+      if (j.ok) { toast('제자 앱 ' + (j.sent || 0) + '대에 보냈어요'); closeSheet(); } else toast(j.error === 'not found' ? '업무 서버를 새로 배포해야 쓸 수 있어요' : (j.error || '보내지 못했어요')); };
+  });
 }
 // 🔑 제자 코드 만들기 (2026-11-14 사용자 결정): 이름 찾기(몇 명만 보이고 스크롤) → 만들기 → 코드. 만든 사범님 = 승인한 사람 → 업무 알림
 function kcodeSheet() {
