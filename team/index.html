@@ -564,6 +564,7 @@
   .kchat .kt span{font-size:14px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
   .kchat .kr{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;align-self:flex-start;padding-top:2px}.kchat .kr small{font-size:12px;color:var(--muted)}
   .kchat .kr em{font-style:normal;min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:#E8452C;color:#fff;font-size:12.5px;font-weight:800;line-height:22px;text-align:center;box-sizing:border-box}.kchat .kr i{font-style:normal;font-size:11.5px;color:#2E8B57}
+  .pmdn{position:fixed;inset:0;background:rgba(15,22,40,.45);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px}.pmdn>div{background:#fff;border-radius:18px;padding:18px;width:min(360px,100%)}.pmdn h3{margin:0 0 4px;font-size:19px}.pmdn .big{font-weight:700}
   .pm3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 6px}.pm3 .btn{padding:10px 2px;font-size:13.5px;font-weight:700;border-radius:11px;white-space:normal}.pmr[data-pmo]{cursor:pointer}
   .twch{display:flex;flex-wrap:wrap;gap:6px}.twch button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 11px;font-size:13.5px;font-weight:700}.twch span{font-size:13px;color:#8a8f99;align-self:center}
   .twmh{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 8px}.twmh b{font-size:16px}
@@ -2922,6 +2923,8 @@ function pkCheckAsk() {
 
 // ═════════ 학부모 연락 (학부모 앱 '사범님께 연락') ═════════
 const pmList = () => [...S.pmsg.values()].sort((a, b) => b.id - a.id);
+// 마지막 도장 말 뒤에 학부모가 다시 한 말 (확인했던 연락이 학부모 답장으로 다시 열린 것, 2026-11-23)
+const pmTail = x => { const R = repsOf(x), t = []; for (let i = R.length - 1; i >= 0 && R[i].p; i--) t.unshift(R[i]); return t.length < R.length ? t : []; };
 const repsOf = x => { if (Array.isArray(x.reps)) return x.reps; try { return JSON.parse(x.reps || '[]') || []; } catch (_) { return []; } };
 // 학부모 연락 대화 (2026-11-19 사용자): 학부모·도장이 주고받기 · 사진 3장까지 · 학부모 말에 이모티콘(알림 안 울림)
 const PM_EMO = ['👍', '❤️', '😊', '🙏'];
@@ -2936,10 +2939,10 @@ function pmThread(x0, back) {
       R.map((r, i) => r.p ? bub(false, r.by || '학부모', r.text || '📷 사진', r.phs || [], r.at, emoRow(i, r.re)) : bub(true, r.by + ' 사범님', r.text || '📷 사진', r.phs || [], r.at, r.re ? '<span class="rx">' + esc(r.re) + '</span>' : '')).join('');
     ov.querySelector('#thP').innerHTML = ph.map((p, i) => '<span><img src="data:image/jpeg;base64,' + p.thumb + '"><button data-phx="' + i + '">✕</button></span>').join('') + (ph.length < 3 ? '<label class="btn">📷 사진 (' + ph.length + '/3)<input type="file" accept="image/*" multiple id="thIn" hidden></label>' : '');
     ov.querySelectorAll('#thL img[data-ph]').forEach(loadPhoto); };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 ' + esc(x0.kid) + ' · 학부모 연락</h2></div>' + (x0.ack ? '' : '<div class="pm3" data-pm="' + x0.id + '"><button class="btn" data-pa="note">📌 중요사항에 넣기</button><button class="btn" data-pa="todo">☑ 할 일에 넣기</button><button class="btn" data-pa="0">✓ 확인만 하기</button></div>') + '<div id="thL" class="pmth"></div>' +
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💬 ' + esc(x0.kid) + ' · 학부모 연락</h2></div><div id="thL" class="pmth"></div>' +
     '<div class="chips" id="rpQ" style="margin-top:10px">' + ['네, 알겠습니다 😊', '확인했어요. 시간 맞춰 준비할게요', '어머니, 이거 맞을까요?', '가방 안에 넣어 둘게요', '쾌유를 빌어요. 다음 수업 때 봬요'].map(t => '<button data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>' +
     '<textarea class="inp" id="rpT" rows="3" maxlength="300" placeholder="학부모님께 보낼 답장" style="margin-top:8px"></textarea><div class="phl" id="thP"></div><p class="help">보내면 학부모님 휴대폰에 알림이 가고 \'확인\'으로 처리돼요. 이모티콘은 알림이 안 울려요.</p>' +
-    '<div class="foot"><span class="sp"></span><button data-close>닫기</button><button class="save" id="rpOk">보내기</button></div>', ov => {
+    '<div class="foot"><button class="btn" id="rpDone">✓ 대화 완료하기</button><span class="sp"></span><button data-close>닫기</button><button class="save" id="rpOk">보내기</button></div>', ov => {
     ov.classList.add('full'); draw(ov); if (back) sheetOnClose = () => setTimeout(back, 50);
     ov.querySelector('#rpQ').onclick = e => { const b = e.target.closest('[data-t]'); if (b) ov.querySelector('#rpT').value = b.dataset.t; };
     ov.addEventListener('change', async e => { if (e.target.id !== 'thIn') return; const fs = [...e.target.files].slice(0, 3 - ph.length); if (e.target.files.length > fs.length) toast('사진은 3장까지예요');
@@ -2948,7 +2951,12 @@ function pmThread(x0, back) {
         ph.push({ full: sh(1400, .8), thumb: sh(400, .7) }); } catch (_) { toast('사진을 열지 못했어요'); } }
       draw(ov); });
     ov.addEventListener('click', async e => {
-      if (e.target.closest('.pm3 [data-pa]')) { if (e.target.closest('[data-pa="note"]')) sheetOnClose = null; await onPmClick(e); const p3 = ov.querySelector('.pm3'); if (p3 && (S.pmsg.get(x0.id) || {}).ack) p3.remove(); return; }
+      // 2026-11-23 사용자: '대화 완료하기' → 중요사항에 넣기 · 할 일에 넣기 · 확인만 하기 고르는 창
+      if (e.target.id === 'rpDone') { const t0 = ov.querySelector('#rpT').value.trim(); if ((t0 || ph.length) && !confirm('적어 둔 답장을 아직 안 보냈어요. 보내지 않고 대화를 끝낼까요?')) return;
+        const d = document.createElement('div'); d.className = 'pmdn'; d.innerHTML = '<div><h3>대화를 끝낼게요</h3><p class="help">' + esc(x0.kid) + ' 학부모 연락을 어떻게 처리할까요?</p><button class="big" data-dn="note">📌 중요사항에 넣기</button><button class="big" data-dn="todo">☑ 할 일에 넣기</button><button class="big" data-dn="0">✓ 확인만 하기</button><button class="big" data-dn="x" style="background:none;color:var(--muted)">아직이요</button></div>';
+        ov.appendChild(d); return; }
+      const dn = e.target.closest('[data-dn]'); if (dn || e.target.classList.contains('pmdn')) { const pd = ov.querySelector('.pmdn'); const a = dn ? dn.dataset.dn : 'x'; if (a === 'x') return pd && pd.remove();
+        dn.disabled = true; if (a === 'note') { sheetOnClose = null; return pmAct(x0.id, 'note'); } return pmAct(x0.id, a, dn, () => closeSheet()); }
       const px = e.target.closest('[data-phx]'); if (px) { ph.splice(+px.dataset.phx, 1); return draw(ov); }
       const em = e.target.closest('[data-emo]'); if (em) { const [i, emo] = em.dataset.emo.split('|'), x = S.pmsg.get(x0.id) || x0, R = repsOf(x), cur = +i < 0 ? x.re : (R[+i] || {}).re, val = cur === emo ? '' : emo;
         const j = await api('/api/pmsg-react', { id: x0.id, i: +i, e: val }); if (!j.ok) return toast(j.error); if (+i < 0) x.re = val; else x.reps = JSON.stringify(j.reps); return draw(ov); }
@@ -2968,6 +2976,12 @@ function pmRow(x, withBtns) {
   const reps = repsOf(x), last = reps.slice(-2), repH = reps.length ? '<div class="pmreps">' + (reps.length > 2 ? '<div style="color:var(--muted)">… 대화 ' + (reps.length + 1) + '개</div>' : '') + last.map(r => '<div><b>' + (r.p ? '↳ ' + esc(r.by || '학부모') : '↳ ' + esc(r.by)) + '</b> ' + esc(r.text || '📷 사진') + ((r.phs || []).length ? ' 📷' : '') + (r.re ? ' ' + esc(r.re) : '') + ' <small>' + whenAt(r.at) + '</small></div>').join('') + '</div>' : '';
   const re = reps.length && reps[reps.length - 1].p ? ' <span class="tag r">학부모 답장</span>' : '';
   const phH = pmPhH(pmPhs(x), '학부모');
+  const tl = pmTail(x);
+  if (withBtns && !x.ack && tl.length) { const la = tl[tl.length - 1].at, d2 = dayOf(la), dl2 = d2 === t ? '오늘' : md(d2); // 2026-11-23 사용자: 확인한 연락이 다시 뜨면 새로 온 말이 크게, 앞 연락은 작게
+    return '<div class="cki" data-pm="' + x.id + '"><div class="kd">💬 학부모 답장 <span class="tag r">새로 온 말</span></div><div class="ch"><b>' + esc(x.kid) + '</b><span class="dchip r">' + dl2 + '</span><span class="when">' + esc(tl[tl.length - 1].by || '학부모') + ' · ' + whenAt(la) + '</span></div>' +
+      '<p>' + tl.map(r => esc(r.text || '📷 사진') + ((r.phs || []).length && r.text ? ' 📷' : '')).join('<br>') + '</p>' +
+      '<div class="pmreps"><div style="color:var(--muted)">앞 연락 ' + md(dayOf(x.at)) + ' · ' + esc(pmLine(x) || '📷 사진') + '</div>' + (x.pack ? '<div style="color:var(--muted)">↳ ' + esc(x.pack) + '님이 처리했어요</div>' : '') + '</div>' +
+      '<div class="pm4"><button class="btn" data-pa="note">📌 중요사항에 넣기</button><button class="btn" data-pa="todo">☑ 할 일에 넣기</button><button class="btn" data-pa="0">✓ 확인만 하기</button><button class="btn g" data-pa="rep">💬 직접 답장하기</button></div></div>'; }
   if (withBtns && !x.ack) return '<div class="cki" data-pm="' + x.id + '"><div class="kd">💬 학부모 연락' + re + '</div><div class="ch"><b>' + esc(x.kid) + '</b><span class="dchip' + (x.act === 'absent' ? ' r' : '') + '">' + dl + '</span><span class="when">' + esc(x.rel || '학부모') + ' · ' + whenAt(x.at) + '</span></div><p>' + esc(pmLine(x)) + (x.re ? ' ' + esc(x.re) : '') + '</p>' + phH + repH + (x.act === 'absent' && x.kind !== 'text' && !x.applied ? '<p class="help" style="margin:0 0 4px">📋 어느 버튼을 눌러도 출석부·픽업표 결석에 저절로 들어가요</p>' : '') +
     '<div class="pm4"><button class="btn" data-pa="note">📌 중요사항에 넣기</button><button class="btn" data-pa="todo">☑ 할 일에 넣기</button><button class="btn" data-pa="0">✓ 확인만 하기</button><button class="btn g" data-pa="rep">💬 직접 답장하기</button></div></div>';
   return '<div class="pmr' + (x.ack ? ' ok' : '') + '" data-pm="' + x.id + '" data-pmo="1"><div class="pt"><b>' + esc(x.kid) + '</b> <span class="tag' + (x.act === 'absent' ? ' r' : x.act ? ' y' : '') + '">' + dl + '</span><p>' + esc(pmLine(x)) + '</p>' + phH + '<small>' + esc(x.rel || '학부모') + ' · ' + hm(x.at) + (x.at < Date.now() - 864e5 ? ' · ' + md(dayOf(x.at)) : '') + (x.ack ? ' · ' + esc(x.ack) + ' 확인' + (x.applied ? ' · 넣음' : '') : '') + ' · 💬 대화 ›</small>' + repH + '</div>' +
@@ -3034,16 +3048,20 @@ function pmCard() {
 }
 async function onPmClick(e) {
   const b = e.target.closest('[data-pa]'); if (!b) return false; const id = +b.closest('[data-pm]').dataset.pm;
-  if (b.dataset.pa === 'rep') { pmThread(S.pmsg.get(id)); return true; }
-  if (b.dataset.pa === 'note') { // 원생 중요사항 (내용·날짜·알림을 직원이 확인하고 넣기)
+  return pmAct(id, b.dataset.pa, b);
+}
+async function pmAct(id, pa, b, after) {
+  if (pa === 'rep') { pmThread(S.pmsg.get(id)); return true; }
+  if (pa === 'note') { // 원생 중요사항 (내용·날짜·알림을 직원이 확인하고 넣기)
     const x = S.pmsg.get(id); if (!x) return true; if (!S.kids) await loadKids(true);
     const s = (S.kids || []).find(k => k.name === x.kid && k.status !== '퇴관'); if (!s) { toast(x.kid + ' 원생 정보를 찾지 못했어요'); return true; }
-    noteSheet(s.id, { text: pmLine(x) || x.text || '', day: x.day, alarm: x.act === 'out', title: '학부모 연락: ' + pmLine(x), onSaved: async () => {
+    const tl = pmTail(x), nt = tl.length ? tl.map(r => r.text).filter(Boolean).join(' / ') : pmLine(x) || x.text || ''; // 다시 열린 연락은 새로 온 말·그날로
+    noteSheet(s.id, { text: nt, day: tl.length ? dayOf(tl[tl.length - 1].at) : x.day, alarm: tl.length ? /하원/.test(nt) : x.act === 'out', title: '학부모 연락: ' + nt, onSaved: async () => {
       const j = await api('/api/pmsg-ack', { id, noted: true }); if (!j.ok) return toast(j.error); const y = S.pmsg.get(id); if (y) { y.ack = S.me.name; y.applied = 1; } closeSheet(); toast('중요사항에 넣었어요'); await sync(); render(); } });
     return true; }
-  const todo = b.dataset.pa === 'todo';
-  b.disabled = true; const j = await api('/api/pmsg-ack', { id, todo }); if (!j.ok) { toast(j.error); b.disabled = false; return true; }
-  const x = S.pmsg.get(id); if (x) { x.ack = S.me.name; x.applied = todo ? 1 : x.applied; } toast(todo ? '할 일에 넣었어요' : '확인했어요'); await sync(); render(); return true;
+  const todo = pa === 'todo';
+  if (b) b.disabled = true; const j = await api('/api/pmsg-ack', { id, todo }); if (!j.ok) { toast(j.error); if (b) b.disabled = false; return true; }
+  const x = S.pmsg.get(id); if (x) { x.ack = S.me.name; x.applied = todo ? 1 : x.applied; } toast(todo ? '할 일에 넣었어요' : '확인했어요'); if (after) after(); await sync(); render(); return true;
 }
 // 조율할게요: 날짜·누가·내용을 고쳐서 넣기
 function pmAdjust(x) {
