@@ -989,6 +989,11 @@ async function route(path, req, env, ctx) {
     const sb = await sbNames(env), st = await sunStatus(env, sb);
     return json({ ok: true, month: mon, list: L, sb, st, need: SUN_NEED });
   }
+  if (path === '/api/kid-notice') { // 📣 제자 앱 알림 켠 제자 모두에게 (2026-11-23)
+    const t = str(b.title, 60).trim(), body = str(b.body, 200).trim(); if (!t) return json({ ok: false, error: '제목을 적어 주세요' });
+    const r = await kidPushMany(env, [], { title: t, body }); if (r.ok === false) return json({ ok: false, error: r.error || '알림 서버에 보내지 못했어요' });
+    notify(me.name + ' · 제자 앱', '📣 제자 앱 알림: ' + t, 'home'); return json({ ok: true, sent: r.sent || 0 });
+  }
   if (path === '/api/hw-del') { await run(env, 'UPDATE hw SET del = 1, upd = ? WHERE id = ?', Date.now(), str(b.id, 40)); return json({ ok: true }); }
   if (path === '/api/clean-check') { // 그 주 청소 담당자만 체크
     const wk = /^w:\d{4}-\d{2}-\d{2}$/.test(String(b.day || '')), day = wk ? b.day : isDay(b.day) ? b.day : kstDay(), task = str(b.task, 40), c = await cleanConf(env), who = cleanWho(c, wk ? day.slice(2) : day);
