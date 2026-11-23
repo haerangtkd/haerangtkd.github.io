@@ -59,14 +59,28 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 .nb{position:absolute;bottom:14px;z-index:21;border:0;width:50px;height:50px;border-radius:50%;background:rgba(0,0,0,.05);font:inherit;font-size:26px;font-weight:700;color:var(--ink);cursor:pointer}
 .stage.dkon .nb{background:rgba(255,255,255,.1);color:#fff}
 #pv{left:28px}#nx{right:28px}
+.mbtn{position:absolute;left:92px;bottom:18px;z-index:21;border:0;height:42px;padding:0 18px;border-radius:21px;background:rgba(0,0,0,.06);font:inherit;font-size:17px;font-weight:700;color:var(--ink);cursor:pointer}
+.stage.dkon .mbtn{background:rgba(255,255,255,.12);color:#fff}
+.mpanel{position:absolute;inset:0;z-index:40;background:rgba(17,17,17,.82);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .3s,visibility 0s .3s}
+.mpanel.on{opacity:1;visibility:visible;transition:opacity .3s}
+.mpanel .box{background:#fff;border-radius:18px;padding:46px 54px;width:1100px}
+.mpanel h3{font-size:34px;font-weight:900;margin-bottom:8px}
+.mpanel p.sub{font-size:18px;color:var(--muted);margin-bottom:28px}
+.mpanel .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mpanel .grid button{border:2px solid var(--line);background:#fff;border-radius:12px;padding:20px 22px;font:inherit;font-size:22px;font-weight:700;text-align:left;cursor:pointer;color:var(--ink)}
+.mpanel .grid button:active{border-color:var(--red);color:var(--red)}
+.mpanel .close{margin-top:26px;border:0;background:var(--ink);color:#fff;border-radius:10px;padding:14px 30px;font:inherit;font-size:19px;font-weight:700;cursor:pointer}
+.xtag{position:absolute;top:18px;left:50%;transform:translateX(-50%);z-index:21;background:var(--red);color:#fff;border-radius:20px;padding:8px 20px;font-size:16px;font-weight:700;display:none}
+.stage.xon .xtag{display:block}
+.stage.xon .dots{opacity:.35}
 .hint{position:absolute;right:100px;bottom:26px;font-size:15px;color:var(--muted);z-index:21;animation:nudge 1.6s ease-in-out infinite}
 @keyframes nudge{50%{transform:translateX(8px)}}
 .copy{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:12px;color:#BBB;letter-spacing:.1em;pointer-events:none}
 .dk .copy{color:#555}
 
 /* 1 Q&A */
-.qa{margin-top:40px;display:flex;flex-direction:column;gap:46px}
-.qa p{font-size:42px;font-weight:500}
+.qa{margin-top:20px;display:flex;flex-direction:column;gap:30px}
+.qa p{font-size:38px;font-weight:500;line-height:1.45}
 .qa p b{font-weight:800}
 
 /* 2 해랑경희란 */
@@ -281,6 +295,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
     <p data-a style="--d:400">Q2. 지금까지 해 본 <b class="u" style="--d:400">운동이나 수련 경험</b>이 있나요? 얼마나 해 보셨나요?</p>
     <p data-a style="--d:600">Q3. 아이의 <b class="u" style="--d:600">성향이나 건강</b>에서 미리 알아 두어야 할 점이 있나요?</p>
     <p data-a style="--d:800">Q4. 태권도를 통해 아이가 <b class="u" style="--d:800">어떤 모습으로 성장</b>했으면 좋겠다고 생각하세요?</p>
+    <p data-a style="--d:1000">Q5. <b class="u" style="--d:1000">차량</b>을 이용하실 계획인가요?<br>이용하신다면 수업에 올 수 있는 <b class="u" style="--d:1000">시간대</b>는 언제인가요?</p>
   </div>
   <img class="mg" src="../../../img/brand/magnolia-black.png" alt="" style="right:80px;bottom:60px;width:170px;opacity:.35" data-a="r">
 </section>
@@ -329,7 +344,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 3. 이 생각에서 시작됩니다 -->
-<section class="s dk" data-n="교육의 시작">
+<section class="s dk" data-n="교육의 시작" data-x>
   <img class="wm" src="../../../img/brand/wordmark-white.png" alt="">
   <div class="dh" data-a="l"><small>WHY · 왜 가르치나요?</small><h2>해랑경희의 교육은 이 생각에서 시작됩니다</h2></div>
   <div class="big-list bar-l">
@@ -340,7 +355,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 4. 수련의 목적 -->
-<section class="s" data-n="수련의 목적">
+<section class="s" data-n="수련의 목적" data-x>
   <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>해랑경희 교육</span><span class="sub">1. 무엇을 기르나요?</span></div>
   <div class="icons" style="margin-top:20px">
     <figure data-a="pop" style="--d:200"><div class="ic r" style="--d:200"><svg><use href="#i-act"/></svg></div><figcaption>건강한 신체발달</figcaption></figure>
@@ -356,7 +371,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 5. 무엇을 가르치나요 -->
-<section class="s" data-n="교육 내용">
+<section class="s" data-n="교육 내용" data-x>
   <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>해랑경희 교육</span><span class="sub">2. 어떻게 가르치나요?</span></div>
   <div class="three sm">
     <figure data-a style="--d:200"><div class="ic o" style="--d:200"><svg><use href="#i-target"/></svg></div><figcaption>태권도 기술</figcaption><ul><li>품새</li><li>겨루기</li><li>격파 · 시범</li><li>태권호신술</li></ul></figure>
@@ -372,7 +387,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 6. 마음을 키우는 방법 -->
-<section class="s dk" data-n="마음의 성장">
+<section class="s dk" data-n="마음의 성장" data-x>
   <img class="wm" src="../../../img/brand/wordmark-white.png" alt="">
   <div class="dh" data-a="l"><small>MIND &amp; TAEKWONDO</small><h2>태권도가 마음을 키우는 방법</h2></div>
   <div class="two-col">
@@ -386,7 +401,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 8. 지도진 -->
-<section class="s dk" id="c8" data-n="지도진">
+<section class="s dk" id="c8" data-n="지도진" data-x>
   <img class="wm" src="../../../img/brand/wordmark-white.png" alt="">
   <div class="dh" data-a="l"><small>OUR TEAM</small><h2>지도진 소개</h2></div>
   <div class="mphoto" data-a="l" style="--d:200"><img id="mImg" src="../../../photos/master-2.jpg" alt=""></div>
@@ -407,14 +422,14 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 9. 요일별 프로그램 -->
-<section class="s" id="c9" data-n="요일별 프로그램">
+<section class="s" id="c9" data-n="요일별 프로그램" data-x>
   <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>수련 프로그램</span><span class="sub">요일마다 다른 수업</span></div>
   <div class="tabs" data-a style="--d:150"><button data-t="0" class="on">초등부</button><button data-t="1">유치부</button><button data-t="2">중고등부</button></div>
   <div id="prog"></div>
 </section>
 
 <!-- 10. 띠 시스템 -->
-<section class="s" data-n="띠 시스템">
+<section class="s" data-n="띠 시스템" data-x>
   <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>띠 시스템</span><span class="sub">운동 점진성의 원리에 따라 한 단계씩</span></div>
   <div class="belt-top" data-a style="--d:150">
     <h3>유급자 과정<small>12개월 · 각 1개월</small></h3>
@@ -431,7 +446,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 11. 선범단 -->
-<section class="s dk" id="c11" data-n="선범단">
+<section class="s dk" id="c11" data-n="선범단" data-x>
   <img class="wm" src="../../../img/brand/wordmark-white.png" alt="">
   <div class="dh" data-a="l"><small>HAERANG LEADERS</small><h2>해랑경희 교육의 정수, 선범단</h2></div>
   <ul class="num bar-l" id="ldr">
@@ -457,7 +472,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 학부모 소통 -->
-<section class="s" data-n="학부모 소통">
+<section class="s" data-n="학부모 소통" data-x>
   <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>학부모님과의 소통</span><span class="sub">해랑경희 학부모 앱</span></div>
   <div class="app">
     <div class="phone" data-a="pop" style="--d:200"><div class="scr">
@@ -511,7 +526,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <!-- 7. 태권도만의 매력 -->
-<section class="s" data-n="태권도의 매력">
+<section class="s" data-n="태권도의 매력" data-x>
   <div class="lb" data-a="l"><span class="tab"><img src="../../../img/brand/wordmark-white.png" alt=""><i></i>태권도만의 매력</span></div>
   <div class="charm-n" data-a style="--d:200">
     <div class="n"><span class="cnt" data-to="30">0</span><small>여 개</small></div>
@@ -537,6 +552,9 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 </section>
 
 <div class="dots" id="dots"></div>
+<button class="mbtn" id="mb">☰ 자료 더 보기</button>
+<div class="xtag" id="xt">추가 자료 · 화면을 누르면 돌아가요</div>
+<div class="mpanel" id="mp"><div class="box"><h3>자료 더 보기</h3><p class="sub">상담 중 필요한 자료만 골라서 보여 주세요.</p><div class="grid" id="mg"></div><button class="close" id="mc">닫기</button></div></div>
 <button class="nb" id="pv" aria-label="앞">‹</button><button class="nb" id="nx" aria-label="다음">›</button>
 <div class="hint" id="hint">화면을 밀거나 눌러서 넘겨 주세요 ›</div>
 <div class="copy">COPYRIGHT · ALL RIGHT RESERVED BY HAERANG TAEKWONDO</div>
@@ -544,8 +562,8 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
 
 <script>
 (() => {
-  const st = document.getElementById('st'), S = [...st.querySelectorAll('.s')], dots = document.getElementById('dots');
-  let i = 0;
+  const st = document.getElementById('st'), ALL = [...st.querySelectorAll('.s')], S = ALL.filter(s => !s.hasAttribute('data-x')), X = ALL.filter(s => s.hasAttribute('data-x')), dots = document.getElementById('dots');
+  let i = 0, cur = null;
   function fit() { st.style.setProperty('--k', Math.min(innerWidth / 1600, innerHeight / 900)); }
   addEventListener('resize', fit); fit();
   dots.innerHTML = S.map(() => '<i></i>').join('');
@@ -569,7 +587,7 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
     document.querySelectorAll('.tabs button').forEach((b, k) => { b.classList.toggle('on', k === t); if (k === t) { b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; } });
     document.getElementById('prog').innerHTML = '<p class="common">매일 공통 · <b>' + p.c + '</b></p><div class="week">' +
       p.d.map((items, k) => '<div class="day" style="--i:' + k + '">' + (p.nw === k ? '<span class="new">영어<br>태권도</span>' : '') + '<h5>' + DN[k] + '</h5><ul>' + items.map(x => '<li>' + x + '</li>').join('') + '</ul></div>').join('') + '</div>';
-    clearTimeout(tabT); if (S[i].id === 'c9') tabT = setTimeout(() => drawTab((tab + 1) % 3), 6000);
+    clearTimeout(tabT); if (cur && cur.id === 'c9') tabT = setTimeout(() => drawTab((tab + 1) % 3), 6000);
   }
   document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { e.stopPropagation(); drawTab(+b.dataset.t); } });
 
@@ -606,40 +624,51 @@ b.u{font-weight:800;background:linear-gradient(transparent 60%,rgba(164,15,22,.1
     if (f.shuttle) document.getElementById('shuttle').innerHTML = '🚐 ' + esc(f.shuttle) + (f.shuttleNote ? '<small>' + esc(f.shuttleNote) + '</small>' : '');
   }
 
-  function go(n) {
-    n = Math.max(0, Math.min(S.length - 1, n)); if (n === i && S[i].classList.contains('on')) return;
-    S[i].classList.remove('on'); i = n; const s = S[i];
+  function show(s) {
+    if (cur === s && s.classList.contains('on')) return;
+    if (cur) cur.classList.remove('on'); cur = s;
     void s.offsetWidth; s.classList.add('on');
     st.classList.toggle('dkon', s.classList.contains('dk'));
+    s.querySelectorAll('.cnt').forEach(count);
+    clearTimeout(tabT); if (s.id === 'c9') drawTab(0);
+  }
+  function go(n) {
+    n = Math.max(0, Math.min(S.length - 1, n)); if (n === i && cur === S[i]) return;
+    i = n; st.classList.remove('xon'); show(S[i]);
     [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
     document.getElementById('pv').style.visibility = i ? 'visible' : 'hidden';
     document.getElementById('nx').style.visibility = i < S.length - 1 ? 'visible' : 'hidden';
     if (i > 0) document.getElementById('hint').hidden = true;
-    s.querySelectorAll('.cnt').forEach(count);
-    clearTimeout(tabT); if (s.id === 'c9') drawTab(0);
   }
+  // 자료 더 보기: 숨겨 둔 장은 메뉴에서만 열고, 넘기면 보던 장으로 돌아감
+  const mp = document.getElementById('mp');
+  document.getElementById('mg').innerHTML = X.map((s, k) => '<button data-k="' + k + '">' + esc(s.dataset.n) + '</button>').join('');
+  document.getElementById('mb').onclick = e => { e.stopPropagation(); mp.classList.add('on'); };
+  document.getElementById('mc').onclick = e => { e.stopPropagation(); mp.classList.remove('on'); };
+  document.getElementById('mg').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; e.stopPropagation(); mp.classList.remove('on'); st.classList.add('xon'); show(X[+b.dataset.k]); document.getElementById('pv').style.visibility = 'visible'; document.getElementById('nx').style.visibility = 'visible'; };
+  function step(d) { if (st.classList.contains('xon')) return go(i); go(i + d); }
   fetch(ROOT + 'data.json', { cache: 'no-store' }).then(r => r.json()).then(d => {
     staff(d.staff); fee(d.fee); leaders(d.leaders);
-    const s = S[i]; if (s && (s.id === 'c8' || s.id === 'c11' || s.dataset.n === '교육비')) { s.classList.remove('on'); void s.offsetWidth; s.classList.add('on'); }
+    const s = cur; if (s && (s.id === 'c8' || s.id === 'c11' || s.dataset.n === '교육비')) { s.classList.remove('on'); void s.offsetWidth; s.classList.add('on'); }
   }).catch(() => {});
 
-  document.getElementById('pv').onclick = e => { e.stopPropagation(); go(i - 1); };
-  document.getElementById('nx').onclick = e => { e.stopPropagation(); go(i + 1); };
-  addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') go(i + 1); if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(i - 1); });
+  document.getElementById('pv').onclick = e => { e.stopPropagation(); step(-1); };
+  document.getElementById('nx').onclick = e => { e.stopPropagation(); step(1); };
+  addEventListener('keydown', e => { if (mp.classList.contains('on')) { if (e.key === 'Escape') mp.classList.remove('on'); return; } if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') step(1); if (e.key === 'ArrowLeft' || e.key === 'PageUp') step(-1); });
   let x0 = null, y0 = 0;
   addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; });
   addEventListener('pointerup', e => {
     if (x0 === null) return; const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
-    if (e.target.closest('button')) return;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) return go(i + (dx < 0 ? 1 : -1));
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) go(i + (e.clientX < innerWidth * 0.3 ? -1 : 1));
+    if (e.target.closest('button') || mp.classList.contains('on')) return;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) return step(dx < 0 ? 1 : -1);
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) step(e.clientX < innerWidth * 0.3 ? -1 : 1);
   });
 
   // 태블릿 상담 모드 안에서 열렸을 때만 '등록 서류 작성하기'
   const gf = document.getElementById('goForm');
   if (window.parent !== window) { gf.hidden = false; gf.onclick = e => { e.stopPropagation(); window.parent.postMessage({ haerang: 'consult-contract' }, location.origin); }; }
 
-  go(+(new URLSearchParams(location.search).get('p') || 0));
+  i = -1; go(+(new URLSearchParams(location.search).get('p') || 0));
 })();
 </script>
 </body>
