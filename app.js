@@ -729,9 +729,9 @@ function firstBlock(d){
   const f = d.firstVisit; if(!f) return '';
   const it = list(f.items).filter(x => x && x.t), q = list(f.q).filter(Boolean);
   if(!it.length && !q.length) return '';
-  return `<div class="seg seg2"><h2>${esc(f.title || '처음 오시는 어머님께')}</h2>${f.sub ? `<p>${esc(f.sub)}</p>` : ''}</div>
-    ${it.length ? `<div class="fv">${it.map(x => `<div class="fv-c"><small>${esc(x.k || '')}</small><b>${esc(x.t)}</b><p>${esc(x.p || '')}</p></div>`).join('')}</div>` : ''}
-    ${q.length ? `<div class="fvq"><h3>${esc(f.qTitle || '')}</h3><ul>${q.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}`;
+  return `<section class="fvs">${f.title ? `<div class="seg seg2"><h2>${esc(f.title)}</h2>${f.sub ? `<p>${esc(f.sub)}</p>` : ''}</div>` : ''}
+    ${it.length ? `<div class="fv">${it.map(x => `<div class="fv-r"><b>${esc(x.t)}</b><span>${esc(x.p || '')}</span></div>`).join('')}</div>` : ''}
+    ${q.length ? `<div class="fvq"><h3>${esc(f.qTitle || '')}</h3><ul>${q.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}</section>`;
 }
 function whyBlock(d){
   const gp = d.guinnessPage || {}, gr = d.growth || {};
