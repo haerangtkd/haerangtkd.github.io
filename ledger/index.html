@@ -825,6 +825,9 @@ HL.verifyMonth = (ctx, ym) => {
       if (!fee) {
         const mEnd = `${ym}-${pad(HL.lastDay(ym))}`;
         const nowSt = HL.statusAt(m, today < mEnd ? today : mEnd);
+        const teamSt = HL.teamStatusOf ? HL.teamStatusOf(m) : null; // 회원 상태는 업무 앱(출석부)이 기준
+        const teamLeft = teamSt && !HL.isActiveStatus(teamSt) && m.fees && m.fees[ym] && m.fees[ym].cancelled;
+        if (teamLeft) { res.expected.pop(); res.left.push({ m, reason: `업무 앱 ${teamSt}(회비 취소)` }); continue; }
         if (!HL.isActiveStatus(nowSt) || !HL.isActiveStatus(HL.currentStatus(m, today))) { res.expected.pop(); res.left.push({ m, reason: `${HL.isActiveStatus(nowSt) ? HL.currentStatus(m, today) : nowSt}${m.fees && m.fees[ym] && m.fees[ym].cancelled ? '(회비 취소)' : ''}` }); continue; }
         res.missing.push({ m, reason: ex.reason === '결제일 없음' ? '결제일이 없어 회비 기록을 만들 수 없음' : (m.fees && m.fees[ym] && m.fees[ym].cancelled ? '회비 기록이 취소됨' : '회비 기록 없음') }); continue; }
       const st = HL.feeState(m, ym, idx, today);
@@ -2612,8 +2615,21 @@ function scheduleRender(now) {
   renderQueued = true;
   requestAnimationFrame(() => { if (renderQueued) { renderQueued = false; render(); } });
 }
+/* 업무 앱(출석부) 원생 상태 — 회비 검증에서 퇴관·휴원 확인용 */
+let ROSTER = { at: 0, list: null };
+HL.teamStatusOf = (m) => {
+  const L = ROSTER.list; if (!L) return null;
+  const s = (m.sid && L.find((x) => x.id === m.sid)) || L.find((x) => x.name === m.name && (!m.birthYear || !x.birth || String(m.birthYear) === String(x.birth).slice(0, 4)));
+  return s && s.status ? s.status : null;
+};
+function loadRoster() {
+  if (window.HL_ROLE !== 'owner' || !window.HL_CALL || Date.now() - ROSTER.at < 120000) return;
+  ROSTER.at = Date.now();
+  window.HL_CALL('/api/team-roster').then((j) => { if (j && j.ok) { ROSTER.list = j.students || []; render(); } }).catch(() => {});
+}
 function render() {
   renderAlerts();
+  loadRoster();
   for (const a of App.areas) a.refreshAll();
   if (!App.mode || !App.ctx || !allReady() || !App.data.config) return; // 처음 설정·복원 중에는 화면 그리지 않음
   if (App.mode === 'staff') { renderStaffLookup(); return; }
@@ -2691,7 +2707,6 @@ function buildNotesCard() {
   return card;
 }
 /* 업무 앱(출석부)에 있는데 장부에 없는 원생 (2026-11-13): 장부 회원은 결제일·결제방법이 필요해서 자동으로 만들지 않고, 관리자가 '장부에 등록'으로 채워서 저장 */
-let ROSTER = { at: 0, list: null };
 function rosterMissCard() {
   const card = h('div', {});
   const draw = () => {
