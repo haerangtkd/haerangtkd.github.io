@@ -1353,7 +1353,9 @@ HL.statusEffect = (m, c, ctx) => {
     if (HL.isActiveStatus(cur) && planned && !HL.isActiveStatus(planned.status)) {
       // 아직 시작 전인 휴원·퇴관 예정 → 예정만 없던 일로 하고, 그 때문에 취소된 청구를 되살린다
       eff.cancelPlanned = planned; eff.restore = [];
-      for (const [ym, f] of Object.entries(m.fees || {})) if (f.cancelled && /^(휴원|퇴관)(?! 환불)/.test(f.cancelled.reason || '') && f.due >= planned.from) eff.restore.push(ym);
+      // 취소할 때와 같은 기준: 결제 주기(이번 결제일~다음 결제일)가 예정일에 걸친 달 (2026-11-24: 11월 청구가 안 되살아나던 문제)
+      const cEnd = (ym) => (m.payday ? HL.dueDate(HL.addMonths(ym, 1), m.payday) : ((m.fees[ym] && m.fees[ym].due) || ''));
+      for (const [ym, f] of Object.entries(m.fees || {})) if (f.cancelled && /^(휴원|퇴관)(?! 환불)/.test(f.cancelled.reason || '') && (f.due >= planned.from || cEnd(ym) > planned.from)) eff.restore.push(ym);
       eff.notes.push(`${HL.md(planned.from)}부터 ${planned.status} 예정이던 것을 취소해요.${eff.restore.length ? ` 취소됐던 ${eff.restore.map(HL.monthLabel).join(', ')} 회비 청구도 되살려요.` : ''} 결제일은 그대로예요.`);
       return eff;
     }
@@ -3203,12 +3205,32 @@ function openMember(id) {
       if (s.curCarryOut) extra.push(`${fmt(s.curCarryOut)}원 → ${HL.monthLabel(HL.nextFeeMonth(m, k))}로 이월`);
       if (s.curWaive) extra.push(`감면 ${fmt(s.curWaive)}원`);
       if (s.fee.cancelled) extra.push(`취소: ${s.fee.cancelled.reason}`);
-      return `<div class="li"><div class="main"><div class="t">${HL.monthLabelFull(k)} ${pill(CAT_PILL[s.cat], s.label)}</div><div class="s">결제일 ${HL.md(s.fee.due)} · 청구 ${esc(HL.billLine(s))} · 납부 ${fmt(s.paid)}원${s.lastPayDate ? ` (${HL.md(s.lastPayDate)})` : ''}${extra.length ? ` · ${esc(extra.join(' · '))}` : ''}</div></div></div>`;
+      return `<div class="li" data-ym="${k}"><div class="main"><div class="t">${HL.monthLabelFull(k)} ${pill(CAT_PILL[s.cat], s.label)}</div><div class="s">결제일 ${HL.md(s.fee.due)} · 청구 ${esc(HL.billLine(s))} · 납부 ${fmt(s.paid)}원${s.lastPayDate ? ` (${HL.md(s.lastPayDate)})` : ''}${extra.length ? ` · ${esc(extra.join(' · '))}` : ''}</div></div></div>`;
     });
     for (const [k, sk] of Object.entries(m.skip || {})) rows.push(`<div class="li"><div class="main"><div class="t">${HL.monthLabelFull(k)} <span class="pill grey">회비 없음</span></div><div class="s">${esc(sk.reason)}</div></div></div>`);
     const back = c.entries.filter((e) => e.memberId === m.id && e.backfill && !e.cancelled);
     for (const e of back) rows.push(`<div class="li"><div class="main"><div class="t">${esc(e.feeMonth)} 회비 <span class="tag">장부 시작 전</span></div><div class="s">${e.date} 납부 ${fmt(e.amount)}원</div></div></div>`);
-    fc.append(h('div', { class: 'list', html: rows.join('') || '<div class="empty">아직 회비 기록이 없어요.</div>' }));
+    const feeList = h('div', { class: 'list', html: rows.join('') || '<div class="empty">아직 회비 기록이 없어요.</div>' });
+    // 휴원·퇴관 때문에 취소된 청구인데 지금은 계속 다니는 경우 → 관리자가 되살리기 (2026-11-24)
+    const stillActive = HL.isActiveStatus(HL.currentStatus(m, c.today)) && !(HL.plannedStatus(m, c.today) && !HL.isActiveStatus(HL.plannedStatus(m, c.today).status));
+    if (App.mode === 'owner' && stillActive) for (const k of fees) {
+      const f = m.fees[k];
+      if (!f.cancelled || !/^(휴원|퇴관)(?! 환불)/.test(f.cancelled.reason || '')) continue;
+      const li = feeList.querySelector(`.li[data-ym="${k}"]`); if (!li) continue;
+      let armed = false, tm = null;
+      const b = h('button', { class: 'small', type: 'button' }, '청구 되살리기');
+      b.addEventListener('click', async () => {
+        if (!armed) { armed = true; b.textContent = '정말 되살리기'; b.className = 'dark'; tm = setTimeout(() => { armed = false; b.textContent = '청구 되살리기'; b.className = 'small'; }, 4000); return; }
+        clearTimeout(tm); b.disabled = true;
+        const at = HL.nowIso();
+        try {
+          await runOps([{ op: 'update', path: `members/${m.id}`, data: { fees: { [k]: { cancelled: null } }, updatedAt: at, log: { [HL.uid('h')]: { at, by: by(), type: '회비 정정', field: `${HL.monthLabel(k)} 회비`, before: `취소(${f.cancelled.reason})`, after: '청구 되살림', reason: '계속 다님' } } } }], `${dn(m)} ${HL.monthLabel(k)} 회비 되살리기`);
+          toast(`${HL.monthLabel(k)} 회비 청구를 되살렸어요.`);
+        } catch (e) { toast(`저장되지 않았어요 — ${errText(e)}`); b.disabled = false; }
+      });
+      li.append(h('div', { class: 'fbtns' }, b));
+    }
+    fc.append(feeList);
     wrap.append(fc);
     wrap.append(h('div', { class: 'card' }, h('h3', { text: '변경 이력' }), logView(m.log)));
     return wrap;
