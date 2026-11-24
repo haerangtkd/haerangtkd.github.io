@@ -371,6 +371,13 @@ async function route(path, req, env, ctx) {
       ctx.waitUntil(pushAll(env, '', '👪 학부모 가입 요청', who + ' · 눌러서 알림 관리 → 출결에서 승인해 주세요', 'parents').catch(() => {}));
       return json({ ok: true });
     }
+    if (path === '/sync/approve-alert') { // 학부모 앱 가입 승인 → 직원 모두에게 (2026-11-24 사용자: 승인한 것도 알림)
+      const who = (Array.isArray(b.kids) ? b.kids : []).map(x => str(x, 20)).join('·') + ' ' + str(b.rel, 10), by = str(b.by, 20);
+      const t = (by ? by + '님이 ' : '') + who + ' 학부모 앱 가입을 승인했어요';
+      await addLog(env, str(b.mid, 40), 'home', '✅ ' + t, '');
+      ctx.waitUntil(pushAll(env, str(b.mid, 40), '✅ 학부모 가입 승인', t, 'home').catch(() => {}));
+      return json({ ok: true });
+    }
     if (path === '/sync/esign-set') { const r = await esignSet(env, b, kids); ctx.waitUntil(runPushQueue(env).catch(() => {})); return json(r); } // 바로 알림 (2026-11-13)
     return json({ ok: false, error: 'not found' }, 404);
   }
