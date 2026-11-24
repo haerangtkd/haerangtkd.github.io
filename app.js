@@ -147,12 +147,12 @@ function render(d){
       ${list(gp.facts).length ? `<div class="cu-sec">${list(gp.facts).map(f => `<div class="cu-row"><b>${esc(f.t)}</b><span>${esc(f.d)}</span></div>`).join('')}</div>` : ''}
       ${gu.items ? `<div class="cu-sec"><h4>분기별 종목</h4>${[['1~3월','1'],['4~6월','2'],['7~9월','3'],['10~12월','4']].filter(([, k]) => gu.items[k]).map(([m, k]) => `<div class="cu-row"><b>${m}</b><span>${esc(gu.items[k])}</span></div>`).join('')}</div>` : ''}
       ${(() => { const gr = d.growth || {}; if(!(gr.title || list(gr.factors).length)) return gp.closing ? `<p class="gu-foot">${esc(gp.closing)}</p>` : ''; return `
-      <h3 class="st" style="margin:34px 2px 12px">${esc(gr.title || '분기별 성장 측정지')}</h3>
+      <h3 class="st" style="margin:34px 2px 12px">${esc(gr.title || '매달 성장 리포트')}</h3>
       ${gr.lead ? `<p class="lead">${esc(gr.lead)}</p>` : ''}
       ${list(gr.factors).length ? `<div class="cu-sec"><h4>${esc(gr.factorsTitle || '함께 살펴보는 성장 요소')}</h4>
         <div class="gf">${list(gr.factors).map((x, i) => typeof x === 'string' ? `<div class="gf-i"><b>${esc(x)}</b></div>` : `<div class="gf-i"><div class="gf-t"><span class="n">${pad2(i + 1)}</span><b>${esc(x.t)}</b>${x.how ? `<em class="how">${esc(x.how)}</em>` : ''}</div>${x.d ? `<p>${esc(x.d)}</p>` : ''}</div>`).join('')}</div>
-        ${list(gr.scale).length ? `<p class="gscale"><span>사범님 관찰</span>${list(gr.scale).map((t, i) => `<i class="lv${i + 1}">${esc(t)}</i>`).join('<b>›</b>')}</p>` : ''}</div>` : ''}
-      ${list(gr.contents).length ? `<div class="cu-sec"><h4>${esc(gr.contentsTitle || '측정지에 담기는 내용')}</h4><ul class="bt-list">${list(gr.contents).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+        ${list(gr.scale).length ? `<p class="gscale"><span>성장 단계</span>${list(gr.scale).map((t, i) => `<i class="lv${i + 1}">${esc(t)}</i>`).join('<b>›</b>')}</p>` : ''}</div>` : ''}
+      ${list(gr.contents).length ? `<div class="cu-sec"><h4>${esc(gr.contentsTitle || '리포트에 담기는 내용')}</h4><ul class="bt-list">${list(gr.contents).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       ${growthSample(d)}
       ${gr.closing ? `<p class="cu-close">${esc(gr.closing)}</p>` : ''}`; })()}`)};
 
@@ -712,8 +712,8 @@ function growthSample(d){
   const ms = [0, 1, 2].map(k => (q - 1) * 3 + k + 1);
   const recs = [18, 21, 24], lv = [2, 1, 2, 1, 2];
   const max = Math.max(...recs);
-  return `<div class="cu-sec"><h4>측정지 예시</h4>
-    <div class="gsample" aria-label="성장 측정지 예시 화면">
+  return `<div class="cu-sec"><h4>성장 리포트 예시</h4>
+    <div class="gsample" aria-label="성장 리포트 예시 화면">
       <div class="gs-top"><b>○○○ 제자 · ${TODAY.getFullYear()}년 ${q}분기</b><span>예시 화면 · 실제 기록이 아닙니다</span></div>
       <div class="gs-f">${fs.map((f, i) => `<div><span>${esc(f.t)}</span><i class="lv${lv[i % lv.length] + 1}">${esc(sc[lv[i % lv.length]] || '')}</i></div>`).join('')}</div>
       <div class="gs-rec"><p class="gs-h">이번 분기 기네스 · ${esc(ev)}</p>
@@ -741,7 +741,7 @@ function whyBlock(d){
     S.leaders && {step:'서로 가르치고', href: go('leaders'), k:'먼저 선 · 모범 범 · 모일 단', t:'선범단(先範團)', p:'실력과 생활 태도를 지도진 모두에게 인정받은 수련생이 동생들을 가르치며 책임감과 배려를 경험합니다.'},
     S.character && {step:'바르게 자라고', href: go('character'), k:'매주 월요일', t:'인성 교육 · 태권웅변', p:'인성 활동지와 웅변으로 인사, 감사 표현, 자기 생각 말하기를 연습합니다.'},
     S.guinness && {step:'기록하고', href: go('guinness'), k:'매달 첫째 주 금요일', t: gp.title || '해랑 기네스', p:'석 달마다 종목을 하나 정해 매달 기록을 재고, 지난달 기록과 비교합니다.'},
-    S.guinness && gr.title && {step:'성장을 확인합니다', href: go('guinness') , k:'3개월마다', t: gr.title, p:'기네스 기록과 사범님이 지켜본 아이의 모습을 한 장에 담아 학부모님께 보내드립니다.'}
+    S.guinness && gr.title && {step:'성장을 확인합니다', href: go('guinness') , k:'매달', t: gr.title, p:'기네스 기록·출석·승급 심사로 매달 채워지는 리포트를 학부모 앱에서 언제든 확인하실 수 있습니다.'}
   ].filter(Boolean);
   if(!items.length) return '';
   return `<div class="seg seg2"><h2>해랑경희만의 수련</h2><p>함께 배우고, 서로 가르치고, 기록으로 성장을 확인합니다</p></div>
