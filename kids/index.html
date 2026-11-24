@@ -333,6 +333,24 @@
   .bst2 small{color:var(--gold);font-weight:800;font-size:12px}.bst2 b{font-size:17px}.bst2 em{font-style:normal;font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:5px}.bst2 em i{width:12px;height:12px;border-radius:50%;display:inline-block}
   .bst2 .rv{margin-top:4px;font-size:12px;color:#C9C6C2;background:#1F1F22;border-radius:999px;padding:3px 10px}.bst2 .rv b{font-size:13px;color:#fff}
   .bst2.me{border-color:#E3B341;box-shadow:0 0 0 2px rgba(227,179,65,.4)}
+  /* 2026-11-24 사용자: 명예의 전당 = 블랙프라이데이 금색 분위기 (배치는 그대로, 반짝이 · 금색 글자 흐르기 · 금빛 테두리 · 빛 지나가기) */
+  .vfame .hi .av{background:linear-gradient(135deg,#F7E08A,#C9962B 60%,#8A6416)!important;box-shadow:0 0 0 2px rgba(247,224,138,.35),0 0 18px rgba(227,179,65,.45)}
+  .vfame .hi b{background:linear-gradient(100deg,#B8862A 0%,#F7E08A 30%,#FFF6D2 45%,#E3B341 60%,#B8862A 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gsh 4s linear infinite;letter-spacing:1px}
+  .vfame .hi small{color:#C9A85A}
+  @keyframes gsh{from{background-position:100% 0}to{background-position:-150% 0}}
+  .gmq{overflow:hidden;margin:-4px -16px 14px;padding:6px 0;transform:rotate(-2deg);-webkit-mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+  .gmq div{display:inline-flex;white-space:nowrap;animation:gmq 22s linear infinite}
+  .gmq span{font-size:13.5px;font-weight:900;letter-spacing:1.5px;padding-right:28px;background:linear-gradient(90deg,#B8862A,#F7E08A 40%,#FFF6D2 50%,#E3B341 70%,#B8862A);-webkit-background-clip:text;background-clip:text;color:transparent}
+  @keyframes gmq{to{transform:translateX(-50%)}}
+  .vfame #body .card{position:relative;overflow:hidden;border:1.5px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(135deg,#8A6416,#F7E08A 35%,#C9962B 55%,#F7E08A 80%,#8A6416) border-box}
+  .vfame #body .card::after{content:'';position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,236,170,.10) 45%,rgba(255,246,210,.22) 50%,rgba(255,236,170,.10) 55%,transparent);transform:skewX(-18deg);animation:gsw 5.5s ease-in-out infinite;pointer-events:none}
+  .vfame #body .card:nth-of-type(2)::after{animation-delay:1.8s}.vfame #body .card:nth-of-type(3)::after{animation-delay:3.4s}
+  @keyframes gsw{0%,55%{left:-60%}100%{left:130%}}
+  .vfame .bst2{border-color:#6B5122}.vfame .bst2 .crown{filter:drop-shadow(0 0 6px rgba(247,224,138,.8))}
+  .vfame .stab button.on{background:linear-gradient(135deg,#F7E08A,#C9962B);color:#2A1E05}
+  #gsp{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}#gsp i{position:absolute;font-style:normal;color:#F7E08A;text-shadow:0 0 8px rgba(247,224,138,.9);opacity:0;animation:gtw 3s ease-in-out infinite}
+  @keyframes gtw{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:.95;transform:scale(1) rotate(45deg)}}
+  @media (prefers-reduced-motion:reduce){.vfame .hi b,.gmq div,.vfame #body .card::after,#gsp i{animation:none}#gsp{display:none}}
 </style>
 </head>
 <body>
@@ -451,7 +469,8 @@
     // 2026-11-16 사용자: 아래 메뉴 = 홈 · 일정(이벤트 | 수련 계획) · 명예의 전당(가운데, 최우수 수련생 | 선범단) · 즐기기 · 더보기
     const hi = (bg, ic, t, sm) => '<div class="hi"><span class="av" style="background:' + bg + '">' + ic + '</span><div><b>' + t + '</b><small>' + sm + '</small></div></div>';
     const tabs = (L, cur) => '<div class="stab">' + L.map(([k, t]) => '<button data-sub="' + k + '" class="' + (k === cur ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
-    $('body').innerHTML = view === 'home' ? home() : view === 'sched' ? hi('#2E9E4F', '📅', '일정', '도장 행사 · 대회 · 심사 · 수련 계획') + tabs([['event', '🎉 이벤트'], ['plan', '📅 수련 계획']], schedSub) + (schedSub === 'plan' ? planView() : eventView()) : view === 'fame' ? hi('var(--gold)', '🏆', '명예의 전당', '해랑경희의 멋진 제자들') + tabs([['best', '🏆 최우수 수련생'], ['sb', '⭐ 선범단']], fameSub) + (fameSub === 'sb' ? sbView() : fame()) : view === 'fun' ? funView() : moreView();
+    $('body').innerHTML = view === 'home' ? home() : view === 'sched' ? hi('#2E9E4F', '📅', '일정', '도장 행사 · 대회 · 심사 · 수련 계획') + tabs([['event', '🎉 이벤트'], ['plan', '📅 수련 계획']], schedSub) + (schedSub === 'plan' ? planView() : eventView()) : view === 'fame' ? hi('var(--gold)', '🏆', '명예의 전당', '해랑경희의 멋진 제자들') + fameMq() + tabs([['best', '🏆 최우수 수련생'], ['sb', '⭐ 선범단']], fameSub) + (fameSub === 'sb' ? sbView() : fame()) : view === 'fun' ? funView() : moreView();
+    document.documentElement.classList.toggle('vfame', view === 'fame'); fameSpark(view === 'fame');
     [...$('nav').children].forEach(b => b.classList.toggle('on', b.dataset.v === view)); $('out').hidden = view !== 'more'; if (view === 'home') newsRun();
   }
   $('nav').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; view = b.dataset.v; scrollTo(0, 0); draw(); };
@@ -818,6 +837,19 @@
       return '<div class="bst2' + (n === me ? ' me' : '') + '"><span class="crown">👑</span><span class="av" style="background:' + esc(p.bg || 'var(--brand)') + '">' + avHtml(e) + '</span><small>' + esc(k) + '</small><b>' + esc(n) + (n === me ? ' 🎉' : '') + '</b>' + (p.belt ? '<em>' + beltDot(p.belt) + esc(p.belt) + '</em>' : '') + (vv != null && q.ev ? '<span class="rv">' + esc(q.ev) + ' <b>' + f1b(vv) + '</b>' + esc(q.unit || '') + '</span>' : '') + '</div>'; })).join('');
     return '<section class="card"><div class="bnav"><button data-bi="-1"' + (bestI <= 0 ? ' disabled' : '') + '>‹</button><div><small>🏆 최우수 수련생</small><b>' + bestLabel(q.q) + '</b>' + (q.ev ? '<small style="color:var(--muted);font-weight:600">기네스 ' + esc(q.ev) + ' 1등</small>' : '') + '</div><button data-bi="1"' + (bestI >= B.length - 1 ? ' disabled' : '') + '>›</button></div><div class="bgr2">' + cards + '</div>' +
       (B.length > 1 ? '<p class="sub" style="text-align:center;margin:10px 0 0">‹ › 로 지난달 최우수 수련생도 볼 수 있어요</p>' : '') + '</section>';
+  }
+  // ✦ 명예의 전당 금색 분위기 (2026-11-24 사용자): 흐르는 금색 글자 + 반짝이 별
+  function fameMq() {
+    const B = D.best || [], q = B[B.length - 1], L = ['✦ 해랑경희 명예의 전당'];
+    if (q) { const ns = [...new Set(BG5.filter(k => (q.g || {})[k]).flatMap(k => [].concat(q.g[k])))]; if (ns.length) L.push(bestLabel(q.q) + ' 최우수 수련생 ' + ns.map(esc).join(' · ')); }
+    L.push('오늘의 땀이 내일의 기록'); const t = L.map(x => '<span>' + x + '</span><span>✦</span>').join('');
+    return '<div class="gmq" aria-hidden="true"><div>' + t + t + '</div></div>';
+  }
+  function fameSpark(on) {
+    let g = $('gsp'); if (!on) { if (g) g.remove(); return; } if (g) return;
+    g = document.createElement('div'); g.id = 'gsp'; let h = '';
+    for (let i = 0; i < 16; i++) h += '<i style="left:' + (4 + Math.random() * 92).toFixed(1) + '%;top:' + (6 + Math.random() * 80).toFixed(1) + '%;font-size:' + (8 + Math.random() * 10).toFixed(0) + 'px;animation-delay:' + (Math.random() * 3).toFixed(2) + 's;animation-duration:' + (2.2 + Math.random() * 2).toFixed(2) + 's">✦</i>';
+    g.innerHTML = h; document.body.appendChild(g);
   }
   function fame() {
     const me = D.name;
