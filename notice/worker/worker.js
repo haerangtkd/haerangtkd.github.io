@@ -846,6 +846,7 @@ async function route(path, req, env) {
         const same = J(o.kids, []).filter(k => pk.includes(k)); if (!same.length || told >= 6) continue;
         try { if (await pushOne(env, o, '👪 새 보호자가 등록되었어요', same.join('·') + ' 보호자로 ' + (p.rel || '가족') + '(번호 뒷자리 ' + String(p.ph || '').slice(-4) + ')님이 학부모 앱에 등록되었어요. 모르는 분이면 도장에 알려 주세요', '')) told++; } catch (_) {}
       }
+      try { await teamSync(env, '/sync/approve-alert', { kids: pk, rel: p.rel || '', by: (ses && ses.name) || '', mid: (ses && ses.mid) || '' }); } catch (_) {} // 직원에게도 승인 알림 (2026-11-24 사용자 요청)
       return json({ ok: true, pushed, told });
     }
     // ── 초대번호 (가정마다 따로, 가입할 수 있는 휴대폰 수 제한) ──
