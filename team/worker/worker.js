@@ -178,7 +178,7 @@ async function renameMember(env, id, from, to) {
 export default {
   // 5분마다: 때가 된 업무 알림 보내기 (Cloudflare → Triggers → Cron '*/5 * * * *')
   // 2026-11-13: 하나가 실패해도 나머지는 돌게 각각 따로, 시간이 정해진 알림(runTimed)을 먼저
-  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runPmsgQueue, runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate, sbMigrate, recRollover, runKidAlerts]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
+  async scheduled(event, env, ctx) { ctx.waitUntil((async () => { await setup(env); for (const f of [runSchedDue, runPmsgQueue, runTimed, runReminders, runPushQueue, runHeld, runChatRemind, rosterFollow, beltMigrate, sbMigrate, recRollover, runKidAlerts]) { try { await f(env); } catch (_) {} } })().catch(() => {})); },
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -250,7 +250,7 @@ async function route(path, req, env, ctx) {
       const title = str(b.title, 100).trim(), date = isDay(b.date) ? b.date : ''; if (!title) return json({ ok: false, error: '제목이 없어요' });
       const had = (await all(env, "SELECT id, data FROM items WHERE type = 'event' AND del = 0")).find(r => J(r.data, {}).sp === (b.sp | 0)); if (had) return json({ ok: true, id: had.id });
       const el = b.elig || {}, e = el.mode === 'age' ? { mode: 'age', from: +el.from || 0, to: +el.to || 0 } : el.mode === 'grp' ? { mode: 'grp', grps: (Array.isArray(el.grps) ? el.grps : []).map(x => str(x, 20)).slice(0, 10) } : el.mode === 'kids' ? { mode: 'kids', kids: [...new Set((Array.isArray(el.kids) ? el.kids : []).map(x => str(x, 20)).filter(Boolean))].slice(0, 200) } : null;
-      const r = itemStmt(env, { type: 'event', kind: '', title, date, base: 0, products: [], options: [], checks: [], van: false, rows: [], pub: true, openAt: kstDay(), closeAt: '', desc: str(b.body, 1000), elig: e, sp: b.sp | 0 }, { id: '' });
+      const r = itemStmt(env, { type: 'event', kind: '', title, date, base: 0, products: [], options: [], checks: [], van: false, rows: [], pub: true, openAt: isDay(b.openAt) ? b.openAt : kstDay(), closeAt: '', desc: str(b.body, 1000), elig: e, sp: b.sp | 0 }, { id: '' });
       await r.stmt.run();
       await addLog(env, '', 'event', '🎟 행사 신청표 만듦 (알림 관리 일정표' + (b.who ? ' · ' + str(b.who, 12) : '') + '): ' + title, r.id);
       return json({ ok: true, id: r.id });
@@ -1592,6 +1592,10 @@ async function pushTo(env, subs, title, body, view, now) {
   return { sent, total: subs.length };
 }
 
+// ⏰ 알림 관리 일정 예약 발행 (2026-11-24): 5분마다 시각이 된 일정을 올리고 학부모 알림을 6대씩 이어서 보냄
+async function runSchedDue(env) {
+  for (let n = 0; n < 60; n++) { const j = await noticeSync(env, '/sync/sched-due', {}); if (!j.ok || j.next === null || j.next === undefined) break; }
+}
 async function noticeSync(env, path, body) {
   if (!env.NOTICE || !env.SYNC_KEY) return { ok: false, error: '알림 앱이 연결되지 않았어요' };
   try { const r = await env.NOTICE.fetch('https://notice' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Sync-Key': env.SYNC_KEY }, body: JSON.stringify(body) }); return await r.json(); }
