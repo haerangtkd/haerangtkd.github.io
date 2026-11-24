@@ -72,6 +72,8 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN kmsg TEXT').run(); } catch (_) {} // 📩 봉투를 제자 앱에 보일 말 (2026-11-15)
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN dend TEXT').run(); } catch (_) {}                // 일정 끝나는 날 (여러 날 일정, 2026-11-13)
   try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN img TEXT').run(); } catch (_) {}                 // 일정 사진 (홈페이지에서 옮겨 온 photos/… 경로)                  // 일정 ↔ 업무 앱 행사 신청표 id (2026-11-13)
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN pubat INTEGER').run(); } catch (_) {}            // ⏰ 일정 예약 발행 시각 (이 때까지 학부모·홈페이지·제자 앱에 안 보임, 2026-11-24)
+  try { await env.DB.prepare('ALTER TABLE posts ADD COLUMN pnotify INTEGER DEFAULT 0').run(); } catch (_) {} // ⏰ 예약 발행될 때 학부모 알림 보내기
   try { await env.DB.prepare('ALTER TABLE parents ADD COLUMN inv TEXT').run(); } catch (_) {}               // 가입할 때 쓴 초대번호
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   try { await env.DB.prepare('ALTER TABLE asess ADD COLUMN boss INTEGER DEFAULT 0').run(); } catch (_) {} // 업무 앱 관리자 (퇴관 원생은 관리자만)
@@ -140,7 +142,7 @@ async function route(path, req, env) {
   // 홈페이지(누구나): 도장 일정 = 알림 관리 일정표 (2026-11-13 사용자 결정: 일정은 알림 관리 한 곳에서, 홈페이지·학부모 앱·업무 앱에 똑같이)
   if (path === '/pub/schedule') {
     const from = new Date(Date.now() + 9 * 3600e3 - 120 * 864e5).toISOString().slice(0, 10), to = new Date(Date.now() + 9 * 3600e3 + 400 * 864e5).toISOString().slice(0, 10);
-    const rows = await all(env, "SELECT title, kind, body, date, dend, img FROM posts WHERE type = 'schedule' AND COALESCE(dend, date) >= ? AND date <= ? ORDER BY date LIMIT 300", from, to);
+    const rows = await all(env, "SELECT title, kind, body, date, dend, img FROM posts WHERE type = 'schedule' AND (pubat IS NULL OR pubat <= ?) AND COALESCE(dend, date) >= ? AND date <= ? ORDER BY date LIMIT 300", Date.now(), from, to);
     return json({ ok: true, items: rows.map(r => ({ date: r.date, end: r.dend || '', title: r.title, type: r.kind || '', note: String(r.body || '').split('\n')[0].slice(0, 120), image: r.img || '' })), plan: await getPlan(env) });
   }
   if (path === '/pub/plan') return json({ ok: true, plan: await getPlan(env) }); // 수련 계획(주간 수련 주제 · 요일별 운동테마 · 이달의 공지) — 학부모 앱·홈페이지가 읽음
@@ -242,9 +244,9 @@ async function route(path, req, env) {
         prof: (await kvj(env, 'kprof:' + name)) || {}, qr: await kidQr(env, name), dc: (await kvj(env, 'kday:' + name)) || {}, // 매일 체크 (집에서 연습 p · 바른 생활 m, 2026-11-15)
         sbCard: t.ok && t.sb ? await sbCard(env, name) : null,
         envs: await kidEnvs(env, name), // 📩 봉투 (제자 앱엔 '준비가 되었어요! 가족과 상담해 보세요!' + 부모님 답장)
-        evs: (await all(env, "SELECT title, kind, date FROM posts WHERE type = 'schedule' AND kind IN ('행사', '대회', '심사') AND date >= ? AND date <= ? ORDER BY date LIMIT 5", today, kstAdd(today, 30))),
+        evs: (await all(env, "SELECT title, kind, date FROM posts WHERE type = 'schedule' AND (pubat IS NULL OR pubat <= ?) AND kind IN ('행사', '대회', '심사') AND date >= ? AND date <= ? ORDER BY date LIMIT 5", Date.now(), today, kstAdd(today, 30))),
         // 🎉 이벤트 탭 (2026-11-15): 도장 일정 (지난 60일 ~ 앞으로 180일) + 지금 신청 받는 행사 (신청은 학부모 앱에서)
-        sched: (await all(env, "SELECT title, kind, date, dend, body FROM posts WHERE type = 'schedule' AND date >= ? AND date <= ? ORDER BY date LIMIT 300", kstAdd(today, -400), kstAdd(today, 180))).map(x => ({ title: x.title, kind: x.kind || '', date: x.date, dend: x.dend || '', body: String(x.body || '').slice(0, 300) })), // 2026-11-16: 제자 앱 이벤트 달력에서 지난달도 (예전 60일 → 400일)
+        sched: (await all(env, "SELECT title, kind, date, dend, body FROM posts WHERE type = 'schedule' AND (pubat IS NULL OR pubat <= ?) AND date >= ? AND date <= ? ORDER BY date LIMIT 300", Date.now(), kstAdd(today, -400), kstAdd(today, 180))).map(x => ({ title: x.title, kind: x.kind || '', date: x.date, dend: x.dend || '', body: String(x.body || '').slice(0, 300) })), // 2026-11-16: 제자 앱 이벤트 달력에서 지난달도 (예전 60일 → 400일)
         tev: viaP ? [] : await teamSync(env, '/sync/events', { kids: [name] }).then(r => r.ok ? (r.events || []).map(e => ({ title: e.title, date: e.date || '', closeAt: e.close || '', desc: String(e.desc || '').slice(0, 300), prep: e.prep || '', free: !e.base && !(e.products || []).some(x => x.p), mine: !!(e.mine || []).some(m => m.kid === name && m.applied) })) : []).catch(() => []) });
     }
     if (path === '/k/prof') { // 프로필 꾸미기 · 대표 뱃지 3개 · 본 뱃지 (사진 대신 정해진 것 중에서 고르기)
@@ -663,6 +665,26 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     return json(await send(env, { kind: ['심사', '성장', '대회', '기네스'].includes(b.kind) ? b.kind : '미션', title: b.title, body: b.body, children: b.children, view: b.view === 'grow' ? 'grow' : '', offset: b.offset | 0, att: !!b.att })); // att = 제자마다 출결 알림 받는 분(기본 어머니)만 (2026-11-19 기네스) // view 'grow' = 승급 심사 결과·성장 리포트 → 성장 리포트 // 무료 한도 때문에 6명씩 — 업무 앱이 next 로 이어서 부름
   }
+  // ⏰ 일정 예약 발행 (2026-11-24): 업무 서버 cron(5분마다)이 부름. 시각이 된 일정은 이미 학부모에게 보이고(pubat 비교), 여기서 표시를 지우고 알림을 6대씩 보냄
+  if (path === '/sync/sched-due') {
+    if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
+    let job = J((await one(env, "SELECT v FROM kv WHERE k = 'schedPush'") || {}).v, null);
+    if (!job) {
+      const due = await all(env, "SELECT id, title, body, date, pubat, pnotify FROM posts WHERE type = 'schedule' AND pubat IS NOT NULL AND pubat <= ? ORDER BY date LIMIT 100", Date.now());
+      if (!due.length) return json({ ok: true, released: 0, next: null });
+      await env.DB.batch(due.map(r => q(env, 'UPDATE posts SET pubat = NULL, pnotify = 0, created = ? WHERE id = ?', r.pubat, r.id)));
+      const N = due.filter(r => r.pnotify), md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8));
+      if (!N.length) return json({ ok: true, released: due.length, next: null });
+      const ms = [...new Set(N.map(r => r.date.slice(0, 7)))];
+      job = N.length === 1 ? { title: '[일정] ' + N[0].title, body: md(N[0].date) + (N[0].body ? ' · ' + String(N[0].body).slice(0, 100) : '') }
+        : { title: '[일정] ' + (ms.length === 1 ? (+ms[0].slice(5)) + '월 일정이 올라왔어요' : '새 일정 ' + N.length + '개가 올라왔어요'), body: N.map(r => md(r.date) + ' ' + r.title).join(' · ').slice(0, 150) };
+      job.off = 0;
+    }
+    const r = await send(env, { title: job.title, body: job.body, kind: '일정', children: [], view: 'schedule', offset: job.off | 0 });
+    if (!r.ok || r.next === null || r.next === undefined) await run(env, "DELETE FROM kv WHERE k = 'schedPush'");
+    else await run(env, "INSERT INTO kv (k, v) VALUES ('schedPush', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", JSON.stringify({ ...job, off: r.next }));
+    return json({ ok: true, sent: r.sent || 0, next: r.ok && r.next != null ? r.next : null });
+  }
   // 업무 앱 '한 파일 백업': 표 목록·표 내용 (관리자 비밀번호는 업무 서버가 먼저 확인)
   if (path === '/sync/bk-tables' || path === '/sync/bk-dump') {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
@@ -890,9 +912,11 @@ async function route(path, req, env) {
       if (envEv && pid) await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', envEv, pid);
       if (envl && pid) await run(env, 'UPDATE posts SET kmsg = ? WHERE id = ?', String(b.kmsg || '').slice(0, 120).trim() || ENV_KMSG, pid); // 제자 앱: 봉투 대신 '준비가 되었어요! 가족과 상담해 보세요!'
       if (dend && pid) await run(env, 'UPDATE posts SET dend = ? WHERE id = ?', dend, pid);
+      const res = type === 'schedule' && Number(b.res) > Date.now() + 30e3 ? Math.round(Number(b.res)) : 0; // ⏰ 예약 발행 (2026-11-24)
+      if (res && pid) await run(env, 'UPDATE posts SET pubat = ?, pnotify = ? WHERE id = ?', res, b.notify ? 1 : 0, pid);
       if (envl) return json({ ok: true, id: pid, envEv, evError: envErr || undefined });
       if (type === 'schedule' && b.mkEv && pid) { // 🎟 신청표도 만들기 (2026-11-13 사용자 결정: 도장 일정은 알림 관리에서, 신청표는 여기서 같이)
-        const e = await teamSync(env, '/sync/ev-from-sched', { sp: pid, title, date, body: String(b.body || '').slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '' });
+        const e = await teamSync(env, '/sync/ev-from-sched', { sp: pid, title, date, body: String(b.body || '').slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '', openAt: res ? kstDay(new Date(res)) : '' }); // 예약이면 신청도 발행하는 날부터
         if (e.ok && e.id) { await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', String(e.id).slice(0, 40), pid); return json({ ok: true, id: pid, ev: e.id }); }
         return json({ ok: true, id: pid, evError: e.error || '업무 앱에 신청표를 만들지 못했어요' });
       }
@@ -905,10 +929,16 @@ async function route(path, req, env) {
       const body = String(b.body || '').slice(0, 3000), kind = String(b.kind || p.kind || '').slice(0, 10);
       const dend = /^\d{4}-\d{2}-\d{2}$/.test(b.end || '') && b.end > date ? b.end : null;
       await run(env, 'UPDATE posts SET title = ?, body = ?, date = ?, kind = ?, dend = ? WHERE id = ?', title, body, date, kind, dend, p.id);
-      const out = { ok: true };
+      const out = { ok: true }, wasRes = p.pubat > Date.now(); // ⏰ 예약 발행 일정 고치기: 예약 시각·알림 바꾸기 / 예약을 끄면 지금 올림 (2026-11-24)
+      if (wasRes) {
+        const res = Number(b.res) > Date.now() + 30e3 ? Math.round(Number(b.res)) : 0;
+        if (res) { await run(env, 'UPDATE posts SET pubat = ?, pnotify = ? WHERE id = ?', res, b.notify ? 1 : 0, p.id); b.notify = false; out.res = res; }
+        else { await run(env, 'UPDATE posts SET pubat = NULL, pnotify = 0, created = ? WHERE id = ?', Date.now(), p.id); out.pub = true; }
+      }
       if (p.ev && (p.title !== title || p.date !== date)) { const e = await teamSync(env, '/sync/ev-sched-upd', { ev: p.ev, title, date, who: (ses && ses.name) || '' }); if (!e.ok) out.evError = e.error || '연결된 신청표를 바꾸지 못했어요'; }
       if (!p.ev && b.mkEv) { const e = await teamSync(env, '/sync/ev-from-sched', { sp: p.id, title, date, body: body.slice(0, 1000), elig: b.elig || null, who: (ses && ses.name) || '' }); if (e.ok && e.id) { await run(env, 'UPDATE posts SET ev = ? WHERE id = ?', String(e.id).slice(0, 40), p.id); out.ev = e.id; } else out.evError = e.error || '업무 앱에 신청표를 만들지 못했어요'; }
-      if (b.notify) { const md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8)); out.notify = { title: '[일정 변경] ' + title, body: (p.date !== date ? md(p.date) + ' → ' + md(date) + ' · ' : '') + (body || '일정이 바뀌었어요').slice(0, 100) }; } // 보내기는 화면이 pushAll로 나눠서
+      if (b.notify && out.pub) out.notify = { title: '[일정] ' + title, body: (+date.slice(5, 7)) + '/' + (+date.slice(8)) + (body ? ' · ' + body.slice(0, 100) : '') };
+      else if (b.notify) { const md = d => (+d.slice(5, 7)) + '/' + (+d.slice(8)); out.notify = { title: '[일정 변경] ' + title, body: (p.date !== date ? md(p.date) + ' → ' + md(date) + ' · ' : '') + (body || '일정이 바뀌었어요').slice(0, 100) }; } // 보내기는 화면이 pushAll로 나눠서
       return json(out);
     }
     if (path === '/admin/env-kid') { // 📩 봉투 → 제자 앱에도 알림 (봉투 대신 '준비가 되었어요! 가족과 상담해 보세요!', 2026-11-15 사용자 요청)
@@ -928,7 +958,7 @@ async function route(path, req, env) {
     }
     if (path === '/admin/ev-tables') return json(await teamSync(env, '/sync/ev-tables', {}));
     if (path === '/admin/egrps') return json(await teamSync(env, '/sync/egrps', {}));
-    if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', ev: r.ev || '' } } : { ok: false, error: '지워진 일정이에요' }); }
+    if (path === '/admin/sched-get') { const r = await one(env, "SELECT * FROM posts WHERE id = ? AND type = 'schedule'", b.id | 0); return json(r ? { ok: true, item: { id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', ev: r.ev || '', ...(r.pubat > Date.now() ? { res: r.pubat, resN: !!r.pnotify } : {}) } } : { ok: false, error: '지워진 일정이에요' }); }
     // 🥋 제자 모드 관리 (2026-11-14): 개인 코드 · 최우수 수련생 · 대회 기록 · 선범단 커뮤니티 지우기
     if (path === '/admin/kcodes') {
       const ks = (await all(env, 'SELECT name FROM kids ORDER BY name')).map(r => r.name), cs = (await all(env, 'SELECT name, code, created FROM kcodes WHERE code IS NOT NULL')).filter(c => Date.now() - (c.created || 0) <= KCODE_TTL), ss = await all(env, 'SELECT name, COUNT(*) AS n, MAX(seen) AS seen FROM ksess GROUP BY name');
@@ -988,7 +1018,7 @@ async function route(path, req, env) {
     if (path === '/admin/jtpl') return json(await teamSync(env, '/sync/jtpl', {})); // 알림장 양식 (업무 앱에서 관리)
     if (path === '/admin/posts') {
       const type = POST_TYPES.includes(b.type) ? b.type : 'notice';
-      if (type === 'schedule') return json({ ok: true, items: await listSchedule(env, b.month) });
+      if (type === 'schedule') return json({ ok: true, items: await listSchedule(env, b.month, true) });
       const items = await listPosts(env, type, null, 100, true);
       // 읽음 수: 대상 보호자(승인된 사람) 중 몇 명이 봤는지
       const parents = (await all(env, 'SELECT id, kids FROM parents WHERE ok = 1')).map(p => ({ id: p.id, kids: J(p.kids, []) }));
@@ -1101,10 +1131,10 @@ function cleanPlan(p) {
   const months = (Array.isArray(p.months) ? p.months : []).filter(m => m && /^\d{4}-\d{2}$/.test(m.month || '')).map(m => ({ month: m.month, notices: (Array.isArray(m.notices) ? m.notices : []).map(x => T(x, 500)).filter(Boolean).slice(0, 12) })).sort((a, b) => a.month.localeCompare(b.month)).slice(-60);
   return { weekday: wd, focus, months };
 }
-async function listSchedule(env, month) {
-  const m = /^\d{4}-\d{2}$/.test(month || '') ? month : kstDay(new Date()).slice(0, 7);
-  const rows = await all(env, "SELECT * FROM posts WHERE type = 'schedule' AND date <= ? AND COALESCE(dend, date) >= ? ORDER BY date, created", m + '-31', m + '-01'); // 여러 날 일정은 걸친 달에 모두
-  return rows.map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', img: r.img || '', at: r.created, ev: r.ev || '' }));
+async function listSchedule(env, month, admin) {
+  const m = /^\d{4}-\d{2}$/.test(month || '') ? month : kstDay(new Date()).slice(0, 7), now = Date.now();
+  const rows = (await all(env, "SELECT * FROM posts WHERE type = 'schedule' AND date <= ? AND COALESCE(dend, date) >= ? ORDER BY date, created", m + '-31', m + '-01')).filter(r => admin || !(r.pubat > now)); // 여러 날 일정은 걸친 달에 모두 · ⏰ 예약 발행 전 일정은 관리 화면에만
+  return rows.map(r => ({ id: r.id, kind: r.kind, title: r.title, body: r.body, date: r.date, end: r.dend || '', img: r.img || '', at: r.created, ev: r.ev || '', ...(admin && r.pubat > now ? { res: r.pubat, resN: !!r.pnotify } : {}) }));
 }
 // 📩 봉투: 내 제자(받는 사람 중)마다 답장 (학부모에게 다른 가정 이름은 안 보냄)
 async function withReplies(env, items, myKids) {
