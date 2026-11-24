@@ -348,7 +348,7 @@
   @keyframes gsw{0%,55%{left:-60%}100%{left:130%}}
   .vfame .bst2{border-color:#6B5122}.vfame .bst2 .crown{filter:drop-shadow(0 0 6px rgba(247,224,138,.8))}
   .vfame .stab button.on{background:linear-gradient(135deg,#F7E08A,#C9962B);color:#2A1E05}
-  #gsp{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}#gsp i{position:absolute;font-style:normal;color:#F7E08A;text-shadow:0 0 8px rgba(247,224,138,.9);opacity:0;animation:gtw 3s ease-in-out infinite}
+  .ghd{position:relative}.ghd>*{position:relative;z-index:1}.ghd>#gsp{position:absolute;inset:-8px -6px -4px;z-index:0;pointer-events:none;overflow:hidden}#gsp i{position:absolute;font-style:normal;color:#F7E08A;text-shadow:0 0 8px rgba(247,224,138,.9);opacity:0;animation:gtw 3s ease-in-out infinite}
   @keyframes gtw{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:.95;transform:scale(1) rotate(45deg)}}
   @media (prefers-reduced-motion:reduce){.vfame .hi b,.gmq div,.vfame #body .card::after,#gsp i{animation:none}#gsp{display:none}}
 </style>
@@ -469,8 +469,8 @@
     // 2026-11-16 사용자: 아래 메뉴 = 홈 · 일정(이벤트 | 수련 계획) · 명예의 전당(가운데, 최우수 수련생 | 선범단) · 즐기기 · 더보기
     const hi = (bg, ic, t, sm) => '<div class="hi"><span class="av" style="background:' + bg + '">' + ic + '</span><div><b>' + t + '</b><small>' + sm + '</small></div></div>';
     const tabs = (L, cur) => '<div class="stab">' + L.map(([k, t]) => '<button data-sub="' + k + '" class="' + (k === cur ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
-    $('body').innerHTML = view === 'home' ? home() : view === 'sched' ? hi('#2E9E4F', '📅', '일정', '도장 행사 · 대회 · 심사 · 수련 계획') + tabs([['event', '🎉 이벤트'], ['plan', '📅 수련 계획']], schedSub) + (schedSub === 'plan' ? planView() : eventView()) : view === 'fame' ? hi('var(--gold)', '🏆', '명예의 전당', '해랑경희의 멋진 제자들') + fameMq() + tabs([['best', '🏆 최우수 수련생'], ['sb', '⭐ 선범단']], fameSub) + (fameSub === 'sb' ? sbView() : fame()) : view === 'fun' ? funView() : moreView();
-    document.documentElement.classList.toggle('vfame', view === 'fame'); fameSpark(view === 'fame');
+    $('body').innerHTML = view === 'home' ? home() : view === 'sched' ? hi('#2E9E4F', '📅', '일정', '도장 행사 · 대회 · 심사 · 수련 계획') + tabs([['event', '🎉 이벤트'], ['plan', '📅 수련 계획']], schedSub) + (schedSub === 'plan' ? planView() : eventView()) : view === 'fame' ? '<div class="ghd">' + hi('var(--gold)', '🏆', '명예의 전당', '해랑경희의 멋진 제자들') + fameStars() + '</div>' + tabs([['best', '🏆 최우수 수련생'], ['sb', '⭐ 선범단']], fameSub) + (fameSub === 'sb' ? sbView() : fame()) : view === 'fun' ? funView() : moreView();
+    document.documentElement.classList.toggle('vfame', view === 'fame');
     [...$('nav').children].forEach(b => b.classList.toggle('on', b.dataset.v === view)); $('out').hidden = view !== 'more'; if (view === 'home') newsRun();
   }
   $('nav').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; view = b.dataset.v; scrollTo(0, 0); draw(); };
@@ -845,11 +845,10 @@
     L.push('오늘의 땀이 내일의 기록'); const t = L.map(x => '<span>' + x + '</span><span>✦</span>').join('');
     return '<div class="gmq" aria-hidden="true"><div>' + t + t + '</div></div>';
   }
-  function fameSpark(on) {
-    let g = $('gsp'); if (!on) { if (g) g.remove(); return; } if (g) return;
-    g = document.createElement('div'); g.id = 'gsp'; let h = '';
-    for (let i = 0; i < 16; i++) h += '<i style="left:' + (4 + Math.random() * 92).toFixed(1) + '%;top:' + (6 + Math.random() * 80).toFixed(1) + '%;font-size:' + (8 + Math.random() * 10).toFixed(0) + 'px;animation-delay:' + (Math.random() * 3).toFixed(2) + 's;animation-duration:' + (2.2 + Math.random() * 2).toFixed(2) + 's">✦</i>';
-    g.innerHTML = h; document.body.appendChild(g);
+  function fameStars() { // 2026-11-24 사용자: 별은 머리글 둘레에만, 화면과 같이 움직임 (위에 떠다니지 않게) · 흐르는 글자띠는 뺌
+    let h = '';
+    for (let i = 0; i < 10; i++) h += '<i style="left:' + (3 + Math.random() * 94).toFixed(1) + '%;top:' + (Math.random() * 85).toFixed(1) + '%;font-size:' + (8 + Math.random() * 9).toFixed(0) + 'px;animation-delay:' + (Math.random() * 3).toFixed(2) + 's;animation-duration:' + (2.2 + Math.random() * 2).toFixed(2) + 's">✦</i>';
+    return '<div id="gsp">' + h + '</div>';
   }
   function fame() {
     const me = D.name;
