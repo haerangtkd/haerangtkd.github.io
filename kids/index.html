@@ -343,9 +343,9 @@
   .gmq span{font-size:13.5px;font-weight:900;letter-spacing:1.5px;padding-right:28px;background:linear-gradient(90deg,#B8862A,#F7E08A 40%,#FFF6D2 50%,#E3B341 70%,#B8862A);-webkit-background-clip:text;background-clip:text;color:transparent}
   @keyframes gmq{to{transform:translateX(-50%)}}
   .vfame #body .card{position:relative;overflow:hidden;border:1.5px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(135deg,#8A6416,#F7E08A 35%,#C9962B 55%,#F7E08A 80%,#8A6416) border-box}
-  .vfame #body .card::after{content:'';position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,236,170,.10) 45%,rgba(255,246,210,.22) 50%,rgba(255,236,170,.10) 55%,transparent);transform:skewX(-18deg);animation:gsw 5.5s ease-in-out infinite;pointer-events:none}
-  .vfame #body .card:nth-of-type(2)::after{animation-delay:1.8s}.vfame #body .card:nth-of-type(3)::after{animation-delay:3.4s}
-  @keyframes gsw{0%,55%{left:-60%}100%{left:130%}}
+  .vfame #body .card::after{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 46%,rgba(255,240,190,.16) 49.5%,rgba(255,248,220,.26) 50%,rgba(255,240,190,.16) 50.5%,transparent 54%) no-repeat;background-size:300% 100%;background-position:100% 0;animation:gsw 3.6s ease-in-out infinite;pointer-events:none;border-radius:inherit}
+  .vfame #body .card:nth-of-type(2)::after{animation-delay:1.2s}.vfame #body .card:nth-of-type(3)::after{animation-delay:2.4s}
+  @keyframes gsw{0%{background-position:100% 0}28%,100%{background-position:0 0}}
   .vfame .bst2{border-color:#6B5122}.vfame .bst2 .crown{filter:drop-shadow(0 0 6px rgba(247,224,138,.8))}
   .vfame .stab button.on{background:linear-gradient(135deg,#F7E08A,#C9962B);color:#2A1E05}
   .ghd{position:relative}.ghd>*{position:relative;z-index:1}.ghd>#gsp{position:absolute;inset:-8px -6px -4px;z-index:0;pointer-events:none;overflow:hidden}#gsp i{position:absolute;font-style:normal;color:#F7E08A;text-shadow:0 0 8px rgba(247,224,138,.9);opacity:0;animation:gtw 3s ease-in-out infinite}
