@@ -786,16 +786,16 @@ HL.billLine = (st) => {
 };
 HL.nextFeeMonth = (m, ym) => { let n = HL.addMonths(ym, 1); for (let i = 0; i < 24 && m.skip && m.skip[n]; i++) n = HL.addMonths(n, 1); return n; };
 
-/** 처음 결제 방식을 기준으로 채운다: 신규는 가입 당시, 기존 회원은 장부에 처음 입력된 회비 (금액이 다르면 마지막 수단에서 맞춘다) */
+/** 결제 방식 기본값: 회원 정보에 저장된 결제방법. 비어 있을 때만 장부에 처음 입력된 회비 방식을 따른다 */
 HL.receiptNoFmt = (v) => { const p = String(v || ''); return /^01\d{8,9}$/.test(p) ? `${p.slice(0, 3)}-${p.slice(3, -4)}-${p.slice(-4)}` : p; };
 HL.methodName = (m) => (m.payMethod === '기타' ? (m.payMethodOther ? `기타:${m.payMethodOther}` : '') : (m.payMethod || ''));
 HL.payTemplate = (m, ctx, amount) => {
   const last = (ctx.entries || []).filter((e) => e.kind === 'fee' && e.memberId === m.id && !e.cancelled && (e.methods || []).length)
     .sort((a, b) => (a.date === b.date ? String(a.at).localeCompare(String(b.at)) : a.date.localeCompare(b.date)))[0];
   // 앱에서 새로 등록한 회원은 등록 때 정한 결제방법 기준 (등록 때 나눠 냈어도 다음부터는 결제방법대로)
-  const appMember = m.origin === 'app' || (!m.origin && m.log && m.log.h0 && /앱에서 등록|직원 등록 요청/.test(String(m.log.h0.after || '')));
   const mn0 = HL.methodName(m);
-  if (appMember && mn0) return { methods: [{ m: mn0, a: amount }], note: `가입 때 정한 결제방법(${mn0.replace(/^기타:/, '')})을 채웠어요.` };
+  // 회원 정보에 저장된 결제방법이 있으면 항상 그것을 기본으로 (첫 결제 방식은 결제방법이 비어 있을 때만)
+  if (mn0) return { methods: [{ m: mn0, a: amount }], note: `가입 때 정한 결제방법(${mn0.replace(/^기타:/, '')})을 채웠어요.` };
   if (!last) { const mn = HL.methodName(m); return { methods: [{ m: mn, a: amount }], note: mn ? `가입 때 정한 결제방법(${mn.replace(/^기타:/, '')})을 채웠어요.` : '' }; }
   const rows = last.methods.map((r) => ({ m: r.m, a: Number(r.a) }));
   const desc = rows.map((r) => (rows.length > 1 ? `${r.m.replace(/^기타:/, '')} ${HL.fmt(r.a)}` : r.m.replace(/^기타:/, ''))).join(' + ');
@@ -813,7 +813,7 @@ HL.payTemplate = (m, ctx, amount) => {
 /* ───────── 검증 (5-6) ───────── */
 HL.verifyMonth = (ctx, ym) => {
   const { members, cfg, idx, today } = ctx;
-  const res = { ym, expected: [], done: [], unpaid: [], upcoming: [], missing: [], extra: [], skipped: [], undecided: [] };
+  const res = { ym, expected: [], done: [], unpaid: [], upcoming: [], missing: [], extra: [], skipped: [], left: [], undecided: [] };
   if (!cfg || (ym < cfg.startMonth && !HL.TRACK_ALL_PAST)) { res.notTracked = true; res.pass = true; return res; }
   if (ym > HL.ym(today)) { res.future = true; }
   for (const m of members) {
@@ -822,7 +822,11 @@ HL.verifyMonth = (ctx, ym) => {
     if (m.skip && m.skip[ym]) res.skipped.push({ m, reason: m.skip[ym].reason });
     if (ex.expected) {
       res.expected.push(m);
-      if (!fee) { res.missing.push({ m, reason: ex.reason === '결제일 없음' ? '결제일이 없어 회비 기록을 만들 수 없음' : (m.fees && m.fees[ym] && m.fees[ym].cancelled ? '회비 기록이 취소됨' : '회비 기록 없음') }); continue; }
+      if (!fee) {
+        const mEnd = `${ym}-${pad(HL.lastDay(ym))}`;
+        const nowSt = HL.statusAt(m, today < mEnd ? today : mEnd);
+        if (!HL.isActiveStatus(nowSt) || !HL.isActiveStatus(HL.currentStatus(m, today))) { res.expected.pop(); res.left.push({ m, reason: `${HL.isActiveStatus(nowSt) ? HL.currentStatus(m, today) : nowSt}${m.fees && m.fees[ym] && m.fees[ym].cancelled ? '(회비 취소)' : ''}` }); continue; }
+        res.missing.push({ m, reason: ex.reason === '결제일 없음' ? '결제일이 없어 회비 기록을 만들 수 없음' : (m.fees && m.fees[ym] && m.fees[ym].cancelled ? '회비 기록이 취소됨' : '회비 기록 없음') }); continue; }
       const st = HL.feeState(m, ym, idx, today);
       if (st.undecided) res.undecided.push({ m, st });
       res[st.cat].push({ m, st });
@@ -2634,7 +2638,7 @@ function renderAlerts() {
 /* ───────── 홈 ───────── */
 function verifyBanner(v) {
   if (v.notTracked) return `<div class="banner info">이 달은 장부 시작(${HL.monthLabelFull(App.data.config.startMonth)}) 전이라 미납 검증을 하지 않아요.</div>`;
-  if (v.pass) return `<div class="banner ok"><b>검증 통과</b> — 회비 대상 ${v.target}명 = 납부완료 ${v.done.filter((x) => !x.extra).length} + 미납 ${v.unpaid.length} + 결제예정 ${v.upcoming.length}${v.skipped.length ? ` <span class="muted">(결제일 연장으로 다음 달로 넘어감 ${v.skipped.length}명: ${v.skipped.map((x) => esc(dn(x.m))).join(', ')})</span>` : ''}</div>`;
+  if (v.pass) return `<div class="banner ok"><b>검증 통과</b> — 회비 대상 ${v.target}명 = 납부완료 ${v.done.filter((x) => !x.extra).length} + 미납 ${v.unpaid.length} + 결제예정 ${v.upcoming.length}${v.skipped.length ? ` <span class="muted">(결제일 연장으로 다음 달로 넘어감 ${v.skipped.length}명: ${v.skipped.map((x) => esc(dn(x.m))).join(', ')})</span>` : ''}${v.left && v.left.length ? ` <span class="muted">(퇴관·휴원으로 빠짐 ${v.left.length}명: ${v.left.map((x) => esc(dn(x.m))).join(', ')})</span>` : ''}</div>`;
   const names = v.missing.map((x) => `${esc(dn(x.m))}(${esc(x.reason)})`).concat(v.extra.map((x) => `${esc(dn(x.m))}(${esc(x.reason)})`));
   return `<div class="banner bad">⚠️ <b>회비 기록 확인 필요</b> — 회비 대상 ${v.target}명 중 상태가 확인된 회원은 ${v.counted}명입니다.<br>${names.length ? `누락: ${names.join(', ')}` : ''}</div>`;
 }
@@ -2938,8 +2942,11 @@ function openPrepay(m, ym0) {
   const sel = h('select', {}, ...[1, 2, 3, 4, 5].map((n) => opt(String(n), `${n}개월`, n === 1)));
   const info = h('div', { class: 'sub' });
   const go = h('button', { class: 'dark', type: 'button' }, '납부 카드 만들기');
-  const months = () => { const n = Number(sel.value); const out = []; let y = ym0; for (let i = 0; i < n; i++) { out.push(y); y = HL.nextFeeMonth(m, y); } return out; };
-  const upd = () => { info.textContent = months().map((y) => HL.monthLabel(y)).join(', ') + ' 회비를 이어서 받아요.'; };
+  // 이미 다 낸 달(선납 포함)은 건너뛰고 아직 안 낸 첫 달부터 받는다
+  let start = ym0, paidTo = null;
+  for (let i = 0; i < 24; i++) { const st = HL.virtualFeeState(m, start, c); if (!st || st.due == null || st.cat === 'cancelled' || st.outstanding > 0) break; paidTo = start; start = HL.nextFeeMonth(m, start); }
+  const months = () => { const n = Number(sel.value); const out = []; let y = start; for (let i = 0; i < n; i++) { out.push(y); y = HL.nextFeeMonth(m, y); } return out; };
+  const upd = () => { info.textContent = (paidTo ? `${HL.monthLabel(paidTo)}까지 이미 냈어요. ` : '') + months().map((y) => HL.monthLabel(y)).join(', ') + ' 회비를 이어서 받아요.'; };
   sel.addEventListener('change', upd); upd();
   go.addEventListener('click', () => {
     const cards = months().map((y) => payCardFor(m, y)).filter((x) => x.st && x.st.outstanding > 0).map((x) => x.card);
