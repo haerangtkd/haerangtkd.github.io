@@ -893,7 +893,7 @@
   }
   function drawKc() {
     const q = $('kq').value.replace(/\s+/g, '');
-    $('kcList').innerHTML = kcItems.filter(x => !q || x.name.includes(q)).map(x => '<li class="nt" style="align-items:center"><div><b>' + esc(x.name) + '</b><small>' + (x.code ? '<span class="kcode">' + esc(x.code) + '</span> · 기기 ' + x.devices + '대' + (x.seen ? ' · 마지막 ' + when(x.seen) : '') : '코드 없음') + '</small></div><div class="act"><button data-kmk="' + esc(x.name) + '">' + (x.code ? '새 코드' : '코드 만들기') + '</button>' + (x.code ? '<button data-kdel="' + esc(x.name) + '">지우기</button>' : '') + '</div></li>').join('') || '<li class="empty">명단에 제자가 없어요</li>';
+    $('kcList').innerHTML = kcItems.filter(x => !q || x.name.includes(q)).map(x => '<li class="nt" style="align-items:center"><div><b>' + esc(x.name) + '</b><small>' + (x.code ? '<span class="kcode">' + esc(x.code) + '</span> · 기기 ' + x.devices + '대' + (x.seen ? ' · 마지막 ' + when(x.seen) : '') : '코드 없음' + (x.devices ? ' · 들어가 있는 기기 ' + x.devices + '대' : '')) + '</small></div><div class="act"><button data-kmk="' + esc(x.name) + '">' + (x.code ? '새 코드' : '코드 만들기') + '</button>' + (x.code || x.devices ? '<button data-kdel="' + esc(x.name) + '">' + (x.devices ? '기기 내보내기' : '지우기') + '</button>' : '') + '</div></li>').join('') || '<li class="empty">명단에 제자가 없어요</li>';
   }
   $('kq').oninput = drawKc;
   $('kcList').onclick = async e => {
