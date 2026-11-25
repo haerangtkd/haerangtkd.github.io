@@ -153,16 +153,14 @@ async function route(path, req, env) {
     // 2026-11-14 사용자 결정: 코드는 사범님이 업무 앱(더보기 → 🔑 제자 코드)에서 본인 계정으로 만들어 줌 → 제자는 코드만 넣음
     // 2026-11-15 사용자 결정: 숫자 6자리 일회용 코드 (5분 안에 한 번만, 인바디 Touch 인증코드처럼)
     const code = String(b.code || '').replace(/\D/g, '').slice(0, 6);
-    // 2026-11-18 사용자 결정: 김사범님·이사범님·한코치님 세 분만 늘 같은 코드(시험용 — 제자 명단의 시험 이름을 지우려고). 일회용·5분 제한 없음
-    const stf = code.length === 6 ? Object.entries(await kstaffCodes(env)).find(([, c]) => c === code) : null;
-    if (stf) { await failClear(env, ip); const tok = rid(24); await run(env, 'INSERT INTO ksess (tok, name, created, seen) VALUES (?, ?, ?, ?)', tok, stf[0], Date.now(), Date.now()); return json({ ok: true, tok, name: stf[0], staff: true }); }
+    // 2026-11-25 사용자 결정: 직원 시험 이름(김사범님·이사범님·한코치님)도 제자와 똑같이 숫자 6자리 · 5분 일회용 (늘 같은 코드 없앰 — 보안)
     const r = code.length === 6 ? await one(env, 'SELECT name, created FROM kcodes WHERE code = ?', code) : null;
     if (!r) return json({ ok: false, error: failText('제자 코드가 맞지 않아요', await failAdd(env, ip)) });
     await run(env, 'UPDATE kcodes SET code = NULL WHERE name = ?', r.name); // 한 번 쓰면 끝
     if (Date.now() - (r.created || 0) > KCODE_TTL) return json({ ok: false, error: '코드 시간(5분)이 지났어요. 사범님께 새 코드를 받아 주세요' });
     await failClear(env, ip); const tok = rid(24);
     await run(env, 'INSERT INTO ksess (tok, name, created, seen) VALUES (?, ?, ?, ?)', tok, r.name, Date.now(), Date.now());
-    return json({ ok: true, tok, name: r.name });
+    return json(KSTAFF.includes(r.name) ? { ok: true, tok, name: r.name, staff: true } : { ok: true, tok, name: r.name });
   }
   if (path.startsWith('/k/')) {
     let ks = b.tok ? await one(env, 'SELECT name FROM ksess WHERE tok = ?', String(b.tok)) : null, viaP = null;
@@ -744,10 +742,9 @@ async function route(path, req, env) {
     if (!env.SYNC_KEY || !(await sameText(req.headers.get('X-Sync-Key') || '', env.SYNC_KEY))) return json({ ok: false, error: 'sync key' }, 401);
     if (path === '/sync/kcode-list') {
       const ks = (await all(env, 'SELECT name FROM kids ORDER BY name')).map(r => r.name), ss = await all(env, 'SELECT name, COUNT(*) AS n FROM ksess GROUP BY name');
-      const sc = await kstaffCodes(env);
-      return json({ ok: true, items: ks.map(n => { const s2 = ss.find(x => x.name === n); return { name: n, devices: s2 ? s2.n : 0 }; }), staff: KSTAFF.map(n => { const s2 = ss.find(x => x.name === n); return { name: n, code: sc[n] || '', devices: s2 ? s2.n : 0 }; }) });
+      return json({ ok: true, items: ks.map(n => { const s2 = ss.find(x => x.name === n); return { name: n, devices: s2 ? s2.n : 0 }; }), staff: KSTAFF.map(n => { const s2 = ss.find(x => x.name === n); return { name: n, devices: s2 ? s2.n : 0 }; }) });
     }
-    const name = str(b.name, 20).trim(); if (!(await one(env, 'SELECT name FROM kids WHERE name = ?', name))) return json({ ok: false, error: '명단에 없는 제자예요' });
+    const name = str(b.name, 20).trim(); if (!KSTAFF.includes(name) && !(await one(env, 'SELECT name FROM kids WHERE name = ?', name))) return json({ ok: false, error: '명단에 없는 제자예요' });
     const code = await newKcode(env, name); if (!code) return json({ ok: false, error: '코드를 만들지 못했어요. 다시 눌러 주세요' });
     return json({ ok: true, code, name, exp: Date.now() + KCODE_TTL });
   }
@@ -1186,22 +1183,11 @@ async function kidQr(env, name) { // 제자마다 내 출석 QR (2026-11-14) —
 }
 const GAME_DIR = { rope: 1, tg: -1, brk: 1, belt: -1, whack: 1, mem: -1, quiz: 1, run: -1, tg2: -1, tg3: -1, tg4: -1, tg5: -1, tg6: -1, tg7: -1, tg8: -1, bag: 1, ruler: -1 }; // 2026-11-20: 샌드백 치기(20초 횟수) · 자를 잡아라(평균 반응 ms) // 2026-11-19: 왕복달리기(0.1초) · 태극 2~8장(틀린 수) // 🎮 놀이터 기록: 1 = 클수록 좋음, -1 = 작을수록 좋음 (태극 1장 틀린 수 · 띠 순서 0.1초 · 짝 맞추기 횟수)
 const KCODE_TTL = 5 * 60000; // 제자 코드 = 숫자 6자리, 5분 안에 한 번만 (2026-11-15)
-// 직원 시험용 제자 앱 이름 (2026-11-18 사용자 결정) — 이 세 분만 코드가 늘 같음 (kv 'kstaff' = {이름: 코드}, 처음 한 번 만들어 둠)
+// 직원 시험용 제자 앱 이름 (2026-11-18) — 2026-11-25부터 제자와 똑같이 일회용 코드 (업무 앱 제자 코드에서 만듦)
 const KSTAFF = ['김사범님', '이사범님', '한코치님'];
-async function kstaffCodes(env) {
-  const cur = (await kvj(env, 'kstaff')) || {}; let ch = false;
-  for (const n of KSTAFF) {
-    if (/^\d{6}$/.test(cur[n] || '')) continue;
-    for (let t = 0; t < 30; t++) { const c = String(100000 + crypto.getRandomValues(new Uint32Array(1))[0] % 900000); if (Object.values(cur).includes(c) || await one(env, 'SELECT name FROM kcodes WHERE code = ?', c)) continue; cur[n] = c; ch = true; break; }
-  }
-  if (ch) await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kstaff', JSON.stringify(cur));
-  return cur;
-}
 async function newKcode(env, name) {
-  const sc = Object.values(await kstaffCodes(env));
   for (let t = 0; t < 20; t++) {
     const c = String(100000 + crypto.getRandomValues(new Uint32Array(1))[0] % 900000), o = await one(env, 'SELECT name, created FROM kcodes WHERE code = ?', c);
-    if (sc.includes(c)) continue; // 직원 시험 코드와 겹치지 않게
     if (o && o.name !== name && Date.now() - (o.created || 0) <= KCODE_TTL) continue; // 다른 제자가 지금 쓰는 번호
     if (o && o.name !== name) await run(env, 'UPDATE kcodes SET code = NULL WHERE name = ?', o.name);
     await run(env, 'INSERT INTO kcodes (name, code, created) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET code = excluded.code, created = excluded.created', name, c, Date.now()); return c;
