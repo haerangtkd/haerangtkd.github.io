@@ -117,6 +117,16 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .mv .who h2{font-size:22px}
 .mv .sc2 button{height:52px;font-size:15px}
 .mv .colx{border:0;background:none;font-size:20px;color:var(--muted);padding:0 4px}
+.engd{margin-top:8px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.engd summary{padding:10px 12px;font-weight:800;font-size:14px;cursor:pointer;color:var(--navy)}
+.engbox{height:220px;overflow-y:auto;overscroll-behavior:contain;padding:0 10px 10px;border-top:1px solid var(--line)}
+.engc{font-size:12px;font-weight:800;color:var(--muted);margin:10px 2px 4px}
+.engw{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px dashed var(--line);font-size:14px}
+.engw input{width:20px;height:20px;flex:none;accent-color:var(--navy)}
+.engw span{flex:1}.engw b{font-weight:800}
+.kuk{display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px;border:2px solid var(--brand);border-radius:12px;background:#fff;font-weight:800}
+.kuk input{width:24px;height:24px;flex:none;accent-color:var(--brand)}
+.kuk small{font-weight:600;color:var(--muted)}
 .mvh{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style></head>
 <body>
@@ -163,9 +173,19 @@ function kickGuide(grp, belt) {
   const p = pumOf(belt); return p >= 4 ? '540도 뒤후리기' : p === 3 ? '돌려차고 뒤돌아 옆차기 · 돌려차고 턴차고 뒤후리기' : p === 2 ? '돌려차기 · 옆차기' : p === 1 ? '앞차기 · 돌려차기' : '앞뻗어 올리기 · 앞차기';
 }
 function engGuide(belt) { const p = pumOf(belt); return p >= 4 ? '영어로 자기소개' : p === 3 ? '영어 문장 말하기' : p === 2 ? '단어 5개 + 스펠링' : p === 1 ? '단어 5개' : '단어 2개'; }
+// 🔤 제자 앱 '태권도 영어'와 같은 표 (2026-11-26 사용자: 채점 화면에서 펼쳐서 체크) — 제자 앱 kids/index.html 의 ENG 를 고치면 여기도 같이 고쳐 주세요
+const ENG = [
+  ['기본', [['도복', 'Uniform', '유니폼'], ['띠', 'Belt', '벨트'], ['차렷', 'Attention', '어텐션'], ['경례', 'Bow', '바우'], ['일어서', 'Stand up', '스탠드 업'], ['태권도', 'Taekwondo', '태권도'], ['품새', 'Poomsae', '품새'], ['겨루기', 'Sparring', '스파링'], ['팔굽혀펴기', 'Push up', '푸쉬 업'], ['윗몸 일으키기', 'Sit up', '싯 업']]],
+  ['방향·몸', [['공격', 'Attack', '어택'], ['방어/막기', 'Block', '블락'], ['밑/아래', 'Low', '로우'], ['위', 'High', '하이'], ['앞', 'Front', '프론트'], ['뒤', 'Back', '백'], ['왼쪽', 'Left', '레프트'], ['오른쪽', 'Right', '라이트'], ['명치', 'Solar plexus', '솔라 플렉서스'], ['인중', 'Philtrum', '필트럼']]],
+  ['발차기', [['앞차기', 'Front kick', '프론트 킥'], ['돌려차기', 'Roundhouse kick', '라운드하우스 킥'], ['내려차기', 'Axe kick', '액스 킥'], ['옆차기', 'Side kick', '사이드 킥'], ['뒤차기', 'Back kick', '백 킥'], ['뒤후려차기', 'Back spin kick', '백 스핀 킥'], ['나래차기', 'Narea kick', '나래 킥'], ['앞후려차기', 'Front spin kick', '프론트 스핀 킥'], ['턴(돌개)차기', 'Tornado kick', '토네이도 킥']]],
+  ['막기', [['아래막기', 'Low block', '로우 블락'], ['몸통막기', 'Middle block', '미들 블락'], ['얼굴막기', 'High block', '하이 블락'], ['손날막기', 'Handblade block', '핸드블레이드 블락'], ['안막기', 'Inward block', '인워드 블락'], ['바깥막기', 'Outward block', '아웃워드 블락'], ['가위막기', 'Scissor block', '시저 블락'], ['산틀막기', 'Mountain shape block', '마운틴 쉐입 블락'], ['헤쳐막기', 'Scattered block', '스캐터드 블락']]],
+  ['서기', [['모아서기', 'Close stance', '클로즈 스탠스'], ['나란히서기', 'Paraelle stance', '패럴 스탠스'], ['주춤서기', 'Riding stance', '라이딩 스탠스'], ['앞서기', 'Walking stance', '워킹 스탠스'], ['앞굽이', 'Front stance', '프론트 스탠스'], ['뒷굽이', 'Back stance', '백 스탠스'], ['꼬아서기', 'Front twist stance', '프론트 트위스트 스탠스'], ['범서기', 'Tiger stance', '타이거 스탠스'], ['학다리서기', 'Crane stance', '크레인 스탠스']]],
+  ['인사', [['어머니(아버지) 태권도 다녀왔습니다', "mommy(daddy) I'm come back home from taekwondo", '마미(대디) 암 컴백홈 프롬 태권도']]],
+];
+const engSaid = t => { const L = String(t || '').split(/\s*,\s*/).map(x => x.toLowerCase()).filter(Boolean); return ENG.flatMap(c => c[1]).map(w => w[1].toLowerCase()).filter(w => L.includes(w)); };
 const GUIDE = { kickH: '눈높이까지 차는지 봐요', kickP: '발차기의 힘', poom: '품새의 연결 · 힘의 완급 · 동작의 완성', voice: '또렷하고 큰 목소리로 전달하는지', recite: '원고를 외워서 하는지' };
 
-const S = { month: thisMonth, cfg: null, meta: {}, topic: '', topicAuto: '', rows: {}, belts: {}, roster: [], names: {}, view: 'list', sid: null, sel: [], f: 'all', g: '', q: '', pend: {}, timers: {}, err: '' };
+const S = { month: thisMonth, cfg: null, meta: {}, topic: '', topicAuto: '', rows: {}, belts: {}, roster: [], names: {}, view: 'list', sid: null, sel: [], engOpen: {}, f: 'all', g: '', q: '', pend: {}, timers: {}, err: '' };
 // 2026-11-16 사용자: 심사 항목(유치부·초등부·입시부)은 출석부(생년)대로 저절로. 아직 점수가 하나도 없으면 늘 출석부대로(이 화면에서 직접 고른 것만 예외),
 // 점수를 넣기 시작한 뒤에는 그때 부를 그대로 둠(항목이 바뀌면 넣은 점수가 안 보이니까)
 const scored = d => !!(d && d.sc && Object.keys(d.sc).some(x => d.sc[x]));
@@ -280,7 +300,10 @@ function colHTML(k) {
         (/발차기|기본기/.test(x.g) ? '<div class="guide">🦵 ' + esc(kickGuide(grp, cur)) + (notes.kick ? '<br>이번 달: ' + esc(notes.kick) : '') + '</div>' : ''); }
     const v = d.sc[x.k] || 0;
     h += '<div class="subj' + (x.g ? ' in' : '') + '"><div class="sh"><b>' + esc(x.n) + '</b><span class="' + (v === GOOD ? 'g' : v === MORE ? 'm' : '') + '">' + (v ? WORD[v] : '') + '</span></div>';
-    if (x.k === 'eng') h += '<div class="note">' + esc(engGuide(cur)) + (notes.eng ? ' · 이번 달: ' + esc(notes.eng) : '') + '</div><input class="inp tx" data-t="eng" maxlength="200" placeholder="무엇을 말했나요? (예: apple, banana)" value="' + esc(d.tx.eng || '') + '"' + dis + '>';
+    if (x.k === 'eng') { const said = engSaid(d.tx.eng);
+      h += '<div class="note">' + esc(engGuide(cur)) + (notes.eng ? ' · 이번 달: ' + esc(notes.eng) : '') + '</div><input class="inp tx" data-t="eng" maxlength="200" placeholder="무엇을 말했나요? 직접 적거나 아래에서 체크" value="' + esc(d.tx.eng || '') + '"' + dis + '>' +
+        '<details class="engd"' + (S.engOpen[k.id] ? ' open' : '') + '><summary>🔤 제자 앱 영어 펼치기' + (said.length ? ' · ' + said.length + '개' : '') + '</summary><div class="engbox">' +
+        ENG.map(([c, L]) => '<div class="engc">' + esc(c) + '</div>' + L.map(w => '<label class="engw"><input type="checkbox" data-ew="' + esc(w[1]) + '"' + (said.includes(w[1].toLowerCase()) ? ' checked' : '') + dis + '><span>' + esc(w[0]) + '</span><b>' + esc(w[1]) + '</b></label>').join('')).join('') + '</div></details>'; }
     else if (x.k === 'poom') { const yu = pumOf(cur) > 0; h += '<div class="note">' + (yu ? '유품자 · 필수 품새 + 랜덤 품새 1개' : '유급자 · 품새 1개') + ' · ' + GUIDE.poom + (notes.poom ? '<br>이번 달: ' + esc(notes.poom) : '') + '</div>' +
       '<div style="display:flex;gap:6px">' + poomSel('poom', d.tx.poom, yu ? '필수 품새' : '품새 고르기', dis) + (yu ? poomSel('poom2', d.tx.poom2, '랜덤 품새', dis) : '') + '</div>'; }
     else if (x.k === 'talent') h += '<div class="note">특기 = 태권도 기술 (예: 540도 뒤후리기 · 하우스턴 · 텀블링 발차기)</div><input class="inp tx" data-t="talent" maxlength="200" placeholder="어떤 태권도 기술을 했나요? (예: 540도, 하우스턴)" value="' + esc(d.tx.talent || '') + '"' + dis + '>';
@@ -291,7 +314,9 @@ function colHTML(k) {
   const auto = nextBelt(cur, k.kinder), manual = cur === '빨간띠' || /품$/.test(cur || '');
   h += '<div class="res"><div class="pf"><button class="y' + (d.pass !== false ? ' on' : '') + '" data-p="1"' + dis + '>합격</button><button class="n' + (d.pass === false ? ' on' : '') + '" data-p="0"' + dis + '>불합격</button></div>' +
     (d.pass !== false ? '<label style="display:flex;align-items:center;gap:6px;font-weight:700">새 띠 <select class="nbs"' + dis + '><option value="">그대로</option>' + opts.map(b => '<option' + (b === d.nb && d.nb !== cur ? ' selected' : '') + '>' + b + '</option>').join('') + '</select></label>' : '') + '</div>';
-  if (d.pass !== false) h += '<p class="help">' + (manual ? '빨간띠·품띠는 자동으로 오르지 않아요. 공인단 심사에 합격했으면 직접 골라 주세요.' : !cur ? '지금 띠를 몰라서 새 띠를 직접 골라 주세요.' : auto === cur ? '최고 띠라 그대로예요.' : '합격하면 ' + esc(auto) + '로 올라가요. 다르면 바꿔 주세요.') + '</p>';
+  if (d.pass !== false && manual && BELTS[BELTS.indexOf(cur) + 1]) { const up = BELTS[BELTS.indexOf(cur) + 1];
+    h += '<label class="kuk"><input type="checkbox" class="kukc"' + (d.nb === up ? ' checked' : '') + dis + '><span>공인단 심사 합격했어요 <small>(체크하면 ' + esc(cur) + ' → ' + esc(up) + ')</small></span></label>'; }
+  if (d.pass !== false) h += '<p class="help">' + (manual ? (d.nb && d.nb !== cur ? '마감하면 ' + esc(d.nb) + '로 바뀌어요.' : '빨간띠·품띠는 공인단 심사에 합격했을 때만 올라가요. 위 칸을 체크해 주세요.') : !cur ? '지금 띠를 몰라서 새 띠를 직접 골라 주세요.' : auto === cur ? '최고 띠라 그대로예요.' : '합격하면 ' + esc(auto) + '로 올라가요. 다르면 바꿔 주세요.') + '</p>';
   h += '<input class="inp memo" style="margin-top:12px" maxlength="300" placeholder="메모 (직원만 보여요)" value="' + esc(d.memo || '') + '"' + dis + '>';
   h += '<div style="display:flex;align-items:center;gap:8px;margin-top:12px"><button class="abs absb' + (d.absent ? ' on' : '') + '"' + dis + '>' + (d.absent ? '✓ 이번 달 안 봄' : '이번 달 안 봄 (결석)') + '</button><span style="flex:1"></span><div class="saved">' + (by ? esc(by) + '님이 채점' : '') + '</div></div>';
   return h + '</div>';
@@ -312,6 +337,13 @@ function bindCol(col, k) {
   col.querySelector('.pf').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; d.pass = b.dataset.p === '1'; if (d.pass && (!d.nb || d.nb === cur)) d.nb = nextBelt(cur, k.kinder); upd(); };
   const nb = col.querySelector('.nbs'); if (nb) nb.onchange = e => { d.nb = e.target.value || (cur || ''); upd(); };
   col.querySelector('.memo').onchange = e => { d.memo = e.target.value; save(k, d); };
+  const kc = col.querySelector('.kukc'); if (kc) kc.onchange = () => { d.nb = kc.checked ? BELTS[BELTS.indexOf(cur) + 1] : cur; upd(); };
+  const ed = col.querySelector('.engd'); if (ed) ed.ontoggle = () => { S.engOpen[k.id] = ed.open; };
+  col.querySelectorAll('[data-ew]').forEach(cb => cb.onchange = () => { // 체크하면 영어 칸에 더하고, 풀면 빼요 (직접 적은 말은 그대로)
+    const w = cb.dataset.ew, L = String(d.tx.eng || '').split(/\s*,\s*/).filter(Boolean), i = L.findIndex(x => x.toLowerCase() === w.toLowerCase());
+    if (cb.checked && i < 0) L.push(w); if (!cb.checked && i >= 0) L.splice(i, 1);
+    d.tx.eng = L.join(', ').slice(0, 200); if (!d.tx.eng) delete d.tx.eng; const inp = col.querySelector('.tx[data-t="eng"]'); if (inp) inp.value = d.tx.eng || '';
+    const sm = ed && ed.querySelector('summary'), n = engSaid(d.tx.eng).length; if (sm) sm.textContent = '🔤 제자 앱 영어 펼치기' + (n ? ' · ' + n + '개' : ''); save(k, d); });
   col.querySelector('.absb').onclick = () => { d.absent = !d.absent; upd(); };
 }
 function drawMvHead() { const n = S.sel.filter(kidBy).length; $('#mvh').textContent = n + '명 채점 중 · 누르면 바로 저장돼요 · 학부모님께는 목록에서 마감해야 알림이 가요'; }
