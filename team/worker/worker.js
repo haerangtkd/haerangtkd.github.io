@@ -717,7 +717,15 @@ async function route(path, req, env, ctx) {
   }
   if (path === '/api/push-status') { // 관리자: 직원마다 알림 켠 기기 수 · 마지막으로 알림이 간 때 (2026-11-13)
     const nb = needBoss(); if (nb) return nb;
-    return json({ ok: true, testOnly: J((await one(env, "SELECT v FROM kv WHERE k = 'testOnly'") || {}).v, null), list: await all(env, 'SELECT m.id, m.name, m.shared, COUNT(s.ep) AS n, MAX(s.last) AS last, MAX(s.created) AS reg FROM members m LEFT JOIN subs s ON s.mid = m.id GROUP BY m.id ORDER BY m.shared, m.name') });
+    return json({ ok: true, testOnly: J((await one(env, "SELECT v FROM kv WHERE k = 'testOnly'") || {}).v, null), list: await all(env, 'SELECT m.id, m.name, m.shared, COUNT(s.ep) AS n, MAX(s.last) AS last, MAX(s.created) AS reg, (SELECT COUNT(*) FROM sessions x WHERE x.mid = m.id) AS ss FROM members m LEFT JOIN subs s ON s.mid = m.id GROUP BY m.id ORDER BY m.shared, m.name') });
+  }
+  if (path === '/api/member-logout') { // 관리자: 그 직원이 로그인한 기기 모두 로그아웃 + 알림 기기 지움 (2026-11-26 사용자). 누르는 이 기기는 남김
+    const nb = needBoss(); if (nb) return nb;
+    const mid = str(b.mid, 40), m = await one(env, 'SELECT name FROM members WHERE id = ?', mid); if (!m) return json({ ok: false, error: '없는 직원이에요' });
+    const a = await one(env, 'SELECT COUNT(*) AS n FROM sessions WHERE mid = ? AND tok != ?', mid, str(b.tok, 64));
+    await env.DB.batch([q(env, 'DELETE FROM sessions WHERE mid = ? AND tok != ?', mid, str(b.tok, 64)), q(env, 'DELETE FROM subs WHERE mid = ?', mid)]);
+    await addLog(env, me.id, 'member', m.name + '님 기기 ' + (a ? a.n : 0) + '대를 로그아웃했어요', '').catch(() => {});
+    return json({ ok: true, n: a ? a.n : 0 });
   }
   if (path === '/api/test-push') { // 🧪 시험 모드 (관리자, 2026-11-13 사용자 요청): 켜 두면 직원 휴대폰 알림이 고른 한 사람에게만 감
     const nb = needBoss(); if (nb) return nb;
