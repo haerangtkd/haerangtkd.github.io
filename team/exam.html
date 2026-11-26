@@ -179,6 +179,7 @@ function dataOf(k) { const r = S.rows[k.id]; if (r && r.data.v === 2) return r.d
 function stateOf(k) { const r = S.rows[k.id]; if (!r) return 'todo'; const d = r.data; if (d.absent) return 'abs'; if (d.fin) return 'done'; if (d.v !== 2) return 'half'; const its = itemsFor(effGrp(k, d) || d.grp), n = its.filter(x => d.sc && d.sc[x.k]).length; return n >= its.length ? 'done' : n ? 'half' : 'todo'; }
 const SLBL = { todo: '아직', half: '하는 중', done: '끝남', abs: '안 봄' };
 const closed = () => !!S.meta.closed;
+const examDates = m => (Array.isArray(m.dates) && m.dates.length ? m.dates : [m.date, m.date2].filter(Boolean)); // 심사 날짜 여러 날 (2026-11-26)
 const finOf = k => !!(S.rows[k.id] && S.rows[k.id].data.fin); // 오늘만 마감으로 확정한 제자 (2026-11-16)
 const isToday = r => r && new Date(r.upd + 9 * 3600e3).toISOString().slice(0, 10) === new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 
@@ -223,7 +224,7 @@ function drawList() {
   if (S.rosterErr) h += '<div class="banner warn">' + esc(S.rosterErr) + '</div>';
   h += '<div class="bar"><div class="nums"><b>' + (done + abs) + '</b><span>/ ' + n + '명 끝남</span><b>' + pass + '</b><span>합격</span>' + (half ? '<b>' + half + '</b><span>하는 중</span>' : '') + (abs ? '<b>' + abs + '</b><span>안 봄</span>' : '') +
     '<span style="flex:1"></span><button class="btn" id="setB">⚙ 이번 달 심사</button></div><div class="prog"><i style="width:' + (n ? Math.round((done + abs) / n * 100) : 0) + '%"></i></div>' +
-    '<p class="help">' + (meta.date ? '심사일 ' + esc(meta.date.slice(5).replace('-', '/')) + (meta.date2 && meta.date2 !== meta.date ? ' · ' + esc(meta.date2.slice(5).replace('-', '/')) : '') + ' · ' : '') + '웅변 주제 · ' + esc(S.topic) + '</p>' + closeBox(L) + '</div>';
+    '<p class="help">' + (examDates(meta).length ? '심사일 ' + examDates(meta).map(x => esc(x.slice(5).replace('-', '/'))).join(' · ') + ' · ' : '') + '웅변 주제 · ' + esc(S.topic) + '</p>' + closeBox(L) + '</div>';
   if (noBelt) h += '<div class="banner warn">띠를 모르는 제자 ' + noBelt + '명 · 업무 앱 원생 정보에서 띠를 넣어 주세요.</div>';
   h += '<input class="inp" id="q" placeholder="이름 검색" autocomplete="off" value="' + esc(S.q) + '">';
   h += '<div class="chips" id="fc">' + [['all', '전체'], ['todo', '아직'], ['done', '끝남'], ['abs', '안 봄']].map(([k, t]) => '<button data-f="' + k + '" class="' + (S.f === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
@@ -328,8 +329,8 @@ function drawMulti() {
 }
 function sheet(html, init) { const ov = document.createElement('div'); ov.className = 'ov'; ov.innerHTML = '<div class="sheet">' + html + '</div>'; ov.onclick = e => { if (e.target === ov) ov.remove(); }; document.body.appendChild(ov); init && init(ov); return ov; }
 function setSheet() {
-  const meta = S.meta, notes = meta.notes || {}, ro = closed(), dis = ro ? ' disabled' : '', T = S.cfg.topics, Q = ['1~3월', '4~6월', '7~9월', '10~12월'];
-  sheet('<div class="row stick"><h3 style="margin:0">⚙ ' + (+S.month.slice(5)) + '월 심사</h3><span style="display:flex;gap:8px"><button class="btn" id="x">닫기</button>' + (ro ? '' : '<button class="btn p" id="ok">저장</button>') + '</span></div>' + (ro ? '' : '<p class="help" style="margin-top:0">원고를 적은 뒤 위의 <b>저장</b>을 눌러 주세요.</p>') + '<label class="f">심사 날짜 (보통 이틀)</label><div style="display:flex;gap:8px;align-items:center"><input type="date" class="inp" id="dt" value="' + esc(meta.date || '') + '"' + dis + '><span>~</span><input type="date" class="inp" id="dt2" value="' + esc(meta.date2 || '') + '"' + dis + '></div><p class="help" style="margin-top:4px">첫째 날 · 둘째 날. 하루만 보면 둘째 날은 비워 두세요.</p>' +
+  const meta = S.meta, notes = meta.notes || {}, ro = closed(), dis = ro ? ' disabled' : '', dsel = examDates(meta).slice(), T = S.cfg.topics, Q = ['1~3월', '4~6월', '7~9월', '10~12월'];
+  sheet('<div class="row stick"><h3 style="margin:0">⚙ ' + (+S.month.slice(5)) + '월 심사</h3><span style="display:flex;gap:8px"><button class="btn" id="x">닫기</button>' + (ro ? '' : '<button class="btn p" id="ok">저장</button>') + '</span></div>' + (ro ? '' : '<p class="help" style="margin-top:0">원고를 적은 뒤 위의 <b>저장</b>을 눌러 주세요.</p>') + '<label class="f">심사 날짜 (여러 날 고르기)</label><div id="dcal"></div><p class="help" style="margin-top:4px" id="dsel"></p>' +
     '<label class="f">이번 달 웅변 주제</label><select class="inp" id="tp"' + dis + '><option value="">자동 · ' + esc(S.topicAuto) + '</option>' + T.map(t => '<option' + (meta.topic === t.t ? ' selected' : '') + '>' + esc(t.t) + '</option>').join('') + '</select>' +
     '<p class="help" style="margin-top:4px">3개월마다 아래 순서대로 저절로 바뀌어요. 이 달만 다르게 하려면 위에서 골라 주세요.</p>' +
     '<label class="f">웅변 주제 순서 · 원고 (앞으로 모든 심사)</label><p class="help" style="margin-top:0">원고는 제자 앱 \'이번 달 심사 준비\'에 보여요.</p>' +
@@ -342,6 +343,18 @@ function setSheet() {
     '<div class="row"><button class="btn p" id="ok2"' + (ro ? ' hidden' : '') + '>저장</button></div>', ov => {
     if (!ro) ov.querySelector('#ok2').onclick = () => ov.querySelector('#ok').click();
     ov.querySelector('#x').onclick = () => ov.remove();
+    // 심사 날짜 달력 (2026-11-26 사용자: 심사는 보통 이틀 → 날짜를 눌러서 여러 날 고르기)
+    let calM = (dsel[0] || S.month + '-01').slice(0, 7);
+    const drawCal = () => { const [cy, cm] = calM.split('-').map(Number), first = new Date(Date.UTC(cy, cm - 1, 1)).getUTCDay(), last = new Date(Date.UTC(cy, cm, 0)).getUTCDate();
+      let g = ''; for (let i = 0; i < first; i++) g += '<span></span>';
+      for (let d = 1; d <= last; d++) { const ds = calM + '-' + pad(d), on = dsel.includes(ds), wd = (first + d - 1) % 7;
+        g += '<button data-dd="' + ds + '"' + dis + ' style="height:40px;border-radius:10px;border:1.5px solid ' + (on ? 'var(--navy)' : 'var(--line)') + ';background:' + (on ? 'var(--navy)' : 'var(--card)') + ';color:' + (on ? '#fff' : wd === 0 ? 'var(--brand)' : wd === 6 ? '#2F6FDB' : 'var(--ink)') + ';font-weight:' + (on ? 900 : 600) + '">' + d + '</button>'; }
+      ov.querySelector('#dcal').innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin:2px 0 6px"><button class="btn" data-cm="-1" style="padding:4px 12px">‹</button><b>' + cy + '년 ' + cm + '월</b><button class="btn" data-cm="1" style="padding:4px 12px">›</button></div>' +
+        '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;color:var(--muted)">' + ['일', '월', '화', '수', '목', '금', '토'].map(x => '<span>' + x + '</span>').join('') + g + '</div>';
+      ov.querySelector('#dsel').textContent = dsel.length ? '고른 날: ' + dsel.map(x => (+x.slice(5, 7)) + '/' + (+x.slice(8))).join(' · ') + ' (다시 누르면 빠져요)' : '심사 볼 날을 눌러 주세요 (여러 날 고를 수 있어요)'; };
+    drawCal();
+    ov.querySelector('#dcal').onclick = e => { const c = e.target.closest('[data-cm]'); if (c) { const d = new Date(Date.UTC(+calM.slice(0, 4), +calM.slice(5) - 1 + (+c.dataset.cm), 1)); calM = d.toISOString().slice(0, 7); return drawCal(); }
+      const b = e.target.closest('[data-dd]'); if (!b || ro) return; const ds = b.dataset.dd, i = dsel.indexOf(ds); if (i >= 0) dsel.splice(i, 1); else if (dsel.length < 6) dsel.push(ds); dsel.sort(); drawCal(); };
     if (ro) return;
     ov.querySelector('#ok').onclick = async () => {
       const nt = {}; ov.querySelectorAll('[data-n]').forEach(i => { nt[i.dataset.n] = i.value; });
@@ -349,7 +362,7 @@ function setSheet() {
       const vid = {}; ov.querySelectorAll('[data-v]').forEach(i => { const u = i.value.trim(); if (u) vid[i.dataset.v] = u; });
       if (Object.values(vid).some(u => !/^https:\/\//.test(u))) return toast('영상 주소는 https:// 로 시작해야 해요');
       let tp = ov.querySelector('#tp').value; const oi = T.findIndex(t => t.t === tp); if (oi >= 0) tp = topics[oi].t;
-      const j = await api('/api/exam-meta', { month: S.month, date: ov.querySelector('#dt').value, date2: ov.querySelector('#dt2').value, notes: nt, topics, topic: tp, manner: ov.querySelector('#mn').checked, vid });
+      const j = await api('/api/exam-meta', { month: S.month, dates: dsel, date: dsel[0] || '', notes: nt, topics, topic: tp, manner: ov.querySelector('#mn').checked, vid });
       if (!j.ok) return toast(j.error || '저장하지 못했어요'); S.cfg = j.cfg; S.meta = j.meta; S.topic = j.topic || ''; S.topicAuto = j.topicAuto || ''; S.vid = j.vid || vid; ov.remove(); draw(); toast('저장했어요');
     };
   });
