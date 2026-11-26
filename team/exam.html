@@ -193,7 +193,8 @@ const scored = d => !!(d && d.sc && Object.keys(d.sc).some(x => d.sc[x]));
 const effGrp = (k, d) => scored(d) ? (d.grp || GKEY[k.group]) : ((S.grpMan || {})[k.id] || GKEY[k.group]);
 const grpOfKid = k => { const r = S.rows[k.id]; return r && r.data && r.data.v === 2 ? effGrp(k, r.data) : effGrp(k, null); };
 const itemsFor = grp => { const G = (S.cfg && S.cfg.groups[grp]) || S.cfg.groups.elem; return G.items.concat(S.cfg.manner ? [S.cfg.mannerItem] : []); };
-const kids = () => S.roster.filter(k => k.status !== '퇴관').map(k => { const g = gradeOf(k.birth), b = S.belts[k.id]; return Object.assign({}, k, { grade: g, group: groupOf(g), kinder: b ? b.kinder || /유치/.test(g) : /유치/.test(g), cur: b ? b.belt : '' }); })
+// 2026-11-26 사용자: 휴원·퇴관 제자는 심사에서 안 보이게 (이번 달에 이미 채점한 기록이 있으면 그 기록은 보여요)
+const kids = () => S.roster.filter(k => k.status !== '퇴관' && (k.status !== '휴원' || S.rows[k.id])).map(k => { const g = gradeOf(k.birth), b = S.belts[k.id]; return Object.assign({}, k, { grade: g, group: groupOf(g), kinder: b ? b.kinder || /유치/.test(g) : /유치/.test(g), cur: b ? b.belt : '' }); })
   .sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.name.localeCompare(b.name, 'ko'));
 const kidBy = sid => kids().find(k => k.id === sid);
 function dataOf(k) { const r = S.rows[k.id]; if (r && r.data.v === 2) return r.data; return { v: 2, grp: GKEY[k.group], sc: {}, tx: {}, pass: true, nb: nextBelt(k.cur, k.kinder), cur: k.cur, absent: false, memo: '' }; }
