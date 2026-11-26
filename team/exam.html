@@ -109,8 +109,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .kid.sel{outline:3px solid var(--navy);outline-offset:-1px}
 .kid .ck{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:#fff;font-size:13px;line-height:18px;text-align:center;color:#fff;font-style:normal}
 .kid.sel .ck{background:var(--navy);border-color:var(--navy)}
-.mv{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:10px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-.mv .col{flex:none;width:min(88vw,380px);height:100%;overflow-y:auto;overscroll-behavior:contain;scroll-snap-align:start;border-radius:16px;padding-bottom:30px}
+.mv{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:10px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior-x:contain}
+.mv .col{flex:none;width:min(88vw,380px);height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;overscroll-behavior-x:auto;touch-action:pan-x pan-y;border-radius:16px;padding-bottom:30px}
 @media (orientation:landscape){.mv .col{width:clamp(300px,31vw,400px)}}
 .mv .card{padding:12px}
 .mv .who{position:sticky;top:-12px;background:var(--card);z-index:2;margin:-12px -12px 6px;padding:12px 12px 8px;border-bottom:1px solid var(--line);border-radius:16px 16px 0 0}
@@ -127,7 +127,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .kuk{display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px;border:2px solid var(--brand);border-radius:12px;background:#fff;font-weight:800}
 .kuk input{width:24px;height:24px;flex:none;accent-color:var(--brand)}
 .kuk small{font-weight:600;color:var(--muted)}
-.mvh{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mvh{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden}
+.mvh .btn{padding:6px 12px;font-size:13px;flex:none}
 </style></head>
 <body>
 <div class="top"><button class="btn" id="back">‹ 업무</button><h1>🏅 승급 심사</h1><div class="mon"><button id="mPrev" aria-label="지난달">‹</button><span id="mLbl"></span><button id="mNext" aria-label="다음 달">›</button></div></div>
@@ -346,18 +347,19 @@ function bindCol(col, k) {
     const sm = ed && ed.querySelector('summary'), n = engSaid(d.tx.eng).length; if (sm) sm.textContent = '🔤 제자 앱 영어 펼치기' + (n ? ' · ' + n + '개' : ''); save(k, d); });
   col.querySelector('.absb').onclick = () => { d.absent = !d.absent; upd(); };
 }
-function drawMvHead() { const n = S.sel.filter(kidBy).length; $('#mvh').textContent = n + '명 채점 중 · 누르면 바로 저장돼요 · 학부모님께는 목록에서 마감해야 알림이 가요'; }
+function drawMvHead() { const n = S.sel.filter(kidBy).length;
+  $('#mvh').innerHTML = '<span style="flex:1;overflow:hidden;text-overflow:ellipsis">' + n + '명 채점 중 · 누르면 바로 저장돼요 · 학부모님께는 목록에서 마감해야 알림이 가요</span><button class="btn" data-mvs="-1" aria-label="왼쪽 제자">‹ 왼쪽</button><button class="btn" data-mvs="1" aria-label="오른쪽 제자">오른쪽 ›</button>';
+  $('#mvh').onclick = e => { const b = e.target.closest('[data-mvs]'); if (!b) return; const m = $('#main'), c = m.querySelector('.col'); m.scrollBy({ left: +b.dataset.mvs * ((c ? c.offsetWidth : 300) + 10), behavior: 'smooth' }); }; }
 function drawMulti() {
   const main = $('#main'), keep = main.classList.contains('mv') ? { x: main.scrollLeft, y: {} } : null;
   if (keep) main.querySelectorAll('.col').forEach(c => { keep.y[c.dataset.col] = c.scrollTop; });
   $('#navb').hidden = true; $('#back').textContent = '‹ 목록';
   const L = S.sel.filter(kidBy);
-  main.className = 'mv'; main.style.height = Math.max(300, innerHeight - $('.top').offsetHeight - 26) + 'px';
-  main.innerHTML = L.map(sid => '<section class="col" data-col="' + esc(sid) + '"></section>').join('');
+  main.className = 'mv'; main.innerHTML = L.map(sid => '<section class="col" data-col="' + esc(sid) + '"></section>').join('');
   L.forEach(sid => { renderCol(sid); if (keep && keep.y[sid] != null) main.querySelector('.col[data-col="' + CSS.escape(sid) + '"]').scrollTop = keep.y[sid]; });
   if (keep) main.scrollLeft = keep.x;
-  if (!$('#mvh')) { const p = document.createElement('div'); p.id = 'mvh'; p.className = 'mvh'; p.style.cssText = 'padding:4px 12px 0'; $('.top').after(p); }
-  drawMvHead();
+  if (!$('#mvh')) { const p = document.createElement('div'); p.id = 'mvh'; p.className = 'mvh'; p.style.cssText = 'padding:6px 12px 0;display:flex;align-items:center;gap:8px'; $('.top').after(p); }
+  drawMvHead(); main.style.height = Math.max(300, innerHeight - $('.top').offsetHeight - $('#mvh').offsetHeight - 4) + 'px';
 }
 function sheet(html, init) { const ov = document.createElement('div'); ov.className = 'ov'; ov.innerHTML = '<div class="sheet">' + html + '</div>'; ov.onclick = e => { if (e.target === ov) ov.remove(); }; document.body.appendChild(ov); init && init(ov); return ov; }
 function setSheet() {
@@ -431,7 +433,7 @@ async function reopenExam() {
   toast('마감을 풀었어요 · 띠 ' + j.n + '명 되돌림'); await load(true);
 }
 $('#back').onclick = () => { if (S.view === 'multi') { S.view = 'list'; draw(); scrollTo(0, 0); return; } location.href = '/team/'; };
-addEventListener('resize', () => { if (S.view === 'multi' && $('#main').classList.contains('mv')) $('#main').style.height = Math.max(300, innerHeight - $('.top').offsetHeight - 26) + 'px'; });
+addEventListener('resize', () => { if (S.view === 'multi' && $('#main').classList.contains('mv')) $('#main').style.height = Math.max(300, innerHeight - $('.top').offsetHeight - ($('#mvh') ? $('#mvh').offsetHeight : 26) - 4) + 'px'; });
 const typing = () => { const a = document.activeElement; return !!(a && a.closest && a.closest('#main') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
 $('#mPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m - 2, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.sel = []; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
 $('#mNext').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.sel = []; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
