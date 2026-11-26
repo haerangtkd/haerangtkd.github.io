@@ -452,7 +452,7 @@
     Promise.all([loadPlan(), loadSite()]).then(() => { if (D && view !== 'home' && !busyTyping()) draw(); cachePut(); });
     const j = await post('/k/home');
     if (!j.ok) { if (j.out) { store.set(CK, ''); store.set(TK, ''); D = null; return showLogin(); } if (!D) $('body').innerHTML = '<div class="empty">' + esc(j.error || '불러오지 못했어요') + '</div>'; return; }
-    D = j; D.prof = D.prof || {}; if (!busyTyping()) draw(); cachePut(); bdayCheck(); newBadgeCheck();
+    D = j; D.prof = D.prof || {}; if (!busyTyping()) draw(); cachePut(); bdayCheck(); const up = beltUpCheck(); newBadgeCheck(up);
   }
   // 지난 화면 저장 (이 기기에만, 들어온 코드(tok)가 같을 때만 씀)
   const CK = 'haerang-kid-cache', busyTyping = () => { const a = document.activeElement; return !!(a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('body').contains(a)); };
@@ -1089,17 +1089,33 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
     myBadges().forEach(b => { if (got[b.k]) return; const d = AT[b.k] ? nth[AT[b.k]] : first ? '' : D.today; if (d !== undefined && (d || first)) add[b.k] = d || ''; });
     if (!Object.keys(add).length) return; D.prof.got = Object.assign({}, add, got); post('/k/prof', { got: add });
   }
-  async function newBadgeCheck() {
+  async function newBadgeCheck(quiet) {
     const v2 = Array.isArray(D.prof.seen) && D.prof.seen.includes('v2'); // 2026-11-15 뱃지 개편(띠별·단계별) — 개편 뒤 처음 열 땐 축하 없이 기억만
     gotDates(!D.prof.got || !v2); // 처음 적을 때 이미 받은 뱃지는 '앱 기록 전'
     const seen = D.prof.seen, have = myBadges().map(b => b.k);
     if (!v2) { D.prof.seen = ['v2', ...have]; return post('/k/prof', { seen: D.prof.seen }); }
     const nw = myBadges().filter(b => !seen.includes(b.k)); if (!nw.length) return;
     D.prof.seen = ['v2', ...[...new Set([...seen, ...have])].filter(k => k !== 'v2')].slice(0, 150); post('/k/prof', { seen: D.prof.seen });
+    if (quiet) return; // 띠 축하가 먼저 (새 띠 뱃지는 띠 축하 창에서 같이 축하)
     if (isBday() && store.get('haerang-kid-bday') !== D.today) return; // 생일 축하가 먼저
     const el = document.createElement('div'); el.className = 'bday';
     el.innerHTML = '<div class="box"><div style="width:96px;height:96px;margin:0 auto">' + bIc(nw[0]) + '</div><b>새 뱃지를 받았어요!</b><p>' + nw.map(b => (b.img || b.belt ? '🎖️' : b.ic) + ' ' + esc(b.t)).join('<br>') + '</p><button class="big" style="margin-top:16px">좋아요!</button></div>';
     el.onclick = e => { if (e.target.closest('button') || e.target === el) el.remove(); }; document.body.appendChild(el); fx(2200);
+  }
+  // ── 🥋 새 띠 축하 (2026-11-26 사용자: 띠가 바뀌면 폭죽) — 이 기기에서 지난번에 본 띠보다 올라갔으면 한 번.
+  // 이 기기에서 처음 열 땐, 최근 40일 안에 심사에서 지금 띠로 오른 기록이 있을 때만 축하해요.
+  function beltUpCheck() {
+    const k = 'haerang-kid-belt:' + D.name, last = store.get(k), cur = D.belt || '', ci = BELTS.indexOf(cur); if (ci < 0) return false;
+    store.set(k, cur);
+    let from = '';
+    if (last) { if (BELTS.indexOf(last) < 0 || BELTS.indexOf(last) >= ci) return false; from = last; }
+    else { const ex = (D.exams || [])[(D.exams || []).length - 1], seenK = 'haerang-kid-beltex:' + D.name;
+      if (!ex || !ex.pass || ex.nb !== cur || store.get(seenK) === ex.month) return false;
+      if ((Date.parse(D.today) - Date.parse(ex.month + '-01')) / 864e5 > 40) return false; store.set(seenK, ex.month); }
+    const el = document.createElement('div'); el.className = 'bday';
+    el.innerHTML = '<div class="box"><div style="width:120px;height:26px;margin:16px auto 10px;border-radius:6px;background:' + (() => { const st = beltStyle(cur); return st.st ? 'linear-gradient(180deg,' + st.bg + ' 35%,' + st.st + ' 35% 65%,' + st.bg + ' 65%)' : st.bg; })() + ';outline:1px solid #DDD;box-shadow:0 2px 6px rgba(0,0,0,.25)"></div><b>' + esc(cur) + ' 승급 축하해!</b><p>' + (from ? esc(from) + ' → ' + esc(cur) + '<br>' : '') + '해랑경희 사범님들이 축하해요 🎉<br>새 띠에 맞게 더 멋지게 수련하자!</p><button class="big" style="margin-top:16px">고맙습니다!</button></div>';
+    el.onclick = e => { if (e.target.closest('button') || e.target === el) el.remove(); }; document.body.appendChild(el); fx(4200);
+    return true;
   }
   // ── 🎂 생일 축하 (생일날 열면 폭죽, 하루 한 번 창) ──
   function bdayCheck() {
