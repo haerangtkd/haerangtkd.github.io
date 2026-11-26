@@ -104,6 +104,20 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .tpb{border:1px solid var(--line);border-radius:12px;padding:8px;margin-top:6px;display:grid;gap:6px}
 .tpb b{font-size:13px;color:var(--navy)}
 @media (min-width:700px){.sc2 button{height:64px}}
+/* 여러 명 동시 채점 (2026-11-26): 목록에서 골라 '심사 보기' → 가로로 나란히, 전체는 좌우로, 칸마다 위아래로 */
+.kid{position:relative}
+.kid.sel{outline:3px solid var(--navy);outline-offset:-1px}
+.kid .ck{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:#fff;font-size:13px;line-height:18px;text-align:center;color:#fff;font-style:normal}
+.kid.sel .ck{background:var(--navy);border-color:var(--navy)}
+.mv{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:10px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.mv .col{flex:none;width:min(88vw,380px);height:100%;overflow-y:auto;overscroll-behavior:contain;scroll-snap-align:start;border-radius:16px;padding-bottom:30px}
+@media (orientation:landscape){.mv .col{width:clamp(300px,31vw,400px)}}
+.mv .card{padding:12px}
+.mv .who{position:sticky;top:-12px;background:var(--card);z-index:2;margin:-12px -12px 6px;padding:12px 12px 8px;border-bottom:1px solid var(--line);border-radius:16px 16px 0 0}
+.mv .who h2{font-size:22px}
+.mv .sc2 button{height:52px;font-size:15px}
+.mv .colx{border:0;background:none;font-size:20px;color:var(--muted);padding:0 4px}
+.mvh{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style></head>
 <body>
 <div class="top"><button class="btn" id="back">‹ 업무</button><h1>🏅 승급 심사</h1><div class="mon"><button id="mPrev" aria-label="지난달">‹</button><span id="mLbl"></span><button id="mNext" aria-label="다음 달">›</button></div></div>
@@ -151,7 +165,7 @@ function kickGuide(grp, belt) {
 function engGuide(belt) { const p = pumOf(belt); return p >= 4 ? '영어로 자기소개' : p === 3 ? '영어 문장 말하기' : p === 2 ? '단어 5개 + 스펠링' : p === 1 ? '단어 5개' : '단어 2개'; }
 const GUIDE = { kickH: '눈높이까지 차는지 봐요', kickP: '발차기의 힘', poom: '품새의 연결 · 힘의 완급 · 동작의 완성', voice: '또렷하고 큰 목소리로 전달하는지', recite: '원고를 외워서 하는지' };
 
-const S = { month: thisMonth, cfg: null, meta: {}, topic: '', topicAuto: '', rows: {}, belts: {}, roster: [], names: {}, view: 'list', sid: null, f: 'all', g: '', q: '', pend: {}, timers: {}, err: '' };
+const S = { month: thisMonth, cfg: null, meta: {}, topic: '', topicAuto: '', rows: {}, belts: {}, roster: [], names: {}, view: 'list', sid: null, sel: [], f: 'all', g: '', q: '', pend: {}, timers: {}, err: '' };
 // 2026-11-16 사용자: 심사 항목(유치부·초등부·입시부)은 출석부(생년)대로 저절로. 아직 점수가 하나도 없으면 늘 출석부대로(이 화면에서 직접 고른 것만 예외),
 // 점수를 넣기 시작한 뒤에는 그때 부를 그대로 둠(항목이 바뀌면 넣은 점수가 안 보이니까)
 const scored = d => !!(d && d.sc && Object.keys(d.sc).some(x => d.sc[x]));
@@ -178,25 +192,29 @@ async function load(full) {
   draw();
 }
 function save(k, d) { // 누를 때마다 0.5초 뒤 저장 (여러 번 눌러도 한 번)
-  S.rows[k.id] = { sid: k.id, name: k.name, data: d, upd: Date.now(), mine: 1 }; S.pend[k.id] = 1; setSaved('저장하는 중…');
+  S.rows[k.id] = { sid: k.id, name: k.name, data: d, upd: Date.now(), mine: 1 }; S.pend[k.id] = 1; setSaved(k.id, '저장하는 중…');
   clearTimeout(S.timers[k.id]); S.timers[k.id] = setTimeout(async () => {
     const j = await api('/api/exam-set', { month: S.month, sid: k.id, name: k.name, data: d });
     delete S.pend[k.id];
-    if (!j.ok) { toast(j.error || '저장하지 못했어요'); setSaved('⚠ 저장 안 됨'); if (/마감/.test(j.error || '')) load(true); return; }
-    setSaved('저장했어요 ✓');
+    if (!j.ok) { toast(j.error || '저장하지 못했어요'); setSaved(k.id, '⚠ 저장 안 됨'); if (/마감/.test(j.error || '')) load(true); return; }
+    setSaved(k.id, '저장했어요 ✓');
   }, 500);
 }
-function setSaved(t) { const el = $('#saved'); if (el) el.textContent = t; }
+function setSaved(sid, t) { const el = document.querySelector('.col[data-col="' + CSS.escape(sid) + '"] .saved'); if (el) el.textContent = t; }
 
 function draw() {
   const [y, m] = S.month.split('-'); $('#mLbl').textContent = y + '년 ' + (+m) + '월'; $('#mNext').style.visibility = S.month >= thisMonth ? 'hidden' : '';
   if (S.err) { $('#navb').hidden = true; $('#main').innerHTML = S.err === 'login' ? '<p class="empty">업무 앱에서 로그인한 뒤 열어 주세요.<br><br><a class="btn p" href="/team/">업무 앱으로</a></p>' : '<p class="empty">' + esc(S.err) + '</p>'; return; }
   if (!S.cfg) return;
-  if (S.view === 'card' && S.sid && kidBy(S.sid)) return drawCard();
+  if (S.view === 'multi' && S.sel.some(sid => kidBy(sid))) return drawMulti();
+  if ($('#mvh')) $('#mvh').remove();
   S.view = 'list'; drawList();
 }
 function drawList() {
-  $('#navb').hidden = true;
+  $('#main').className = 'wrap'; $('#main').style.height = ''; $('#back').textContent = '‹ 업무';
+  S.sel = S.sel.filter(sid => kidBy(sid));
+  $('#navb').hidden = !S.sel.length;
+  if (S.sel.length) $('#navb').innerHTML = '<button class="btn" id="selX">고른 것 풀기</button><button class="btn p" id="selGo">심사 보기 · ' + S.sel.length + '명 ›</button>';
   const L = kids(), st = L.map(stateOf), n = L.length, done = st.filter(x => x === 'done').length, abs = st.filter(x => x === 'abs').length, half = st.filter(x => x === 'half').length;
   const pass = L.filter((k, i) => st[i] === 'done' && dataOf(k).pass !== false).length;
   const noBelt = L.filter(k => !k.cur).length, meta = S.meta;
@@ -205,20 +223,24 @@ function drawList() {
   if (S.rosterErr) h += '<div class="banner warn">' + esc(S.rosterErr) + '</div>';
   h += '<div class="bar"><div class="nums"><b>' + (done + abs) + '</b><span>/ ' + n + '명 끝남</span><b>' + pass + '</b><span>합격</span>' + (half ? '<b>' + half + '</b><span>하는 중</span>' : '') + (abs ? '<b>' + abs + '</b><span>안 봄</span>' : '') +
     '<span style="flex:1"></span><button class="btn" id="setB">⚙ 이번 달 심사</button></div><div class="prog"><i style="width:' + (n ? Math.round((done + abs) / n * 100) : 0) + '%"></i></div>' +
-    '<p class="help">' + (meta.date ? '심사일 ' + esc(meta.date.slice(5).replace('-', '/')) + ' · ' : '') + '웅변 주제 · ' + esc(S.topic) + '</p>' + closeBox(L) + '</div>';
+    '<p class="help">' + (meta.date ? '심사일 ' + esc(meta.date.slice(5).replace('-', '/')) + (meta.date2 && meta.date2 !== meta.date ? ' · ' + esc(meta.date2.slice(5).replace('-', '/')) : '') + ' · ' : '') + '웅변 주제 · ' + esc(S.topic) + '</p>' + closeBox(L) + '</div>';
   if (noBelt) h += '<div class="banner warn">띠를 모르는 제자 ' + noBelt + '명 · 업무 앱 원생 정보에서 띠를 넣어 주세요.</div>';
   h += '<input class="inp" id="q" placeholder="이름 검색" autocomplete="off" value="' + esc(S.q) + '">';
   h += '<div class="chips" id="fc">' + [['all', '전체'], ['todo', '아직'], ['done', '끝남'], ['abs', '안 봄']].map(([k, t]) => '<button data-f="' + k + '" class="' + (S.f === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
   h += '<div class="chips" id="gc"><button data-g="" class="' + (!S.g ? 'on' : '') + '">모두</button>' + GROUPS.filter(g => L.some(k => k.group === g)).map(g => '<button data-g="' + g + '" class="' + (S.g === g ? 'on' : '') + '">' + g + '</button>').join('') + '</div>';
   const V = visible(L);
-  if (!V.length) h += '<p class="empty">' + (n ? '맞는 제자가 없어요' : '출석부 명단이 비어 있어요') + '</p>';
+  h += '<p class="help" style="margin:2px 2px 0">심사 볼 제자를 눌러서 고르고 아래 <b>심사 보기</b>를 눌러요. 여러 명을 한 화면에 나란히 볼 수 있어요.' + (V.length ? ' <button class="btn" id="selAll" style="padding:4px 10px;font-size:13px">' + (V.every(k => S.sel.includes(k.id)) ? '보이는 제자 고른 것 풀기' : '보이는 ' + V.length + '명 모두 고르기') + '</button>' : '') + '</p>';
+  if (!V.length) h +='<p class="empty">' + (n ? '맞는 제자가 없어요' : '출석부 명단이 비어 있어요') + '</p>';
   GROUPS.forEach(g => { const G = V.filter(k => k.group === g); if (!G.length) return; h += '<div class="gh">' + g + ' ' + G.length + '명</div><div class="grid">' + G.map(k => { const s = stateOf(k), d = dataOf(k); const up = s === 'done' && d.pass !== false && d.nb && d.nb !== k.cur;
-    return '<button class="kid ' + s + '" data-k="' + esc(k.id) + '"><b>' + esc(k.name) + '</b><small>' + esc(k.grade || '') + ' · ' + esc(k.cur || '띠 모름') + '</small><em>' + (finOf(k) && !closed() ? '🔒 확정 · ' : '') + (s === 'done' ? (d.pass === false ? '불합격' : up ? '합격 → ' + esc(d.nb) : '합격 · 띠 그대로') : SLBL[s]) + (k.status === '휴원' ? ' · 휴원' : '') + '</em></button>'; }).join('') + '</div>'; });
+    return '<button class="kid ' + s + (S.sel.includes(k.id) ? ' sel' : '') + '" data-k="' + esc(k.id) + '"><i class="ck">' + (S.sel.includes(k.id) ? '✓' : '') + '</i><b>' + esc(k.name) + '</b><small>' + esc(k.grade || '') + ' · ' + esc(k.cur || '띠 모름') + '</small><em>' + (finOf(k) && !closed() ? '🔒 확정 · ' : '') + (s === 'done' ? (d.pass === false ? '불합격' : up ? '합격 → ' + esc(d.nb) : '합격 · 띠 그대로') : SLBL[s]) + (k.status === '휴원' ? ' · 휴원' : '') + '</em></button>'; }).join('') + '</div>'; });
   $('#main').innerHTML = h;
   $('#q').oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; drawList(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); };
   $('#fc').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { S.f = b.dataset.f; drawList(); } };
   $('#gc').onclick = e => { const b = e.target.closest('[data-g]'); if (b) { S.g = b.dataset.g; drawList(); } };
-  $('#main').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { S.sid = b.dataset.k; S.view = 'card'; draw(); scrollTo(0, 0); });
+  $('#main').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const id = b.dataset.k, i = S.sel.indexOf(id); if (i >= 0) S.sel.splice(i, 1); else S.sel.push(id); const y = scrollY; drawList(); scrollTo(0, y); });
+  if ($('#selAll')) $('#selAll').onclick = () => { const all = V.every(k => S.sel.includes(k.id)); V.forEach(k => { const i = S.sel.indexOf(k.id); if (all && i >= 0) S.sel.splice(i, 1); else if (!all && i < 0) S.sel.push(k.id); }); const y = scrollY; drawList(); scrollTo(0, y); };
+  if ($('#selX')) $('#selX').onclick = () => { S.sel = []; const y = scrollY; drawList(); scrollTo(0, y); };
+  if ($('#selGo')) $('#selGo').onclick = () => { S.view = 'multi'; S.mvPos = null; draw(); };
   $('#setB').onclick = setSheet;
   if ($('#close')) $('#close').onclick = closeExam;
   if ($('#closeT')) $('#closeT').onclick = closeToday;
@@ -238,15 +260,17 @@ function closeBox(L) { // 마감 버튼은 맨 위 (2026-11-16): 오늘 본 제�
     (un.length ? '<button class="btn p" id="notifyT" style="margin-top:8px">확정한 제자 ' + un.reduce((s, x) => s + (x.sids || []).length, 0) + '명 학부모님께 결과 알림 보내기</button>' : '') + (fn ? '<button class="btn" id="reopen" style="margin-top:8px">확정 · 마감 모두 풀기</button>' : '');
 }
 function visible(L) { const q = S.q.trim(); return L.filter(k => (!S.g || k.group === S.g) && (!q || k.name.includes(q)) && (S.f === 'all' || (S.f === 'todo' ? ['todo', 'half'].includes(stateOf(k)) : stateOf(k) === S.f))); }
-function drawCard() {
-  const k = kidBy(S.sid), d = JSON.parse(JSON.stringify(dataOf(k))), ro = closed() || finOf(k), notes = S.meta.notes || {};
+// 여러 명 동시 채점 (2026-11-26 사용자 요청): 목록에서 고른 제자를 가로로 나란히 — 전체는 좌우로, 칸마다 위아래로 움직여요.
+// 누를 때마다 업무 서버에 저장(학부모님께는 안 보임) → 목록에서 마감하면 학부모님께 결과 알림
+function colHTML(k) {
+  const d = JSON.parse(JSON.stringify(dataOf(k))), ro = closed() || finOf(k), notes = S.meta.notes || {};
   if (!S.rows[k.id]) d.cur = k.cur; d.sc = d.sc || {}; d.tx = d.tx || {};
   const r = S.rows[k.id], by = r && r.data && r.data.by, cur = d.cur || k.cur, grp = effGrp(k, d), its = itemsFor(grp), dis = ro ? ' disabled' : '';
-  if (!ro) d.grp = grp; // 점수를 처음 넣을 때 지금 보이는 부로 저장
-  let h = (ro ? '<div class="banner ok">' + (closed() ? '마감한 심사라 볼 수만 있어요' : '결과를 확정(오늘 마감)한 제자라 볼 수만 있어요') + '</div>' : '') + (r && r.data.v !== 2 && !ro ? '<div class="banner warn">예전 방식(1~5점)으로 채점한 기록이 있어요. 새로 누르면 새 방식으로 바뀌어요.</div>' : '') + '<div class="card' + (d.absent ? ' dim' : '') + '" id="card">';
-  h += '<div class="who"><h2>' + esc(k.name) + '</h2><small>' + esc(k.grade || '') + (k.status === '휴원' ? ' · 휴원' : '') + '</small><span style="flex:1"></span>' + beltTag(cur) + '</div>';
+  let h = '<div class="card' + (d.absent ? ' dim' : '') + '">';
+  h += '<div class="who"><h2>' + esc(k.name) + '</h2><small>' + esc(k.grade || '') + (k.status === '휴원' ? ' · 휴원' : '') + '</small><span style="flex:1"></span>' + beltTag(cur) + '<button class="colx" title="이 칸 닫기" aria-label="이 칸 닫기">✕</button></div>';
+  h += (ro ? '<div class="banner ok">' + (closed() ? '마감한 심사라 볼 수만 있어요' : '결과를 확정(오늘 마감)한 제자라 볼 수만 있어요') + '</div>' : '') + (r && r.data.v !== 2 && !ro ? '<div class="banner warn">예전 방식(1~5점)으로 채점한 기록이 있어요. 새로 누르면 새 방식으로 바뀌어요.</div>' : '');
   if (!cur) h += '<p class="help">지금 띠를 몰라요. 업무 앱 원생 정보에서 띠를 넣어 주세요.</p>';
-  h += '<div class="chips" id="grpc">' + [['kinder', '유치부'], ['elem', '초등부'], ['ipsi', '입시부']].map(([g, t]) => '<button data-gr="' + g + '" class="' + (grp === g ? 'on' : '') + '"' + dis + '>' + t + '</button>').join('') + '</div>' +
+  h += '<div class="chips grpc">' + [['kinder', '유치부'], ['elem', '초등부'], ['ipsi', '입시부']].map(([g, t]) => '<button data-gr="' + g + '" class="' + (grp === g ? 'on' : '') + '"' + dis + '>' + t + '</button>').join('') + '</div>' +
     '<p class="help" style="margin:-2px 0 8px">' + (grp === GKEY[k.group] ? (k.birth ? '출석부(' + esc(String(k.birth).slice(0, 4)) + '년생)대로 저절로 골랐어요' : '출석부에 생년이 없어서 초등부로 골랐어요 · 출석부에 생년을 넣어 주세요') : '직접 고른 부예요' + (scored(d) ? '' : ' · 출석부대로는 ' + esc(k.group))) + '</p>';
   let lastG = null;
   its.forEach(x => {
@@ -264,43 +288,53 @@ function drawCard() {
   });
   const opts = beltList(k.kinder); if (d.nb && !opts.includes(d.nb)) opts.push(d.nb);
   const auto = nextBelt(cur, k.kinder), manual = cur === '빨간띠' || /품$/.test(cur || '');
-  h += '<div class="res"><div class="pf" id="pf"><button class="y' + (d.pass !== false ? ' on' : '') + '" data-p="1"' + dis + '>합격</button><button class="n' + (d.pass === false ? ' on' : '') + '" data-p="0"' + dis + '>불합격</button></div>' +
-    (d.pass !== false ? '<label style="display:flex;align-items:center;gap:6px;font-weight:700">새 띠 <select id="nb"' + dis + '><option value="">그대로</option>' + opts.map(b => '<option' + (b === d.nb && d.nb !== cur ? ' selected' : '') + '>' + b + '</option>').join('') + '</select></label>' : '') + '</div>';
+  h += '<div class="res"><div class="pf"><button class="y' + (d.pass !== false ? ' on' : '') + '" data-p="1"' + dis + '>합격</button><button class="n' + (d.pass === false ? ' on' : '') + '" data-p="0"' + dis + '>불합격</button></div>' +
+    (d.pass !== false ? '<label style="display:flex;align-items:center;gap:6px;font-weight:700">새 띠 <select class="nbs"' + dis + '><option value="">그대로</option>' + opts.map(b => '<option' + (b === d.nb && d.nb !== cur ? ' selected' : '') + '>' + b + '</option>').join('') + '</select></label>' : '') + '</div>';
   if (d.pass !== false) h += '<p class="help">' + (manual ? '빨간띠·품띠는 자동으로 오르지 않아요. 공인단 심사에 합격했으면 직접 골라 주세요.' : !cur ? '지금 띠를 몰라서 새 띠를 직접 골라 주세요.' : auto === cur ? '최고 띠라 그대로예요.' : '합격하면 ' + esc(auto) + '로 올라가요. 다르면 바꿔 주세요.') + '</p>';
-  h += '<input class="inp" id="memo" style="margin-top:12px" maxlength="300" placeholder="메모 (직원만 보여요)" value="' + esc(d.memo || '') + '"' + dis + '>';
-  h += '<div style="display:flex;align-items:center;gap:8px;margin-top:12px"><button class="abs' + (d.absent ? ' on' : '') + '" id="absB"' + dis + '>' + (d.absent ? '✓ 이번 달 안 봄' : '이번 달 안 봄 (결석)') + '</button><span style="flex:1"></span><div class="saved" id="saved">' + (by ? esc(by) + '님이 채점' : '') + '</div></div>';
-  h += '</div>';
-  $('#main').innerHTML = h;
-  const L = visible(kids()), i = L.findIndex(x => x.id === k.id);
-  const nextTodo = () => { const A = kids(); for (let j = 1; j <= A.length; j++) { const x = A[(A.findIndex(y => y.id === k.id) + j) % A.length]; if (['todo', 'half'].includes(stateOf(x)) && x.id !== k.id) return x; } return null; };
-  const nt = nextTodo();
-  $('#navb').hidden = false;
-  $('#navb').innerHTML = '<button class="btn" id="pv"' + (i <= 0 ? ' disabled' : '') + '>‹ 이전</button><button class="btn" id="ls">목록</button>' + (nt ? '<button class="btn p" id="nt">다음 · ' + esc(nt.name) + ' ›</button>' : '<button class="btn p" id="nx"' + (i < 0 || i >= L.length - 1 ? ' disabled' : '') + '>다음 ›</button>');
-  const go = x => { if (!x) return; S.sid = x.id; drawCard(); scrollTo(0, 0); };
-  $('#pv').onclick = () => go(L[i - 1]); $('#ls').onclick = () => { S.view = 'list'; draw(); };
-  if ($('#nt')) $('#nt').onclick = () => go(nt); if ($('#nx')) $('#nx').onclick = () => go(L[i + 1]);
-  let sx = null, sy = 0; const c = $('#card');
-  c.addEventListener('touchstart', e => { if (e.target.closest('input,select')) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
-  c.addEventListener('touchend', e => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? (L[i + 1] || null) : (L[i - 1] || null)); });
-  if (ro) return;
-  const upd = () => { save(k, d); const y = scrollY; drawCard(); scrollTo(0, y); };
-  $('#main').querySelectorAll('.sc2').forEach(row => row.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; const v = +b.dataset.v, s = row.dataset.s; if (d.sc[s] === v) delete d.sc[s]; else d.sc[s] = v; if (navigator.vibrate) navigator.vibrate(10); upd(); });
-  $('#grpc').onclick = e => { const b = e.target.closest('[data-gr]'); if (!b || b.dataset.gr === grp) return; S.grpMan = S.grpMan || {}; if (b.dataset.gr === GKEY[k.group]) delete S.grpMan[k.id]; else S.grpMan[k.id] = b.dataset.gr; d.grp = b.dataset.gr; upd(); };
-  $('#main').querySelectorAll('.tx').forEach(inp => inp.oninput = inp.onchange = () => { d.tx[inp.dataset.t] = inp.value.trim(); if (!d.tx[inp.dataset.t]) delete d.tx[inp.dataset.t]; save(k, d); }); // 적는 동안에도 저장 (2026-11-16)
-  $('#pf').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; d.pass = b.dataset.p === '1'; if (d.pass && (!d.nb || d.nb === cur)) d.nb = nextBelt(cur, k.kinder); upd(); };
-  if ($('#nb')) $('#nb').onchange = e => { d.nb = e.target.value || (cur || ''); upd(); };
-  $('#memo').onchange = e => { d.memo = e.target.value; save(k, d); };
-  $('#absB').onclick = () => { d.absent = !d.absent; upd(); };
+  h += '<input class="inp memo" style="margin-top:12px" maxlength="300" placeholder="메모 (직원만 보여요)" value="' + esc(d.memo || '') + '"' + dis + '>';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-top:12px"><button class="abs absb' + (d.absent ? ' on' : '') + '"' + dis + '>' + (d.absent ? '✓ 이번 달 안 봄' : '이번 달 안 봄 (결석)') + '</button><span style="flex:1"></span><div class="saved">' + (by ? esc(by) + '님이 채점' : '') + '</div></div>';
+  return h + '</div>';
+}
+function renderCol(sid) {
+  const col = $('#main').querySelector('.col[data-col="' + CSS.escape(sid) + '"]'), k = kidBy(sid); if (!col || !k) return;
+  const y = col.scrollTop; col.innerHTML = colHTML(k); col.scrollTop = y; bindCol(col, k);
+}
+function bindCol(col, k) {
+  col.querySelector('.colx').onclick = () => { S.sel = S.sel.filter(x => x !== k.id); if (!S.sel.length) { S.view = 'list'; draw(); scrollTo(0, 0); } else { col.remove(); drawMvHead(); } };
+  if (closed() || finOf(k)) return;
+  const d = JSON.parse(JSON.stringify(dataOf(k))); if (!S.rows[k.id]) d.cur = k.cur; d.sc = d.sc || {}; d.tx = d.tx || {};
+  const cur = d.cur || k.cur, grp = effGrp(k, d); d.grp = grp;
+  const upd = () => { save(k, d); renderCol(k.id); };
+  col.querySelectorAll('.sc2').forEach(row => row.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; const v = +b.dataset.v, s = row.dataset.s; if (d.sc[s] === v) delete d.sc[s]; else d.sc[s] = v; if (navigator.vibrate) navigator.vibrate(10); upd(); });
+  col.querySelector('.grpc').onclick = e => { const b = e.target.closest('[data-gr]'); if (!b || b.dataset.gr === grp) return; S.grpMan = S.grpMan || {}; if (b.dataset.gr === GKEY[k.group]) delete S.grpMan[k.id]; else S.grpMan[k.id] = b.dataset.gr; d.grp = b.dataset.gr; upd(); };
+  col.querySelectorAll('.tx').forEach(inp => inp.oninput = inp.onchange = () => { d.tx[inp.dataset.t] = inp.value.trim(); if (!d.tx[inp.dataset.t]) delete d.tx[inp.dataset.t]; save(k, d); }); // 적는 동안에도 저장
+  col.querySelector('.pf').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; d.pass = b.dataset.p === '1'; if (d.pass && (!d.nb || d.nb === cur)) d.nb = nextBelt(cur, k.kinder); upd(); };
+  const nb = col.querySelector('.nbs'); if (nb) nb.onchange = e => { d.nb = e.target.value || (cur || ''); upd(); };
+  col.querySelector('.memo').onchange = e => { d.memo = e.target.value; save(k, d); };
+  col.querySelector('.absb').onclick = () => { d.absent = !d.absent; upd(); };
+}
+function drawMvHead() { const n = S.sel.filter(kidBy).length; $('#mvh').textContent = n + '명 채점 중 · 누르면 바로 저장돼요 · 학부모님께는 목록에서 마감해야 알림이 가요'; }
+function drawMulti() {
+  const main = $('#main'), keep = main.classList.contains('mv') ? { x: main.scrollLeft, y: {} } : null;
+  if (keep) main.querySelectorAll('.col').forEach(c => { keep.y[c.dataset.col] = c.scrollTop; });
+  $('#navb').hidden = true; $('#back').textContent = '‹ 목록';
+  const L = S.sel.filter(kidBy);
+  main.className = 'mv'; main.style.height = Math.max(300, innerHeight - $('.top').offsetHeight - 26) + 'px';
+  main.innerHTML = L.map(sid => '<section class="col" data-col="' + esc(sid) + '"></section>').join('');
+  L.forEach(sid => { renderCol(sid); if (keep && keep.y[sid] != null) main.querySelector('.col[data-col="' + CSS.escape(sid) + '"]').scrollTop = keep.y[sid]; });
+  if (keep) main.scrollLeft = keep.x;
+  if (!$('#mvh')) { const p = document.createElement('div'); p.id = 'mvh'; p.className = 'mvh'; p.style.cssText = 'padding:4px 12px 0'; $('.top').after(p); }
+  drawMvHead();
 }
 function sheet(html, init) { const ov = document.createElement('div'); ov.className = 'ov'; ov.innerHTML = '<div class="sheet">' + html + '</div>'; ov.onclick = e => { if (e.target === ov) ov.remove(); }; document.body.appendChild(ov); init && init(ov); return ov; }
 function setSheet() {
   const meta = S.meta, notes = meta.notes || {}, ro = closed(), dis = ro ? ' disabled' : '', T = S.cfg.topics, Q = ['1~3월', '4~6월', '7~9월', '10~12월'];
-  sheet('<div class="row stick"><h3 style="margin:0">⚙ ' + (+S.month.slice(5)) + '월 심사</h3><span style="display:flex;gap:8px"><button class="btn" id="x">닫기</button>' + (ro ? '' : '<button class="btn p" id="ok">저장</button>') + '</span></div>' + (ro ? '' : '<p class="help" style="margin-top:0">원고를 적은 뒤 위의 <b>저장</b>을 눌러 주세요.</p>') + '<label class="f">심사 날짜</label><input type="date" class="inp" id="dt" value="' + esc(meta.date || '') + '"' + dis + '>' +
+  sheet('<div class="row stick"><h3 style="margin:0">⚙ ' + (+S.month.slice(5)) + '월 심사</h3><span style="display:flex;gap:8px"><button class="btn" id="x">닫기</button>' + (ro ? '' : '<button class="btn p" id="ok">저장</button>') + '</span></div>' + (ro ? '' : '<p class="help" style="margin-top:0">원고를 적은 뒤 위의 <b>저장</b>을 눌러 주세요.</p>') + '<label class="f">심사 날짜 (보통 이틀)</label><div style="display:flex;gap:8px;align-items:center"><input type="date" class="inp" id="dt" value="' + esc(meta.date || '') + '"' + dis + '><span>~</span><input type="date" class="inp" id="dt2" value="' + esc(meta.date2 || '') + '"' + dis + '></div><p class="help" style="margin-top:4px">첫째 날 · 둘째 날. 하루만 보면 둘째 날은 비워 두세요.</p>' +
     '<label class="f">이번 달 웅변 주제</label><select class="inp" id="tp"' + dis + '><option value="">자동 · ' + esc(S.topicAuto) + '</option>' + T.map(t => '<option' + (meta.topic === t.t ? ' selected' : '') + '>' + esc(t.t) + '</option>').join('') + '</select>' +
     '<p class="help" style="margin-top:4px">3개월마다 아래 순서대로 저절로 바뀌어요. 이 달만 다르게 하려면 위에서 골라 주세요.</p>' +
     '<label class="f">웅변 주제 순서 · 원고 (앞으로 모든 심사)</label><p class="help" style="margin-top:0">원고는 제자 앱 \'이번 달 심사 준비\'에 보여요.</p>' +
     T.map((t, i) => '<div class="tpb"><b>' + Q[i] + '</b><input class="inp" data-tt="' + i + '" maxlength="40" value="' + esc(t.t) + '"' + dis + '><textarea class="inp" data-tx="' + i + '" rows="3" maxlength="1500" placeholder="원고 (나중에 넣어도 돼요)"' + dis + '>' + esc(t.text || '') + '</textarea></div>').join('') +
-    '<label class="f">이번 달 내용 (선택)</label><p class="help" style="margin-top:0">채점 화면에 작게, 제자 앱 \'이번 달 심사 준비\'와 학부모 앱 심사 결과에 보여요.</p>' +
+    '<label class="f">제자 앱에 올릴 이번 달 내용 (선택)</label><p class="help" style="margin-top:0">제자 앱 \'이번 달 심사 준비\'에만 올라가요. 학부모님께는 안 가요 (학부모님께는 채점할 때 제자마다 적은 내용이 가요).</p>' +
     [['kick', '발차기'], ['eng', '영어 (예: 문장)'], ['poom', '품새']].map(([k, n]) => '<label class="f" style="font-weight:500">' + n + '</label><input class="inp" data-n="' + k + '" maxlength="300" value="' + esc(notes[k] || '') + '"' + dis + '>').join('') +
     '<label class="f">띠별 품새 영상 (제자 앱에 \'내 띠 품새 영상\'으로, 모든 달 같이)</label><p class="help" style="margin-top:0">유튜브 등 https 주소. 비우면 안 보여요.</p>' +
     BELTS.slice(0, 19).map(b => '<div class="row" style="margin-top:4px;align-items:center"><span style="width:76px;flex:none;font-size:13px">' + b + '</span><input class="inp" data-v="' + b + '" placeholder="https://" value="' + esc((S.vid || {})[b] || '') + '"></div>').join('') +
@@ -315,7 +349,7 @@ function setSheet() {
       const vid = {}; ov.querySelectorAll('[data-v]').forEach(i => { const u = i.value.trim(); if (u) vid[i.dataset.v] = u; });
       if (Object.values(vid).some(u => !/^https:\/\//.test(u))) return toast('영상 주소는 https:// 로 시작해야 해요');
       let tp = ov.querySelector('#tp').value; const oi = T.findIndex(t => t.t === tp); if (oi >= 0) tp = topics[oi].t;
-      const j = await api('/api/exam-meta', { month: S.month, date: ov.querySelector('#dt').value, notes: nt, topics, topic: tp, manner: ov.querySelector('#mn').checked, vid });
+      const j = await api('/api/exam-meta', { month: S.month, date: ov.querySelector('#dt').value, date2: ov.querySelector('#dt2').value, notes: nt, topics, topic: tp, manner: ov.querySelector('#mn').checked, vid });
       if (!j.ok) return toast(j.error || '저장하지 못했어요'); S.cfg = j.cfg; S.meta = j.meta; S.topic = j.topic || ''; S.topicAuto = j.topicAuto || ''; S.vid = j.vid || vid; ov.remove(); draw(); toast('저장했어요');
     };
   });
@@ -324,21 +358,21 @@ async function closeExam() {
   if (Object.keys(S.pend).length) return toast('저장하는 중이에요. 잠깐 뒤에 눌러 주세요');
   const L = kids(), st = L.map(stateOf), todo = st.filter(x => x === 'todo' || x === 'half').length;
   const up = L.filter((k, i) => st[i] !== 'abs' && S.rows[k.id] && dataOf(k).pass !== false && dataOf(k).nb && dataOf(k).nb !== k.cur);
-  if (!confirm((+S.month.slice(5)) + '월 심사를 마감할까요?\n\n띠가 바뀌는 제자 ' + up.length + '명' + (todo ? '\n아직 채점 안 끝난 제자 ' + todo + '명 (점수를 넣은 제자는 띠도 바뀌어요)' : '') + '\n\n마감하면 원생 정보의 띠가 바뀌고, 결과는 고칠 수 없어요(마감 풀기로 되돌릴 수 있어요).')) return;
+  if (!confirm((+S.month.slice(5)) + '월 심사를 마감할까요?\n\n띠가 바뀌는 제자 ' + up.length + '명' + (todo ? '\n아직 채점 안 끝난 제자 ' + todo + '명 (점수를 넣은 제자는 띠도 바뀌어요)' : '') + '\n\n마감하면 원생 정보의 띠가 바뀌고, 학부모님께 심사 결과 알림이 가요. 결과는 고칠 수 없어요(마감 풀기로 띠는 되돌릴 수 있어요).')) return;
   const j = await api('/api/exam-close', { month: S.month });
   if (!j.ok) return toast(j.error || '마감하지 못했어요');
   toast('마감했어요 · 띠 바뀐 제자 ' + j.n + '명'); await load(true);
-  if (confirm('학부모님께 \'' + (+S.month.slice(5)) + '월 심사 결과가 나왔어요\' 알림을 보낼까요?\n(이번 달 심사를 본 제자의 보호자에게만, 학부모 앱 성장 리포트 → 심사에서 결과가 보여요)')) notifyExam();
+  notifyExam(); // 2026-11-26: 마감하면 학부모님께 바로 알림 (한 번 더 묻지 않음)
 }
 async function closeToday() {
   if (Object.keys(S.pend).length) return toast('저장하는 중이에요. 잠깐 뒤에 눌러 주세요');
   const L = kids().filter(k => { const r = S.rows[k.id]; return r && !r.data.fin && !r.data.absent && Object.keys(r.data.sc || {}).length && isToday(r); });
   const half = L.filter(k => stateOf(k) === 'half').map(k => k.name);
-  if (!confirm('오늘 채점한 제자 ' + L.length + '명의 결과를 확정할까요?\n\n' + L.map(k => k.name).join(', ') + (half.length ? '\n\n⚠ 아직 다 안 끝난 제자: ' + half.join(', ') : '') + '\n\n확정하면 띠가 바로 올라가고 점수는 못 고쳐요. 나머지 제자는 이번 달 안에 계속 채점할 수 있어요.')) return;
+  if (!confirm('오늘 채점한 제자 ' + L.length + '명의 결과를 확정할까요?\n\n' + L.map(k => k.name).join(', ') + (half.length ? '\n\n⚠ 아직 다 안 끝난 제자: ' + half.join(', ') : '') + '\n\n확정하면 띠가 바로 올라가고 학부모님께 결과 알림이 가요. 점수는 못 고쳐요. 나머지 제자는 이번 달 안에 계속 채점할 수 있어요.')) return;
   const j = await api('/api/exam-close', { month: S.month, today: true });
   if (!j.ok) return toast(j.error || '마감하지 못했어요');
   toast('확정했어요 · ' + j.cnt + '명 · 띠 바뀐 제자 ' + j.n + '명'); await load(true);
-  if (confirm('확정한 ' + j.cnt + '명의 학부모님께 심사 결과 알림을 보낼까요?')) notifyExam(j.sids);
+  notifyExam(j.sids); // 2026-11-26: 확정하면 학부모님께 바로 알림
 }
 async function notifyExam(sids) { // 6명씩 나눠 보내기 (알림 서버 무료 한도)
   toast('학부모님께 알림 보내는 중…'); let off = 0, sent = 0;
@@ -351,12 +385,14 @@ async function reopenExam() {
   if (!j.ok) return toast(j.error || '풀지 못했어요');
   toast('마감을 풀었어요 · 띠 ' + j.n + '명 되돌림'); await load(true);
 }
-$('#back').onclick = () => { location.href = '/team/'; };
-$('#mPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m - 2, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
-$('#mNext').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
+$('#back').onclick = () => { if (S.view === 'multi') { S.view = 'list'; draw(); scrollTo(0, 0); return; } location.href = '/team/'; };
+addEventListener('resize', () => { if (S.view === 'multi' && $('#main').classList.contains('mv')) $('#main').style.height = Math.max(300, innerHeight - $('.top').offsetHeight - 26) + 'px'; });
+const typing = () => { const a = document.activeElement; return !!(a && a.closest && a.closest('#main') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
+$('#mPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m - 2, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.sel = []; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
+$('#mNext').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.sel = []; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
 // 다른 직원이 채점한 것도 보이게: 화면을 보는 동안 30초마다 (저장 중인 제자는 건드리지 않음)
-setInterval(() => { if (document.visibilityState === 'visible' && S.cfg && !Object.keys(S.pend).length) load(false); }, 30000);
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.cfg) load(false); });
+setInterval(() => { if (document.visibilityState === 'visible' && S.cfg && !Object.keys(S.pend).length && !typing()) load(false); }, 30000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.cfg && !typing()) load(false); });
 if (!tok()) { S.err = 'login'; draw(); } else load(true);
 </script>
 <script src="/fresh.js"></script>

@@ -1060,7 +1060,9 @@ function kidAct(k) {
 // ✍ 사범님 한마디 (2026-11-19 사용자 요청): 월말(25일~다음 달 7일)에 대시보드 카드 → 제자마다 추천 3개 / 100개 중 고르기 / 직접 쓰기. 다 고르면 카드가 사라짐
 // 고른 말은 학부모 앱 성장 리포트 '요약' 맨 위에 보임. 더보기 → ✍ 사범님 한마디에서 언제든 (지난달도)
 const monShift = (m, n) => { const d = new Date(Date.parse(m + '-01T00:00:00Z')); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 7); };
-const twDue = () => { const t = today(), d = +t.slice(8); return d >= 25 ? t.slice(0, 7) : d <= 7 ? monShift(t.slice(0, 7), -1) : ''; };
+// 2026-11-26 사용자: 한마디는 분기마다 — 3·6·9·12월 말(25일~다음 달 7일)에만 카드가 떠요
+const twQ = m => +m.slice(5) % 3 === 0, twQEnd = m => monShift(m, -(+m.slice(5) % 3)); // 그 달까지의 마지막 분기 끝 달
+const twDue = () => { const t = today(), d = +t.slice(8), m = d >= 25 ? t.slice(0, 7) : d <= 7 ? monShift(t.slice(0, 7), -1) : ''; return m && twQ(m) ? m : ''; };
 const twTargets = () => (S.kids || []).filter(k => k.status !== '퇴관' && k.status !== '휴원');
 const twHas = (w, k) => !!(w && (w[k.id] || w['n:' + k.name]));
 async function loadTw(m, force) { if (!force && S.tw && S.tw.month === m && Date.now() - S.tw.at < 120000) return S.tw; const j = await api('/api/tword-get', { month: m }); if (j.ok) S.tw = { month: m, words: j.words || {}, bank: j.bank || [], at: Date.now() }; return S.tw; }
@@ -1075,9 +1077,9 @@ function twCard() {
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-tw]'); if (!b || b.closest('#ov')) return; e.stopPropagation(); const k = b.dataset.twk && (S.kids || []).find(x => x.id === b.dataset.twk); if (k) twKid(k, b.dataset.tw); else twSheet(b.dataset.tw); }, true);
 async function twSheet(m) {
-  m = m || twDue() || today().slice(0, 7); let f = '아직';
+  m = m || twDue() || twQEnd(today().slice(0, 7)); if (!twQ(m)) m = twQEnd(m); let f = '아직';
   const draw = ov => { const el = ov.querySelector('#twL'); if (!el) return; const qv = (ov.querySelector('#twQ').value || '').trim(), w = (S.tw && S.tw.month === m && S.tw.words) || null;
-    ov.querySelector('#twM').textContent = (+m.slice(0, 4)) + '년 ' + (+m.slice(5)) + '월';
+    ov.querySelector('#twM').textContent = (+m.slice(0, 4)) + '년 ' + (+m.slice(5) / 3) + '분기 (' + (+m.slice(5)) + '월)';
     if (!S.kids || !w) { el.innerHTML = '<div class="help" style="padding:14px">불러오는 중…</div>'; return; }
     const T = twTargets().sort((a, b) => a.name.localeCompare(b.name, 'ko')), done = T.filter(k => twHas(w, k));
     ov.querySelector('#twF').innerHTML = ['아직', '골랐어요'].map(x => '<button class="' + (x === f ? 'on' : '') + '" data-twf="' + x + '">' + x + ' ' + (x === '아직' ? T.length - done.length : done.length) + '</button>').join('');
@@ -1085,11 +1087,11 @@ async function twSheet(m) {
     el.innerHTML = L.length ? L.map(k => { const x = w[k.id] || w['n:' + k.name]; return '<button class="kcr" data-twk2="' + esc(k.id) + '"><b>' + esc(k.name) + '</b><small>' + esc(x ? x.text.slice(0, 34) + (x.text.length > 34 ? '…' : '') + ' · ' + x.by : '아직 안 골랐어요') + '</small><span>›</span></button>'; }).join('')
       : '<div class="help" style="padding:14px">' + (f === '아직' ? '모두 골랐어요 👍' : '아직 고른 제자가 없어요') + '</div>'; };
   sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>✍ 사범님 한마디</h2></div><div class="twmh"><button class="btn" data-twm="-1">‹</button><b id="twM"></b><button class="btn" data-twm="1">›</button></div>' +
-    '<p class="help">제자마다 한마디를 골라요. 학부모 앱 성장 리포트 \'요약\' 맨 위에 보여요. 성장·심사·기네스·출석을 보고 3개를 추천해요.</p><div class="seg" id="twF"></div><input class="inp" id="twQ" placeholder="이름 검색" autocomplete="off"><div id="twL" class="kcl" style="max-height:360px"></div>', ov => {
+    '<p class="help">분기마다(3·6·9·12월 말) 제자마다 한마디를 골라요. 학부모 앱 성장 리포트 \'요약\' 맨 위에 보여요. 성장·심사·기네스·출석을 보고 3개를 추천해요.</p><div class="seg" id="twF"></div><input class="inp" id="twQ" placeholder="이름 검색" autocomplete="off"><div id="twL" class="kcl" style="max-height:360px"></div>', ov => {
     draw(ov); ov.querySelector('#twQ').oninput = () => draw(ov);
     ov.addEventListener('click', async e => {
       const fb = e.target.closest('[data-twf]'); if (fb) { f = fb.dataset.twf; return draw(ov); }
-      const mb = e.target.closest('[data-twm]'); if (mb) { const n = monShift(m, +mb.dataset.twm); if (n > today().slice(0, 7)) return toast('다음 달은 아직이에요'); m = n; S.tw = null; draw(ov); await loadTw(m, true); return draw(ov); }
+      const mb = e.target.closest('[data-twm]'); if (mb) { const n = monShift(m, 3 * +mb.dataset.twm); if (n > today().slice(0, 7)) return toast('다음 분기는 아직이에요'); m = n; S.tw = null; draw(ov); await loadTw(m, true); return draw(ov); }
       const b = e.target.closest('[data-twk2]'); if (b) { const k = (S.kids || []).find(x => x.id === b.dataset.twk2); if (k) twKid(k, m); }
     });
     Promise.all([loadKids(), loadTw(m, true)]).then(() => draw(ov));
