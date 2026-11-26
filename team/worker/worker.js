@@ -304,7 +304,7 @@ async function route(path, req, env, ctx) {
       const ex = me ? await examClosed(env) : {}, exams = me ? examList(ex, { sid: me.sid, name }) : [];
       const em = (await kv('exam:' + mon)) || {}, vids = (await kv('examvid')) || {}, myBelt = me ? (belts[mid] || me.belt0 || '') : (AB['n:' + name] || '');
       const ecfg = examCfg(await kv('examcfg')), topic = topicOf(ecfg, mon, em), tt = ecfg.topics.find(x => x.t === topic); // 웅변 주제(분기마다 자동) · 원고
-      const prep = { month: mon, date: em.date || '', closed: !!em.closed, topic, notes: Object.assign({}, em.notes || {}, tt && tt.text ? { speech: tt.text } : {}), vid: vids[myBelt] || '' };
+      const prep = { month: mon, date: em.date || '', date2: em.date2 || '', closed: !!em.closed, topic, notes: Object.assign({}, em.notes || {}, tt && tt.text ? { speech: tt.text } : {}), vid: vids[myBelt] || '' };
       const sun = ((await kv('sun:' + mon)) || []).map(x => ({ name: x.name, cat: x.cat || '', text: x.text || '', at: x.at }));
       try { const st = (await sunStatus(env))[name]; if (st) prep.sunMe = Object.assign({ need: SUN_NEED }, st); } catch (_) {} // 내 도장 · 경고 (prep에 실어 보냄 — 알림 서버를 안 고치려고)
       const mile = +((await one(env, 'SELECT COALESCE(SUM(amt), 0) AS t FROM mile WHERE name = ?', name)) || {}).t || 0; // 💰 마일리지
@@ -607,6 +607,8 @@ async function route(path, req, env, ctx) {
         await ks('examcfg', { manner: cfg.manner, topics: cfg.topics }); }
       if (b.topic !== undefined) { const t = str(b.topic, 40).trim(); if (t) meta.topic = t; else delete meta.topic; } // 이 달만 다른 주제 (비우면 자동)
       if (b.date !== undefined) meta.date = /^\d{4}-\d{2}-\d{2}$/.test(str(b.date, 10)) ? str(b.date, 10) : '';
+      if (b.date2 !== undefined) { const d2 = str(b.date2, 10); if (/^\d{4}-\d{2}-\d{2}$/.test(d2) && d2 !== meta.date) meta.date2 = d2; else delete meta.date2; } // 심사는 보통 이틀 (2026-11-26)
+      if (meta.date && meta.date2 && meta.date2 < meta.date) [meta.date, meta.date2] = [meta.date2, meta.date];
       if (b.notes && typeof b.notes === 'object') { meta.notes = {}; ['kick', 'eng', 'poom', 'talent'].forEach(k => { const t = str(b.notes[k], 300).trim(); if (t) meta.notes[k] = t; }); }
       if (b.vid && typeof b.vid === 'object') { const v = {}; Object.keys(b.vid).slice(0, 30).forEach(k => { const u = str(b.vid[k], 300).trim(); if (/^https:\/\//.test(u)) v[str(k, 10)] = u; }); await ks('examvid', v); } // 띠별 품새 영상 (제자 모드 '심사 준비')
       await ks(mk, meta); return json({ ok: true, cfg, meta, topic: topicOf(cfg, month, meta), topicAuto: topicAuto(cfg, month), vid: (await kg('examvid')) || {} });
@@ -1535,10 +1537,10 @@ function examAuto(ex, who, month) {
 }
 function examList(ex, who) { // 학부모 앱 '심사': 마감한 달마다 (최근 4년 · 화면이 해마다 나눠 보여 줌)
   return Object.keys(ex).sort().slice(-48).map(m => { const r = examRowOf(ex[m], who); if (!r) return null; const d = r.d, meta = ex[m].meta, notes = meta.notes || {};
-    const base = { month: m, date: meta.date || '', absent: !!d.absent, pass: d.pass !== false, cur: d.cur || '', nb: d.nb && d.nb !== d.cur ? d.nb : '' };
+    const base = { month: m, date: meta.date || '', date2: meta.date2 || '', absent: !!d.absent, pass: d.pass !== false, cur: d.cur || '', nb: d.nb && d.nb !== d.cur ? d.nb : '' };
     if (d.v === 2) { const G = EXAM2[d.grp] || EXAM2.elem, its = G.items.concat(d.sc && d.sc.manner ? [EXAM_MANNER] : []), tx = d.tx || {};
-      return Object.assign(base, { v: 2, grp: G.n, topic: meta.topicAt || meta.topic || '', items: its.filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, g: x.g || '', good: d.sc[x.k] === 2, tx: x.k === 'poom' ? [tx.poom, tx.poom2].filter(Boolean).join(' · ') : x.tx ? tx[x.k] || '' : '', note: notes[x.k] || (x.g && /발차기/.test(x.g) ? notes.kick || '' : '') })) }); }
-    return Object.assign(base, { subj: [{ k: 'speech', n: '웅변' }, { k: 'kick', n: '발차기' }, { k: 'eng', n: '영어' }, { k: 'poom', n: '품새' }, { k: 'manner', n: '예절·태도' }].filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, v: d.sc[x.k], note: notes[x.k] || '' })) });
+      return Object.assign(base, { v: 2, grp: G.n, topic: meta.topicAt || meta.topic || '', items: its.filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, g: x.g || '', good: d.sc[x.k] === 2, tx: x.k === 'poom' ? [tx.poom, tx.poom2].filter(Boolean).join(' · ') : x.tx ? tx[x.k] || '' : '', note: '' /* 이번 달 내용은 제자 앱 심사 준비에만 (2026-11-26) */ })) }); }
+    return Object.assign(base, { subj: [{ k: 'speech', n: '웅변' }, { k: 'kick', n: '발차기' }, { k: 'eng', n: '영어' }, { k: 'poom', n: '품새' }, { k: 'manner', n: '예절·태도' }].filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, v: d.sc[x.k], note: '' })) });
   }).filter(Boolean);
 }
 async function addLog(env, mid, kind, text, ref) {
