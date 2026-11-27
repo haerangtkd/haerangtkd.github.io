@@ -38,6 +38,8 @@ const SCHEMA = [
   'CREATE INDEX IF NOT EXISTS logs_at ON logs (at)',
   'CREATE TABLE IF NOT EXISTS gdocs (path TEXT PRIMARY KEY, data TEXT, upd INTEGER, mid TEXT)', // 기네스 결과지 (guinness.html)
   'CREATE TABLE IF NOT EXISTS mile (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, sid TEXT, kind TEXT, n INTEGER, amt INTEGER, memo TEXT, by TEXT, at INTEGER)', // 💰 마일리지 (2026-11-15): 상점(스티커) 1개 = 100원, 업무 앱에서 제자 QR 찍고 적립·사용
+  'CREATE TABLE IF NOT EXISTS shop (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, emoji TEXT, price INTEGER, qty INTEGER, on1 INTEGER DEFAULT 1, sort INTEGER DEFAULT 0, at INTEGER)', // 🛍 포인트 상점 물건 (2026-11-27): qty = 한 달 재고, 매달 1일 다시 채워짐(이번 달 주문 수를 빼서 계산)
+  'CREATE TABLE IF NOT EXISTS shop_ord (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER, iname TEXT, emoji TEXT, price INTEGER, name TEXT, month TEXT, status TEXT DEFAULT \'wait\', at INTEGER, done_at INTEGER, by TEXT)', // 🛍 주문 — wait 금요일 전달 기다림 / done 전달함 / cancel 취소(포인트 돌려줌)
   'CREATE TABLE IF NOT EXISTS exam (month TEXT, sid TEXT, name TEXT, data TEXT, upd INTEGER, mid TEXT, PRIMARY KEY (month, sid))', // 승급 심사 채점 (team/exam.html, 2026-11-14) — 제자(출석부 원생 id)마다 한 줄
   // 학부모 앱에서 들어온 행사 신청 (ev: 행사표 id, kid: 제자 이름) — state '' 새로 들어옴(행사표에 아직 안 넣음) / 'in' 행사표에 넣음
   'CREATE TABLE IF NOT EXISTS esign (ev TEXT, kid TEXT, data TEXT, rel TEXT, cancel INTEGER DEFAULT 0, state TEXT DEFAULT \'\', at INTEGER, upd INTEGER, PRIMARY KEY (ev, kid))',
@@ -282,6 +284,20 @@ async function route(path, req, env, ctx) {
       await run(env, 'UPDATE items SET data = ?, upd = ? WHERE id = ?', JSON.stringify(d), Date.now(), str(b.ev, 40));
       await addLog(env, '', 'event', path === '/sync/ev-sched-del' ? '📣 알림 관리에서 \'' + str(b.title, 60) + '\' 일정을 지웠어요 (신청표는 그대로)' : '📣 알림 관리에서 일정을 고쳐 신청표도 바뀜: ' + old + ' → ' + d.title + ' ' + (d.date || ''), str(b.ev, 40));
       return json({ ok: true });
+    }
+    if (path === '/sync/shop-list' || path === '/sync/shop-order' || path === '/sync/shop-cancel') { // 🛍 제자 앱 포인트 상점 (2026-11-27)
+      const name = str(b.name, 20); if (!name) return json({ ok: false, error: '제자를 찾지 못했어요' });
+      if (path === '/sync/shop-order') {
+        const it = (await shopItems(env)).find(x => x.id === (+b.item || 0)); if (!it) return json({ ok: false, error: '지금은 살 수 없는 물건이에요' });
+        if (it.left <= 0) return json({ ok: false, error: '이번 달 물건이 다 나갔어요. 다음 달 1일에 다시 채워져요' });
+        if (it.price > await mileBal(env, name)) return json({ ok: false, error: '포인트가 모자라요' });
+        await run(env, 'INSERT INTO shop_ord (item, iname, emoji, price, name, month, status, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', it.id, it.name, it.emoji, it.price, name, kstDay().slice(0, 7), 'wait', Date.now());
+        await run(env, 'INSERT INTO mile (name, sid, kind, n, amt, memo, by, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', name, '', 'shop', 0, -it.price, '🛍 ' + it.name, '제자 앱', Date.now());
+        await addLog(env, '', 'mile', '🛍 ' + name + ' 포인트 상점 주문: ' + it.emoji + ' ' + it.name + ' ' + it.price.toLocaleString() + '원 (금요일 전달)', '');
+      }
+      if (path === '/sync/shop-cancel') { const o = await one(env, "SELECT * FROM shop_ord WHERE id = ? AND name = ? AND status = 'wait'", +b.id || 0, name); if (!o) return json({ ok: false, error: '이미 받았거나 취소된 주문이에요' });
+        await shopCancel(env, o, '제자 앱'); await addLog(env, '', 'mile', '🛍 ' + name + ' 주문 취소: ' + o.iname, ''); }
+      return json({ ok: true, bal: await mileBal(env, name), items: await shopItems(env), orders: await all(env, 'SELECT id, iname, emoji, price, status, at, done_at FROM shop_ord WHERE name = ? ORDER BY id DESC LIMIT 20', name) });
     }
     if (path === '/sync/mile-list') { // 제자 앱 '나의 마일리지' (2026-11-15): 잔액 · 누적 적립 · 누적 사용 · 기록 (넣은 직원 이름은 안 보냄)
       const name = str(b.name, 20), L = await all(env, 'SELECT kind, n, amt, memo, at FROM mile WHERE name = ? ORDER BY id DESC LIMIT 300', name);
@@ -987,6 +1003,20 @@ async function route(path, req, env, ctx) {
     await addLog(env, me.id, 'member', '🎯 ' + str(b.name, 20) + ' 제자 모드 목표 띠: ' + (belt || '기본'), '');
     return json({ ok: true });
   }
+  if (path.startsWith('/api/shop-')) { // 🛍 포인트 상점 — 직원: 물건·가격·한 달 재고 정하기, 금요일 전달 목록
+    if (path === '/api/shop-save') { const nm = str(b.name, 30).trim(), price = Math.floor(+b.price), qty = Math.floor(+b.qty);
+      if (!nm) return json({ ok: false, error: '물건 이름을 넣어 주세요' }); if (!(price >= 100 && price <= 1000000)) return json({ ok: false, error: '가격을 100원 이상으로 넣어 주세요' }); if (!(qty >= 0 && qty <= 999)) return json({ ok: false, error: '재고를 0~999개로 넣어 주세요' });
+      if (+b.id) { await run(env, 'UPDATE shop SET name = ?, emoji = ?, price = ?, qty = ?, on1 = ? WHERE id = ?', nm, str(b.emoji, 8) || '🎁', price, qty, b.on === false ? 0 : 1, +b.id); await addLog(env, me.id, 'mile', '🛍 포인트 상점 물건 고침: ' + nm + ' ' + price.toLocaleString() + '원 · 한 달 ' + qty + '개' + (b.on === false ? ' (숨김)' : ''), ''); }
+      else { await run(env, 'INSERT INTO shop (name, emoji, price, qty, on1, sort, at) VALUES (?, ?, ?, ?, 1, 0, ?)', nm, str(b.emoji, 8) || '🎁', price, qty, Date.now()); await addLog(env, me.id, 'mile', '🛍 포인트 상점 물건 추가: ' + nm + ' ' + price.toLocaleString() + '원 · 한 달 ' + qty + '개', ''); } }
+    if (path === '/api/shop-done') { const nm = str(b.name, 20), L = await all(env, "SELECT * FROM shop_ord WHERE name = ? AND status = 'wait'", nm); if (!L.length) return json({ ok: false, error: '전달할 주문이 없어요' });
+      await run(env, "UPDATE shop_ord SET status = 'done', done_at = ?, by = ? WHERE name = ? AND status = 'wait'", Date.now(), me.name, nm);
+      await addLog(env, me.id, 'mile', '🛍 ' + nm + ' 주문 ' + L.length + '개 전달함 (' + me.name + ')', '');
+      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name: nm, title: '🎁 주문한 물건을 받았어요', body: L.map(o => o.iname).join(', ') }).catch(() => {})); }
+    if (path === '/api/shop-cancel') { const o = await one(env, "SELECT * FROM shop_ord WHERE id = ? AND status = 'wait'", +b.id || 0); if (!o) return json({ ok: false, error: '이미 전달했거나 취소된 주문이에요' });
+      await shopCancel(env, o, me.name); await addLog(env, me.id, 'mile', '🛍 ' + o.name + ' 주문 취소(포인트 돌려줌): ' + o.iname, '');
+      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name: o.name, title: '🛍 주문이 취소됐어요', body: o.iname + ' · ' + o.price.toLocaleString() + '원을 돌려받았어요' }).catch(() => {})); }
+    return json({ ok: true, items: await shopItems(env, true), wait: await all(env, "SELECT id, iname, emoji, price, name, at FROM shop_ord WHERE status = 'wait' ORDER BY name, id"), done: await all(env, "SELECT id, iname, emoji, price, name, status, at, done_at, by FROM shop_ord WHERE status != 'wait' ORDER BY id DESC LIMIT 30") });
+  }
   if (path.startsWith('/api/mile-')) { // 💰 마일리지 (2026-11-15 사용자 결정: 직원이 상점 개수를 넣으면 ×100원, 쓸 때도 제자 QR 찍고 금액 빼기)
     let name = str(b.name, 20);
     if (path === '/api/mile-who') { const r = await noticeSync(env, '/sync/kqr-who', { qr: str(b.qr, 40) }).catch(() => ({ ok: false, error: '학부모 앱 서버에 닿지 않아요' })); if (!r.ok) return json(r); name = r.name; }
@@ -995,16 +1025,17 @@ async function route(path, req, env, ctx) {
     if (path === '/api/mile-add') { const n = Math.floor(+b.n); if (!(n >= 1 && n <= 100)) return json({ ok: false, error: '상점 개수를 1~100으로 넣어 주세요' });
       await run(env, 'INSERT INTO mile (name, sid, kind, n, amt, memo, by, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', name, str(b.sid, 40), 'earn', n, n * MILE_PER, str(b.memo, 60), me.name, Date.now());
       const t = await bal(); await addLog(env, me.id, 'mile', '💰 ' + name + ' 상점 ' + n + '개 → +' + (n * MILE_PER).toLocaleString() + '원 (잔액 ' + t.toLocaleString() + '원)', '');
-      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name, title: '💰 마일리지가 쌓였어요!', body: '상점 ' + n + '개 → +' + (n * MILE_PER).toLocaleString() + '원 · 지금 ' + t.toLocaleString() + '원' }).catch(() => {})); }
+      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name, title: '💰 포인트가 쌓였어요!', body: '상점 ' + n + '개 → +' + (n * MILE_PER).toLocaleString() + '원 · 지금 ' + t.toLocaleString() + '원' }).catch(() => {})); }
     if (path === '/api/mile-use') { const amt = Math.floor(+b.amt); if (!(amt >= 100 && amt <= 1000000)) return json({ ok: false, error: '쓸 금액을 100원 이상으로 넣어 주세요' });
-      if (amt > await bal()) return json({ ok: false, error: '마일리지가 모자라요' });
+      if (amt > await bal()) return json({ ok: false, error: '포인트가 모자라요' });
       await run(env, 'INSERT INTO mile (name, sid, kind, n, amt, memo, by, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', name, str(b.sid, 40), 'use', 0, -amt, str(b.memo, 60), me.name, Date.now());
-      const t = await bal(); await addLog(env, me.id, 'mile', '💰 ' + name + ' 마일리지 ' + amt.toLocaleString() + '원 사용' + (b.memo ? ' (' + str(b.memo, 60) + ')' : '') + ' · 잔액 ' + t.toLocaleString() + '원', '');
-      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name, title: '💰 마일리지를 썼어요', body: amt.toLocaleString() + '원 사용 · 남은 마일리지 ' + t.toLocaleString() + '원' }).catch(() => {})); }
+      const t = await bal(); await addLog(env, me.id, 'mile', '💰 ' + name + ' 포인트 ' + amt.toLocaleString() + '원 사용' + (b.memo ? ' (' + str(b.memo, 60) + ')' : '') + ' · 잔액 ' + t.toLocaleString() + '원', '');
+      ctx.waitUntil(noticeSync(env, '/sync/kid-push', { name, title: '💰 포인트를 썼어요', body: amt.toLocaleString() + '원 사용 · 남은 포인트 ' + t.toLocaleString() + '원' }).catch(() => {})); }
     if (path === '/api/mile-del') { const x = await one(env, 'SELECT * FROM mile WHERE id = ? AND name = ?', +b.id || 0, name); if (!x) return json({ ok: false, error: '이미 지워졌어요' });
+      if (x.kind === 'shop' || x.kind === 'refund') return json({ ok: false, error: '상점 주문 기록은 포인트 상점에서 취소해 주세요' });
       if (x.by !== me.name && !me.boss) return json({ ok: false, error: '넣은 사람이나 관리자만 지울 수 있어요' });
-      if (x.amt > 0 && (await bal()) - x.amt < 0) return json({ ok: false, error: '이미 쓴 마일리지라 지울 수 없어요' });
-      await run(env, 'DELETE FROM mile WHERE id = ?', x.id); await addLog(env, me.id, 'mile', '💰 ' + name + ' 마일리지 기록 지움 (' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '원)', ''); }
+      if (x.amt > 0 && (await bal()) - x.amt < 0) return json({ ok: false, error: '이미 쓴 포인트라 지울 수 없어요' });
+      await run(env, 'DELETE FROM mile WHERE id = ?', x.id); await addLog(env, me.id, 'mile', '💰 ' + name + ' 포인트 기록 지움 (' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '원)', ''); }
     return json({ ok: true, name, bal: await bal(), per: MILE_PER, list: await all(env, 'SELECT id, kind, n, amt, memo, by, at FROM mile WHERE name = ? ORDER BY id DESC LIMIT 30', name) });
   }
   if (path === '/api/sun-import') { // ⭐ 지난달 종이 도장 수 넣기 (2026-11-17 사용자: 10월 경고인 제자도 넣어야 함) — 관리자만, 지난달까지만, 알림 없음
@@ -2346,6 +2377,17 @@ async function pinHash(salt, pin) { return hex(new Uint8Array(await crypto.subtl
 async function sameText(a, b) {
   const [x, y] = await Promise.all([a, b].map(v => crypto.subtle.digest('SHA-256', enc(String(v)))));
   const p = new Uint8Array(x), r = new Uint8Array(y); let d = 0; for (let i = 0; i < p.length; i++) d |= p[i] ^ r[i]; return d === 0;
+}
+// 🛍 포인트 상점 (2026-11-27 사용자 결정): 언제든 주문, 금요일에 한꺼번에 전달, 재고는 한 달마다 다시 채움, 주문하면 포인트가 바로 빠짐
+async function shopItems(env, all1) {
+  const mon = kstDay().slice(0, 7), L = await all(env, 'SELECT * FROM shop' + (all1 ? '' : ' WHERE on1 = 1') + ' ORDER BY sort, price, id');
+  const used = await all(env, "SELECT item, COUNT(*) AS c FROM shop_ord WHERE month = ? AND status != 'cancel' GROUP BY item", mon), U = {}; used.forEach(r => { U[r.item] = r.c; });
+  return L.map(x => ({ id: x.id, name: x.name, emoji: x.emoji || '🎁', price: x.price, qty: x.qty, on: !!x.on1, left: Math.max(0, x.qty - (U[x.id] || 0)) }));
+}
+const mileBal = async (env, name) => +((await one(env, 'SELECT COALESCE(SUM(amt), 0) AS t FROM mile WHERE name = ?', name)) || {}).t || 0;
+async function shopCancel(env, o, by) { // 취소 → 포인트 돌려주기 (기록은 지우지 않고 돌려받은 줄을 더함)
+  await run(env, "UPDATE shop_ord SET status = 'cancel', done_at = ?, by = ? WHERE id = ? AND status = 'wait'", Date.now(), by, o.id);
+  await run(env, 'INSERT INTO mile (name, sid, kind, n, amt, memo, by, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', o.name, '', 'refund', 0, o.price, '🛍 ' + o.iname + ' 주문 취소', by, Date.now());
 }
 function kstDay(d = new Date()) { return new Date(d.getTime() + 9 * 3600e3).toISOString().slice(0, 10); }
 function addDays(day, n) { return new Date(Date.parse(day + 'T00:00:00Z') + n * 86400e3).toISOString().slice(0, 10); }
