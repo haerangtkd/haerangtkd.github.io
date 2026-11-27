@@ -231,7 +231,7 @@
   .pled{background:#3D3010;color:#F5CF6B}
   .sheet .box{background:#1B1B1D;color:var(--ink)}.opts button{background:#2A2A2D}.sheet textarea{background:#121214;color:var(--ink);border-color:#2C2C30!important}
   .hi .av{box-shadow:none}
-  /* 꽉 찬 화면 (뱃지 · 마일리지) */
+  /* 꽉 찬 화면 (뱃지 · 포인트) */
   .pg{position:fixed;inset:0;z-index:35;background:var(--bg);overflow:auto;animation:up .2s}
   .pg header{position:sticky;top:0;z-index:2;display:flex;align-items:center;background:rgba(11,11,12,.92);backdrop-filter:blur(8px);padding:calc(10px + env(safe-area-inset-top)) 10px 10px}
   .pg header button{border:0;background:#232326;color:var(--ink);width:38px;height:38px;border-radius:50%;font-size:24px;line-height:1}.pg header b{flex:1;text-align:center;font-size:18px}.pg header span{width:38px}
@@ -568,9 +568,9 @@
       '<div class="mn"><span class="av' + (av.fr ? ' fr-' + av.fr : '') + '" style="background:' + esc(av.bg) + '">' + avHtml(av.e) + '</span>' + (lv > 0 ? '<span class="lv">LV. ' + lv + '</span>' : '') + '<b>' + esc(D.name) + '</b><button class="ed" id="pEdit" aria-label="꾸미기">✎</button>' + (bp && !bp.done && bp.total ? '<small>' + bp.at + ' / ' + bp.total + '</small>' : '') + '</div>' +
       '<div class="pb"><b style="width:' + (bp && bp.total ? Math.round(bp.at / bp.total * 100) : bp && bp.done ? 100 : 0) + '%"></b></div>' +
       '<div class="mb"><div class="mbl"><span class="lg">HAERANG KYUNGHEE</span><div class="pins">' + [0, 1, 2].map(i => pins[i] ? '<button class="has" data-pin="' + i + '">' + bIc(pins[i]) + '</button>' : '<button data-pin="' + i + '">＋</button>').join('') + '</div></div>' +
-      (window.qrSvg && D.qr ? '<button class="qrm" id="qrB" aria-label="마일리지 QR 크게 보기">' + qrSvg(D.qr, 84) + '</button>' : '') + '</div></section>';
-    // 💰 나의 마일리지
-    h += '<button class="mpill" id="mileB"><i>M</i>나의 마일리지<b>' + (+(D.mile || 0)).toLocaleString() + '</b>›</button>';
+      (window.qrSvg && D.qr ? '<button class="qrm" id="qrB" aria-label="포인트 QR 크게 보기">' + qrSvg(D.qr, 84) + '</button>' : '') + '</div></section>';
+    // 💰 나의 포인트
+    h += '<button class="mpill" id="mileB"><i>P</i>나의 포인트<b>' + (+(D.mile || 0)).toLocaleString() + '</b>›</button>';
     // 미션 · 심사 준비 / 나의 목표
     const hw = (D.hw || []).filter(x => (x.kids || []).includes(D.name)), hwDone = hw.filter(x => (x.chk || []).some(c => c.kid === D.name && (x.mode !== 'daily' || c.day === today))).length;
     h += '<div class="r2b"><button id="hwB"><i>★</i>나의 미션 ' + hwDone + '/' + hw.length + '<em>›</em></button><button id="prepB"><i>📝</i>심사 준비<em>›</em></button></div>';
@@ -702,20 +702,20 @@
       (e, el) => { if (e.target.closest('#fl3')) el.querySelector('#fl3').classList.toggle('on'); });
     if (b.on) fx(1400);
   }
-  // ── 💰 나의 마일리지 (2026-11-15: 잔액 · 누적 · 획득/사용 방법 · 상세 조회) ──
+  // ── 💰 나의 포인트 (2026-11-15: 잔액 · 누적 · 획득/사용 방법 · 상세 조회) ──
   async function milePage() {
     let M = { bal: D.mile || 0, earn: 0, used: 0, list: [] }, f = 'all', per = 1;
     const draw = el => { const since = (() => { const d = new Date(D.today + 'T00:00:00Z'); if (per === 1) return D.today.slice(0, 8) + '01'; d.setUTCMonth(d.getUTCMonth() - per); return d.toISOString().slice(0, 10); })();
       const L = (M.list || []).filter(x => (f === 'all' || (f === 'earn' ? x.amt > 0 : x.amt < 0)) && new Date(x.at + 9 * 3600e3).toISOString().slice(0, 10) >= since);
-      el.querySelector('.pgb').innerHTML = '<section class="mlc"><span class="tg">보유 마일리지</span><div class="mb2"><i>M</i>' + (+M.bal).toLocaleString() + '<small>원</small></div><div class="ac"><span>누적 적립</span><b>' + (+M.earn).toLocaleString() + '</b><span>누적 사용</span><b>' + (+M.used).toLocaleString() + '</b></div>' +
-        '<div class="hb"><button data-how="get">마일리지 받는 방법 ›</button><button data-how="use">마일리지 쓰는 방법 ›</button></div></section>' +
+      el.querySelector('.pgb').innerHTML = '<section class="mlc"><span class="tg">보유 포인트</span><div class="mb2"><i>P</i>' + (+M.bal).toLocaleString() + '<small>원</small></div><div class="ac"><span>누적 적립</span><b>' + (+M.earn).toLocaleString() + '</b><span>누적 사용</span><b>' + (+M.used).toLocaleString() + '</b></div>' +
+        '<div class="hb"><button data-how="get">포인트 받는 방법 ›</button><button data-how="use">포인트 쓰는 방법 ›</button></div></section>' +
         '<h3 class="dh">상세 조회</h3><div class="fb">' + [['all', '전체'], ['earn', '적립'], ['use', '사용']].map(([k, t]) => '<button data-f="' + k + '" class="' + (f === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
         '<div class="pc">' + [[1, '이번 달'], [3, '3개월'], [6, '6개월'], [12, '1년']].map(([k, t]) => '<button data-p="' + k + '" class="' + (per === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
-        (L.length ? L.map(x => { const d = new Date(x.at + 9 * 3600e3); return '<div class="ml"><div><b>' + (x.amt > 0 ? '상점 ' + x.n + '개 적립' : '마일리지 사용') + '</b><small>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + (x.memo ? ' · ' + esc(x.memo) : '') + '</small></div><em class="' + (x.amt > 0 ? 'p' : 'm') + '">' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '</em></div>'; }).join('') : '<div class="empty" style="padding:40px 0">내역이 없어요</div>'); };
-    const el = page('나의 마일리지', '<div class="empty">불러오는 중…</div>', (e, el) => {
+        (L.length ? L.map(x => { const d = new Date(x.at + 9 * 3600e3); return '<div class="ml"><div><b>' + (x.amt > 0 ? '상점 ' + x.n + '개 적립' : '포인트 사용') + '</b><small>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + (x.memo ? ' · ' + esc(x.memo) : '') + '</small></div><em class="' + (x.amt > 0 ? 'p' : 'm') + '">' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '</em></div>'; }).join('') : '<div class="empty" style="padding:40px 0">내역이 없어요</div>'); };
+    const el = page('나의 포인트', '<div class="empty">불러오는 중…</div>', (e, el) => {
       const fb = e.target.closest('[data-f]'); if (fb) { f = fb.dataset.f; return draw(el); }
       const pb = e.target.closest('[data-p]'); if (pb) { per = +pb.dataset.p; return draw(el); }
-      const hw = e.target.closest('[data-how]'); if (hw) sheet(hw.dataset.how === 'get' ? '<h3>💰 마일리지 받는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">도장에서 받은 <b>상점(스티커)</b>을 모아서 사범님께 가져가요.<br>상점 <b>1개 = 100원</b>으로 바꿔 줘요.<br>사범님이 <b>내 출석 QR</b>을 찍으면 바로 쌓여요!</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>' : '<h3>🛍 마일리지 쓰는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">사범님께 <b>내 출석 QR</b>을 보여 주면<br>모은 마일리지만큼 쓸 수 있어요.<br>쓰면 이 앱에 바로 알림이 와요.</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>');
+      const hw = e.target.closest('[data-how]'); if (hw) sheet(hw.dataset.how === 'get' ? '<h3>💰 포인트 받는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">도장에서 받은 <b>상점(스티커)</b>을 모아서 사범님께 가져가요.<br>상점 <b>1개 = 100원</b>으로 바꿔 줘요.<br>상점은 <b>10개 이상</b> 모아야 바꿔 줘요.<br>사범님이 <b>내 출석 QR</b>을 찍으면 바로 쌓여요!</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>' : '<h3>🛍 포인트 쓰는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">사범님께 <b>내 출석 QR</b>을 보여 주면<br>모은 포인트만큼 쓸 수 있어요.<br>쓰면 이 앱에 바로 알림이 와요.</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>');
     });
     const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el);
   }
@@ -978,9 +978,9 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
     return '<div class="bst"><b>' + esc(st.title) + '</b>' + (st.period ? '<small>' + esc(st.period) + '</small>' : '') + (st.motto ? '<p class="mt">“' + esc(st.motto) + '”</p>' : '') + (st.desc ? '<p>' + esc(st.desc) + '</p>' : '') + '</div>' +
       '<div class="bln">' + BELTS.filter(b => D.kinder || !STRIPE.includes(b)).slice(0, BELTS.indexOf('4품') + 1).map(b => '<span class="' + (b === D.belt ? 'me' : BELTS.indexOf(b) < BELTS.indexOf(D.belt) ? 'dn' : '') + '">' + beltDot(b) + esc(b) + '</span>').join('') + '</div>';
   }
-  // ── ☰ 더보기: 선범단 · 뱃지 · 마일리지 · 꾸미기 · 목표 · QR · 칼럼 · 바로가기 ──
+  // ── ☰ 더보기: 선범단 · 뱃지 · 포인트 · 꾸미기 · 목표 · QR · 칼럼 · 바로가기 ──
   function moreView() {
-    const av = profAv(), M = [['env', '📩', '받은 봉투'], ['qr', '▦', '마일리지 QR'], ['badge', '🏅', '뱃지'], ['deco', '✏️', '꾸미기']]; // 2026-11-16 사용자: 4개만 (선범단은 명예의 전당, 마일리지·목표·수련 달력은 홈에 있음)
+    const av = profAv(), M = [['env', '📩', '받은 봉투'], ['qr', '▦', '포인트 QR'], ['badge', '🏅', '뱃지'], ['deco', '✏️', '꾸미기']]; // 2026-11-16 사용자: 4개만 (선범단은 명예의 전당, 포인트·목표·수련 달력은 홈에 있음)
     let h = '<div class="hi"><span class="av" style="background:' + esc(av.bg) + ';overflow:hidden">' + avHtml(av.e) + '</span><div><b>' + esc(D.name) + '</b><small>' + esc(D.belt || '') + (D.sb ? ' · ⭐ 선범단' : '') + '</small></div></div>';
     h += '<div class="mgr">' + M.map(([k, ic, t]) => '<button data-act="' + k + '"><i>' + ic + '</i>' + t + '</button>').join('') + '</div>';
     const LK = ((SITE || {}).links || []).filter(x => /insta|blog|youtube/.test(x.icon));
@@ -1020,7 +1020,7 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
   }
   // ── 아래에서 올라오는 창 ──
   function sheet(html, onClick) { const el = document.createElement('div'); el.className = 'sheet'; el.innerHTML = '<div class="box">' + html + '</div>'; el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el; }
-  function qrSheet() { sheet('<h3>▦ ' + esc(D.name) + ' 마일리지 QR</h3><div class="qrbox">' + (window.qrSvg && D.qr ? qrSvg(D.qr, Math.min(300, innerWidth - 80)) : '<p class="sub">QR을 만들지 못했어요</p>') + '<p class="sub">나만의 마일리지 QR이에요. 상점(스티커)을 받을 때 사범님께 보여 주세요.</p></div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
+  function qrSheet() { sheet('<h3>▦ ' + esc(D.name) + ' 포인트 QR</h3><div class="qrbox">' + (window.qrSvg && D.qr ? qrSvg(D.qr, Math.min(300, innerWidth - 80)) : '<p class="sub">QR을 만들지 못했어요</p>') + '<p class="sub">나만의 포인트 QR이에요. 상점(스티커)을 받을 때 사범님께 보여 주세요.</p></div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
   function textSheet(title, key, max, ph) { // 🎯 내 목표 · ⭐ 선범단 다짐 (제자가 직접)
     sheet('<h3>' + title + '</h3><textarea id="txI" maxlength="' + max + '" rows="4" placeholder="' + esc(ph) + '" style="width:100%;border:2px solid var(--line);border-radius:14px;padding:12px;font:inherit;font-size:17px;box-sizing:border-box">' + esc(D.prof[key] || '') + '</textarea><p class="lockt">' + max + '자까지 쓸 수 있어요</p><button class="big" id="txS" style="width:100%;max-width:none">저장</button><button class="out" data-x>닫기</button>', async (e, el) => {
       if (e.target.id !== 'txS') return; const v = el.querySelector('#txI').value.trim(); el.remove(); D.prof[key] = v; draw(); const j = await post('/k/prof', { [key]: v }); if (j.ok) D.prof = j.prof; else alert(j.error || '저장하지 못했어요'); });
