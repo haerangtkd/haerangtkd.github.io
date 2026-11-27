@@ -121,6 +121,7 @@ async function setup(env) {
   try { await env.DB.prepare('ALTER TABLE fails ADD COLUMN at INTEGER').run(); } catch (_) {} // 마지막으로 틀린 때 (잠금 시간 늘리기용)
   try { await env.DB.prepare('ALTER TABLE subs ADD COLUMN last INTEGER').run(); } catch (_) {} // 마지막으로 알림이 간 때 (2026-11-13)
   try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN reps TEXT').run(); } catch (_) {}
+  for (const c of ['img', 'cat', 'info']) { try { await env.DB.prepare('ALTER TABLE shop ADD COLUMN ' + c + ' TEXT').run(); } catch (_) {} } // 🛍 상점 사진·분류·설명 (2026-11-27 쇼핑몰처럼)
   try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN ph TEXT').run(); } catch (_) {}
   try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN re TEXT').run(); } catch (_) {}
   try { await env.DB.prepare('ALTER TABLE pmsg ADD COLUMN pack TEXT').run(); } catch (_) {} // 학부모가 다시 말해서 열리기 전에 처리한 직원 (2026-11-23) // 학부모 첫 연락에 사범님 이모티콘 (2026-11-19) // 학부모 연락 사진 (photos 표 id, 2026-11-19) // 학부모 연락 답장 [{by, text, at}] (2026-11-18)
@@ -297,7 +298,7 @@ async function route(path, req, env, ctx) {
       }
       if (path === '/sync/shop-cancel') { const o = await one(env, "SELECT * FROM shop_ord WHERE id = ? AND name = ? AND status = 'wait'", +b.id || 0, name); if (!o) return json({ ok: false, error: '이미 받았거나 취소된 주문이에요' });
         await shopCancel(env, o, '제자 앱'); await addLog(env, '', 'mile', '🛍 ' + name + ' 주문 취소: ' + o.iname, ''); }
-      return json({ ok: true, bal: await mileBal(env, name), items: await shopItems(env), orders: await all(env, 'SELECT id, iname, emoji, price, status, at, done_at FROM shop_ord WHERE name = ? ORDER BY id DESC LIMIT 20', name) });
+      return json({ ok: true, bal: await mileBal(env, name), items: await shopItems(env), orders: await all(env, 'SELECT id, item, iname, emoji, price, status, at, done_at FROM shop_ord WHERE name = ? ORDER BY id DESC LIMIT 20', name) });
     }
     if (path === '/sync/mile-list') { // 제자 앱 '나의 마일리지' (2026-11-15): 잔액 · 누적 적립 · 누적 사용 · 기록 (넣은 직원 이름은 안 보냄)
       const name = str(b.name, 20), L = await all(env, 'SELECT kind, n, amt, memo, at FROM mile WHERE name = ? ORDER BY id DESC LIMIT 300', name);
@@ -1006,8 +1007,9 @@ async function route(path, req, env, ctx) {
   if (path.startsWith('/api/shop-')) { // 🛍 포인트 상점 — 직원: 물건·가격·한 달 재고 정하기, 금요일 전달 목록
     if (path === '/api/shop-save') { const nm = str(b.name, 30).trim(), price = Math.floor(+b.price), qty = Math.floor(+b.qty);
       if (!nm) return json({ ok: false, error: '물건 이름을 넣어 주세요' }); if (!(price >= 100 && price <= 1000000)) return json({ ok: false, error: '가격을 100원 이상으로 넣어 주세요' }); if (!(qty >= 0 && qty <= 999)) return json({ ok: false, error: '재고를 0~999개로 넣어 주세요' });
-      if (+b.id) { await run(env, 'UPDATE shop SET name = ?, emoji = ?, price = ?, qty = ?, on1 = ? WHERE id = ?', nm, str(b.emoji, 8) || '🎁', price, qty, b.on === false ? 0 : 1, +b.id); await addLog(env, me.id, 'mile', '🛍 포인트 상점 물건 고침: ' + nm + ' ' + price.toLocaleString() + '원 · 한 달 ' + qty + '개' + (b.on === false ? ' (숨김)' : ''), ''); }
-      else { await run(env, 'INSERT INTO shop (name, emoji, price, qty, on1, sort, at) VALUES (?, ?, ?, ?, 1, 0, ?)', nm, str(b.emoji, 8) || '🎁', price, qty, Date.now()); await addLog(env, me.id, 'mile', '🛍 포인트 상점 물건 추가: ' + nm + ' ' + price.toLocaleString() + '원 · 한 달 ' + qty + '개', ''); } }
+      const img = typeof b.img === 'string' && (b.img === '' || /^data:image\/(jpeg|png|webp);base64,/.test(b.img)) && b.img.length < 300000 ? b.img : null, cat = str(b.cat, 12).trim(), info = str(b.info, 300).trim();
+      if (+b.id) { await run(env, 'UPDATE shop SET name = ?, emoji = ?, price = ?, qty = ?, on1 = ?, cat = ?, info = ? WHERE id = ?', nm, str(b.emoji, 8) || '🎁', price, qty, b.on === false ? 0 : 1, cat, info, +b.id); if (img !== null) await run(env, 'UPDATE shop SET img = ? WHERE id = ?', img, +b.id); await addLog(env, me.id, 'mile', '🛍 포인트 상점 물건 고침: ' + nm + ' ' + price.toLocaleString() + '원 · 한 달 ' + qty + '개' + (b.on === false ? ' (숨김)' : ''), ''); }
+      else { await run(env, 'INSERT INTO shop (name, emoji, price, qty, on1, sort, at, img, cat, info) VALUES (?, ?, ?, ?, 1, 0, ?, ?, ?, ?)', nm, str(b.emoji, 8) || '🎁', price, qty, Date.now(), img || '', cat, info); await addLog(env, me.id, 'mile', '🛍 포인트 상점 물건 추가: ' + nm + ' ' + price.toLocaleString() + '원 · 한 달 ' + qty + '개', ''); } }
     if (path === '/api/shop-done') { const nm = str(b.name, 20), L = await all(env, "SELECT * FROM shop_ord WHERE name = ? AND status = 'wait'", nm); if (!L.length) return json({ ok: false, error: '전달할 주문이 없어요' });
       await run(env, "UPDATE shop_ord SET status = 'done', done_at = ?, by = ? WHERE name = ? AND status = 'wait'", Date.now(), me.name, nm);
       await addLog(env, me.id, 'mile', '🛍 ' + nm + ' 주문 ' + L.length + '개 전달함 (' + me.name + ')', '');
@@ -2383,7 +2385,7 @@ async function sameText(a, b) {
 async function shopItems(env, all1) {
   const mon = kstDay().slice(0, 7), L = await all(env, 'SELECT * FROM shop' + (all1 ? '' : ' WHERE on1 = 1') + ' ORDER BY sort, price, id');
   const used = await all(env, "SELECT item, COUNT(*) AS c FROM shop_ord WHERE month = ? AND status != 'cancel' GROUP BY item", mon), U = {}; used.forEach(r => { U[r.item] = r.c; });
-  return L.map(x => ({ id: x.id, name: x.name, emoji: x.emoji || '🎁', price: x.price, qty: x.qty, on: !!x.on1, left: Math.max(0, x.qty - (U[x.id] || 0)) }));
+  return L.map(x => ({ id: x.id, name: x.name, emoji: x.emoji || '🎁', price: x.price, qty: x.qty, on: !!x.on1, left: Math.max(0, x.qty - (U[x.id] || 0)), sold: U[x.id] || 0, img: x.img || '', cat: x.cat || '', info: x.info || '' }));
 }
 const mileBal = async (env, name) => +((await one(env, 'SELECT COALESCE(SUM(amt), 0) AS t FROM mile WHERE name = ?', name)) || {}).t || 0;
 async function shopCancel(env, o, by) { // 취소 → 포인트 돌려주기 (기록은 지우지 않고 돌려받은 줄을 더함)
