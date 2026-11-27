@@ -574,7 +574,7 @@ const FACTORS = [
   {t:'집중과 자기조절', br:'집중과<br>자기조절', d:'수업 내용을 받아들이는 학습 수용력을 길러요', bg:'#DDE1EA', fg:'#3E4A66', ic:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6"/>'},
   {t:'끈기와 꾸준함', br:'끈기와<br>꾸준함', d:'끝까지 앉아 과제를 마칠 수 있어요', bg:'#DCE5EF', fg:'#4D6A8C', ic:'<rect x="4" y="5" width="16" height="15" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="9" y1="3" x2="9" y2="7"/><line x1="15" y1="3" x2="15" y2="7"/><polyline points="9 15 11 17 15 13"/>'},
   {t:'자신감과 표현력', br:'자신감과<br>표현력', d:'나를 믿는 만큼 생각의 기준이 단단해져요', bg:'#EFE5D8', fg:'#8A6A47', ic:'<polygon points="12 3 14.6 9 21 9.3 16 13.5 17.7 20 12 16.5 6.3 20 8 13.5 3 9.3 9.4 9"/>'},
-  {t:'배려와 리더십', br:'배려와<br>리더십', d:'건강한 관계를 스스로 가려 사귀는 안목이 생겨요', bg:'#DFE9E1', fg:'#5E7D66', ic:'<circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15 14.5c2.8.3 5 2.6 5 5.5"/>'}
+  {t:'배려와 책임', br:'배려와<br>책임', d:'내 차례를 기다리고 맡은 것을 끝까지 해내는 힘이 자라요', bg:'#DFE9E1', fg:'#5E7D66', ic:'<circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M15 14.5c2.8.3 5 2.6 5 5.5"/>'}
 ];
 const ATT = FACTORS.slice(1).map(f=>f.t);
 const LEVELS = ['성장 중이에요','잘해요','아주 잘해요'];
@@ -886,7 +886,7 @@ function renderEditor(){
       if(ex) return `<div class="att"><span>0${j+2} ${a}</span><div class="autolv"><b>${ex.lv}</b> <span>심사 ${['품새','','웅변·영어','예절·태도'][j]} 평균 ${ex.avg}점 · 자동</span></div></div>`;
       return `<div class="att" role="radiogroup" aria-label="${a}"><span>0${j+2} ${a}</span><div class="seg">${LEVELS.map(l=>`<label><input type="radio" name="att${j}" value="${l}" ${i.att[j]===l?'checked':''}>${l}</label>`).join('')}</div></div>`; }).join('')}
     <div class="meta">끈기와 꾸준함은 출석이 들어오면 자동이에요 · ${(settings.attTh||{}).hi??90}% 이상 아주 잘해요, ${(settings.attTh||{}).mid??75}% 이상 잘해요, 그 아래 성장 중이에요</div>
-    <div class="meta">집중과 자기조절(품새)·자신감과 표현력(웅변·영어)·배려와 리더십(예절·태도)은 🏅 심사를 마감하면 자동이에요 · 이번 분기 평균 ${exTh().hi}점 이상 아주 잘해요, ${exTh().mid}점 이상 잘해요</div>
+    <div class="meta">집중과 자기조절(품새)·자신감과 표현력(웅변·영어)·배려와 책임(기다리기·끝까지 해내기)은 🏅 심사를 마감하면 자동이에요 · 이번 분기 평균 ${exTh().hi}점 이상 아주 잘해요, ${exTh().mid}점 이상 잘해요</div>
   </div>
   <div class="sec"><h3><label for="eCm">사범님 한마디</label><em>ㅇㅇ 자리에 ${esc(callName(k.name))} 들어가요</em></h3>
     <textarea id="eCm" rows="4" placeholder="아래에서 고르거나 직접 써주세요">${esc(i.cm)}</textarea>
