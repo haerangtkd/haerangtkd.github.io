@@ -351,6 +351,26 @@
   .ghd{position:relative}.ghd>*{position:relative;z-index:1}.ghd>#gsp{position:absolute;inset:-8px -6px -4px;z-index:0;pointer-events:none;overflow:hidden}#gsp i{position:absolute;font-style:normal;color:#F7E08A;text-shadow:0 0 8px rgba(247,224,138,.9);opacity:0;animation:gtw 3s ease-in-out infinite}
   @keyframes gtw{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:.95;transform:scale(1) rotate(45deg)}}
   @media (prefers-reduced-motion:reduce){.vfame .hi b,.gmq div,.vfame #body .card::after,#gsp i{animation:none}#gsp{display:none}}
+  /* 🛍 포인트 상점 — 쇼핑몰처럼 (2026-11-27) */
+  .sp{padding-bottom:30px}.sph{padding:18px 4px 6px}.sph h2{margin:0;font-size:30px;line-height:1.25;font-weight:900;letter-spacing:-.5px}.sph p{margin:8px 0 0;color:var(--muted);font-size:14px}.sph p b{color:#FF6B6F}
+  .spb{display:flex;align-items:center;gap:8px;margin-top:14px}.spb span{display:inline-flex;align-items:center;gap:6px;background:#1E1E21;border:1px solid #2E2E32;border-radius:999px;padding:7px 14px 7px 8px;font-size:18px;font-weight:900}.spb span i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-style:normal;font-size:12px}.spb span small{font-size:12px;color:var(--muted);font-weight:700}
+  .spb button{margin-left:auto;border:0;background:transparent;color:var(--muted);font-size:13px;text-decoration:underline;padding:6px}
+  .spc{display:flex;gap:7px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}.spc::-webkit-scrollbar{display:none}.spc button{flex:none;border:0;background:#232326;color:#C9C4BF;border-radius:8px;padding:8px 13px;font-size:14px;font-weight:700}.spc button.on{background:var(--acc);color:#fff}
+  .spt{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 10px;font-size:19px}.spt small{font-size:12px;color:var(--muted);font-weight:500}
+  .spg{display:grid;grid-template-columns:1fr 1fr;gap:18px 10px}.spi{border:0;background:transparent;color:inherit;text-align:left;padding:0;display:flex;flex-direction:column;min-width:0}
+  .spp{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:linear-gradient(160deg,#26262A,#17171A);display:grid;place-items:center}.spp img{width:100%;height:100%;object-fit:cover;display:block}.spe{font-size:64px}.spe.b{font-size:110px}
+  .spp.sm{width:54px;flex:none;border-radius:6px}.spp.sm .spe{font-size:28px}
+  .spl{position:absolute;left:6px;bottom:6px;background:var(--acc);color:#fff;font-style:normal;font-size:11px;font-weight:800;border-radius:4px;padding:3px 6px}
+  .spx{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;font-style:normal;font-size:18px;font-weight:900;letter-spacing:2px}.spi.so .spn,.spi.so .spr{opacity:.45}
+  .spk{display:block;margin-top:8px;color:var(--ink);font-size:12.5px;font-weight:800}.spn{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;font-weight:500;line-height:1.35;margin-top:2px;color:#D9D4CF}
+  .spr{display:block;margin-top:3px;color:#FF6B6F;font-size:16px;font-weight:900}.spr.lg{font-size:24px;margin-top:4px}
+  .sps{align-self:flex-start;margin-top:6px;background:rgba(229,72,77,.14);color:#FF8A8D;font-size:11.5px;font-weight:700;border-radius:4px;padding:3px 6px}.sps.nw{background:rgba(227,179,65,.16);color:var(--gold)}
+  .spo{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #232326}.spod{flex:1;min-width:0}.spod b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spod small{color:var(--muted);font-size:12px}
+  .spo .sos{margin-right:4px;font-style:normal;font-size:12.5px;font-weight:800;white-space:nowrap}.spo .sos.w{color:#F5B700}.spo .sos.d{color:#3CB371}.spo .sos.c{color:#77777C}
+  .spo button{border:1px solid #444;background:transparent;color:var(--muted);border-radius:7px;padding:5px 8px;font-size:12px}
+  .spd .spp{border-radius:12px;margin-bottom:4px}.spd h3{margin:4px 0 0;font-size:20px}.spi2{color:#C9C4BF;font-size:14.5px;line-height:1.6;margin:10px 0 0}
+  .spm{display:grid;grid-template-columns:1fr auto;gap:7px 10px;margin:14px 0 4px;padding:12px 14px;background:#1E1E21;border-radius:12px;font-size:14px}.spm span{color:var(--muted)}.spm b{text-align:right}.spm b.neg{color:#FF6B6F}
+  .spq{width:100%;margin-top:10px;background:transparent;border:0;color:var(--muted);font-size:15px;padding:8px}
 </style>
 </head>
 <body>
@@ -1022,22 +1042,34 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
   // ── 아래에서 올라오는 창 ──
   function sheet(html, onClick) { const el = document.createElement('div'); el.className = 'sheet'; el.innerHTML = '<div class="box">' + html + '</div>'; el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el; }
   const shopOpen = () => (D && D.today || '') >= '2026-11-30'; // 2026-11-27 사용자: 상점은 11/30(월)부터 보이게
-  // ── 🛍 포인트 상점 (2026-11-27): 언제든 주문(포인트 바로 빠짐) → 금요일에 한꺼번에 받기, 물건마다 이번 달 남은 개수 ──
+  // ── 🛍 포인트 상점 (2026-11-27): 쇼핑몰처럼 — 큰 제목 · 분류 칩 · 사진 카드(2칸) · 판매 수 · 물건 상세 → 주문 / 금요일에 한꺼번에 받기 ──
   async function shopPage(after) {
-    let S = null; const won = n => (+n).toLocaleString() + '원';
-    const ST = { wait: ['금요일에 받아요', '#F5B700'], done: ['받았어요', '#3CB371'], cancel: ['취소됐어요', '#77777C'] };
-    const draw = el => { if (!S) return; el.querySelector('.pgb').innerHTML = '<section class="mlc"><span class="tg">보유 포인트</span><div class="mb2"><i>P</i>' + (+S.bal).toLocaleString() + '<small>원</small></div><p class="sub" style="margin:6px 0 0">주문은 언제든, 물건은 <b>금요일</b>에 한꺼번에 받아요</p></section>' +
-      '<h3 class="dh">물건</h3>' + (S.items.length ? S.items.map(x => { const can = x.left > 0 && S.bal >= x.price; return '<div class="ml"><span style="font-size:30px;margin-right:10px">' + esc(x.emoji) + '</span><div><b>' + esc(x.name) + '</b><small>' + won(x.price) + ' · ' + (x.left > 0 ? '이번 달 ' + x.left + '개 남음' : '다 나갔어요 · 1일에 다시 채워져요') + '</small></div><button class="big" data-buy="' + x.id + '" style="width:auto;margin:0;padding:9px 14px;font-size:15px' + (can ? '' : ';opacity:.35') + '">주문</button></div>'; }).join('') : '<div class="empty" style="padding:30px 0">아직 물건이 없어요</div>') +
-      '<h3 class="dh">내 주문</h3>' + (S.orders.length ? S.orders.map(o => { const d = new Date(o.at + 9 * 3600e3), t = ST[o.status] || ST.wait; return '<div class="ml"><div><b>' + esc(o.emoji + ' ' + o.iname) + '</b><small>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + ' · ' + won(o.price) + '</small></div><em style="color:' + t[1] + ';font-size:13px">' + t[0] + '</em>' + (o.status === 'wait' ? '<button data-oc="' + o.id + '" style="margin-left:8px;border:1px solid #77777C;background:transparent;color:var(--muted);border-radius:8px;padding:5px 8px;font-size:12px">취소</button>' : '') + '</div>'; }).join('') : '<div class="empty" style="padding:30px 0">주문한 물건이 없어요</div>'); };
+    let S = null, cat = '전체'; const won = n => (+n).toLocaleString() + '원';
+    const ST = { wait: ['금요일에 받아요', 'w'], done: ['받았어요', 'd'], cancel: ['취소됐어요', 'c'] };
+    const pic = (x, big) => x.img ? '<img src="' + esc(x.img) + '" alt="">' : '<span class="spe' + (big ? ' b' : '') + '">' + esc(x.emoji || '🎁') + '</span>';
+    const draw = el => { if (!S) return; const cats = ['전체', ...new Set(S.items.map(x => x.cat).filter(Boolean))]; if (!cats.includes(cat)) cat = '전체';
+      const L = S.items.filter(x => cat === '전체' || x.cat === cat), wait = S.orders.filter(o => o.status === 'wait').length;
+      el.querySelector('.pgb').innerHTML = '<div class="sp">' +
+        '<section class="sph"><h2>해랑경희<br>포인트 상점</h2><p>주문은 언제든, 물건은 <b>금요일</b>에 받아요</p><div class="spb"><span><i>P</i>' + (+S.bal).toLocaleString() + '<small>원</small></span>' + (wait ? '<button data-myo>주문 ' + wait + '개 ›</button>' : '') + '</div></section>' +
+        '<div class="spc">' + cats.map(c => '<button data-cat="' + esc(c) + '" class="' + (c === cat ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' +
+        '<h3 class="spt">이번 달 물건<small>매달 1일에 다시 채워져요</small></h3>' +
+        (L.length ? '<div class="spg">' + L.map(x => '<button class="spi' + (x.left > 0 ? '' : ' so') + '" data-it="' + x.id + '"><div class="spp">' + pic(x) + (x.left > 0 ? (x.left <= 3 ? '<span class="spl">' + x.left + '개 남음</span>' : '') : '<span class="spx">품절</span>') + '</div>' +
+          '<small class="spk">' + esc(x.cat || '해랑경희') + '</small><b class="spn">' + esc(x.name) + '</b><strong class="spr">' + won(x.price) + '</strong>' + (x.sold ? '<span class="sps">' + x.sold + '개 판매</span>' : '<span class="sps nw">새 물건</span>') + '</button>').join('') + '</div>' : '<div class="empty" style="padding:40px 0">아직 물건이 없어요</div>') +
+        '<h3 class="spt" id="spMy">내 주문</h3>' + (S.orders.length ? S.orders.map(o => { const d = new Date(o.at + 9 * 3600e3), t = ST[o.status] || ST.wait, it = S.items.find(i => i.id === o.item) || o; return '<div class="spo"><div class="spp sm">' + pic(it) + '</div><div class="spod"><b>' + esc(o.iname) + '</b><small>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + ' · ' + won(o.price) + '</small></div><span class="sos ' + t[1] + '">' + t[0] + '</span>' + (o.status === 'wait' ? '<button data-oc="' + o.id + '">취소</button>' : '') + '</div>'; }).join('') : '<div class="empty" style="padding:24px 0">주문한 물건이 없어요</div>') + '</div>'; };
     const say = t => sheet('<h3>' + t + '</h3><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>');
     let el = null;
     const go = async (path, body) => { const j = await post(path, body); if (!j.ok) { say(j.error || '잠시 뒤에 다시 해 주세요'); return false; } S = j; D.mile = j.bal; draw(el); return true; };
+    const detail = x => { const can = x.left > 0 && S.bal >= x.price;
+      sheet('<div class="spd"><div class="spp">' + pic(x, true) + '</div><small class="spk">' + esc(x.cat || '해랑경희') + '</small><h3>' + esc(x.name) + '</h3><strong class="spr lg">' + won(x.price) + '</strong>' +
+        (x.info ? '<p class="spi2">' + esc(x.info).replace(/\n/g, '<br>') + '</p>' : '') +
+        '<div class="spm"><span>이번 달 남은 개수</span><b>' + (x.left > 0 ? x.left + '개' : '품절') + '</b><span>내 포인트</span><b>' + won(S.bal) + '</b>' + (x.left > 0 ? '<span>주문 뒤 남는 포인트</span><b' + (can ? '' : ' class="neg"') + '>' + (can ? won(S.bal - x.price) : won(x.price - S.bal) + ' 모자라요') + '</b>' : '') + '<span>받는 날</span><b>금요일</b></div>' +
+        '<button class="big" data-ok style="width:100%;max-width:none' + (can ? '' : ';opacity:.35') + '">' + (x.left <= 0 ? '이번 달 품절이에요' : can ? won(x.price) + ' 주문하기' : '포인트가 모자라요') + '</button><button data-x class="spq">닫기</button></div>',
+        async (e2, sh) => { if (!e2.target.closest('[data-ok]') || !can) return; sh.remove(); if (await go('/k/shop-order', { item: x.id })) say('주문했어요! 금요일에 받아요 🎁'); }); };
     el = page('포인트 상점', '<div class="empty">불러오는 중…</div>', e => {
-      const b = e.target.closest('[data-buy]'); if (b) { const x = S && S.items.find(i => i.id === +b.dataset.buy); if (!x) return;
-        if (x.left <= 0) return say('이번 달 물건이 다 나갔어요. 1일에 다시 채워져요');
-        if (S.bal < x.price) return say('포인트가 ' + won(x.price - S.bal) + ' 모자라요');
-        return sheet('<h3>' + esc(x.emoji + ' ' + x.name) + '</h3><p class="sub" style="font-size:16px;line-height:1.8">' + won(x.price) + '을 쓰고 주문할까요?<br>남는 포인트 ' + won(S.bal - x.price) + '<br>물건은 <b>금요일</b>에 받아요.</p><button class="big" data-ok style="width:100%;max-width:none">주문하기</button><button data-x style="width:100%;margin-top:10px;background:transparent;border:0;color:var(--muted);font-size:15px;padding:8px">그만두기</button>', async (e2, sh) => { if (!e2.target.closest('[data-ok]')) return; sh.remove(); if (await go('/k/shop-order', { item: x.id })) say('주문했어요! 금요일에 받아요 🎁'); }); }
-      const c = e.target.closest('[data-oc]'); if (c) return sheet('<h3>주문을 취소할까요?</h3><p class="sub" style="font-size:16px">쓴 포인트는 바로 돌려받아요.</p><button class="big" data-ok style="width:100%;max-width:none">취소하기</button><button data-x style="width:100%;margin-top:10px;background:transparent;border:0;color:var(--muted);font-size:15px;padding:8px">그대로 두기</button>', async (e2, sh) => { if (!e2.target.closest('[data-ok]')) return; sh.remove(); if (await go('/k/shop-cancel', { id: +c.dataset.oc })) say('취소했어요. 포인트를 돌려받았어요'); });
+      const c0 = e.target.closest('[data-cat]'); if (c0) { cat = c0.dataset.cat; return draw(el); }
+      if (e.target.closest('[data-myo]')) { const m = el.querySelector('#spMy'); return m && m.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      const b = e.target.closest('[data-it]'); if (b) { const x = S && S.items.find(i => i.id === +b.dataset.it); if (x) detail(x); return; }
+      const c = e.target.closest('[data-oc]'); if (c) return sheet('<h3>주문을 취소할까요?</h3><p class="sub" style="font-size:16px">쓴 포인트는 바로 돌려받아요.</p><button class="big" data-ok style="width:100%;max-width:none">취소하기</button><button data-x class="spq">그대로 두기</button>', async (e2, sh) => { if (!e2.target.closest('[data-ok]')) return; sh.remove(); if (await go('/k/shop-cancel', { id: +c.dataset.oc })) say('취소했어요. 포인트를 돌려받았어요'); });
     });
     const back = el.querySelector('[data-back]'); back && back.addEventListener('click', () => after && after());
     await go('/k/shop');
