@@ -1568,7 +1568,7 @@ const examRowOf = (m, who) => m.rows.find(r => who.sid && r.sid === who.sid) || 
 // 새 평가표 (2026-11-15 사용자 정리): 부마다 과목, 웅변·발차기는 나눠서 평가, 영어·품새·특기는 무엇을 했는지 적음
 const EXAM2 = {
   kinder: { n: '유치부', items: [{ k: 'bow', n: '인사' }, { k: 'kickH', n: '발차기 높이', g: '발차기' }, { k: 'poom', n: '품새', tx: 1 }, { k: 'stance', n: '서기동작' }, { k: 'shout', n: '목소리' }] },
-  elem: { n: '초등부', items: [{ k: 'basic', n: '기본동작', g: '기본기' }, { k: 'kickH', n: '발차기 높이', g: '기본기' }, { k: 'kickP', n: '발차기 파워', g: '기본기' }, { k: 'eng', n: '영어', tx: 1 }, { k: 'poom', n: '품새', tx: 1 }, { k: 'voice', n: '목소리 전달력', g: '웅변' }, { k: 'recite', n: '암기력', g: '웅변' }, { k: 'shout', n: '목소리' }] },
+  elem: { n: '초등부', items: [{ k: 'basic', n: '기본동작', g: '기본기' }, { k: 'kickH', n: '발차기 높이', g: '기본기' }, { k: 'kickP', n: '발차기 파워', g: '기본기' }, { k: 'eng', n: '영어', tx: 1 }, { k: 'poom', n: '품새', tx: 1 }, { k: 'voice', n: '목소리 전달력', g: '웅변' }, { k: 'recite', n: '암기력', g: '웅변' }, { k: 'shout', n: '자신감' }] }, // 2026-11-27: 초등부는 '목소리' 대신 '자신감' (유치부는 목소리 그대로)
   ipsi: { n: '입시부', items: [{ k: 'kickH', n: '발차기 높이', g: '기본발차기' }, { k: 'kickP', n: '발차기 파워', g: '기본발차기' }, { k: 'poom', n: '품새', tx: 1 }, { k: 'talent', n: '특기', tx: 1 }] }
 };
 const EXAM_MANNER = { k: 'manner', n: '예절·태도' };
@@ -1610,7 +1610,8 @@ function examMix(ex, who, month) {
   const st = k => { const v = +((d.sc || {})[k]); if (!v) return null; if (d.v !== 2) return null; return v === 2 ? 'G' : d.re && +d.re[k] === 2 ? 'U' : 'M'; };
   const pt = k => { if (d.v !== 2) { const g = examGood(d, k); return g == null ? null : Math.round((50 + 50 * g) * 10) / 10; } const s = st(k); return s ? EX_PT[tier][s] : null; };
   const avg = ks => { const L = ks.map(pt).filter(v => v != null); return L.length ? Math.round(L.reduce((a, z) => a + z, 0) / L.length * 10) / 10 : null; };
-  const lab = ks => ks.filter(k => pt(k) != null).map(k => (EXAM_NAME[k] || k) + ' ' + (d.v === 2 ? EX_W[st(k)] : '')).join(' · ');
+  const G = EXAM2[d.grp] || EXAM2.elem, nm = k => ((G.items.find(x => x.k === k) || {}).n) || EXAM_NAME[k] || k; // 부마다 과목 이름 (초등부 shout = 자신감, 유치부 = 목소리)
+  const lab = ks => ks.filter(k => pt(k) != null).map(k => nm(k) + ' ' + (d.v === 2 ? EX_W[st(k)] : '')).join(' · ');
   const cv = CARE_Q.map(x => CARE_PT[+((d.care || {})[x.k])]).filter(v => v != null), care = cv.length ? Math.round(cv.reduce((a, z) => a + z, 0) / cv.length * 10) / 10 : avg(['bow', 'manner']);
   const CW = { 4: '아주 훌륭해요', 3: '훌륭해요', 2: '성장 중이에요', 1: '노력이 필요해요' };
   const tl = { pass: '', re: ' (재도전 합격)', again: ' (다시 도전)' }[tier], ml = '🏅 ' + (+month.slice(5)) + '월 심사' + tl + ' · ';
