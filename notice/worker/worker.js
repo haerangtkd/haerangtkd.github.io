@@ -263,7 +263,10 @@ async function route(path, req, env) {
       const keep = kstAdd(today, -400); Object.keys(d).forEach(z => { if (z < keep) delete d[z]; });
       await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v', 'kday:' + name, JSON.stringify(d)); return json({ ok: true, dc: d });
     }
-    if (path === '/k/mile') return json(await teamSync(env, '/sync/mile-list', { name })); // 💰 나의 마일리지 (2026-11-15)
+    if (path === '/k/mile') return json(await teamSync(env, '/sync/mile-list', { name })); // 💰 나의 포인트 (2026-11-15)
+    if (path === '/k/shop') return json(await teamSync(env, '/sync/shop-list', { name })); // 🛍 포인트 상점 (2026-11-27)
+    if (path === '/k/shop-order') return json(await teamSync(env, '/sync/shop-order', { name, item: +b.item || 0 }));
+    if (path === '/k/shop-cancel') return json(await teamSync(env, '/sync/shop-cancel', { name, id: +b.id || 0 }));
     if (path === '/k/hw-check') return json({ ok: false, error: '미션 체크는 부모님이 학부모 앱에서 해요' }); // 2026-11-16 사용자 결정: 학부모만
     if (path === '/k/hw-check-old') return json(await teamSync(env, '/sync/hw-check', { kids: [name], kid: name, hw: b.hw, day: b.day, on: !!b.on, rel: '본인' }));
     if (path === '/k/sub') { // 제자 앱 알림 켜기 (2026-11-15, 제자 앱 따로) — 코드로 들어온 기기만 (학부모 휴대폰은 안 받음)
