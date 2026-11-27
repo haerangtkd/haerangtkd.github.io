@@ -597,7 +597,7 @@ async function route(path, req, env, ctx) {
       const d = b.data || {}, sc = {}, tx = {}; EXAM_KEYS.forEach(k => { const v = +((d.sc || {})[k]); if (v === 1 || v === 2) sc[k] = v; }); // 2 = 훌륭해요, 1 = 연습이 필요해요
       EXAM_TX.forEach(k => { const t = str((d.tx || {})[k], 200).trim(); if (t) tx[k] = t; });
       const care = {}; CARE_Q.forEach(x => { const v = +((d.care || {})[x.k]); if (v >= 1 && v <= 4) care[x.k] = v; });
-      const clean = { v: 2, grp: EXAM2[d.grp] ? d.grp : 'elem', sc, tx, care, pass: d.pass !== false, nb: str(d.nb, 10), cur: str(d.cur, 10), absent: !!d.absent, memo: str(d.memo, 300), by: me.name };
+      const clean = { v: 2, grp: EXAM2[d.grp] ? d.grp : 'elem', sc, tx, care, pass: d.pass === true ? true : d.pass === false ? false : null, /* 2026-11-27: 합격·불합격 기본은 안 고름 */ nb: str(d.nb, 10), cur: str(d.cur, 10), absent: !!d.absent, memo: str(d.memo, 300), by: me.name };
       if (old) { const od = J(old.data, {}); ['re', 'rt', 'rtAt', 'rtBy'].forEach(x => { if (od[x] != null) clean[x] = od[x]; }); } // 재도전 기록은 그대로
       await run(env, 'INSERT INTO exam (month, sid, name, data, upd, mid) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(month, sid) DO UPDATE SET name = excluded.name, data = excluded.data, upd = excluded.upd, mid = excluded.mid', month, sid, str(b.name, 20), JSON.stringify(clean), Date.now(), me.id);
       return json({ ok: true, upd: Date.now() });
@@ -646,7 +646,8 @@ async function route(path, req, env, ctx) {
         let rows = await all(env, 'SELECT sid, name, data, upd FROM exam WHERE month = ?', month); const applied = [], miss = [];
         if (today) { rows = rows.filter(r => { const d = J(r.data, {}); return !d.fin && !d.absent && Object.keys(d.sc || {}).length && kstDay(new Date(r.upd)) === td; }); if (!rows.length) return json({ ok: false, error: '오늘 채점한 제자가 없어요' }); }
         else rows = rows.filter(r => !J(r.data, {}).fin); // 이미 확정한 제자는 띠·알림을 다시 하지 않음
-        rows.forEach(r => { const d = J(r.data, {}); if (d.absent || d.pass === false || !d.nb) return; const k = bySid[r.sid], id = k ? k.name + '|' + k.birth : '';
+        { const und = rows.filter(r => { const d = J(r.data, {}); return !d.absent && d.pass !== true && d.pass !== false && d.v === 2; }); if (und.length) return json({ ok: false, error: '합격·불합격을 안 고른 제자가 ' + und.length + '명 있어요: ' + und.slice(0, 5).map(r => r.name).join(', ') }); }
+        rows.forEach(r => { const d = J(r.data, {}); if (d.absent || d.pass !== true || !d.nb) return; const k = bySid[r.sid], id = k ? k.name + '|' + k.birth : '';
           const prev = (r.sid && AB[r.sid]) || (id && st.belts[id]) || ''; if (prev === d.nb) return; if (id) st.belts[id] = d.nb; else if (!r.sid || !(r.sid in AB)) { miss.push(r.name); return; }
           applied.push([id, prev, d.nb, r.name, r.sid || '']); });
         const bs = await attSync(env, '/sync/belt-set', { items: applied.filter(a => a[4]).map(a => ({ sid: a[4], belt: a[2], why: ym + ' 심사 합격' })), who: me.name });
