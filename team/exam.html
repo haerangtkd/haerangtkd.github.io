@@ -407,7 +407,7 @@ const CARE_L = [[4, '🌟', '아주 훌륭해요'], [3, '👍', '훌륭해요'],
 const dayOf = k => DAY_THU.includes(k) ? 'thu' : 'fri';
 if (!S.day) { const wd = new Date(Date.now() + 9 * 3600e3).getUTCDay(); S.day = wd === 4 ? 'thu' : wd === 5 ? 'fri' : 'all'; }
 function tblCols(L) { // 고른 제자들 부의 과목을 모두 모아서 (부마다 없는 과목은 회색 칸)
-  const M = {}; L.forEach(k => { const d = dataOf(k); itemsFor(effGrp(k, d)).forEach(x => { if (!M[x.k]) M[x.k] = x; }); });
+  const M = {}; L.forEach(k => { const d = dataOf(k); itemsFor(effGrp(k, d)).forEach(x => { if (!M[x.k]) M[x.k] = Object.assign({}, x); else if (!M[x.k].n.split(' · ').includes(x.n)) M[x.k].n += ' · ' + x.n; }); }); // 부마다 이름이 다르면 같이 (유치부 목소리 · 초등부 자신감)
   return COL_ORDER.concat(Object.keys(M).filter(k => !COL_ORDER.includes(k))).filter(k => M[k] && (S.day === 'all' || dayOf(k) === S.day)).map(k => M[k])
     .concat(S.day === 'thu' ? [] : CARE_Q.map(x => ({ k: x.k, n: x.n, g: '배려와 책임', care: 1 })));
 }
