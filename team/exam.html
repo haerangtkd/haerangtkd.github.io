@@ -127,6 +127,29 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .kuk{display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px;border:2px solid var(--brand);border-radius:12px;background:#fff;font-weight:800}
 .kuk input{width:24px;height:24px;flex:none;accent-color:var(--brand)}
 .kuk small{font-weight:600;color:var(--muted)}
+.kid.pass{border-color:#5FBF8A;background:#EAF7EF}.kid.pass em{color:#1F8A5B;font-weight:800}
+.kid.fail{border-color:#E36A6A;background:#FDECEC}.kid.fail em{color:#C8102E;font-weight:800}
+#rc .r-pass.on{background:#1F8A5B;border-color:#1F8A5B;color:#fff}#rc .r-fail.on{background:#C8102E;border-color:#C8102E;color:#fff}#rc .r-unk.on{background:#6B6660;border-color:#6B6660;color:#fff}
+.tbv{padding:8px 10px 0}
+.tw{overflow:auto;-webkit-overflow-scrolling:touch;background:var(--card);border:1px solid var(--line);border-radius:12px;overscroll-behavior:contain}
+table.et{border-collapse:separate;border-spacing:0;font-size:13px}
+.et th,.et td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px;vertical-align:top;background:var(--card);min-width:92px}
+.et thead th{position:sticky;top:0;z-index:3;background:#F1EEE9;font-weight:800;white-space:nowrap;text-align:center;padding:8px 6px}
+.et thead th small{display:block;font-size:10.5px;color:var(--muted);font-weight:700}
+.et .nm{position:sticky;left:0;z-index:2;min-width:112px;max-width:130px;box-shadow:2px 0 0 var(--line)}
+.et thead .nm{z-index:4;text-align:left}
+.et td.nm b{display:block;font-size:14.5px}.et td.nm small{display:block;font-size:11px;color:var(--muted)}
+.et .grs{margin-top:4px;font-size:11.5px;padding:3px;border:1px solid var(--line);border-radius:6px;background:#fff;max-width:100%}
+.et .saved{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
+.sv{width:100%;height:42px;border-radius:9px;border:1.5px solid var(--line);background:#fff;font-size:19px;color:#BBB}
+.sv.g{background:#E8F5EC;border-color:#5FBF8A;color:inherit}.sv.m{background:#FFF1E6;border-color:#F0A46A;color:inherit}
+.et td.na{background:#F3F3F3;color:#C8C8C8;text-align:center;vertical-align:middle}
+.et .tx{width:100%;margin-top:4px;font-size:12px;padding:5px;border:1px solid var(--line);border-radius:7px;background:#fff;box-sizing:border-box}
+.txr{display:flex;gap:4px;align-items:center}.txr .tx{flex:1;min-width:0}.eb{flex:none;margin-top:4px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 6px}
+.pfb{width:100%;height:42px;border-radius:9px;font-weight:900;border:0;color:#fff;font-size:15px}.pfb.ok{background:#1F8A5B}.pfb.no{background:#C8102E}.pfb.ab{background:#B9B4AA}
+.et td.rs{min-width:130px}.kk{display:flex;gap:5px;align-items:center;font-size:11.5px;font-weight:800;margin-top:5px;color:var(--brand)}
+.et td.ms{min-width:130px}.abt{margin-top:5px;width:100%;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px;font-size:12px}.abt.on{background:#6B6660;color:#fff}
+.et tr.fail td.nm{background:#FDECEC}.et tr.fail td.nm b{color:#C8102E}.et tr.abs td{opacity:.55}
 .mvh{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden}
 .mvh .btn{padding:6px 12px;font-size:13px;flex:none}
 </style></head>
@@ -199,6 +222,8 @@ const kids = () => S.roster.filter(k => k.status !== '퇴관' && (k.status !== '
 const kidBy = sid => kids().find(k => k.id === sid);
 function dataOf(k) { const r = S.rows[k.id]; if (r && r.data.v === 2) return r.data; return { v: 2, grp: GKEY[k.group], sc: {}, tx: {}, pass: true, nb: nextBelt(k.cur, k.kinder), cur: k.cur, absent: false, memo: '' }; }
 function stateOf(k) { const r = S.rows[k.id]; if (!r) return 'todo'; const d = r.data; if (d.absent) return 'abs'; if (d.fin) return 'done'; if (d.v !== 2) return 'half'; const its = itemsFor(effGrp(k, d) || d.grp), n = its.filter(x => d.sc && d.sc[x.k]).length; return n >= its.length ? 'done' : n ? 'half' : 'todo'; }
+// 합격 · 불합격 · 미확인 (2026-11-27 회의): 불합격 = 불합격으로 고른 제자, 합격 = 채점을 다 끝낸 합격, 미확인 = 아직 다 안 본 제자 (안 봄은 셋 다 아님)
+const resOf = k => { const r = S.rows[k.id], s = stateOf(k); if (s === 'abs') return 'abs'; if (r && r.data.pass === false) return 'fail'; return s === 'done' ? 'pass' : 'unk'; };
 const SLBL = { todo: '아직', half: '하는 중', done: '끝남', abs: '안 봄' };
 const closed = () => !!S.meta.closed;
 const examDates = m => (Array.isArray(m.dates) && m.dates.length ? m.dates : [m.date, m.date2].filter(Boolean)); // 심사 날짜 여러 날 (2026-11-26)
@@ -223,13 +248,13 @@ function save(k, d) { // 누를 때마다 0.5초 뒤 저장 (여러 번 눌러�
     setSaved(k.id, '저장했어요 ✓');
   }, 500);
 }
-function setSaved(sid, t) { const el = document.querySelector('.col[data-col="' + CSS.escape(sid) + '"] .saved'); if (el) el.textContent = t; }
+function setSaved(sid, t) { const el = document.querySelector('.col[data-col="' + CSS.escape(sid) + '"] .saved, tr[data-row="' + CSS.escape(sid) + '"] .saved'); if (el) el.textContent = t; }
 
 function draw() {
   const [y, m] = S.month.split('-'); $('#mLbl').textContent = y + '년 ' + (+m) + '월'; $('#mNext').style.visibility = S.month >= thisMonth ? 'hidden' : '';
   if (S.err) { $('#navb').hidden = true; $('#main').innerHTML = S.err === 'login' ? '<p class="empty">업무 앱에서 로그인한 뒤 열어 주세요.<br><br><a class="btn p" href="/team/">업무 앱으로</a></p>' : '<p class="empty">' + esc(S.err) + '</p>'; return; }
   if (!S.cfg) return;
-  if (S.view === 'multi' && S.sel.some(sid => kidBy(sid))) return drawMulti();
+  if (S.view === 'multi' && S.sel.some(sid => kidBy(sid))) return drawTable();
   if ($('#mvh')) $('#mvh').remove();
   S.view = 'list'; drawList();
 }
@@ -251,14 +276,16 @@ function drawList() {
   h += '<input class="inp" id="q" placeholder="이름 검색" autocomplete="off" value="' + esc(S.q) + '">';
   h += '<div class="chips" id="fc">' + [['all', '전체'], ['todo', '아직'], ['done', '끝남'], ['abs', '안 봄']].map(([k, t]) => '<button data-f="' + k + '" class="' + (S.f === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
   h += '<div class="chips" id="gc"><button data-g="" class="' + (!S.g ? 'on' : '') + '">모두</button>' + GROUPS.filter(g => L.some(k => k.group === g)).map(g => '<button data-g="' + g + '" class="' + (S.g === g ? 'on' : '') + '">' + g + '</button>').join('') + '</div>';
+  h += '<div class="chips" id="rc">' + [['', '모두'], ['pass', '합격'], ['fail', '불합격'], ['unk', '미확인']].map(([k, t]) => '<button data-r="' + k + '" class="' + ((S.r || '') === k ? 'on' : '') + (k ? ' r-' + k : '') + '">' + t + ' ' + L.filter(x => !k || resOf(x) === k).length + '</button>').join('') + '</div>';
   const V = visible(L);
-  h += '<p class="help" style="margin:2px 2px 0">심사 볼 제자를 눌러서 고르고 아래 <b>심사 보기</b>를 눌러요. 여러 명을 한 화면에 나란히 볼 수 있어요.' + (V.length ? ' <button class="btn" id="selAll" style="padding:4px 10px;font-size:13px">' + (V.every(k => S.sel.includes(k.id)) ? '보이는 제자 고른 것 풀기' : '보이는 ' + V.length + '명 모두 고르기') + '</button>' : '') + '</p>';
+  h += '<p class="help" style="margin:2px 2px 0">심사 볼 제자를 눌러서 고르고 아래 <b>심사 보기</b>를 눌러요. 고른 제자가 엑셀처럼 한 표에 나와요.' + (V.length ? ' <button class="btn" id="selAll" style="padding:4px 10px;font-size:13px">' + (V.every(k => S.sel.includes(k.id)) ? '보이는 제자 고른 것 풀기' : '보이는 ' + V.length + '명 모두 고르기') + '</button>' : '') + '</p>';
   if (!V.length) h +='<p class="empty">' + (n ? '맞는 제자가 없어요' : '출석부 명단이 비어 있어요') + '</p>';
   GROUPS.forEach(g => { const G = V.filter(k => k.group === g); if (!G.length) return; h += '<div class="gh">' + g + ' ' + G.length + '명</div><div class="grid">' + G.map(k => { const s = stateOf(k), d = dataOf(k); const up = s === 'done' && d.pass !== false && d.nb && d.nb !== k.cur;
-    return '<button class="kid ' + s + (S.sel.includes(k.id) ? ' sel' : '') + '" data-k="' + esc(k.id) + '"><i class="ck">' + (S.sel.includes(k.id) ? '✓' : '') + '</i><b>' + esc(k.name) + '</b><small>' + esc(k.grade || '') + ' · ' + esc(k.cur || '띠 모름') + '</small><em>' + (finOf(k) && !closed() ? '🔒 확정 · ' : '') + (s === 'done' ? (d.pass === false ? '불합격' : up ? '합격 → ' + esc(d.nb) : '합격 · 띠 그대로') : SLBL[s]) + (k.status === '휴원' ? ' · 휴원' : '') + '</em></button>'; }).join('') + '</div>'; });
+    return '<button class="kid ' + s + (resOf(k) === 'fail' ? ' fail' : resOf(k) === 'pass' ? ' pass' : '') + (S.sel.includes(k.id) ? ' sel' : '') + '" data-k="' + esc(k.id) + '"><i class="ck">' + (S.sel.includes(k.id) ? '✓' : '') + '</i><b>' + esc(k.name) + '</b><small>' + esc(k.grade || '') + ' · ' + esc(k.cur || '띠 모름') + '</small><em>' + (finOf(k) && !closed() ? '🔒 확정 · ' : '') + (resOf(k) === 'fail' ? '불합격' : s === 'done' ? (d.pass === false ? '불합격' : up ? '합격 → ' + esc(d.nb) : '합격 · 띠 그대로') : SLBL[s]) + (k.status === '휴원' ? ' · 휴원' : '') + '</em></button>'; }).join('') + '</div>'; });
   $('#main').innerHTML = h;
   $('#q').oninput = e => { S.q = e.target.value; const pos = e.target.selectionStart; drawList(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); };
   $('#fc').onclick = e => { const b = e.target.closest('[data-f]'); if (b) { S.f = b.dataset.f; drawList(); } };
+  $('#rc').onclick = e => { const b = e.target.closest('[data-r]'); if (b) { S.r = b.dataset.r; drawList(); } };
   $('#gc').onclick = e => { const b = e.target.closest('[data-g]'); if (b) { S.g = b.dataset.g; drawList(); } };
   $('#main').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const id = b.dataset.k, i = S.sel.indexOf(id); if (i >= 0) S.sel.splice(i, 1); else S.sel.push(id); const y = scrollY; drawList(); scrollTo(0, y); });
   if ($('#selAll')) $('#selAll').onclick = () => { const all = V.every(k => S.sel.includes(k.id)); V.forEach(k => { const i = S.sel.indexOf(k.id); if (all && i >= 0) S.sel.splice(i, 1); else if (!all && i < 0) S.sel.push(k.id); }); const y = scrollY; drawList(); scrollTo(0, y); };
@@ -282,7 +309,7 @@ function closeBox(L) { // 마감 버튼은 맨 위 (2026-11-16): 오늘 본 제�
     '<p class="help" style="margin:6px 0 0">오늘 마감 = 오늘 채점한 제자만 결과 확정(띠·알림), 나머지는 이번 달 안에 계속 채점해요.' + (fn ? ' · 🔒 확정 ' + fn + '명' : '') + '</p>' +
     (un.length ? '<button class="btn p" id="notifyT" style="margin-top:8px">확정한 제자 ' + un.reduce((s, x) => s + (x.sids || []).length, 0) + '명 학부모님께 결과 알림 보내기</button>' : '') + (fn ? '<button class="btn" id="reopen" style="margin-top:8px">확정 · 마감 모두 풀기</button>' : '');
 }
-function visible(L) { const q = S.q.trim(); return L.filter(k => (!S.g || k.group === S.g) && (!q || k.name.includes(q)) && (S.f === 'all' || (S.f === 'todo' ? ['todo', 'half'].includes(stateOf(k)) : stateOf(k) === S.f))); }
+function visible(L) { const q = S.q.trim(); return L.filter(k => (!S.r || resOf(k) === S.r) && (!S.g || k.group === S.g) && (!q || k.name.includes(q)) && (S.f === 'all' || (S.f === 'todo' ? ['todo', 'half'].includes(stateOf(k)) : stateOf(k) === S.f))); }
 // 여러 명 동시 채점 (2026-11-26 사용자 요청): 목록에서 고른 제자를 가로로 나란히 — 전체는 좌우로, 칸마다 위아래로 움직여요.
 // 누를 때마다 업무 서버에 저장(학부모님께는 안 보임) → 목록에서 마감하면 학부모님께 결과 알림
 function colHTML(k) {
@@ -362,6 +389,82 @@ function drawMulti() {
   if (!$('#mvh')) { const p = document.createElement('div'); p.id = 'mvh'; p.className = 'mvh'; p.style.cssText = 'padding:6px 12px 0;display:flex;align-items:center;gap:8px'; $('.top').after(p); }
   drawMvHead(); main.style.height = Math.max(300, innerHeight - $('.top').offsetHeight - $('#mvh').offsetHeight - 4) + 'px';
 }
+// 📋 표로 채점 (2026-11-27 회의): 세로 = 제자 이름, 가로 = 과목 (엑셀처럼). 목요일 = 태권도 과목, 금요일 = 태도·영어·웅변, 결과는 다음 주 월요일에 마감
+const DAY_THU = ['basic', 'stance', 'kickH', 'kickP', 'poom', 'talent']; // 목요일 · 태권도 (나머지는 금요일)
+const COL_ORDER = ['basic', 'stance', 'kickH', 'kickP', 'poom', 'talent', 'eng', 'voice', 'recite', 'bow', 'manner'];
+const dayOf = k => DAY_THU.includes(k) ? 'thu' : 'fri';
+if (!S.day) { const wd = new Date(Date.now() + 9 * 3600e3).getUTCDay(); S.day = wd === 4 ? 'thu' : wd === 5 ? 'fri' : 'all'; }
+function tblCols(L) { // 고른 제자들 부의 과목을 모두 모아서 (부마다 없는 과목은 회색 칸)
+  const M = {}; L.forEach(k => { const d = dataOf(k); itemsFor(effGrp(k, d)).forEach(x => { if (!M[x.k]) M[x.k] = x; }); });
+  return COL_ORDER.concat(Object.keys(M).filter(k => !COL_ORDER.includes(k))).filter(k => M[k] && (S.day === 'all' || dayOf(k) === S.day)).map(k => M[k]);
+}
+function rowHTML(k, cols) {
+  const d = JSON.parse(JSON.stringify(dataOf(k))), ro = closed() || finOf(k), dis = ro ? ' disabled' : '';
+  if (!S.rows[k.id]) d.cur = k.cur; d.sc = d.sc || {}; d.tx = d.tx || {};
+  const cur = d.cur || k.cur, grp = effGrp(k, d), mine = itemsFor(grp).map(x => x.k);
+  let h = '<td class="nm"><b>' + esc(k.name) + '</b><small>' + esc(k.grade || '') + ' · ' + esc(cur || '띠 모름') + '</small>' +
+    '<select class="grs"' + dis + '>' + [['kinder', '유치부'], ['elem', '초등부'], ['ipsi', '입시부']].map(([g, t]) => '<option value="' + g + '"' + (grp === g ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>' +
+    '<span class="saved">' + (ro ? '🔒 확정' : '') + '</span></td>';
+  cols.forEach(x => {
+    if (!mine.includes(x.k)) { h += '<td class="na">–</td>'; return; }
+    const v = d.sc[x.k] || 0;
+    h += '<td><button class="sv' + (v === GOOD ? ' g' : v === MORE ? ' m' : '') + '" data-s="' + x.k + '"' + dis + '>' + (v === GOOD ? '👍' : v === MORE ? '💪' : '·') + '</button>';
+    if (x.k === 'eng') h += '<div class="txr"><input class="tx" data-t="eng" maxlength="200" placeholder="말한 영어" value="' + esc(d.tx.eng || '') + '"' + dis + '><button class="eb" data-eng title="제자 앱 영어"' + dis + '>🔤</button></div>';
+    else if (x.k === 'poom') { const yu = pumOf(cur) > 0; h += poomSel('poom', d.tx.poom, yu ? '필수 품새' : '품새', dis) + (yu ? poomSel('poom2', d.tx.poom2, '랜덤 품새', dis) : ''); }
+    else if (x.k === 'talent') h += '<input class="tx" data-t="talent" maxlength="200" placeholder="어떤 기술" value="' + esc(d.tx.talent || '') + '"' + dis + '>';
+    h += '</td>';
+  });
+  const opts = beltList(k.kinder); if (d.nb && !opts.includes(d.nb)) opts.push(d.nb);
+  const manual = cur === '빨간띠' || /품$/.test(cur || ''), up = BELTS[BELTS.indexOf(cur) + 1], fail = d.pass === false;
+  h += '<td class="rs"><button class="pfb ' + (d.absent ? 'ab' : fail ? 'no' : 'ok') + '"' + dis + '>' + (d.absent ? '안 봄' : fail ? '불합격' : '합격') + '</button>' +
+    (!fail && !d.absent ? '<select class="nbs tx"' + dis + '><option value="">띠 그대로</option>' + opts.map(b => '<option' + (b === d.nb && d.nb !== cur ? ' selected' : '') + '>' + b + '</option>').join('') + '</select>' +
+      (manual && up ? '<label class="kk"><input type="checkbox" class="kukc"' + (d.nb === up ? ' checked' : '') + dis + '> 공인단 합격 (→ ' + esc(up) + ')</label>' : '') : '') + '</td>';
+  h += '<td class="ms"><input class="tx memo" maxlength="300" placeholder="메모 (직원만)" value="' + esc(d.memo || '') + '"' + dis + '><button class="abt' + (d.absent ? ' on' : '') + '"' + dis + '>' + (d.absent ? '✓ 안 봄' : '안 봄') + '</button></td>';
+  return h;
+}
+function renderRow(sid, cols) {
+  const tr = $('#main').querySelector('tr[data-row="' + CSS.escape(sid) + '"]'), k = kidBy(sid); if (!tr || !k) return;
+  tr.className = rowCls(k); tr.innerHTML = rowHTML(k, cols); bindRow(tr, k, cols);
+}
+const rowCls = k => { const d = dataOf(k); return d.absent ? 'abs' : d.pass === false ? 'fail' : ''; };
+function bindRow(tr, k, cols) {
+  if (closed() || finOf(k)) return;
+  const d = JSON.parse(JSON.stringify(dataOf(k))); if (!S.rows[k.id]) d.cur = k.cur; d.sc = d.sc || {}; d.tx = d.tx || {};
+  const cur = d.cur || k.cur; d.grp = effGrp(k, d);
+  const upd = () => { save(k, d); renderRow(k.id, cols); };
+  tr.querySelectorAll('.sv').forEach(b => b.onclick = () => { const s = b.dataset.s, v = d.sc[s] || 0; if (!v) d.sc[s] = GOOD; else if (v === GOOD) d.sc[s] = MORE; else delete d.sc[s]; if (navigator.vibrate) navigator.vibrate(8); upd(); }); // 누를 때마다 · → 👍 → 💪 → ·
+  tr.querySelector('.grs').onchange = e => { const g = e.target.value; S.grpMan = S.grpMan || {}; if (g === GKEY[k.group]) delete S.grpMan[k.id]; else S.grpMan[k.id] = g; d.grp = g; if (scored(d)) save(k, d); drawTable(); };
+  tr.querySelectorAll('.tx[data-t]').forEach(inp => inp.oninput = inp.onchange = () => { d.tx[inp.dataset.t] = inp.value.trim(); if (!d.tx[inp.dataset.t]) delete d.tx[inp.dataset.t]; save(k, d); });
+  tr.querySelector('.pfb').onclick = () => { if (d.absent) return; d.pass = d.pass === false; if (d.pass && (!d.nb || d.nb === cur)) d.nb = nextBelt(cur, k.kinder); upd(); };
+  const nb = tr.querySelector('.nbs'); if (nb) nb.onchange = e => { d.nb = e.target.value || (cur || ''); upd(); };
+  const kc = tr.querySelector('.kukc'); if (kc) kc.onchange = () => { d.nb = kc.checked ? BELTS[BELTS.indexOf(cur) + 1] : cur; upd(); };
+  tr.querySelector('.memo').onchange = e => { d.memo = e.target.value; save(k, d); };
+  tr.querySelector('.abt').onclick = () => { d.absent = !d.absent; upd(); };
+  const eb = tr.querySelector('[data-eng]'); if (eb) eb.onclick = () => engPick(k, d, tr);
+}
+function engPick(k, d, tr) { // 제자 앱 영어 표에서 체크 (칸 높이 고정 + 스크롤)
+  const said = () => engSaid(d.tx.eng);
+  sheet('<div class="row stick"><h3 style="margin:0">🔤 ' + esc(k.name) + ' · 영어</h3><button class="btn p" id="x">다 했어요</button></div><div class="engbox" style="height:min(60vh,420px)">' +
+    ENG.map(([c, L]) => '<div class="engc">' + esc(c) + '</div>' + L.map(w => '<label class="engw"><input type="checkbox" data-ew="' + esc(w[1]) + '"' + (said().includes(w[1].toLowerCase()) ? ' checked' : '') + '><span>' + esc(w[0]) + '</span><b>' + esc(w[1]) + '</b></label>').join('')).join('') + '</div>', ov => {
+    ov.querySelector('#x').onclick = () => ov.remove();
+    ov.querySelectorAll('[data-ew]').forEach(cb => cb.onchange = () => { const w = cb.dataset.ew, L = String(d.tx.eng || '').split(/\s*,\s*/).filter(Boolean), i = L.findIndex(x => x.toLowerCase() === w.toLowerCase());
+      if (cb.checked && i < 0) L.push(w); if (!cb.checked && i >= 0) L.splice(i, 1); d.tx.eng = L.join(', ').slice(0, 200); if (!d.tx.eng) delete d.tx.eng;
+      const inp = tr.querySelector('.tx[data-t="eng"]'); if (inp) inp.value = d.tx.eng || ''; save(k, d); }); });
+}
+function drawTable() {
+  const main = $('#main'), old = main.querySelector('.tw'), keep = old ? { x: old.scrollLeft, y: old.scrollTop } : null;
+  $('#navb').hidden = true; $('#back').textContent = '‹ 목록'; if ($('#mvh')) $('#mvh').remove();
+  const L = S.sel.filter(kidBy).map(kidBy), cols = tblCols(L);
+  main.className = 'tbv';
+  main.innerHTML = '<div class="tbh"><div class="chips" id="dc">' + [['thu', '목요일 · 태권도'], ['fri', '금요일 · 태도·영어·웅변'], ['all', '전체']].map(([k, t]) => '<button data-day="' + k + '" class="' + (S.day === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
+    '<p class="help" style="margin:4px 2px 6px">' + L.length + '명 · 칸을 누를 때마다 · → 👍 훌륭해요 → 💪 연습이 필요해요 · 누르면 바로 저장돼요 · 결과는 다음 주 월요일에 목록에서 마감</p></div>' +
+    '<div class="tw"><table class="et"><thead><tr><th class="nm">이름</th>' + cols.map(x => '<th>' + (x.g ? '<small>' + esc(x.g) + '</small>' : '') + esc(x.n) + '</th>').join('') + '<th>결과 · 새 띠</th><th>메모</th></tr></thead><tbody>' +
+    L.map(k => '<tr data-row="' + esc(k.id) + '" class="' + rowCls(k) + '">' + rowHTML(k, cols) + '</tr>').join('') + '</tbody></table></div>';
+  L.forEach(k => bindRow(main.querySelector('tr[data-row="' + CSS.escape(k.id) + '"]'), k, cols));
+  $('#dc').onclick = e => { const b = e.target.closest('[data-day]'); if (b) { S.day = b.dataset.day; drawTable(); } };
+  const tw = main.querySelector('.tw'); tw.style.height = Math.max(260, innerHeight - $('.top').offsetHeight - main.querySelector('.tbh').offsetHeight - 24) + 'px';
+  if (keep) { tw.scrollLeft = keep.x; tw.scrollTop = keep.y; }
+}
 function sheet(html, init) { const ov = document.createElement('div'); ov.className = 'ov'; ov.innerHTML = '<div class="sheet">' + html + '</div>'; ov.onclick = e => { if (e.target === ov) ov.remove(); }; document.body.appendChild(ov); init && init(ov); return ov; }
 function setSheet() {
   const meta = S.meta, notes = meta.notes || {}, ro = closed(), dis = ro ? ' disabled' : '', dsel = examDates(meta).slice(), T = S.cfg.topics, Q = ['1~3월', '4~6월', '7~9월', '10~12월'];
@@ -434,7 +537,8 @@ async function reopenExam() {
   toast('마감을 풀었어요 · 띠 ' + j.n + '명 되돌림'); await load(true);
 }
 $('#back').onclick = () => { if (S.view === 'multi') { S.view = 'list'; draw(); scrollTo(0, 0); return; } location.href = '/team/'; };
-addEventListener('resize', () => { if (S.view === 'multi' && $('#main').classList.contains('mv')) $('#main').style.height = Math.max(300, innerHeight - $('.top').offsetHeight - ($('#mvh') ? $('#mvh').offsetHeight : 26) - 4) + 'px'; });
+addEventListener('resize', () => { if (S.view === 'multi' && $('#main').querySelector('.tw')) { const tw = $('#main').querySelector('.tw'); tw.style.height = Math.max(260, innerHeight - $('.top').offsetHeight - $('#main').querySelector('.tbh').offsetHeight - 24) + 'px'; }
+  if (S.view === 'multi' && $('#main').classList.contains('mv')) $('#main').style.height = Math.max(300, innerHeight - $('.top').offsetHeight - ($('#mvh') ? $('#mvh').offsetHeight : 26) - 4) + 'px'; });
 const typing = () => { const a = document.activeElement; return !!(a && a.closest && a.closest('#main') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
 $('#mPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m - 2, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.sel = []; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
 $('#mNext').onclick = () => { const [y, m] = S.month.split('-').map(Number), d = new Date(y, m, 1); S.month = d.getFullYear() + '-' + pad(d.getMonth() + 1); S.view = 'list'; S.sel = []; S.cfg = null; $('#main').innerHTML = '<p class="empty">불러오는 중…</p>'; load(true); };
