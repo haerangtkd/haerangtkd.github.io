@@ -721,8 +721,8 @@
   }
   // ── 📝 이번 달 심사 준비 (웅변 원고 · 영어 문장 · 내 띠 품새 영상) ──
   // 📊 나의 리포트 — 2026-11-16 사용자: 홈(나의 수련)에는 이번 달 것만, 누르면 새 창(기네스 = 학부모 앱처럼 그래프, 심사 = 결과 내용만)
-  const exGood = ex => (ex.items || []).filter(x => x.good).length, exPrac = ex => (ex.items || []).filter(x => !x.good).length;
-  const exT = ex => ex.absent ? '쉬었어요' : ex.pass ? (ex.nb ? esc(ex.nb) + ' 합격 🎉' : '합격 👏') : '다음에 다시 도전 💪';
+  const exGood = ex => (ex.items || []).filter(x => x.good || x.re === 2).length, exPrac = ex => (ex.items || []).filter(x => !x.good && x.re !== 2).length;
+  const exT = ex => ex.absent ? '쉬었어요' : ex.pass ? (ex.rt ? '재도전 합격 🔁' + (ex.nb ? ' · ' + esc(ex.nb) : '') : ex.nb ? esc(ex.nb) + ' 합격 🎉' : '합격 👏') : ex.rt ? '다시 도전 · 응원해 💪' : '다음 등원 때 다시 도전 💪';
   function reportCard() {
     const ym = D.today.slice(0, 7), mon = +ym.slice(5), ex = (D.exams || []).find(x => x.month === ym), p = D.prep;
     const EV = (D.events || []).filter(e => (e.months || []).includes(mon));
@@ -752,7 +752,8 @@
   function exCard(ex) { const mon = +ex.month.slice(5), yr = ex.month.slice(0, 4);
       let b = '<div class="exb"><div class="exh"><b>' + (yr !== D.today.slice(0, 4) ? yr + '년 ' : '') + mon + '월 심사</b><span class="rv' + (ex.pass && !ex.absent ? ' ok' : '') + '">' + exT(ex) + '</span></div>';
       if (!ex.absent && ex.v === 2) { let g0 = null; b += (ex.topic ? '<p class="sub" style="margin:4px 0 0">🎤 웅변 주제 · ' + esc(ex.topic) + '</p>' : '') + (ex.items || []).map(x => { const gh = x.g && x.g !== g0 ? '<div class="exg">' + esc(x.g) + '</div>' : ''; g0 = x.g || g0;
-        return gh + '<div class="exi"><b>' + esc(x.n) + '</b><span class="' + (x.good ? 'g' : 'p') + '">' + (x.good ? '👍 훌륭해요' : '💪 연습이 필요해요') + '</span>' + (x.tx ? '<small>' + esc(x.tx) + '</small>' : '') + '</div>'; }).join(''); }
+        return gh + '<div class="exi"><b>' + esc(x.n) + '</b><span class="' + (x.good || x.re === 2 ? 'g' : 'p') + '">' + (x.good ? '👍 훌륭해요' : x.re === 2 ? '👍 다시 해서 훌륭해요' : '💪 연습이 필요해요') + '</span>' + (x.tx ? '<small>' + esc(x.tx) + '</small>' : '') + '</div>'; }).join('') +
+        ((ex.care || []).length ? '<div class="exg">배려와 책임</div>' + ex.care.map(t => '<div class="exi"><b>' + esc(t.n) + '</b><span class="' + (t.v >= 3 ? 'g' : 'p') + '">' + ({ 4: '🌟 아주 훌륭해요', 3: '👍 훌륭해요', 2: '🌱 성장 중이에요', 1: '💪 노력이 필요해요' })[t.v] + '</span></div>').join('') : ''); }
       else if (!ex.absent && (ex.subj || []).length) b += ex.subj.map(x => '<div class="exi"><b>' + esc(x.n) + '</b><span class="g">' + '★'.repeat(Math.max(0, Math.min(5, +x.v || 0))) + '</span></div>').join('');
       return b + '</div>'; }
   function repMonths() {
