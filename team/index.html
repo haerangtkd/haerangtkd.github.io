@@ -1209,7 +1209,7 @@ function noteSheet(id, pre) { // pre: 학부모 연락에서 넣을 때 미리 �
 }
 function openApp(k) { try { sessionStorage.setItem('haerang-from-team', '1'); } catch (_) {} location.href = APPS[k][2]; }
 const appsRow = () => '<div class="apps">' + Object.entries(APPS).map(([k, [e, n]]) => '<button data-app="' + k + '"><span>' + e + '</span>' + n + '<em>›</em></button>').join('') + '</div>';
-const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지'], ['widget', '📱', '위젯'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
+const SHORT = [['kids', '🥋', '원생'], ['kcode', '🔑', '제자 코드'], ['docs', '📝', '등록 서류'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '포인트'], ['widget', '📱', '위젯'], ['table', '🎟', '행사·구매'], ['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['notice', '📢', '공지'], ['photo', '🖼', '사진'], ['log', '🔔', '알림 기록'], ['backup', '📦', '백업']]; // 2026-11-13: 대시보드에 있는 출석부·알림 관리·성장·등원·픽업은 더보기에서 뺌
 // 등원·픽업 칸 (대시보드)
 const tmKo = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0'); };
 function pickupCard() {
@@ -1495,7 +1495,7 @@ const attAbsOf = day => ((S.attAbs || new Map()).get(day) || {}).names || [];
 // 더보기 = 지도 (2026-11-18 사용자: 헤매지 않게 영역별로 — 기능은 지우지 않고 4개 영역으로 나눔)
 const MORE_MAP = [ // 2026-11-19 사용자: ① 제자 관리 맨 앞에 제자 코드, 학부모님 연락
   ['① 제자 관리', '제자 코드 · 학부모님 연락 · 원생 정보 · 요일 · 중요사항 · 서류', [['kcode', '🔑', '제자 코드'], ['pcon', '💬', '학부모님 연락'], ['kids', '🥋', '원생'], ['note', '📌', '중요사항'], ['days', '📅', '요일 변경'], ['temp', '🗓', '임시변경'], ['pqr', '📱', '학부모 앱 QR'], ['docs', '📝', '등록 서류']]],
-  ['② 수련 · 성장', '출석 · 심사 · 기록 · 제자 앱', [['appAtt', '📋', '출석부'], ['appExam', '🏅', '심사'], ['appRec', '🏆', '기네스'], ['tword', '✍', '사범님 한마디'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '마일리지'], ['kpush', '📣', '제자 앱 알림'], ['kapp', '🎽', '제자 앱 열기']]],
+  ['② 수련 · 성장', '출석 · 심사 · 기록 · 제자 앱', [['appAtt', '📋', '출석부'], ['appExam', '🏅', '심사'], ['appRec', '🏆', '기네스'], ['tword', '✍', '사범님 한마디'], ['hw', '🎯', '미션'], ['sun', '⭐', '도장 찍기'], ['mile', '💰', '포인트'], ['kpush', '📣', '제자 앱 알림'], ['kapp', '🎽', '제자 앱 열기']]],
   ['③ 도장 운영', '학부모 앱 · 행사 · 소식', [['appNtc', '📣', '알림 관리'], ['table', '🎟', '행사·구매'], ['notice', '📢', '공지'], ['photo', '🖼', '사진']]],
   ['④ 업무 앱 · 시스템', '내 업무 · 기록 · 설정', [['cal', '📅', '달력'], ['mine', '☑', '내 업무'], ['log', '🔔', '알림 기록'], ['widget', '📱', '위젯'], ['backup', '📦', '백업'], ['settings', '⚙', '설정']]],
 ];
@@ -2399,7 +2399,7 @@ async function kidDelete(s) {
     if (n.invitesGone || n.invitesKeep) L.push('· 가족 초대번호: ' + (n.invitesGone || 0) + '개 지움' + (n.invitesKeep ? ', ' + n.invitesKeep + '개는 이름만 빠짐' : ''));
     if (n.kcode) L.push('· 제자 모드 코드');
   } else L.push('· 학부모 앱 쪽을 확인하지 못했어요 (' + (n.error || '연결 안 됨') + ')');
-  L.push('· 등원·픽업 기본 명단·시간, 제자 모드 목표 띠, 학부모 앱 행사 신청, 심사 점수, 마일리지, 기네스 기록');
+  L.push('· 등원·픽업 기본 명단·시간, 제자 모드 목표 띠, 학부모 앱 행사 신청, 심사 점수, 포인트, 기네스 기록');
   if (!confirm(s.name + ' 원생을 지울까요? 되돌릴 수 없어요.\n\n같이 지워지는 것:\n' + L.join('\n') + '\n\n장부 회원은 장부에서 따로 정리해 주세요.')) return;
   const r = await api('/api/student-delete', { sid: s.id }); if (!r.ok) return toast(r.error || '지우지 못했어요');
   S.kids = (S.kids || []).filter(x => x.id !== s.id); closeSheet(); render(); toast(s.name + ' 원생을 지웠어요');
@@ -2444,10 +2444,10 @@ async function widgetSheet() {
 // ⭐ 도장 찍기 (2026-11-14 선 모으기 → 2026-11-15 도장): 선범단 이름 → 항목(가르침·모범·실력) 누르면 도장 1개, 사유는 안 적음. 한 달 5개.
 // 못 채운 달이 이어지면 경고 1, 두 달 연속이면 '자격 박탈 확인'(표시만 — 명단에서 빼는 건 원생 정보에서 사범님이)
 const SUNC = { teach: ['🧑‍🏫', '가르침'], model: ['🌟', '모범'], skill: ['🥋', '실력'] };
-// 💰 마일리지 (2026-11-15 사용자 결정): 상점(스티커)을 모아 오면 개수 × 100원 적립, 쓸 때도 제자 앱 QR을 찍고 금액 빼기
+// 💰 포인트 (2026-11-15 사용자 결정): 상점(스티커)을 모아 오면 개수 × 100원 적립, 쓸 때도 제자 앱 QR을 찍고 금액 빼기
 function mileSheet() {
   let D = null, stop = null, q = '';
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💰 마일리지</h2></div><p class="help">제자 앱의 \'내 출석 QR\'을 찍거나 이름을 골라요. 상점(스티커) 1개 = 100원.</p>' +
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>💰 포인트</h2></div><p class="help">제자 앱의 \'내 출석 QR\'을 찍거나 이름을 골라요. 상점(스티커) 1개 = 100원, 10개 이상부터 바꿔 줘요.</p>' +
     '<div id="miS"><button class="btn g" id="miCam" style="width:100%;padding:16px;font-size:17px">📷 제자 QR 찍기</button><div id="miV" style="display:none;margin-top:10px;position:relative"><video id="miVid" style="width:100%;border-radius:14px;background:#000;max-height:46vh;object-fit:cover"></video><button class="btn" id="miStop" style="position:absolute;right:8px;top:8px">닫기</button><p class="help" id="miVm" style="text-align:center">QR을 네모 안에 비춰 주세요</p></div>' +
     '<input class="inp" id="miQ" placeholder="또는 이름 검색" style="margin-top:10px"><div class="chips" id="miL" style="max-height:150px;overflow:auto;margin-top:6px"></div></div><div id="miB"></div>', ov => {
     ov.closest('.ov') && ov.classList.add('full');
@@ -2457,7 +2457,7 @@ function mileSheet() {
     const draw = () => { const b = ov.querySelector('#miB'); if (!D) { b.innerHTML = ''; return; }
       b.innerHTML = '<div style="margin-top:14px;background:#FFF7E6;border-radius:16px;padding:16px;text-align:center"><b style="font-size:20px">' + esc(D.name) + '</b><div style="font-size:34px;font-weight:900;margin-top:4px">' + D.bal.toLocaleString() + '<small style="font-size:16px">원</small></div><small class="help">상점 ' + Math.floor(D.bal / D.per) + '개만큼</small></div>' +
         '<label class="f">＋ 상점 받기 (모아 온 스티커 개수)</label><div class="row" style="gap:6px">' + [1, 5, 10].map(n => '<button class="btn" data-mq="' + n + '" style="flex:1">' + n + '개</button>').join('') + '<input class="inp" id="miN" inputmode="numeric" placeholder="직접" style="flex:1;min-width:0"><button class="btn g" id="miAdd" style="flex:1.3">적립</button></div>' +
-        '<label class="f">− 마일리지 쓰기</label><div class="row" style="gap:6px"><input class="inp" id="miA" inputmode="numeric" placeholder="쓸 금액 (원)" style="flex:1.4;min-width:0"><input class="inp" id="miM" placeholder="어디에 (선택)" style="flex:1.4;min-width:0"><button class="btn" id="miUse" style="flex:1;background:#C0392B;color:#fff">쓰기</button></div>' +
+        '<label class="f">− 포인트 쓰기</label><div class="row" style="gap:6px"><input class="inp" id="miA" inputmode="numeric" placeholder="쓸 금액 (원)" style="flex:1.4;min-width:0"><input class="inp" id="miM" placeholder="어디에 (선택)" style="flex:1.4;min-width:0"><button class="btn" id="miUse" style="flex:1;background:#C0392B;color:#fff">쓰기</button></div>' +
         '<h3>기록</h3>' + (D.list.length ? clip('mile' + D.name, D.list.map(x => '<div class="kh"><b style="color:' + (x.amt > 0 ? '#1E7A46' : '#C0392B') + '">' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '원</b> ' + (x.kind === 'earn' ? '상점 ' + x.n + '개' : '사용') + (x.memo ? ' · ' + esc(x.memo) : '') + '<small>' + md(dayOf(x.at)) + ' · ' + esc(x.by) + (x.by === S.me.name || isBoss() ? ' · <a href="#" data-md="' + x.id + '" style="color:#C0392B">지우기</a>' : '') + '</small></div>').join(''), '개') : '<p class="empty">아직 기록이 없어요</p>'); };
     const load = async (path, body) => { const j = await api(path, body); if (!j.ok) { toast(j.error || '안 됐어요'); return false; } D = j; draw(); return true; };
     const pick = async name => { camOff(); await load('/api/mile-get', { name }); ov.querySelector('#miB').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
@@ -2471,7 +2471,7 @@ function mileSheet() {
       const mn = e.target.closest('[data-mn]'); if (mn) return pick(mn.dataset.mn);
       const mq = e.target.closest('[data-mq]'); if (mq) { ov.querySelector('#miN').value = mq.dataset.mq; return; }
       if (e.target.id === 'miAdd') { const n = +ov.querySelector('#miN').value; if (!n) return toast('상점 개수를 골라 주세요'); if (!confirm(D.name + ' 상점 ' + n + '개 → ' + (n * D.per).toLocaleString() + '원 적립할까요?')) return; if (await load('/api/mile-add', { name: D.name, n })) toast('+' + (n * D.per).toLocaleString() + '원 적립'); return; }
-      if (e.target.id === 'miUse') { const a = +ov.querySelector('#miA').value.replace(/\D/g, ''); if (!a) return toast('쓸 금액을 넣어 주세요'); if (a > D.bal) return toast('마일리지가 모자라요 (지금 ' + D.bal.toLocaleString() + '원)'); if (!confirm(D.name + ' 마일리지 ' + a.toLocaleString() + '원을 쓸까요?')) return; if (await load('/api/mile-use', { name: D.name, amt: a, memo: ov.querySelector('#miM').value.trim() })) toast(a.toLocaleString() + '원 사용'); return; }
+      if (e.target.id === 'miUse') { const a = +ov.querySelector('#miA').value.replace(/\D/g, ''); if (!a) return toast('쓸 금액을 넣어 주세요'); if (a > D.bal) return toast('포인트가 모자라요 (지금 ' + D.bal.toLocaleString() + '원)'); if (!confirm(D.name + ' 포인트 ' + a.toLocaleString() + '원을 쓸까요?')) return; if (await load('/api/mile-use', { name: D.name, amt: a, memo: ov.querySelector('#miM').value.trim() })) toast(a.toLocaleString() + '원 사용'); return; }
       const dl = e.target.closest('[data-md]'); if (dl) { e.preventDefault(); if (!confirm('이 기록을 지울까요?')) return; await load('/api/mile-del', { name: D.name, id: +dl.dataset.md }); }
     });
   });
