@@ -708,7 +708,7 @@
     const draw = el => { const since = (() => { const d = new Date(D.today + 'T00:00:00Z'); if (per === 1) return D.today.slice(0, 8) + '01'; d.setUTCMonth(d.getUTCMonth() - per); return d.toISOString().slice(0, 10); })();
       const L = (M.list || []).filter(x => (f === 'all' || (f === 'earn' ? x.amt > 0 : x.amt < 0)) && new Date(x.at + 9 * 3600e3).toISOString().slice(0, 10) >= since);
       el.querySelector('.pgb').innerHTML = '<section class="mlc"><span class="tg">보유 포인트</span><div class="mb2"><i>P</i>' + (+M.bal).toLocaleString() + '<small>원</small></div><div class="ac"><span>누적 적립</span><b>' + (+M.earn).toLocaleString() + '</b><span>누적 사용</span><b>' + (+M.used).toLocaleString() + '</b></div>' +
-        '<div class="hb"><button data-how="get">포인트 받는 방법 ›</button><button data-how="use">포인트 쓰는 방법 ›</button></div><button class="big" data-shop style="width:100%;max-width:none;margin-top:12px;font-size:18px;padding:13px">🛍 포인트 상점 ›</button></section>' +
+        '<div class="hb"><button data-how="get">포인트 받는 방법 ›</button><button data-how="use">포인트 쓰는 방법 ›</button></div>' + (shopOpen() ? '<button class="big" data-shop style="width:100%;max-width:none;margin-top:12px;font-size:18px;padding:13px">🛍 포인트 상점 ›</button>' : '') + '</section>' +
         '<h3 class="dh">상세 조회</h3><div class="fb">' + [['all', '전체'], ['earn', '적립'], ['use', '사용']].map(([k, t]) => '<button data-f="' + k + '" class="' + (f === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
         '<div class="pc">' + [[1, '이번 달'], [3, '3개월'], [6, '6개월'], [12, '1년']].map(([k, t]) => '<button data-p="' + k + '" class="' + (per === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
         (L.length ? L.map(x => { const d = new Date(x.at + 9 * 3600e3); return '<div class="ml"><div><b>' + (x.kind === 'shop' ? '상점 주문' : x.kind === 'refund' ? '주문 취소 · 돌려받음' : x.amt > 0 ? '상점 ' + x.n + '개 적립' : '포인트 사용') + '</b><small>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + (x.memo ? ' · ' + esc(x.memo) : '') + '</small></div><em class="' + (x.amt > 0 ? 'p' : 'm') + '">' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '</em></div>'; }).join('') : '<div class="empty" style="padding:40px 0">내역이 없어요</div>'); };
@@ -716,7 +716,7 @@
       const fb = e.target.closest('[data-f]'); if (fb) { f = fb.dataset.f; return draw(el); }
       const pb = e.target.closest('[data-p]'); if (pb) { per = +pb.dataset.p; return draw(el); }
       if (e.target.closest('[data-shop]')) return shopPage(async () => { const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el); });
-      const hw = e.target.closest('[data-how]'); if (hw) sheet(hw.dataset.how === 'get' ? '<h3>💰 포인트 받는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">도장에서 받은 <b>상점(스티커)</b>을 모아서 사범님께 가져가요.<br>상점 <b>1개 = 100원</b>으로 바꿔 줘요.<br>상점은 <b>10개 이상</b> 모아야 바꿔 줘요.<br>사범님이 <b>내 출석 QR</b>을 찍으면 바로 쌓여요!</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>' : '<h3>🛍 포인트 쓰는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8"><b>포인트 상점</b>에서 언제든 주문할 수 있어요.<br>주문한 물건은 <b>금요일</b>에 한꺼번에 받아요.<br>물건은 한 달 개수가 정해져 있고<br>매달 1일에 다시 채워져요.</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>');
+      const hw = e.target.closest('[data-how]'); if (hw) sheet(hw.dataset.how === 'get' ? '<h3>💰 포인트 받는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">도장에서 받은 <b>상점(스티커)</b>을 모아서 사범님께 가져가요.<br>상점 <b>1개 = 100원</b>으로 바꿔 줘요.<br>상점은 <b>10개 이상</b> 모아야 바꿔 줘요.<br>사범님이 <b>내 출석 QR</b>을 찍으면 바로 쌓여요!</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>' : !shopOpen() ? '<h3>🛍 포인트 쓰는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">사범님께 <b>내 출석 QR</b>을 보여 주면<br>모은 포인트만큼 쓸 수 있어요.<br>쓰면 이 앱에 바로 알림이 와요.</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>' : '<h3>🛍 포인트 쓰는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8"><b>포인트 상점</b>에서 언제든 주문할 수 있어요.<br>주문한 물건은 <b>금요일</b>에 한꺼번에 받아요.<br>물건은 한 달 개수가 정해져 있고<br>매달 1일에 다시 채워져요.</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>');
     });
     const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el);
   }
@@ -1021,6 +1021,7 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
   }
   // ── 아래에서 올라오는 창 ──
   function sheet(html, onClick) { const el = document.createElement('div'); el.className = 'sheet'; el.innerHTML = '<div class="box">' + html + '</div>'; el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el; }
+  const shopOpen = () => (D && D.today || '') >= '2026-11-30'; // 2026-11-27 사용자: 상점은 11/30(월)부터 보이게
   // ── 🛍 포인트 상점 (2026-11-27): 언제든 주문(포인트 바로 빠짐) → 금요일에 한꺼번에 받기, 물건마다 이번 달 남은 개수 ──
   async function shopPage(after) {
     let S = null; const won = n => (+n).toLocaleString() + '원';
