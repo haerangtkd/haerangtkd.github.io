@@ -588,7 +588,7 @@
     <section id="v-room" hidden><div id="nbar"></div><div class="msgs" id="msgs"></div>
       <div class="composer">
         <div class="rbar" id="rbar" hidden></div>
-        <div class="tags" id="tagBar" hidden><button data-t="#일정 ">#일정</button><button data-t="#할일 ">#할일</button><button data-t="#등원 ">#등원</button><button data-t="#구매 ">#구매</button><button data-t="#행사 ">#행사</button></div>
+        <div class="tags" id="tagBar" hidden><button data-t="#일정 ">#일정</button><button data-t="#할일 ">#할일</button><button data-t="#등원 ">#등원</button><button data-t="#구매 ">#구매</button><button data-t="#행사 ">#행사</button><button data-t="#중요사항 ">#중요사항</button></div>
         <div class="cbox"><button class="ic plus" id="plusBtn" title="더보기"><svg class="i"><use href="#i-plus"/></svg></button><textarea id="cIn" rows="1" placeholder="메시지 입력"></textarea><button class="ic hash" id="hashBtn" title="해시태그">#</button><button class="send" id="cSend" title="보내기" hidden><svg class="i" style="width:20px;height:20px"><use href="#i-up"/></svg></button></div>
         <div class="hint" id="cHint" hidden></div>
         <input type="file" id="phIn" accept="image/*" hidden><input type="file" id="camIn" accept="image/*" capture="environment" hidden>
@@ -896,7 +896,7 @@ $('v-task').onclick = async e => {
 };
 try { S.tkg = localStorage.getItem('haerang-team-tkg') || 'cat'; S.refOpen = !!localStorage.getItem('haerang-team-ref'); } catch (_) {}
 $('v-task').addEventListener('keydown', e => { if (e.target.id === 'todoIn' && e.key === 'Enter' && !e.isComposing) addTodoFromInput(); });
-function addTodoFromInput() { const v = $('todoIn').value.trim(); if (!v) return; const w = parseWhen(v); saveItem({ type: 'todo', title: w.rest || v, due: w.date, status: '진행', whos: [], done: false }, '☑ 업무 추가: ' + (w.rest || v)); $('todoIn').value = ''; }
+function addTodoFromInput() { const v = $('todoIn').value.trim(); if (!v) return; const w = parseWhen(v); saveItem({ type: 'todo', title: w.rest || v, due: w.date || today(), status: '진행', whos: [], done: false }, '☑ 업무 추가: ' + (w.rest || v)); $('todoIn').value = ''; }
 
 // ───── 작은 팝업 (시트 위에 하나 더) ─────
 function pop(html, mount) {
@@ -1159,20 +1159,20 @@ function daysSheet(s) {
 const NDOW = '일월화수목금토', nDow = d => NDOW[new Date(d + 'T00:00:00Z').getUTCDay()];
 const nPast = (n, d) => n.type === 'temp' && (n.rep === 'weekly' ? !!n.end && n.end < d : n.start < d);
 const nWhen = n => n.type !== 'temp' ? '지속 (늘)' : n.rep === 'weekly' ? '임시 · 매주 ' + nDow(n.start) + ' (' + mdS(n.start) + '~' + (n.end ? mdS(n.end) : '') + ')' : '임시 · ' + mdS(n.start) + ' 그날만';
-async function notePick() {
+async function notePick(pre) {
   const draw = ov => { const el = ov.querySelector('#npL'); if (!el) return; const qv = (ov.querySelector('#npQ').value || '').trim();
     if (!S.kids) { el.innerHTML = '<div class="help" style="padding:14px">' + esc(S.kidsErr || '불러오는 중…') + '</div>'; return; }
     const t = today(), L = S.kids.filter(x => x.status !== '퇴관' && (!qv || x.name.includes(qv))).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
     el.innerHTML = L.length ? L.map(x => { const n = (x.notes || []).filter(y => !nPast(y, t)).length; return '<button class="kcr" data-np="' + esc(x.id) + '"><b>' + esc(x.name) + '</b><small>' + (n ? '📌 ' + n + '개' : '') + '</small><span>' + (n ? '보기' : '넣기') + '</span></button>'; }).join('') : '<div class="help" style="padding:14px">찾는 이름이 없어요</div>'; };
   sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📌 중요사항</h2></div><p class="help">누구에게 넣을까요? 넣은 중요사항은 출석부 오늘 출석 화면에서 이름 밑에 보여요.</p><input class="inp" id="npQ" placeholder="이름 검색" autocomplete="off"><div id="npL" class="kcl" style="max-height:340px"></div>', ov => {
     draw(ov); ov.querySelector('#npQ').oninput = () => draw(ov);
-    ov.querySelector('#npL').onclick = e => { const b = e.target.closest('[data-np]'); if (b) noteSheet(b.dataset.np); };
+    ov.querySelector('#npL').onclick = e => { const b = e.target.closest('[data-np]'); if (b) noteSheet(b.dataset.np, pre); };
     loadKids(true).then(() => draw(ov));
   });
 }
 function noteSheet(id, pre) { // pre: 학부모 연락에서 넣을 때 미리 채움 {text, day, alarm, title, onSaved} (2026-11-18)
   const s = (S.kids || []).find(x => x.id === id); if (!s) return;
-  const t = today(); let type = pre ? 'temp' : 'always', rep = 'once';
+  const t = today(); let type = pre ? (pre.type || 'temp') : 'always', rep = 'once';
   const save = async (notes, log) => { const n = JSON.parse(JSON.stringify(s)); n.notes = notes; const r = await saveKid(n, ['중요사항 ' + log], s); if (!r) return false; Object.assign(s, (S.kids || []).find(x => x.id === id) || n); return true; };
   const draw = ov => {
     const L = (s.notes || []).filter(n => !nPast(n, t));
@@ -1182,7 +1182,7 @@ function noteSheet(id, pre) { // pre: 학부모 연락에서 넣을 때 미리 �
     ov.querySelector('#nTmp').hidden = type !== 'temp'; ov.querySelector('#nEndW').hidden = rep !== 'weekly';
     const d = ov.querySelector('#nDay').value || t; ov.querySelector('#nRepW').textContent = '매주 ' + nDow(d) + '요일 계속';
   };
-  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📌 ' + esc(s.name) + ' 중요사항</h2></div>' + (pre && pre.title ? '<div class="notice" style="margin:4px 0 8px"><b>' + esc(pre.title) + '</b></div><p class="help">내용·날짜를 확인하고 \'넣기\'를 누르면 학부모님께 \'네 알겠습니다 체크해놓도록 하겠습니다😊\' 답장이 가요.</p>' : '') + '<p class="help">출석부 오늘 출석 화면에서 이름 밑에 보여요. 🔔 알림을 켜면 그날 출석한 수업 시작 45분 뒤 업무 앱으로 알려 줘요.</p>' +
+  sheet('<div class="shead"><button class="btn" data-close>‹</button><h2>📌 ' + esc(s.name) + ' 중요사항</h2></div>' + (pre && pre.title ? '<div class="notice" style="margin:4px 0 8px"><b>' + esc(pre.title) + '</b></div>' + (pre.noReply ? '<p class="help">채팅에 쓴 글로 미리 채웠어요. 이름·내용·날짜를 확인하고 \'넣기\'를 눌러 주세요.</p>' : '<p class="help">내용·날짜를 확인하고 \'넣기\'를 누르면 학부모님께 \'네 알겠습니다 체크해놓도록 하겠습니다😊\' 답장이 가요.</p>') : '') + '<p class="help">출석부 오늘 출석 화면에서 이름 밑에 보여요. 🔔 알림을 켜면 그날 출석한 수업 시작 45분 뒤 업무 앱으로 알려 줘요.</p>' +
     '<div id="nL" class="kcl" style="max-height:220px"></div>' +
     '<label class="f">새로 넣기</label><textarea class="inp" id="nText" rows="2" maxlength="120" placeholder="예: 엄마가 4시 50분에 데리러 옴 / 무릎 다쳐서 점프 빼기">' + esc(pre ? pre.text || '' : '') + '</textarea>' +
     '<label class="f">종류</label><div class="chips" id="nType"><button data-v="always">지속 (늘)</button><button data-v="temp">임시</button></div>' +
@@ -1593,7 +1593,7 @@ function createSheet() {
   });
 }
 function newOf(k, day) {
-  if (k === 'todo') return taskSheet({ type: 'todo', title: '', due: day || '', status: '진행', whos: [], checks: [], done: false }, true);
+  if (k === 'todo') return taskSheet({ type: 'todo', title: '', due: day || today(), status: '진행', whos: [], checks: [], done: false }, true);
   if (k === 'sched') return itemSheet({ type: 'sched', title: '', date: day || (S.tab === 'cal' ? S.calD : today()), time: '', memo: '' }, true);
   if (k === 'event' || k === 'goods') return eventSetup({ type: 'event', kind: k === 'goods' ? 'goods' : '', title: '', date: '', base: 0, products: [], options: [], checks: [], van: false, rows: [] }, true);
   if (k === 'buy') return buySheet({ type: 'buy', title: '', rows: [] }, true);
@@ -1625,7 +1625,7 @@ const EMO = ['❤️', '👍', '✅', '😊', '😮', '😭'];
 const GONE = '(지운 메시지)';
 function fmtText(t) {
   return esc(t).replace(/https?:\/\/[^\s<]+/g, u => '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>')
-    .replace(/#(일정|할일|등원|구매|행사)/g, '<span class="ht" data-tag="$1">#$1</span>');
+    .replace(/#(일정|할일|등원|구매|행사|중요사항)/g, '<span class="ht" data-tag="$1">#$1</span>');
 }
 const photoCache = new Map();
 const dayPill = d => d.slice(0, 4) + '-' + d.slice(5, 7) + '-' + d.slice(8) + ' (' + wd(d) + ')';
@@ -1645,7 +1645,7 @@ function renderChat(scroll) {
     const cont = same(prev, m), last = !same(m, next) || hm(next.at) !== hm(m.at);
     const mine = m.mid === me, refs = m.refs || [];
     let rb = refs.map(r => '<button data-ref="' + r.id + '">' + { sched: '📅 일정', todo: '☑ 할 일', buy: '🛒 구매', event: '🎟 행사' }[r.type] + ' · ' + esc(r.title) + '</button>').join('');
-    if (!gone && !refs.length && m.text && !/#(할일|등원|구매)/.test(m.text)) { const w = parseWhen(m.text.replace(/#\S+/g, ' '), d); if (w.date && (w.strong || /#일정/.test(m.text)) && w.date >= today()) rb += '<button class="add" data-mkSched="' + m.id + '">📅 ' + md(w.date) + ' 일정으로 등록</button>'; }
+    if (!gone && !refs.length && m.text && !/#(할일|등원|구매|중요사항)/.test(m.text)) { const w = parseWhen(m.text.replace(/#\S+/g, ' '), d); if (w.date && (w.strong || /#일정/.test(m.text)) && w.date >= today()) rb += '<button class="add" data-mkSched="' + m.id + '">📅 ' + md(w.date) + ' 일정으로 등록</button>'; }
     const rx = Object.entries(m.rx || {}).filter(([, l]) => l.length);
     const rq = m.reply && !gone ? '<span class="rq" data-jump="' + m.reply.id + '"><b>' + esc(nameOf(m.reply.mid)) + '</b>' + esc(m.reply.text === GONE ? '삭제된 메시지' : m.reply.text) + '</span>' : '';
     const body = gone ? '<div class="bub gone"><i>!</i>삭제된 메시지입니다</div>'
@@ -1722,7 +1722,7 @@ function msgMenu(id) {
       if (a === 'reply') { S.replyTo = m; drawReply(); return cIn.focus(); }
       if (a === 'copy') { try { await navigator.clipboard.writeText(m.text); } catch (_) { const t = document.createElement('textarea'); t.value = m.text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); } return toast('복사했어요'); }
       if (a === 'notice') { const j = await api('/api/notice', { id: isNotice ? 0 : id }); if (!j.ok) return toast(j.error || '서버를 새로 올려야 쓸 수 있어요'); S.notice = j.notice; renderChat(); return toast(isNotice ? '공지를 내렸어요' : '공지로 올렸어요'); }
-      if (a === 'todo') { const w = parseWhen(m.text.replace(/#\S+/g, '')); return taskSheet({ type: 'todo', title: (w.rest || m.text).slice(0, 80), due: w.date, status: '진행', whos: [], checks: [], done: false }, true); }
+      if (a === 'todo') { const w = parseWhen(m.text.replace(/#\S+/g, '')); return taskSheet({ type: 'todo', title: (w.rest || m.text).slice(0, 80), due: w.date || today(), status: '진행', whos: [], checks: [], done: false }, true); }
       if (a === 'sched') { const w = parseWhen(m.text.replace(/#\S+/g, ''), dayOf(m.at)); return itemSheet({ type: 'sched', title: (w.rest || m.text).slice(0, 60), date: w.date || today(), time: w.time, memo: '' }, true); }
       if (a === 'edit') return editMsg(m);
       if (a === 'hide') { S.hidden.add(id); renderChat(); const j = await api('/api/msg-hide', { id }); if (!j.ok) { S.hidden.delete(id); renderChat(); return toast(j.error === 'not found' ? '서버를 새로 올려야 쓸 수 있어요' : j.error || '지우지 못했어요'); } return toast('내 화면에서만 지웠어요'); }
@@ -1752,7 +1752,7 @@ function drawReply() {
   if (r) el.innerHTML = ic('reply', 'width:18px;height:18px;color:var(--brand)') + '<span><b>' + esc(nameOf(r.mid)) + '</b>에게 답장 · ' + esc(r.text || '사진') + '</span><button class="lbtn" id="rbX">✕</button>';
 }
 $('rbar').onclick = e => { if (e.target.closest('#rbX')) { S.replyTo = null; drawReply(); } };
-function goTag(t) { if (t === '일정') setTab('cal'); else if (t === '구매') { S.tf = 'buy'; setTab('table'); } else if (t === '행사') { S.tf = 'event'; setTab('table'); } else if (t === '할일') setTab('task'); else setTab('more'); }
+function goTag(t) { if (t === '일정') setTab('cal'); else if (t === '구매') { S.tf = 'buy'; setTab('table'); } else if (t === '행사') { S.tf = 'event'; setTab('table'); } else if (t === '할일') setTab('task'); else if (t === '중요사항') notePick(); else setTab('more'); }
 $('tagBar').onclick = e => { const b = e.target.closest('button'); if (!b) return; const ta = $('cIn'); if (!ta.value.includes(b.dataset.t.trim())) ta.value = b.dataset.t + ta.value; ta.focus(); hintCompose(); };
 const cIn = $('cIn');
 cIn.oninput = () => { cIn.style.height = 'auto'; cIn.style.height = Math.min(cIn.scrollHeight, 120) + 'px'; hintCompose(); };
@@ -1764,7 +1764,8 @@ function hintCompose() {
   const v = cIn.value, h = $('cHint'), w = parseWhen(v.replace(/#\S+/g, ''));
   $('cSend').hidden = !v.trim(); $('hashBtn').hidden = !!v.trim();
   if (/#일정/.test(v)) h.textContent = w.date ? '→ 보내면 ' + md(w.date) + (w.time ? ' ' + timeKo(w.time) : '') + ' 일정으로 추가할지 물어봐요' : '날짜를 같이 적어 주세요 (예: 11/20 3시)';
-  else if (/#할일/.test(v)) h.textContent = '→ 보내면 업무로 추가할지 물어봐요' + (w.date ? ' (' + md(w.date) + '까지)' : '');
+  else if (/#할일/.test(v)) h.textContent = '→ 보내면 업무로 추가할지 물어봐요 (' + (w.date ? md(w.date) : '오늘') + '까지)';
+  else if (/#중요사항/.test(v)) h.textContent = '→ 보내면 원생 중요사항으로 넣을지 물어봐요 (이름을 같이 적어 주세요)';
   else if (w.strong) h.textContent = '→ 보내면 ' + md(w.date) + (w.time ? ' ' + timeKo(w.time) : '') + ' 일정으로 추가할지 물어봐요';
   else if (/#구매/.test(v)) h.textContent = '→ 구매표에 들어가요 (쉼표로 여러 개)';
   else if (/#등원/.test(v)) h.textContent = '→ 등원표에 반영돼요. "결석"을 쓰면 출석부에도 결석 예정으로 들어가요';
@@ -1774,11 +1775,12 @@ function hintCompose() {
 // 해시태그 → 할 일·일정·구매·등원
 async function buildFromTags(text) {
   const items = [], pickups = [], absences = [], skip = [], ask = [];
-  const body = text.replace(/#(일정|할일|등원|구매|행사)/g, ' ').replace(/\s+/g, ' ').trim();
+  const body = text.replace(/#(일정|할일|등원|구매|행사|중요사항)/g, ' ').replace(/\s+/g, ' ').trim();
   // 일정·업무는 바로 넣지 않고 보낸 뒤 '추가할까요?'로 물어봄 (#일정이 없어도 날짜·시간이 있으면 일정으로 물어봄)
   const w0 = parseWhen(body); w0.rest = tidyTitle(w0.rest);
-  if (/#일정/.test(text) || (!/#(할일|등원|구매)/.test(text) && w0.strong && w0.date >= today())) ask.push({ type: 'sched', title: (w0.rest || '일정').slice(0, 80), date: w0.date || today(), time: w0.time, memo: '' });
-  if (/#할일/.test(text)) ask.push({ type: 'todo', title: (w0.rest || body).slice(0, 80), due: w0.date, status: '진행', whos: [], checks: [], done: false });
+  if (/#일정/.test(text) || (!/#(할일|등원|구매|중요사항)/.test(text) && w0.strong && w0.date >= today())) ask.push({ type: 'sched', title: (w0.rest || '일정').slice(0, 80), date: w0.date || today(), time: w0.time, memo: '' });
+  if (/#중요사항/.test(text)) ask.push({ type: 'note', text: body, w: w0 }); // 📌 #중요사항 (2026-11-27 사용자) → 원생 중요사항 넣기 창
+  if (/#할일/.test(text)) ask.push({ type: 'todo', title: (w0.rest || body).slice(0, 80), due: w0.date || today(), status: '진행', whos: [], checks: [], done: false });
   if (/#구매/.test(text)) {
     const list = itemsOf('buy').filter(b => !b.closed).sort((a, b) => b.upd - a.upd)[0] || { type: 'buy', title: '구매 목록', rows: [] };
     const add = body.split(/[,，\n]/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^(.*?)\s*(\d+)\s*(개|장|벌|박스|세트|ea)?$/); return { n: (m ? m[1] : x).slice(0, 40) || x, qty: m ? +m[2] : 1, price: '', who: '', done: false, memo: '' }; });
@@ -1800,6 +1802,7 @@ function tidyTitle(t) { return String(t || '').replace(/(^|\s)(까지|부터|에
 // 보낸 메시지로 일정·업무를 만들지 물어보기 → 추가하면 메시지 아래에 연결
 function askAdd(list, msgId) {
   if (!list.length) return; const it = list[0], sch = it.type === 'sched';
+  if (it.type === 'note') return askNote(it, () => { if (list.length > 1) askAdd(list.slice(1), msgId); });
   sheet('<div class="grab"></div><h2>' + (sch ? '📅 일정으로 추가할까요?' : '☑ 업무로 추가할까요?') + '</h2>' +
     '<label class="f">제목</label><input class="inp" id="aT" value="' + esc(it.title) + '">' +
     (sch ? '<div class="row" style="margin-top:12px"><input type="date" class="inp" id="aD" value="' + esc(it.date || '') + '"><input type="time" class="inp" id="aH" value="' + esc(it.time || '') + '"></div>'
@@ -1815,6 +1818,16 @@ function askAdd(list, msgId) {
       closeSheet(); toast(sch ? '일정에 추가했어요' : '업무에 추가했어요'); if (list.length > 1) askAdd(list.slice(1), msgId);
     };
   });
+}
+// 📌 채팅 #중요사항 (2026-11-27 사용자): 글에서 원생 이름을 찾아 중요사항 넣기 창을 미리 채워 엶 (이름이 없으면 이름 고르기부터)
+async function askNote(it, next) {
+  await loadKids(true).catch(() => {});
+  const L = (S.kids || []).filter(x => x.status !== '퇴관' && x.name).sort((a, b) => b.name.length - a.name.length);
+  const k = L.find(x => it.text.includes(x.name)) || L.find(x => x.name.length >= 3 && it.text.includes(x.name.slice(1)));
+  const nm = k ? (it.text.includes(k.name) ? k.name : k.name.slice(1)) : '', rest = (nm ? it.text.split(nm).join(' ') : it.text).replace(/^\s*(이|가|은|는|이는|님)\s+/, '').replace(/\s+/g, ' ').trim(), w = parseWhen(rest), text = rest || it.text; // 내용은 쓴 그대로(시간도 남김), 날짜만 읽음
+  const pre = { text: text.slice(0, 120), day: w.date || today(), type: w.date || w.time ? 'temp' : 'always', title: '💬 채팅 #중요사항', noReply: true, onSaved: () => { closeSheet(); toast('중요사항에 넣었어요'); next && next(); } };
+  if (k) return noteSheet(k.id, pre);
+  toast('이름을 찾지 못했어요. 넣을 제자를 골라 주세요'); notePick(pre);
 }
 async function sendMsg(photo) {
   const text = cIn.value.trim(); if (!text && !photo) return;
