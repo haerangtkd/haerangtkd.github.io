@@ -596,7 +596,9 @@ async function route(path, req, env, ctx) {
       const old = await one(env, 'SELECT data FROM exam WHERE month = ? AND sid = ?', month, sid); if (old && J(old.data, {}).fin) return json({ ok: false, error: '결과를 확정(오늘 마감)한 제자예요. 고치려면 마감을 풀어 주세요' }); // 오늘만 마감 (2026-11-16)
       const d = b.data || {}, sc = {}, tx = {}; EXAM_KEYS.forEach(k => { const v = +((d.sc || {})[k]); if (v === 1 || v === 2) sc[k] = v; }); // 2 = 훌륭해요, 1 = 연습이 필요해요
       EXAM_TX.forEach(k => { const t = str((d.tx || {})[k], 200).trim(); if (t) tx[k] = t; });
-      const clean = { v: 2, grp: EXAM2[d.grp] ? d.grp : 'elem', sc, tx, pass: d.pass !== false, nb: str(d.nb, 10), cur: str(d.cur, 10), absent: !!d.absent, memo: str(d.memo, 300), by: me.name };
+      const care = {}; CARE_Q.forEach(x => { const v = +((d.care || {})[x.k]); if (v >= 1 && v <= 4) care[x.k] = v; });
+      const clean = { v: 2, grp: EXAM2[d.grp] ? d.grp : 'elem', sc, tx, care, pass: d.pass !== false, nb: str(d.nb, 10), cur: str(d.cur, 10), absent: !!d.absent, memo: str(d.memo, 300), by: me.name };
+      if (old) { const od = J(old.data, {}); ['re', 'rt', 'rtAt', 'rtBy'].forEach(x => { if (od[x] != null) clean[x] = od[x]; }); } // 재도전 기록은 그대로
       await run(env, 'INSERT INTO exam (month, sid, name, data, upd, mid) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(month, sid) DO UPDATE SET name = excluded.name, data = excluded.data, upd = excluded.upd, mid = excluded.mid', month, sid, str(b.name, 20), JSON.stringify(clean), Date.now(), me.id);
       return json({ ok: true, upd: Date.now() });
     }
@@ -612,6 +614,27 @@ async function route(path, req, env, ctx) {
       if (b.notes && typeof b.notes === 'object') { meta.notes = {}; ['kick', 'eng', 'poom', 'talent'].forEach(k => { const t = str(b.notes[k], 300).trim(); if (t) meta.notes[k] = t; }); }
       if (b.vid && typeof b.vid === 'object') { const v = {}; Object.keys(b.vid).slice(0, 30).forEach(k => { const u = str(b.vid[k], 300).trim(); if (/^https:\/\//.test(u)) v[str(k, 10)] = u; }); await ks('examvid', v); } // 띠별 품새 영상 (제자 모드 '심사 준비')
       await ks(mk, meta); return json({ ok: true, cfg, meta, topic: topicOf(cfg, month, meta), topicAuto: topicAuto(cfg, month), vid: (await kg('examvid')) || {} });
+    }
+    if (path === '/api/exam-retake') { // 🔁 재도전 (2026-11-27 회의): 결과를 확정한 뒤 불합격 제자가 틀린 과목만 다시 → 합격하면 띠·학부모 알림, 불합격이면 알림 없음
+      const sid = str(b.sid, 40), row = sid && await one(env, 'SELECT sid, name, data FROM exam WHERE month = ? AND sid = ?', month, sid); if (!row) return json({ ok: false, error: '심사 기록이 없어요' });
+      const d = J(row.data, {}); if (!meta.closed && !d.fin) return json({ ok: false, error: '아직 결과를 확정하지 않았어요. 그냥 고치면 돼요' });
+      if (d.absent || d.pass !== false) return json({ ok: false, error: d.pass !== false && d.rt ? '이미 재도전 합격했어요' : '불합격한 제자만 재도전해요' });
+      const re = {}; Object.keys(d.sc || {}).forEach(k => { if (+d.sc[k] !== 1) return; const v = +((b.re || {})[k]); if (v === 1 || v === 2) re[k] = v; else if (d.re && d.re[k]) re[k] = d.re[k]; });
+      const ym = (+month.slice(5)) + '월', pass = !!b.pass; d.re = re; d.rt = (d.rt | 0) + 1; d.rtAt = Date.now(); d.rtBy = me.name; d.pass = pass; if (pass) d.nb = str(b.nb, 10) || d.nb || '';
+      let up = '';
+      if (pass && d.nb && d.nb !== d.cur) {
+        const sd = (await gd('app/settings')) || { settings: {} }, data = (await gd('app/data')) || { students: [] }, st = sd.settings || (sd.settings = {}); st.belts = st.belts || {};
+        const k = (Array.isArray(data.students) ? data.students : []).find(x => x && x.sid === sid), id = k ? k.name + '|' + k.birth : '', AB = await attBelts(env), prev = AB[sid] || (id && st.belts[id]) || '';
+        if (prev !== d.nb) { const bs = await attSync(env, '/sync/belt-set', { items: [{ sid, belt: d.nb, why: ym + ' 심사 재도전 합격' }], who: me.name }); if (!bs.ok) return json({ ok: false, error: '출석부에 띠를 넣지 못했어요. 잠시 후 다시 해 주세요' });
+          if (id) { st.belts[id] = d.nb; await run(env, 'INSERT INTO gdocs (path, data, upd, mid) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET data = excluded.data, upd = excluded.upd, mid = excluded.mid', 'app/settings', JSON.stringify(sd), Date.now(), me.id); }
+          const ap = [id, prev, d.nb, row.name, sid]; if (meta.closed) (meta.closed.applied = meta.closed.applied || []).push(ap); else { const pt = (meta.parts || []).find(x => (x.sids || []).includes(sid)); if (pt) (pt.applied = pt.applied || []).push(ap); }
+          await ks(mk, meta); up = d.nb; } }
+      await run(env, 'UPDATE exam SET data = ?, upd = ? WHERE month = ? AND sid = ?', JSON.stringify(d), Date.now(), month, sid);
+      await addLog(env, me.id, 'exam', ym + ' 승급 심사 · ' + row.name + ' 재도전 ' + d.rt + '번째 ' + (pass ? '합격' + (up ? ' → ' + up : '') : '(다시 도전)'), month).catch(() => {});
+      if (pass) { // 재도전 합격만 알림 (재도전 불합격은 알림 없음)
+        ctx.waitUntil(noticeSync(env, '/sync/broadcast', { title: '🎉 ' + ym + ' 심사 재도전 합격!', body: (up ? up + '로 올라가요 · ' : '') + '성장 리포트 → 심사에서 결과를 볼 수 있어요', children: [row.name], view: 'grow', kind: '심사' }).catch(() => {}));
+        ctx.waitUntil(kidPushMany(env, [{ name: row.name, title: up ? '🎉 ' + up + ' 축하축하!' : '🎉 재도전 합격!', body: ym + ' 승급 심사 재도전 합격 · 제자 앱에서 결과를 확인해 봐요' }]).catch(() => {})); }
+      return json({ ok: true, data: d, up });
     }
     if (path === '/api/exam-close' || path === '/api/exam-reopen') { // 마감 = 합격한 제자의 새 띠를 📈 성장에 넣음 / 마감 풀기 = 그때 바꾼 띠를 되돌림(그 뒤 손으로 바꾼 띠는 그대로)
       const sd = (await gd('app/settings')) || { settings: {} }, data = (await gd('app/data')) || { students: [] }; if (!Array.isArray(data.students)) data.students = []; // 띠는 출석부 원생 정보가 기준 (2026-11-15) — 📈 성장이 없어도 마감됨
@@ -1512,12 +1535,14 @@ async function examClosed(env) { // 마감한 달만: { 'YYYY-MM': { meta, rows:
 const examRowOf = (m, who) => m.rows.find(r => who.sid && r.sid === who.sid) || (!who.sid || !m.rows.some(r => r.sid === who.sid) ? m.rows.find(r => r.name === who.name) : null);
 // 새 평가표 (2026-11-15 사용자 정리): 부마다 과목, 웅변·발차기는 나눠서 평가, 영어·품새·특기는 무엇을 했는지 적음
 const EXAM2 = {
-  kinder: { n: '유치부', items: [{ k: 'bow', n: '인사' }, { k: 'kickH', n: '발차기 높이', g: '발차기' }, { k: 'poom', n: '품새', tx: 1 }, { k: 'stance', n: '서기동작' }] },
-  elem: { n: '초등부', items: [{ k: 'basic', n: '기본동작', g: '기본기' }, { k: 'kickH', n: '발차기 높이', g: '기본기' }, { k: 'kickP', n: '발차기 파워', g: '기본기' }, { k: 'eng', n: '영어', tx: 1 }, { k: 'poom', n: '품새', tx: 1 }, { k: 'voice', n: '목소리 전달력', g: '웅변' }, { k: 'recite', n: '암기력', g: '웅변' }] },
+  kinder: { n: '유치부', items: [{ k: 'bow', n: '인사' }, { k: 'kickH', n: '발차기 높이', g: '발차기' }, { k: 'poom', n: '품새', tx: 1 }, { k: 'stance', n: '서기동작' }, { k: 'shout', n: '목소리' }] },
+  elem: { n: '초등부', items: [{ k: 'basic', n: '기본동작', g: '기본기' }, { k: 'kickH', n: '발차기 높이', g: '기본기' }, { k: 'kickP', n: '발차기 파워', g: '기본기' }, { k: 'eng', n: '영어', tx: 1 }, { k: 'poom', n: '품새', tx: 1 }, { k: 'voice', n: '목소리 전달력', g: '웅변' }, { k: 'recite', n: '암기력', g: '웅변' }, { k: 'shout', n: '목소리' }] },
   ipsi: { n: '입시부', items: [{ k: 'kickH', n: '발차기 높이', g: '기본발차기' }, { k: 'kickP', n: '발차기 파워', g: '기본발차기' }, { k: 'poom', n: '품새', tx: 1 }, { k: 'talent', n: '특기', tx: 1 }] }
 };
 const EXAM_MANNER = { k: 'manner', n: '예절·태도' };
-const EXAM_KEYS = ['bow', 'kickH', 'kickP', 'basic', 'stance', 'eng', 'poom', 'voice', 'recite', 'talent', 'manner'];
+const EXAM_KEYS = ['bow', 'kickH', 'kickP', 'basic', 'stance', 'eng', 'poom', 'voice', 'recite', 'talent', 'manner', 'shout']; // shout = 목소리 (2026-11-27)
+const CARE_Q = [{ k: 'wait', n: '방해하지 않고 기다려요' }, { k: 'finish', n: '끝까지 해내요' }]; // 배려와 책임 (2026-11-27): 4 🌟 아주 훌륭해요 · 3 👍 훌륭해요 · 2 🌱 성장 중이에요 · 1 💪 노력이 필요해요
+const CARE_PT = { 4: 100, 3: 83.3, 2: 66.7, 1: 50 };
 const EXAM_TX = ['eng', 'poom', 'poom2', 'talent'];
 const EXAM_F = { a0: ['poom', 'stance', 'basic'], a2: ['voice', 'recite', 'eng', 'talent', 'speech'], a3: ['bow', 'manner'] }; // speech = 예전(1~5점) 웅변
 const EXAM_NAME = Object.assign({ speech: '웅변', kick: '발차기' }, ...Object.values(EXAM2).map(g => Object.fromEntries(g.items.map(x => [x.k, x.n]))), { manner: '예절·태도' });
@@ -1543,11 +1568,30 @@ function examAuto(ex, who, month) {
     out[a.replace('a', 's')] = '🏅 ' + mlab + ' · ' + ks.map(k => { const L = acc[a][k], n = L.length, g = L.filter(x => x.g >= (x.v2 ? 1 : 0.75)).length; return EXAM_NAME[k] + ' ' + (n === 1 ? (g ? '훌륭해요' : '연습이 필요해요') : '훌륭해요 ' + g + '/' + n + '번'); }).join(' · '); });
   return out;
 }
+// 성장 점수 새 계산 (2026-11-27 회의) — 그 달 심사만(누적 없음). 과목 점수 = 결과 단계 × 과목 결과
+// 한 번에 합격: 👍 100 · 💪 50 / 재도전 합격: 👍 95 · 💪→👍 80 · 💪 45 / 다시 도전(불합격): 👍 85 · 💪→👍 70 · 💪 40
+const EX_PT = { pass: { G: 100, U: 100, M: 50 }, re: { G: 95, U: 80, M: 45 }, again: { G: 85, U: 70, M: 40 } };
+const EX_W = { G: '훌륭해요', U: '다시 해서 훌륭해요', M: '연습이 필요해요' };
+function examMix(ex, who, month) {
+  const m = ex[month], r = m && examRowOf(m, who); if (!r || r.d.absent) return null; const d = r.d;
+  const tier = d.pass === false ? 'again' : (d.rt | 0) > 0 ? 're' : 'pass';
+  const st = k => { const v = +((d.sc || {})[k]); if (!v) return null; if (d.v !== 2) return null; return v === 2 ? 'G' : d.re && +d.re[k] === 2 ? 'U' : 'M'; };
+  const pt = k => { if (d.v !== 2) { const g = examGood(d, k); return g == null ? null : Math.round((50 + 50 * g) * 10) / 10; } const s = st(k); return s ? EX_PT[tier][s] : null; };
+  const avg = ks => { const L = ks.map(pt).filter(v => v != null); return L.length ? Math.round(L.reduce((a, z) => a + z, 0) / L.length * 10) / 10 : null; };
+  const lab = ks => ks.filter(k => pt(k) != null).map(k => (EXAM_NAME[k] || k) + ' ' + (d.v === 2 ? EX_W[st(k)] : '')).join(' · ');
+  const cv = CARE_Q.map(x => CARE_PT[+((d.care || {})[x.k])]).filter(v => v != null), care = cv.length ? Math.round(cv.reduce((a, z) => a + z, 0) / cv.length * 10) / 10 : avg(['bow', 'manner']);
+  const CW = { 4: '아주 훌륭해요', 3: '훌륭해요', 2: '성장 중이에요', 1: '노력이 필요해요' };
+  const tl = { pass: '', re: ' (재도전 합격)', again: ' (다시 도전)' }[tier], ml = '🏅 ' + (+month.slice(5)) + '월 심사' + tl + ' · ';
+  return { kick: avg(['kickH', 'kickP']), foc: avg(['poom', 'stance', 'basic']), recite: pt('recite'), eng: pt('eng'), conf: avg(['shout', 'voice', 'talent', 'speech']), care,
+    s: { kick: lab(['kickH', 'kickP']), foc: lab(['poom', 'stance', 'basic', 'recite']), eng: lab(['eng']), conf: lab(['shout', 'voice', 'talent', 'speech']),
+      care: cv.length ? CARE_Q.filter(x => (d.care || {})[x.k]).map(x => x.n + ' ' + CW[d.care[x.k]]).join(' · ') : lab(['bow', 'manner']) }, ml };
+}
+const MIXW = L => { L = L.filter(z => z[0] != null); if (!L.length) return null; const w = L.reduce((a, z) => a + z[1], 0); return Math.round(L.reduce((a, z) => a + z[0] * z[1], 0) / w * 10) / 10; }; // 비중대로 섞기 · 빈 기록은 빼고 다시 나눔
 function examList(ex, who) { // 학부모 앱 '심사': 마감한 달마다 (최근 4년 · 화면이 해마다 나눠 보여 줌)
   return Object.keys(ex).sort().slice(-48).map(m => { const r = examRowOf(ex[m], who); if (!r) return null; const d = r.d, meta = ex[m].meta, notes = meta.notes || {};
-    const base = { month: m, date: meta.date || '', dates: meta.dates || [meta.date, meta.date2].filter(Boolean), absent: !!d.absent, pass: d.pass !== false, cur: d.cur || '', nb: d.nb && d.nb !== d.cur ? d.nb : '' };
+    const base = { month: m, date: meta.date || '', dates: meta.dates || [meta.date, meta.date2].filter(Boolean), absent: !!d.absent, pass: d.pass !== false, cur: d.cur || '', nb: d.nb && d.nb !== d.cur ? d.nb : '', rt: d.rt | 0, care: CARE_Q.filter(x => d.care && d.care[x.k]).map(x => ({ k: x.k, n: x.n, v: d.care[x.k] })) };
     if (d.v === 2) { const G = EXAM2[d.grp] || EXAM2.elem, its = G.items.concat(d.sc && d.sc.manner ? [EXAM_MANNER] : []), tx = d.tx || {};
-      return Object.assign(base, { v: 2, grp: G.n, topic: meta.topicAt || meta.topic || '', items: its.filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, g: x.g || '', good: d.sc[x.k] === 2, tx: x.k === 'poom' ? [tx.poom, tx.poom2].filter(Boolean).join(' · ') : x.tx ? tx[x.k] || '' : '', note: '' /* 이번 달 내용은 제자 앱 심사 준비에만 (2026-11-26) */ })) }); }
+      return Object.assign(base, { v: 2, grp: G.n, topic: meta.topicAt || meta.topic || '', items: its.filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, g: x.g || '', good: d.sc[x.k] === 2, re: d.sc[x.k] === 1 && d.re && d.re[x.k] ? d.re[x.k] : 0, tx: x.k === 'poom' ? [tx.poom, tx.poom2].filter(Boolean).join(' · ') : x.tx ? tx[x.k] || '' : '', note: '' /* 이번 달 내용은 제자 앱 심사 준비에만 (2026-11-26) */ })) }); }
     return Object.assign(base, { subj: [{ k: 'speech', n: '웅변' }, { k: 'kick', n: '발차기' }, { k: 'eng', n: '영어' }, { k: 'poom', n: '품새' }, { k: 'manner', n: '예절·태도' }].filter(x => d.sc && d.sc[x.k]).map(x => ({ k: x.k, n: x.n, v: d.sc[x.k], note: '' })) });
   }).filter(Boolean);
 }
@@ -1659,6 +1703,7 @@ async function growData(env, names) {
         return null; };
       const hsh = t => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
       const kids = [], TW = {};
+      const WK = {}; { const wr = await attSync(env, '/sync/week-stats', { names, from: last12[0] + '-01' }).catch(() => null); ((wr && wr.ok && wr.kids) || []).forEach(x => { WK[x.name] = x.weeks || []; }); } // 빠지지 않은 주 (2026-11-27)
       for (const n of names) {
         const k = studs.find(x => x && x.name === n), ro = R[n] || {}, who = { sid: (k && k.sid) || ro.id, name: n }, id = k ? k.name + '|' + k.birth : '', rec = (k && k.rec) || {};
         if (!k && !ro.id) { kids.push({ name: n, rec: {}, periods: [], exams: examList(ex, who) }); continue; }
@@ -1685,9 +1730,17 @@ async function growData(env, names) {
               if (A) { const ra = ev.lower ? (A.v - bst) / A.v : (bst - A.v) / A.v; sc[0] = Math.max(50, Math.min(100, Math.round(75 + ra * 50) + (d > 0 ? Math.min(5, Math.max(1, Math.round(r * 50))) : 0))); bsrc = '같은 부(' + A.g + ') 평균 기록을 75점으로 계산 · 평균보다 30% 좋으면 90점' + (d > 0 ? ' · 기록이 좋아져서 +점' : ''); } // 2026-11-19 사용자: 첫 기록이 늘 70점이라 애매 → 같은 부 평균 기준 (순위·퍼센트는 안 보임)
               else sc[0] = nv.length === 1 ? 70 : Math.min(100, 70 + Math.round(r * 200)); } // 같은 부가 3명보다 적으면 예전처럼 내 첫 기록 대비
             else if (ms.length) sc[0] = 60; } // 도전만 했어요
+          { const mx = examMix(ex, who, mo), W = (WK[n] || []).filter(w => w.w.slice(0, 7) === mo && w.tot > 0), wf = W.filter(w => w.o >= w.tot).length, wk = W.length ? Math.round((50 + 50 * wf / W.length) * 10) / 10 : null; // 2026-11-27 회의: 여러 기록을 섞어서 (그 달만)
+            if (mx) { sc[0] = MIXW([[sc[0], 60], [mx.kick, 40]]); if (mx.s.kick) bsrc = (bsrc ? bsrc + ' · ' : '') + mx.ml + mx.s.kick;
+              sc[1] = MIXW([[mx.foc, 75], [mx.recite, 25]]); src[0] = sc[1] != null ? mx.ml + mx.s.foc : '';
+              sc[3] = mx.conf; src[2] = sc[3] != null ? mx.ml + mx.s.conf : '';
+              sc[4] = mx.care; src[3] = sc[4] != null ? mx.ml + mx.s.care : ''; }
+            else { sc[1] = sc[3] = sc[4] = null; src[0] = src[2] = src[3] = ''; a[0] = a[2] = a[3] = null; } // 그 달 심사가 없으면 측정 전
+            sc[2] = MIXW([[sc[2], 60], [wk, 20], [mx ? mx.eng : null, 20]]);
+            if (sc[2] != null) src[1] = [src[1], wk != null ? '📋 빠지지 않은 주 ' + wf + '/' + W.length : '', mx && mx.s.eng ? mx.ml + mx.s.eng : ''].filter(Boolean).join(' · '); }
           sc.forEach((v, j) => { if (v != null && j > 0) a[j - 1] = v >= 90 ? '아주 잘해요' : v >= 70 ? '잘해요' : '성장 중이에요'; });
-          const scv = sc.filter(v => v != null), total = scv.length ? Math.round(scv.reduce((s2, z) => s2 + z, 0) / scv.length) : null; // 해랑 성장 점수 = 기록이 있는 요소의 평균
-          for (let j = 0; j < 4; j++) if (!a[j]) { a[j] = '잘해요'; src[j] = j === 1 ? '출석 기록이 아직 없어서 기본으로 잘해요' : '이번 분기 심사 기록이 아직 없어서 기본으로 잘해요'; }
+          const scv = sc.filter(v => v != null), total = scv.length ? Math.round(scv.reduce((s2, z) => s2 + z, 0) / scv.length * 10) / 10 : null; // 해랑 성장 점수 = 기록이 있는 요소의 평균
+          for (let j = 0; j < 4; j++) if (!a[j]) { a[j] = '잘해요'; src[j] = j === 1 ? '출석 기록이 아직 없어서 기본으로 잘해요' : '이번 달 심사 기록이 아직 없어요'; }
           // 한마디: 손으로 쓴 것이 있으면 그대로, 없으면 자동
           let cm = String(x.cm || '').trim(), auto = false, cm0cat = '';
           { auto = !cm;
