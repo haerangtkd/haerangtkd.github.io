@@ -2621,6 +2621,7 @@ function gameKyo(body){
   const AI = [null, {react:.75, block:.12, aggr:.35}, {react:.42, block:.42, aggr:.55}, {react:.2, block:.72, aggr:.75}][LVL];
   const ATK = { kick:{pre:.1, act:.1, post:.18, reach:78, pt:2, push:22}, round:{pre:.3, act:.13, post:.38, reach:92, pt:3, push:42} };
   const BONUS = [[30, 15], [70, 15]];
+  const HIT_MAX = 20; /* 맞은 점수가 이만큼 되면 경기 끝 */
   let raf = 0, alive = true, F = null;
   const keys = {back:false, fwd:false, block:false};
 
@@ -2628,11 +2629,11 @@ function gameKyo(body){
 
   function fight(){
     body.innerHTML = '';
-    const top = el('div','kyTop','<div class="kySc">🔵 <b id="kySc">0</b>점</div><div class="kyLvN">' + LV_NAME[LVL] + (LVL > 1 ? ' · 목표 ' + LVC.kyo.goal[LVL] + '점' : '') + '</div><div class="tm" id="kyTm">30</div>');
+    const top = el('div','kyTop','<div class="kySc">🔵 <b id="kySc">0</b>점</div><div class="kyLvN">' + LV_NAME[LVL] + (LVL > 1 ? ' · 목표 ' + LVC.kyo.goal[LVL] + '점' : '') + '<br>🔴 맞은 점수 <b id="kyHit">0</b> / ' + HIT_MAX + '</div><div class="tm" id="kyTm">30</div>');
     const cv = el('canvas','kyCv');
     const r1 = el('div','kyRow','<button class="mv" data-k="back">◀ 뒤로</button><button class="mv" data-k="fwd">앞으로 ▶</button>');
     const r2 = el('div','kyRow','<button class="bl" data-k="block">🛡️ 막기</button><button class="at" data-a="kick">🦶 발차기<small>2점</small></button><button class="at" data-a="round">🌀 돌려차기<small>3점</small></button>');
-    const help = el('div','kyHelp','30초 동안 상대를 맞혀 점수를 모아요! <b>30점</b>을 넘기면 +15초, <b>70점</b>을 넘기면 +15초 더! 상대 발에 맞으면 잠깐 휘청거려요. 막기는 누르고 있는 동안 막아요.');
+    const help = el('div','kyHelp','30초 동안 상대를 맞혀 점수를 모아요! <b>30점</b>을 넘기면 +15초, <b>70점</b>을 넘기면 +15초 더! 상대 발에 맞으면 내 점수는 그대로지만 잠깐 휘청거리고, 맞은 점수가 <b>' + HIT_MAX + '점</b>이 되면 경기가 끝나요. 막기는 누르고 있는 동안 막아요.');
     body.append(top, cv, r1, r2, help);
     body.querySelectorAll('[data-k]').forEach(b => {
       const k = b.dataset.k;
@@ -2646,7 +2647,7 @@ function gameKyo(body){
     const dpr = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth || 340, H = cv.clientHeight || 230;
     cv.width = W * dpr; cv.height = H * dpr;
     const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    F = {g, W, H, floor:H - 34, me:fighter(W * .28, 1), op:fighter(W * .72, -1), time:30, score:0, bonus:0, last:performance.now(), ai:{t:.8, blockT:0, want:0}, over:false, fx:[], banner:null};
+    F = {g, W, H, floor:H - 34, me:fighter(W * .28, 1), op:fighter(W * .72, -1), time:30, score:0, bonus:0, hit:0, ko:false, last:performance.now(), ai:{t:.8, blockT:0, want:0}, over:false, fx:[], banner:null};
     keys.back = keys.fwd = keys.block = false;
     raf = requestAnimationFrame(loop);
   }
@@ -2658,6 +2659,7 @@ function gameKyo(body){
   function stopFight(){ cancelAnimationFrame(raf); raf = 0; if(F) F.over = true; }
 
   function step(dt){
+    if(F.ko) return; /* 경기 끝나는 중 */
     const {me, op} = F;
     F.time -= dt; if(F.time <= 0){ F.time = 0; return end(); }
     me.blk = keys.block && !me.atk && me.hitT <= 0;
@@ -2695,7 +2697,9 @@ function gameKyo(body){
             if(b && F.score >= b[0]){ F.bonus++; F.time += b[1]; sfx.star(); F.banner = {t:0, txt:'⏱ +' + b[1] + '초!'}; }
           } else {
             d.hitT = .7; d.atk = null; d.x += a.f * A.push; /* 맞으면 휘청 */
-            sfx.fail(); F.fx.push({x:d.x, y:F.floor - 90, t:0, txt:'휘청!', c:'#ff8a7a'});
+            F.hit += A.pt; /* 2026-11-28 사용자: 내 점수는 안 깎이고, 맞은 점수가 정해진 만큼 쌓이면 경기 끝 */
+            sfx.fail(); F.fx.push({x:d.x, y:F.floor - 90, t:0, txt:'휘청! -' + A.pt, c:'#ff8a7a'});
+            if(F.hit >= HIT_MAX){ F.ko = true; setTimeout(end, 400); }
           }
         }
       }
@@ -2706,7 +2710,7 @@ function gameKyo(body){
     if(op.x - me.x < 40){ const m = (me.x + op.x) / 2; me.x = m - 20; op.x = m + 20; if(me.x < 22){ me.x = 22; op.x = 62; } if(op.x > F.W - 22){ op.x = F.W - 22; me.x = op.x - 40; } }
     F.fx.forEach(f => f.t += dt); F.fx = F.fx.filter(f => f.t < .8);
     if(F.banner){ F.banner.t += dt; if(F.banner.t > 1.4) F.banner = null; }
-    $('kySc').textContent = F.score; $('kyTm').textContent = Math.ceil(F.time);
+    $('kySc').textContent = F.score; $('kyTm').textContent = Math.ceil(F.time); $('kyHit').textContent = Math.min(F.hit, HIT_MAX);
   }
 
   function drawFighter(a, body1, gear){
@@ -2768,7 +2772,7 @@ function gameKyo(body){
     }
     m += lvEnd('kyo', sc);
     body.innerHTML = '';
-    const box = el('div','kyRes','<p>' + LV_NAME[LVL] + ' 겨루기 · 시간 끝!</p><h2>' + sc + '점</h2>' + (m ? '<p style="color:#ffd84d">' + m + '</p>' : ''));
+    const box = el('div','kyRes','<p>' + LV_NAME[LVL] + ' 겨루기 · ' + (F.ko ? '맞은 점수 ' + HIT_MAX + '점, 경기 끝!' : '시간 끝!') + '</p><h2>' + sc + '점</h2>' + (m ? '<p style="color:#ffd84d">' + m + '</p>' : ''));
     const again = el('button', '', '다시 하기');
     again.onclick = () => { audio(); fight(); };
     box.append(again); body.appendChild(box);
