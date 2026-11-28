@@ -104,6 +104,29 @@
   .bagV span{display:inline-block;transform-origin:50% 0;}
   .bagV span.hit{animation:bagHit .18s ease-out;}
   @keyframes bagHit{0%{transform:rotate(0) scale(1);}40%{transform:rotate(10deg) scale(.92);}100%{transform:rotate(0) scale(1);}}
+  /* 겨루기 · 가위바위보 (2026-11-28) */
+  .kyoBoard{display:flex;gap:10px;margin-bottom:12px;}
+  .kyoBoard div{flex:1;border-radius:16px;padding:8px 0;text-align:center;color:#fff;font-size:15px;}
+  .kyoBoard b{display:block;font-size:40px;line-height:1.1;}
+  .kyoBoard .ch{background:#2f6fde;} .kyoBoard .hg{background:#d92d20;}
+  .kyoRing{position:relative;height:250px;border-radius:20px;background:#f2c94c;border:10px solid #2f6fde;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  .kyoOpp{position:relative;width:120px;height:210px;}
+  .kyoOpp .hd{position:absolute;left:30px;top:0;width:60px;height:60px;border-radius:50%;background:#d92d20;border:4px solid #8f1d14;}
+  .kyoOpp .bd{position:absolute;left:15px;top:66px;width:90px;height:90px;border-radius:24px;background:#d92d20;border:4px solid #8f1d14;}
+  .kyoOpp .lg{position:absolute;left:28px;top:160px;width:64px;height:48px;background:#fff;border-radius:8px;}
+  .kyoOpp .on{box-shadow:0 0 0 6px #fff,0 0 24px 10px #fff;animation:kyoBlink .35s infinite alternate;}
+  @keyframes kyoBlink{from{opacity:1}to{opacity:.6}}
+  .kyoCue{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:22px;color:#5a4632;}
+  .kyoAtk{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:90px;background:rgba(217,45,32,.25);}
+  .kyoAtk.on{display:flex;}
+  .kyoBtns{display:flex;gap:8px;margin-top:12px;}
+  .kyoBtns button{flex:1;border:none;border-radius:16px;padding:14px 4px;font:inherit;font-size:17px;color:#fff;touch-action:manipulation;}
+  .kyoBtns .k1{background:#2f6fde;box-shadow:0 4px 0 #1f4fa5;} .kyoBtns .k2{background:#7a4bc2;box-shadow:0 4px 0 #563390;} .kyoBtns .k3{background:#5a4632;box-shadow:0 4px 0 #3a2c1f;}
+  .rpsSb{text-align:center;font-size:84px;line-height:1.1;margin:6px 0;}
+  .rpsOrder{text-align:center;font-size:30px;margin:4px 0 10px;min-height:40px;}
+  .rpsOrder.win{color:#2f6fde;} .rpsOrder.lose{color:#d92d20;} .rpsOrder.draw{color:#6aa84f;}
+  .rpsBtns{display:flex;gap:8px;}
+  .rpsBtns button{flex:1;border:none;border-radius:18px;background:#f6eee2;font-size:52px;padding:10px 0;touch-action:manipulation;box-shadow:0 4px 0 #d8c7ae;}
   .rulerBox{position:relative;height:330px;border-radius:20px;background:#fff6e8;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none;}
   .ruler{position:absolute;left:50%;top:16px;transform:translateY(-260px);width:46px;height:200px;margin-left:-23px;background:#f2b134;border-radius:6px;box-shadow:0 3px 0 #c98c1f;display:flex;flex-direction:column;justify-content:space-between;padding:8px 0;}
   .ruler i{display:block;height:3px;width:20px;background:#7a5a1e;}
@@ -1182,7 +1205,7 @@ function booth(id, x, z, emoji, name, col, soon){
 const BOOTHS = [
   ['belt','🎗️','띠 순서','#e07a5f'], ['mem','🃏','짝 맞추기','#5b8fc7'], ['quiz','💡','해랑경희 퀴즈','#6aa84f'],
   ['ruler','📏','자를 잡아라','#f2b134'], ['balloon','🎈','풍선 터뜨리기','#b9b2a8',1], ['order','🔢','순서대로','#b9b2a8',1],
-  ['lr','↔️','좌우로','#b9b2a8',1], ['rps','✌️','가위바위보','#b9b2a8',1], ['tug','💪','줄다리기','#b9b2a8',1]
+  ['lr','↔️','좌우로','#b9b2a8',1], ['rps','✌️','가위바위보','#8e6bbf'], ['tug','💪','줄다리기','#b9b2a8',1]
 ];
 const BOOTH_POS = {};
 BOOTHS.forEach((b, i) => { const x = [-4.2, 0, 4.2][i % 3], z = [5.8, 8.2, 10.6][Math.floor(i / 3)]; BOOTH_POS[b[0]] = {x, z}; booth(b[0], x, z, b[1], b[2], b[3], b[4]); });
@@ -1244,7 +1267,7 @@ const ST = {
   brk:{z:'class', n:'격파 놀이', e:'🪵', g:'brk', spot:STAND_SPOT, face:STAND, lp:STAND, ly:2.3, start:() => openGame()},
   bag:{z:'class', n:'샌드백 치기', e:'🥊', g:'bag', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, start:() => startBag()}, /* 2026-11-20 사용자: 20초 안에 몇 번 치는지 · 도장 화면 그대로 버튼만 */
   whack:{z:'class', n:'표적 치기', e:'🎯', g:'whack', spot:{x:-3.6, z:-5.1}, face:{x:-3.6, z:-6.2}, lp:{x:-3.6, z:-6.2}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
-  kyo:{z:'class', n:'겨루기', e:'🤜', soon:1, spot:{x:3.8, z:-4.9}, face:{x:3.8, z:-6.2}, lp:{x:3.8, z:-6.2}, ly:1.7},
+  kyo:{z:'class', n:'겨루기', e:'🤜', start:() => openPanel('🤜 겨루기', gameKyo), spot:{x:3.8, z:-4.9}, face:{x:3.8, z:-6.2}, lp:{x:3.8, z:-6.2}, ly:1.7},
   rope:{z:'class', n:'줄넘기', e:'🪢', g:'rope', spot:CENTER_ROPE, face:{x:CENTER_ROPE.x, z:-13}, lp:{x:CENTER_ROPE.x, z:CENTER_ROPE.z-1.3}, ly:2.0, start:() => startRope()},
   run:{z:'class', n:'왕복달리기', e:'🏃', g:'run', lock:'gRun', price:RUN_PRICE, spot:{x:3.8, z:2.3}, face:{x:3.8, z:-2}, lp:{x:3.8, z:-.9}, ly:1.6, start:() => openPanel('왕복달리기', gameRun)},
   belt:{z:'rest', n:'띠 순서', e:'🎗️', g:'belt', spot:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z+1.15}, face:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z}, lp:BOOTH_POS.belt, ly:2.3, start:() => openPanel('띠 순서 맞추기', gameBelt)},
@@ -1254,7 +1277,7 @@ const ST = {
   balloon:{z:'rest', n:'풍선 터뜨리기', e:'🎈', soon:1, spot:{x:BOOTH_POS.balloon.x, z:BOOTH_POS.balloon.z+1.15}, face:{x:BOOTH_POS.balloon.x, z:BOOTH_POS.balloon.z}, lp:BOOTH_POS.balloon, ly:2.3},
   order:{z:'rest', n:'순서대로', e:'🔢', soon:1, spot:{x:BOOTH_POS.order.x, z:BOOTH_POS.order.z+1.15}, face:{x:BOOTH_POS.order.x, z:BOOTH_POS.order.z}, lp:BOOTH_POS.order, ly:2.3},
   lr:{z:'rest', n:'좌우로', e:'↔️', soon:1, spot:{x:BOOTH_POS.lr.x, z:BOOTH_POS.lr.z+1.15}, face:{x:BOOTH_POS.lr.x, z:BOOTH_POS.lr.z}, lp:BOOTH_POS.lr, ly:2.3},
-  rps:{z:'rest', n:'가위바위보', e:'✌️', soon:1, spot:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z+1.15}, face:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z}, lp:BOOTH_POS.rps, ly:2.3},
+  rps:{z:'rest', n:'가위바위보', e:'✌️', start:() => openPanel('✌️ 사범님 가위바위보', gameRps), spot:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z+1.15}, face:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z}, lp:BOOTH_POS.rps, ly:2.3},
   tug:{z:'rest', n:'줄다리기', e:'💪', soon:1, spot:{x:BOOTH_POS.tug.x, z:BOOTH_POS.tug.z+1.15}, face:{x:BOOTH_POS.tug.x, z:BOOTH_POS.tug.z}, lp:BOOTH_POS.tug, ly:2.3}
 };
 ST.locker.lp = {x:-6.4, z:-7.55};
@@ -1289,7 +1312,9 @@ const BESTS = {
   mem: () => S.bestMem ? S.bestMem + '번 만에' : '아직 없어요',
   quiz: () => S.bestQuiz ? S.bestQuiz + '/8' : '아직 없어요',
   bag: () => S.bestBag ? S.bestBag + '번' : '아직 없어요',
-  ruler: () => S.bestRuler ? (S.bestRuler/1000).toFixed(3) + '초' : '아직 없어요'
+  ruler: () => S.bestRuler ? (S.bestRuler/1000).toFixed(3) + '초' : '아직 없어요',
+  kyo: () => S.bestKyo ? S.bestKyo + '점' : '아직 없어요',
+  rps: () => S.bestRps ? S.bestRps + '개' : '아직 없어요'
 };
 let goId = null;
 function openGo(id){
@@ -1315,7 +1340,7 @@ function openGo(id){
   $('goInfo').innerHTML = rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
   if(s.g && API && TOK && (!TOP || Date.now() - topAt > 60000)) gameSync(true).then(() => { if(openId === 'goSheet' && goId === id) openGo(id); });
 }
-/* 🥋 품새: 1장은 그냥, 2·3장은 별로 엶, 4~8장은 사범님이 동작 순서를 확인한 뒤 열림 */
+/* 🥋 품새: 1장은 그냥, 2~6장은 별로 엶(4~6장 2026-11-28), 7·8장은 아직 준비 중 */
 let tgSel = 1;
 function tgReady(n){ return !!TGS[n]; }
 function tgOwned(n){ return n === 1 || owns('tg' + n); }
@@ -2014,12 +2039,78 @@ const TG3 = [
   {d:'왼발 앞차고', s:'왼앞서기', m:'아래막기 · 몸통바로지르기', kick:-1, step:.8, t:'block', h:0, arm:-1, lead:-1},
   {d:'오른발 앞차고', s:'오른앞서기', m:'아래막기 · 몸통바로지르기', kick:1, step:.8, t:'block', h:0, arm:1, lead:1, kihap:1}
 ];
-const TGS = {1: null, 2: TG2, 3: TG3}; /* 1 = 위의 TG (아래에서 채움) */
+/* 태극 4·5·6장 (2026-11-28 한코치 요청으로 엶 — 국기원 순서 기준, 사범님 확인 필요) */
+const TG4 = [
+  {d:'왼쪽으로', s:'오른뒷굽이', m:'손날몸통막기', turn:'L', step:.8, t:'block', h:1, arm:-1, lead:-1},
+  {d:'앞으로', s:'오른앞굽이', m:'편손끝세워찌르기', step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'뒤로 돌아', s:'왼뒷굽이', m:'손날몸통막기', turn:'B', step:.8, t:'block', h:1, arm:1, lead:1},
+  {d:'앞으로', s:'왼앞굽이', m:'편손끝세워찌르기', step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
+  {d:'왼쪽으로 돌아', s:'왼앞굽이', m:'제비품목치기', turn:'L', step:1.1, t:'block', h:2, arm:1, lead:-1, deep:1},
+  {d:'오른발 앞차고', s:'오른앞굽이', m:'몸통바로지르기', kick:1, step:1.1, t:'punch', arm:-1, lead:1, deep:1},
+  {d:'왼발·오른발 옆차고', s:'왼뒷굽이', m:'손날몸통막기', kicks:[-1,1], step:1.1, t:'block', h:1, arm:1, lead:1},
+  {d:'왼쪽으로', s:'오른뒷굽이', m:'몸통바깥막기', turn:'L', step:.8, t:'block', h:1, arm:-1, lead:-1},
+  {d:'오른발 앞차고 제자리로', s:'오른뒷굽이', m:'몸통안막기', kick:1, step:0, t:'block', h:1, arm:1, lead:-1},
+  {d:'뒤로 돌아', s:'왼뒷굽이', m:'몸통바깥막기', turn:'B', step:.8, t:'block', h:1, arm:1, lead:1},
+  {d:'왼발 앞차고 제자리로', s:'왼뒷굽이', m:'몸통안막기', kick:-1, step:0, t:'block', h:1, arm:-1, lead:1},
+  {d:'처음 자리 쪽으로 돌아', s:'왼앞굽이', m:'제비품목치기', turn:'S', step:1.1, t:'block', h:2, arm:1, lead:-1, deep:1},
+  {d:'오른발 앞차고', s:'오른앞굽이', m:'등주먹앞치기', kick:1, step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'왼쪽으로 돌아', s:'왼앞서기', m:'몸통안막기 · 몸통바로지르기', turn:'L', step:.8, t:'block', h:1, arm:-1, lead:-1},
+  {d:'뒤로 돌아', s:'오른앞서기', m:'몸통안막기 · 몸통바로지르기', turn:'B', step:.8, t:'block', h:1, arm:1, lead:1},
+  {d:'처음 자리 쪽으로 돌아', s:'왼앞굽이', m:'몸통안막기 · 몸통두번지르기', turn:'S', step:1.1, t:'block', h:1, arm:-1, lead:-1, deep:1},
+  {d:'앞으로', s:'오른앞굽이', m:'몸통안막기 · 몸통두번지르기', step:1.1, t:'block', h:1, arm:1, lead:1, deep:1, kihap:1}
+];
+const TG5 = [
+  {d:'왼쪽으로', s:'왼앞굽이', m:'아래막기', turn:'L', step:1.1, t:'block', h:0, arm:-1, lead:-1, deep:1},
+  {d:'그 자리에서 왼발 당겨', s:'왼서기', m:'메주먹내려치기', step:0, t:'punch', arm:-1, lead:-1},
+  {d:'뒤로 돌아', s:'오른앞굽이', m:'아래막기', turn:'B', step:1.1, t:'block', h:0, arm:1, lead:1, deep:1},
+  {d:'그 자리에서 오른발 당겨', s:'오른서기', m:'메주먹내려치기', step:0, t:'punch', arm:1, lead:1},
+  {d:'왼쪽으로 돌아', s:'왼앞굽이', m:'몸통안막기 두 번', turn:'L', step:1.1, t:'block', h:1, arm:-1, lead:-1, deep:1},
+  {d:'오른발 앞차고', s:'오른앞굽이', m:'등주먹앞치기 · 몸통안막기', kick:1, step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'왼발 앞차고', s:'왼앞굽이', m:'등주먹앞치기 · 몸통안막기', kick:-1, step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
+  {d:'앞으로', s:'오른앞굽이', m:'등주먹앞치기', step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'왼쪽으로 돌아', s:'오른뒷굽이', m:'한손날바깥막기', turn:'L', step:.8, t:'block', h:1, arm:-1, lead:-1},
+  {d:'앞으로', s:'오른앞굽이', m:'팔굽돌려치기', step:1.1, t:'punch', arm:1, lead:1, deep:1},
+  {d:'뒤로 돌아', s:'왼뒷굽이', m:'한손날바깥막기', turn:'B', step:.8, t:'block', h:1, arm:1, lead:1},
+  {d:'앞으로', s:'왼앞굽이', m:'팔굽돌려치기', step:1.1, t:'punch', arm:-1, lead:-1, deep:1},
+  {d:'처음 자리 쪽으로 돌아', s:'왼앞굽이', m:'아래막기 · 몸통안막기', turn:'S', step:1.1, t:'block', h:0, arm:-1, lead:-1, deep:1},
+  {d:'오른발 앞차고', s:'오른앞굽이', m:'아래막기 · 몸통안막기', kick:1, step:1.1, t:'block', h:0, arm:1, lead:1, deep:1},
+  {d:'왼쪽으로 돌아', s:'왼앞굽이', m:'얼굴막기', turn:'L', step:1.1, t:'block', h:2, arm:-1, lead:-1, deep:1},
+  {d:'오른발 옆차고', s:'오른앞굽이', m:'팔굽표적치기', kick:1, step:1.1, t:'punch', arm:-1, lead:1, deep:1},
+  {d:'뒤로 돌아', s:'오른앞굽이', m:'얼굴막기', turn:'B', step:1.1, t:'block', h:2, arm:1, lead:1, deep:1},
+  {d:'왼발 옆차고', s:'왼앞굽이', m:'팔굽표적치기', kick:-1, step:1.1, t:'punch', arm:1, lead:-1, deep:1},
+  {d:'처음 자리 쪽으로 돌아', s:'왼앞굽이', m:'아래막기 · 몸통안막기', turn:'S', step:1.1, t:'block', h:0, arm:-1, lead:-1, deep:1},
+  {d:'오른발 앞차고 뛰어나가', s:'오른뒤꼬아서기', m:'등주먹앞치기', kick:1, step:1.1, t:'punch', arm:1, lead:1, kihap:1}
+];
+const TG6 = [
+  {d:'왼쪽으로', s:'왼앞굽이', m:'아래막기', turn:'L', step:1.1, t:'block', h:0, arm:-1, lead:-1, deep:1},
+  {d:'오른발 앞차고 제자리로', s:'오른뒷굽이', m:'몸통바깥막기', kick:1, step:0, t:'block', h:1, arm:-1, lead:-1},
+  {d:'뒤로 돌아', s:'오른앞굽이', m:'아래막기', turn:'B', step:1.1, t:'block', h:0, arm:1, lead:1, deep:1},
+  {d:'왼발 앞차고 제자리로', s:'왼뒷굽이', m:'몸통바깥막기', kick:-1, step:0, t:'block', h:1, arm:1, lead:1},
+  {d:'왼쪽으로 돌아', s:'왼앞굽이', m:'한손날얼굴비틀어막기', turn:'L', step:1.1, t:'block', h:2, arm:1, lead:-1, deep:1},
+  {d:'오른발 돌려차고 왼쪽으로', s:'왼앞굽이', m:'얼굴바깥막기 · 몸통바로지르기', kick:1, turn:'L', step:1.1, t:'block', h:2, arm:-1, lead:-1, deep:1},
+  {d:'오른발 앞차고', s:'오른앞굽이', m:'몸통바로지르기', kick:1, step:1.1, t:'punch', arm:-1, lead:1, deep:1},
+  {d:'뒤로 돌아', s:'오른앞굽이', m:'얼굴바깥막기 · 몸통바로지르기', turn:'B', step:1.1, t:'block', h:2, arm:1, lead:1, deep:1},
+  {d:'왼발 앞차고', s:'왼앞굽이', m:'몸통바로지르기', kick:-1, step:1.1, t:'punch', arm:1, lead:-1, deep:1},
+  {d:'왼쪽으로 돌아 왼발 당겨', s:'나란히서기', m:'아래헤쳐막기 (천천히)', turn:'L', step:0, t:'block', h:0, arm:-1, lead:-1},
+  {d:'앞으로', s:'오른앞굽이', m:'한손날얼굴비틀어막기', step:1.1, t:'block', h:2, arm:-1, lead:1, deep:1},
+  {d:'왼발 돌려차고 오른쪽으로 돌아 왼쪽 보기', s:'오른앞굽이', m:'아래막기', kick:-1, kihapK:1, turn:'R3', step:1.1, t:'block', h:0, arm:1, lead:1, deep:1},
+  {d:'왼발 앞차고 제자리로', s:'왼뒷굽이', m:'몸통바깥막기', kick:-1, step:0, t:'block', h:1, arm:1, lead:1},
+  {d:'뒤로 돌아', s:'왼앞굽이', m:'아래막기', turn:'B', step:1.1, t:'block', h:0, arm:-1, lead:-1, deep:1},
+  {d:'오른발 앞차고 제자리로', s:'오른뒷굽이', m:'몸통바깥막기', kick:1, step:0, t:'block', h:1, arm:-1, lead:-1},
+  {d:'앞쪽을 보고 뒤로 물러나며', s:'오른뒷굽이', m:'손날몸통막기', turn:'L', step:-.8, t:'block', h:1, arm:-1, lead:-1},
+  {d:'뒤로 물러나며', s:'왼뒷굽이', m:'손날몸통막기', step:-.8, t:'block', h:1, arm:1, lead:1},
+  {d:'뒤로 물러나며', s:'왼앞굽이', m:'바탕손몸통안막기 · 몸통바로지르기', step:-1.1, t:'block', h:1, arm:-1, lead:-1, deep:1},
+  {d:'뒤로 물러나며', s:'오른앞굽이', m:'바탕손몸통안막기 · 몸통바로지르기', step:-1.1, t:'block', h:1, arm:1, lead:1, deep:1}
+];
+const TGS = {1: null, 2: TG2, 3: TG3, 4: TG4, 5: TG5, 6: TG6}; /* 1 = 위의 TG (아래에서 채움) */
 const TG_PRICE = {2:30, 3:35, 4:40, 5:45, 6:50, 7:55, 8:60};
 let CUR = null;
 const DIR_SWAP = {'왼쪽으로':'오른쪽으로','오른쪽으로':'왼쪽으로','왼쪽으로 돌아':'오른쪽으로 돌아','오른쪽으로 돌아':'왼쪽으로 돌아',
   '앞으로':'뒤로 돌아','뒤로 돌아':'왼쪽으로','그 자리에서':'앞으로','오른발 앞차고':'왼발 앞차고','왼발 앞차고':'오른발 앞차고',
-  '처음 자리 쪽으로 돌아':'앞으로', '왼쪽으로 돌아 오른쪽 보기':'왼쪽으로 돌아'}; /* 2026-11-20 김병수 사범님: 2·3장 13번은 왼쪽으로 크게 돌아 오른쪽을 봄 */
+  '처음 자리 쪽으로 돌아':'앞으로', '왼쪽으로 돌아 오른쪽 보기':'왼쪽으로 돌아',
+  '오른발 앞차고 제자리로':'오른발 앞차고','왼발 앞차고 제자리로':'왼발 앞차고','왼발·오른발 옆차고':'오른발 앞차고','오른발 옆차고':'왼발 옆차고','왼발 옆차고':'오른발 옆차고',
+  '그 자리에서 왼발 당겨':'앞으로','그 자리에서 오른발 당겨':'뒤로 돌아','오른발 앞차고 뛰어나가':'왼발 앞차고','오른발 돌려차고 왼쪽으로':'오른발 앞차고',
+  '왼쪽으로 돌아 왼발 당겨':'오른쪽으로 돌아','왼발 돌려차고 오른쪽으로 돌아 왼쪽 보기':'왼발 앞차고','앞쪽을 보고 뒤로 물러나며':'앞으로','뒤로 물러나며':'앞으로'}; /* 2026-11-20 김병수 사범님: 2·3장 13번은 왼쪽으로 크게 돌아 오른쪽을 봄 */
 TGS[1] = TG; CUR = TG;
 const TG_START = TG_START_POS;
 const T = {on:false, i:0, miss:0, stepMiss:0, busy:false, dir:{x:0,z:-1}};
@@ -2076,20 +2167,22 @@ function turnDir(d, turn){
   if(turn === 'B') return {x:-d.x, z:-d.z};
   if(turn === 'S') return {x:0, z:1};
   if(turn === 'L3') return {x:-d.z, z:d.x}; /* 왼쪽으로 270° = 오른쪽을 봄 */
+  if(turn === 'R3') return {x:d.z, z:-d.x}; /* 오른쪽으로 270° = 왼쪽을 봄 */
   return d;
 }
 function playTg(st, done){
   P.act = null;
   const steps = [];
-  if(st.kick){ steps.push(() => { doAct('kick', .55, () => sfx.kick(), st.kick); }); }
-  if(st.turn === 'L3'){ /* 왼쪽으로 크게 도는 모습: 왼쪽으로 두 번 먼저 돈 뒤 한 번 더 */
+  (st.kicks || (st.kick ? [st.kick] : [])).forEach(kf => steps.push(() => { doAct('kick', .55, () => { sfx.kick(); if(st.kihapK) sayKihap(); }, kf); }));
+  if(st.turn === 'L3' || st.turn === 'R3'){ /* 크게 도는 모습: 같은 쪽으로 두 번 먼저 돈 뒤 한 번 더 */
+    const tw = st.turn === 'L3' ? 'L' : 'R';
     for(let r=0;r<2;r++) steps.push(() => {
-      const L = turnDir(T.dir, 'L'); P.yawT = Math.atan2(L.x, L.z); T.dir = L;
+      const L = turnDir(T.dir, tw); P.yawT = Math.atan2(L.x, L.z); T.dir = L;
       doAct('step', .15, null, 1); const at = {x:P.root.position.x, z:P.root.position.z}; P.act.from = at; P.act.to = at;
     });
   }
   steps.push(() => {
-    T.dir = turnDir(T.dir, st.turn === 'L3' ? 'L' : st.turn);
+    T.dir = turnDir(T.dir, st.turn === 'L3' ? 'L' : st.turn === 'R3' ? 'R' : st.turn);
     P.yawT = Math.atan2(T.dir.x, T.dir.z);
     const from = {x:P.root.position.x, z:P.root.position.z};
     const to = {x: from.x + T.dir.x*st.step, z: from.z + T.dir.z*st.step};
@@ -2403,6 +2496,106 @@ function gameWhack(body){
         msg.textContent = m;
       }
     }, 1000);
+  };
+  return stop;
+}
+
+/* 🤜 겨루기 (2026-11-28 새로 엶): 30초 동안 상대(홍) 빈틈을 보고 몸통(2점)·얼굴(3점) 차기, 상대가 공격하면 막기 */
+function gameKyo(body){
+  const board = el('div','kyoBoard','<div class="ch">청 (나)<b id="kyMe">0</b></div><div class="hg">홍 (상대)<b id="kyOp">0</b></div>');
+  const stat = el('div','stat','<span>몸통 2점 · 얼굴 3점</span><span id="kyT">30초</span>');
+  const ring = el('div','kyoRing','<div class="kyoCue" id="kyCue">준비!</div><div class="kyoOpp"><div class="hd" id="kyH"></div><div class="bd" id="kyB"></div><div class="lg"></div></div><div class="kyoAtk" id="kyA">🦶</div>');
+  const btns = el('div','kyoBtns','<button class="k1" data-k="b">몸통 차기</button><button class="k2" data-k="h">얼굴 차기</button><button class="k3" data-k="d">막기</button>');
+  const msg = el('p','gMsg','빛나는 곳을 차요! 상대 발이 날아오면 막기!');
+  const btn = el('button','big','시작');
+  body.append(board, stat, ring, btns, msg, btn);
+  let on = false, me = 0, op = 0, left = 30, cue = null, cueT = null, tick = null, gap = null;
+  const show = () => { $('kyMe').textContent = me; $('kyOp').textContent = op; };
+  function clear(){ cue = null; clearTimeout(cueT); $('kyH').classList.remove('on'); $('kyB').classList.remove('on'); $('kyA').classList.remove('on'); $('kyCue').textContent = ''; }
+  function next(){
+    clear(); if(!on) return;
+    gap = setTimeout(() => {
+      if(!on) return;
+      const r = Math.random();
+      cue = r < .45 ? 'b' : r < .75 ? 'h' : 'd';
+      if(cue === 'b'){ $('kyB').classList.add('on'); $('kyCue').textContent = '몸통이 열렸어요!'; }
+      else if(cue === 'h'){ $('kyH').classList.add('on'); $('kyCue').textContent = '얼굴이 열렸어요!'; }
+      else { $('kyA').classList.add('on'); $('kyCue').textContent = '공격해 와요!'; }
+      const life = Math.max(650, 1300 - (30 - left) * 20);
+      cueT = setTimeout(() => { if(!on || !cue) return; if(cue === 'd'){ op += 2; sfx.fail(); msg.textContent = '앗, 맞았어요! 상대 2점'; } else msg.textContent = '빈틈을 놓쳤어요'; show(); next(); }, life);
+    }, 350 + Math.random() * 700);
+  }
+  btns.querySelectorAll('button').forEach(b => b.addEventListener('pointerdown', e => {
+    e.preventDefault(); audio(); if(!on) return;
+    const k = b.dataset.k;
+    if(!cue){ if(k !== 'd'){ op += 1; sfx.fail(); msg.textContent = '빈틈이 없을 땐 기다려요! 상대 1점'; show(); } return; }
+    if(k === cue){
+      if(k === 'd'){ sfx.hit(); msg.textContent = '막았다! 좋아요'; floatText('막기!'); }
+      else { const pt = k === 'h' ? 3 : 2; me += pt; sfx.kick(); sfx.hit(); msg.textContent = (k === 'h' ? '얼굴' : '몸통') + ' 득점! +' + pt; floatText('+' + pt); }
+    } else if(cue === 'd'){ op += 2; sfx.fail(); msg.textContent = '공격은 막아야 해요! 상대 2점'; }
+    else { op += 1; sfx.fail(); msg.textContent = '빛나는 곳을 차요! 상대 1점'; }
+    show(); next();
+  }));
+  function stop(){ on = false; clearInterval(tick); clearTimeout(gap); clear(); }
+  function end(){
+    stop(); btn.style.visibility = ''; btn.textContent = '다시 하기';
+    $('kyCue').textContent = me > op ? '청 승!' : me < op ? '홍 승' : '무승부';
+    let m = me > op ? '이겼어요! ' + me + ' 대 ' + op : me < op ? '아깝다! ' + me + ' 대 ' + op : '비겼어요! ' + me + ' 대 ' + op;
+    if(me > (S.bestKyo || 0)){ S.bestKyo = me; m = '새 기록! ' + m; }
+    const st = me > op ? (me - op >= 10 ? 3 : 2) : me === op && me > 0 ? 1 : 0;
+    if(st){ addStars(st); m += ' · 별 ' + st + '개 ⭐'; } else save();
+    msg.textContent = m;
+  }
+  btn.onclick = () => {
+    audio(); if(on) return;
+    me = 0; op = 0; left = 30; on = true; show(); $('kyT').textContent = '30초';
+    btn.style.visibility = 'hidden'; msg.textContent = '경례! 시작!';
+    next();
+    tick = setInterval(() => { left--; $('kyT').textContent = left + '초'; if(left <= 0) end(); }, 1000);
+  };
+  return stop;
+}
+
+/* ✌️ 사범님 가위바위보 (2026-11-28 새로 엶): 사범님이 내고 '이겨요/져요/비겨요'를 말하면 20초 동안 맞는 손을 빨리 냄 */
+function gameRps(body){
+  const H = ['✊','✌️','🖐️'], HN = ['바위','가위','보'];
+  const stat = el('div','stat','<span id="rpN">맞힌 수 0</span><span id="rpT">20초</span>');
+  const sb = el('div','rpsSb','🥋'); sb.id = 'rpS';
+  const order = el('div','rpsOrder','사범님 말씀대로!'); order.id = 'rpO';
+  const btns = el('div','rpsBtns', H.map((h, i) => '<button data-h="' + i + '">' + h + '</button>').join(''));
+  const msg = el('p','gMsg','사범님이 낸 손을 보고 "이겨요 · 져요 · 비겨요" 말씀대로 내요! 틀리면 1초 줄어요');
+  const btn = el('button','big','시작');
+  body.append(stat, sb, order, btns, msg, btn);
+  let on = false, n = 0, left = 20, sh = 0, want = 'win', tick = null, lock = false;
+  const OD = {win:'이겨요!', lose:'져요!', draw:'비겨요!'};
+  function next(){
+    sh = Math.floor(Math.random() * 3);
+    const r = Math.random(); want = n < 3 ? 'win' : r < .45 ? 'win' : r < .8 ? 'lose' : 'draw';
+    $('rpS').textContent = H[sh]; const o = $('rpO'); o.textContent = OD[want]; o.className = 'rpsOrder ' + want;
+  }
+  /* 바위(0)는 가위(1)를, 가위(1)는 보(2)를, 보(2)는 바위(0)를 이김 */
+  const answer = () => want === 'draw' ? sh : want === 'win' ? (sh + 2) % 3 : (sh + 1) % 3;
+  btns.querySelectorAll('button').forEach(b => b.addEventListener('pointerdown', e => {
+    e.preventDefault(); audio(); if(!on || lock) return;
+    const h = +b.dataset.h;
+    if(h === answer()){ n++; sfx.tick(); $('rpN').textContent = '맞힌 수 ' + n; msg.textContent = ['좋아요!','빠르다!','정확해요!','멋져요!'][n % 4]; next(); }
+    else { sfx.fail(); left = Math.max(0, left - 1); $('rpT').textContent = left + '초'; msg.textContent = '앗! ' + HN[sh] + '에 ' + OD[want].replace('!','') + ' → ' + H[answer()]; lock = true; setTimeout(() => { lock = false; if(on) next(); }, 600); if(left <= 0) end(); }
+  }));
+  function stop(){ on = false; clearInterval(tick); }
+  function end(){
+    if(!on) return; stop(); btn.style.visibility = ''; btn.textContent = '다시 하기';
+    $('rpS').textContent = '🥋'; $('rpO').textContent = '그만!'; $('rpO').className = 'rpsOrder';
+    let m = n + '개 맞혔어요!';
+    if(n > (S.bestRps || 0)){ S.bestRps = n; m = '새 기록! ' + m; }
+    const st = Math.min(3, Math.floor(n / 6));
+    if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
+    msg.textContent = m;
+  }
+  btn.onclick = () => {
+    audio(); if(on) return;
+    n = 0; left = 20; on = true; lock = false; $('rpN').textContent = '맞힌 수 0'; $('rpT').textContent = '20초';
+    btn.style.visibility = 'hidden'; msg.textContent = '시작!'; next();
+    tick = setInterval(() => { left--; $('rpT').textContent = left + '초'; if(left <= 0) end(); }, 1000);
   };
   return stop;
 }
