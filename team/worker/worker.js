@@ -288,7 +288,7 @@ async function route(path, req, env, ctx) {
     }
     if (path === '/sync/shop-list' || path === '/sync/shop-order' || path === '/sync/shop-cancel') { // 🛍 제자 앱 포인트 상점 (2026-11-27)
       const name = str(b.name, 20); if (!name) return json({ ok: false, error: '제자를 찾지 못했어요' });
-      if (path === '/sync/shop-order') { if (kstDay() < '2026-11-30') return json({ ok: false, error: '포인트 상점은 11월 30일(월)부터 열려요' });
+      if (path === '/sync/shop-order') { // 2026-11-28: 날짜 막기 뺌 — 제자 앱에서 '준비 중' 열쇠로 막음
         const it = (await shopItems(env)).find(x => x.id === (+b.item || 0)); if (!it) return json({ ok: false, error: '지금은 살 수 없는 물건이에요' });
         if (it.left <= 0) return json({ ok: false, error: '이번 달 물건이 다 나갔어요. 다음 달 1일에 다시 채워져요' });
         if (it.price > await mileBal(env, name)) return json({ ok: false, error: '포인트가 모자라요' });
