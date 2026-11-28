@@ -1184,7 +1184,7 @@ async function kidQr(env, name) { // 제자마다 내 출석 QR (2026-11-14) —
   let q = await kvj(env, 'kqr:' + name); if (q) return q;
   q = 'HRK1-' + rid(6).toUpperCase(); await run(env, 'INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING', 'kqr:' + name, JSON.stringify(q)); return (await kvj(env, 'kqr:' + name)) || q;
 }
-const GAME_DIR = { rope: 1, tg: -1, brk: 1, belt: -1, whack: 1, mem: -1, quiz: 1, run: -1, tg2: -1, tg3: -1, tg4: -1, tg5: -1, tg6: -1, tg7: -1, tg8: -1, bag: 1, ruler: -1 }; // 2026-11-20: 샌드백 치기(20초 횟수) · 자를 잡아라(평균 반응 ms) // 2026-11-19: 왕복달리기(0.1초) · 태극 2~8장(틀린 수) // 🎮 놀이터 기록: 1 = 클수록 좋음, -1 = 작을수록 좋음 (태극 1장 틀린 수 · 띠 순서 0.1초 · 짝 맞추기 횟수)
+const GAME_DIR = { rope: 1, tg: -1, brk: 1, belt: -1, whack: 1, mem: -1, quiz: 1, run: -1, tg2: -1, tg3: -1, tg4: -1, tg5: -1, tg6: -1, tg7: -1, tg8: -1, bag: 1, ruler: -1, kyo: 1, rps: 1 }; /* 2026-11-28: 겨루기·가위바위보 점수 순위 */ // 2026-11-20: 샌드백 치기(20초 횟수) · 자를 잡아라(평균 반응 ms) // 2026-11-19: 왕복달리기(0.1초) · 태극 2~8장(틀린 수) // 🎮 놀이터 기록: 1 = 클수록 좋음, -1 = 작을수록 좋음 (태극 1장 틀린 수 · 띠 순서 0.1초 · 짝 맞추기 횟수)
 const KCODE_TTL = 5 * 60000; // 제자 코드 = 숫자 6자리, 5분 안에 한 번만 (2026-11-15)
 // 직원 시험용 제자 앱 이름 (2026-11-18) — 2026-11-25부터 제자와 똑같이 일회용 코드 (업무 앱 제자 코드에서 만듦)
 const KSTAFF = ['김사범님', '이사범님', '한코치님'];
