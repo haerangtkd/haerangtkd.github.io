@@ -351,26 +351,56 @@
   .ghd{position:relative}.ghd>*{position:relative;z-index:1}.ghd>#gsp{position:absolute;inset:-8px -6px -4px;z-index:0;pointer-events:none;overflow:hidden}#gsp i{position:absolute;font-style:normal;color:#F7E08A;text-shadow:0 0 8px rgba(247,224,138,.9);opacity:0;animation:gtw 3s ease-in-out infinite}
   @keyframes gtw{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:.95;transform:scale(1) rotate(45deg)}}
   @media (prefers-reduced-motion:reduce){.vfame .hi b,.gmq div,.vfame #body .card::after,#gsp i{animation:none}#gsp{display:none}}
-  /* 🛍 포인트 상점 — 쇼핑몰처럼 (2026-11-27) */
-  .sp{padding-bottom:30px}.sph{padding:18px 4px 6px}.sph h2{margin:0;font-size:30px;line-height:1.25;font-weight:900;letter-spacing:-.5px}.sph p{margin:8px 0 0;color:var(--muted);font-size:14px}.sph p b{color:#FF6B6F}
-  .spb{display:flex;align-items:center;gap:8px;margin-top:14px}.spb span{display:inline-flex;align-items:center;gap:6px;background:#1E1E21;border:1px solid #2E2E32;border-radius:999px;padding:7px 14px 7px 8px;font-size:18px;font-weight:900}.spb span i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-style:normal;font-size:12px}.spb span small{font-size:12px;color:var(--muted);font-weight:700}
-  .spb button{margin-left:auto;border:0;background:transparent;color:var(--muted);font-size:13px;text-decoration:underline;padding:6px}
-  .spc{display:flex;gap:7px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}.spc::-webkit-scrollbar{display:none}.spc button{flex:none;border:0;background:#232326;color:#C9C4BF;border-radius:8px;padding:8px 13px;font-size:14px;font-weight:700}.spc button.on{background:var(--acc);color:#fff}
-  .spt{display:flex;align-items:baseline;justify-content:space-between;margin:18px 0 10px;font-size:19px}.spt small{font-size:12px;color:var(--muted);font-weight:500}
-  .spg{display:grid;grid-template-columns:1fr 1fr;gap:18px 10px}.spi{border:0;background:transparent;color:inherit;text-align:left;padding:0;display:flex;flex-direction:column;min-width:0}
-  .spp{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:linear-gradient(160deg,#26262A,#17171A);display:grid;place-items:center}.spp img{width:100%;height:100%;object-fit:cover;display:block}.spe{font-size:64px}.spe.b{font-size:110px}
-  .spp.sm{width:54px;flex:none;border-radius:6px}.spp.sm .spe{font-size:28px}
-  .spl{position:absolute;left:6px;bottom:6px;background:var(--acc);color:#fff;font-style:normal;font-size:11px;font-weight:800;border-radius:4px;padding:3px 6px}
-  .spx{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;font-style:normal;font-size:18px;font-weight:900;letter-spacing:2px}.spi.so .spn,.spi.so .spr{opacity:.45}
-  .spk{display:block;margin-top:8px;color:var(--ink);font-size:12.5px;font-weight:800}.spn{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;font-weight:500;line-height:1.35;margin-top:2px;color:#D9D4CF}
-  .spr{display:block;margin-top:3px;color:#FF6B6F;font-size:16px;font-weight:900}.spr.lg{font-size:24px;margin-top:4px}
-  .sps{align-self:flex-start;margin-top:6px;background:rgba(229,72,77,.14);color:#FF8A8D;font-size:11.5px;font-weight:700;border-radius:4px;padding:3px 6px}.sps.nw{background:rgba(227,179,65,.16);color:var(--gold)}
-  .spo{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #232326}.spod{flex:1;min-width:0}.spod b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spod small{color:var(--muted);font-size:12px}
-  .spo .sos{margin-right:4px;font-style:normal;font-size:12.5px;font-weight:800;white-space:nowrap}.spo .sos.w{color:#F5B700}.spo .sos.d{color:#3CB371}.spo .sos.c{color:#77777C}
-  .spo button{border:1px solid #444;background:transparent;color:var(--muted);border-radius:7px;padding:5px 8px;font-size:12px}
-  .spd .spp{border-radius:12px;margin-bottom:4px}.spd h3{margin:4px 0 0;font-size:20px}.spi2{color:#C9C4BF;font-size:14.5px;line-height:1.6;margin:10px 0 0}
-  .spm{display:grid;grid-template-columns:1fr auto;gap:7px 10px;margin:14px 0 4px;padding:12px 14px;background:#1E1E21;border-radius:12px;font-size:14px}.spm span{color:var(--muted)}.spm b{text-align:right}.spm b.neg{color:#FF6B6F}
-  .spq{width:100%;margin-top:10px;background:transparent;border:0;color:var(--muted);font-size:15px;padding:8px}
+  /* 🛍 포인트 상점 — 카카오톡 선물하기처럼 밝은 화면 (2026-11-28) */
+  .ksh{position:fixed;inset:0;z-index:300;background:#fff;color:#111;display:flex;flex-direction:column;font-family:inherit}
+  .ksh button{font-family:inherit;cursor:pointer}
+  .ksh .kh{flex:none;display:flex;align-items:center;gap:4px;height:52px;padding:0 8px;padding-top:env(safe-area-inset-top);background:#fff;border-bottom:1px solid #f0f0f0}
+  .ksh .kh h1{flex:1;margin:0;text-align:center;font-size:17px;font-weight:800;color:#111}
+  .ksh .kh>button{width:40px;height:40px;border:0;background:transparent;font-size:24px;color:#222;line-height:1}
+  .ksh .kh.ks{gap:8px;padding:8px 12px}.ksh .kh.ks input{flex:1;height:38px;border:0;border-radius:8px;background:#f3f3f3;padding:0 12px;font-size:15px;color:#111;outline:0}.ksh .kh.ks button{width:auto;font-size:15px;color:#333}
+  .ksh .ktb{flex:none;display:flex;gap:22px;padding:0 18px;border-bottom:1px solid #eee;background:#fff}
+  .ksh .ktb button{border:0;background:transparent;padding:12px 0 10px;font-size:15.5px;font-weight:700;color:#999;border-bottom:2.5px solid transparent}.ksh .ktb button.on{color:#111;border-bottom-color:#111}
+  .ksh .kbd{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 120px}
+  .ksh .kpt{display:flex;align-items:center;gap:12px;margin:16px 0 4px;padding:14px 16px;border-radius:14px;background:#f7f7f7}
+  .ksh .kpi{width:30px;height:30px;border-radius:50%;background:#A40F16;color:#fff;display:grid;place-items:center;font-weight:900;font-size:15px;flex:none}
+  .ksh .kpt small{display:block;color:#888;font-size:12px}.ksh .kpt b{font-size:18px;font-weight:900}
+  .ksh .kpt button{margin-left:auto;border:0;background:#fff;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:700;color:#A40F16;box-shadow:0 0 0 1px #eee}
+  .ksh .kci{display:grid;grid-template-columns:repeat(5,1fr);gap:16px 6px;margin:20px 0 6px}
+  .ksh .kci button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12.5px;color:#333;padding:0}
+  .ksh .kci span{width:52px;height:52px;border-radius:50%;background:#f4f2ef;display:grid;place-items:center;font-size:26px;overflow:hidden}.ksh .kci span img{width:100%;height:100%;object-fit:cover}
+  .ksh .kt{margin:26px 0 12px;font-size:18px;font-weight:800;color:#111}
+  .ksh .kr{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}.ksh .kr::-webkit-scrollbar{display:none}.ksh .kr .kc{flex:0 0 31%}
+  .ksh .kch{display:flex;gap:7px;overflow-x:auto;margin:0 -16px 14px;padding:0 16px;scrollbar-width:none}.ksh .kch::-webkit-scrollbar{display:none}.ksh .kch.top{margin-top:14px}
+  .ksh .kch button{flex:none;border:1px solid #e3e3e3;background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;color:#333}.ksh .kch button.on{background:#111;border-color:#111;color:#fff;font-weight:700}
+  .ksh .kg{display:grid;grid-template-columns:1fr 1fr;gap:22px 10px}
+  .ksh .kc{border:0;background:transparent;padding:0;text-align:left;display:flex;flex-direction:column;min-width:0;color:#111}
+  .ksh .kp{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#f6f4f1;display:grid;place-items:center}
+  .ksh .kp img{width:100%;height:100%;object-fit:cover;display:block}.ksh .kp .ke{font-size:56px}.ksh .kp.lg{border-radius:0;margin:0 -16px}.ksh .kp.lg .ke{font-size:120px}.ksh .kp.sm{width:60px;flex:none;border-radius:8px}.ksh .kp.sm .ke{font-size:28px}
+  .ksh .kl{position:absolute;left:6px;top:6px;background:#A40F16;color:#fff;font-size:11px;font-weight:800;border-radius:4px;padding:3px 6px}
+  .ksh .kx{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.62);color:#555;font-size:14px;font-weight:800}
+  .ksh .kc.so .kn,.ksh .kc.so .kw{color:#aaa}
+  .ksh .kb{display:block;margin-top:8px;font-size:12.5px;font-weight:700;color:#333}
+  .ksh .kn{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:3px;font-size:13.5px;line-height:1.4;color:#444}
+  .ksh .kw{display:block;margin-top:5px;font-size:15.5px;font-weight:800;color:#111}.ksh .kw.lg{font-size:24px;margin-top:8px}
+  .ksh .kc2{margin:6px 0 14px;font-size:13.5px;color:#777}
+  .ksh .kz{padding:70px 0;text-align:center;color:#999;font-size:14.5px}
+  .ksh .kft{margin:34px 0 0;padding:16px;border-radius:12px;background:#f7f7f7;color:#777;font-size:12.5px;line-height:1.7;text-align:center}.ksh .kft b{color:#A40F16}
+  .ksh .kol{margin-top:6px}.ksh .ko{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #f0f0f0}
+  .ksh .kod{flex:1;min-width:0}.ksh .kod b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}.ksh .kod small{color:#888;font-size:12.5px}
+  .ksh .sos{font-size:12.5px;font-weight:800}.ksh .sos.w{color:#A40F16}.ksh .sos.d{color:#1E8E4E}.ksh .sos.c{color:#999}
+  .ksh .ko button{flex:none;border:1px solid #ddd;background:#fff;border-radius:8px;padding:7px 10px;font-size:12.5px;color:#555}
+  .ksh .kdi{padding:18px 0 4px}.ksh .kdi h2{margin:6px 0 0;font-size:19px;font-weight:600;line-height:1.4;color:#111}
+  .ksh .kinfo{display:grid;grid-template-columns:76px 1fr;gap:12px 10px;margin:18px 0 0;padding:18px 0;border-top:8px solid #f5f5f5;font-size:14px}
+  .ksh .kinfo dt{color:#888}.ksh .kinfo dd{margin:0;color:#222}.ksh .kinfo b{color:#A40F16}.ksh .kinfo em{font-style:normal;color:#A40F16;font-weight:700}
+  .ksh .kdesc{border-top:8px solid #f5f5f5;margin:0 -16px;padding:18px 16px}.ksh .kdesc h3{margin:0 0 8px;font-size:16px}.ksh .kdesc p{margin:0;font-size:14.5px;line-height:1.7;color:#333}
+  .ksh .kbar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #eee}
+  .ksh .kbar small{display:block;font-size:11.5px;color:#888}.ksh .kbar b{font-size:15px}
+  .ksh .kbar button{flex:1;height:50px;border:0;border-radius:10px;background:#A40F16;color:#fff;font-size:16.5px;font-weight:800}.ksh .kbar button.off{background:#e8e8e8;color:#999}
+  .ksh .kmo{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;z-index:5}
+  .ksh .kmb{width:100%;background:#fff;border-radius:18px 18px 0 0;padding:22px 18px calc(18px + env(safe-area-inset-bottom));text-align:center}
+  .ksh .kmi{display:flex;align-items:center;gap:12px;text-align:left;padding-bottom:14px;border-bottom:1px solid #f0f0f0}.ksh .kmi b{display:block;font-size:15px}.ksh .kmi small{color:#666}
+  .ksh .kmt{margin:16px 0 6px;font-size:17px;font-weight:800;line-height:1.5}.ksh .kms{margin:0 0 16px;color:#777;font-size:13.5px}
+  .ksh .kmr{display:flex;gap:8px}.ksh .kbt{flex:1;width:100%;height:50px;border:0;border-radius:10px;background:#A40F16;color:#fff;font-size:16px;font-weight:800;margin-top:6px}.ksh .kbt.g{background:#f0f0f0;color:#333}
 </style>
 </head>
 <body>
@@ -728,14 +758,14 @@
     const draw = el => { const since = (() => { const d = new Date(D.today + 'T00:00:00Z'); if (per === 1) return D.today.slice(0, 8) + '01'; d.setUTCMonth(d.getUTCMonth() - per); return d.toISOString().slice(0, 10); })();
       const L = (M.list || []).filter(x => (f === 'all' || (f === 'earn' ? x.amt > 0 : x.amt < 0)) && new Date(x.at + 9 * 3600e3).toISOString().slice(0, 10) >= since);
       el.querySelector('.pgb').innerHTML = '<section class="mlc"><span class="tg">보유 포인트</span><div class="mb2"><i>P</i>' + (+M.bal).toLocaleString() + '<small>원</small></div><div class="ac"><span>누적 적립</span><b>' + (+M.earn).toLocaleString() + '</b><span>누적 사용</span><b>' + (+M.used).toLocaleString() + '</b></div>' +
-        '<div class="hb"><button data-how="get">포인트 받는 방법 ›</button><button data-how="use">포인트 쓰는 방법 ›</button></div>' + (shopOpen() ? '<button class="big" data-shop style="width:100%;max-width:none;margin-top:12px;font-size:18px;padding:13px">🛍 포인트 상점 ›</button>' : '') + '</section>' +
+        '<div class="hb"><button data-how="get">포인트 받는 방법 ›</button><button data-how="use">포인트 쓰는 방법 ›</button></div>' + '<button class="big" data-shop style="width:100%;max-width:none;margin-top:12px;font-size:18px;padding:13px">🛍 포인트 상점' + (shopOpen() ? ' ›' : ' <small style="font-size:13px;opacity:.75">준비 중</small>') + '</button>' + '</section>' +
         '<h3 class="dh">상세 조회</h3><div class="fb">' + [['all', '전체'], ['earn', '적립'], ['use', '사용']].map(([k, t]) => '<button data-f="' + k + '" class="' + (f === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
         '<div class="pc">' + [[1, '이번 달'], [3, '3개월'], [6, '6개월'], [12, '1년']].map(([k, t]) => '<button data-p="' + k + '" class="' + (per === k ? 'on' : '') + '">' + t + '</button>').join('') + '</div>' +
         (L.length ? L.map(x => { const d = new Date(x.at + 9 * 3600e3); return '<div class="ml"><div><b>' + (x.kind === 'shop' ? '상점 주문' : x.kind === 'refund' ? '주문 취소 · 돌려받음' : x.amt > 0 ? '상점 ' + x.n + '개 적립' : '포인트 사용') + '</b><small>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + (x.memo ? ' · ' + esc(x.memo) : '') + '</small></div><em class="' + (x.amt > 0 ? 'p' : 'm') + '">' + (x.amt > 0 ? '+' : '') + x.amt.toLocaleString() + '</em></div>'; }).join('') : '<div class="empty" style="padding:40px 0">내역이 없어요</div>'); };
     const el = page('나의 포인트', '<div class="empty">불러오는 중…</div>', (e, el) => {
       const fb = e.target.closest('[data-f]'); if (fb) { f = fb.dataset.f; return draw(el); }
       const pb = e.target.closest('[data-p]'); if (pb) { per = +pb.dataset.p; return draw(el); }
-      if (e.target.closest('[data-shop]')) return shopPage(async () => { const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el); });
+      if (e.target.closest('[data-shop]')) return shopGate(() => shopPage(async () => { const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el); }));
       const hw = e.target.closest('[data-how]'); if (hw) sheet(hw.dataset.how === 'get' ? '<h3>💰 포인트 받는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">도장에서 받은 <b>상점(스티커)</b>을 모아서 사범님께 가져가요.<br>상점 <b>1개 = 100원</b>으로 바꿔 줘요.<br>상점은 <b>10개 이상</b> 모아야 바꿔 줘요.<br>사범님이 <b>내 출석 QR</b>을 찍으면 바로 쌓여요!</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>' : !shopOpen() ? '<h3>🛍 포인트 쓰는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8">사범님께 <b>내 출석 QR</b>을 보여 주면<br>모은 포인트만큼 쓸 수 있어요.<br>쓰면 이 앱에 바로 알림이 와요.</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>' : '<h3>🛍 포인트 쓰는 방법</h3><p class="sub" style="font-size:16px;line-height:1.8"><b>포인트 상점</b>에서 언제든 주문할 수 있어요.<br>주문한 물건은 <b>금요일</b>에 한꺼번에 받아요.<br>물건은 한 달 개수가 정해져 있고<br>매달 1일에 다시 채워져요.</p><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>');
     });
     const j = await post('/k/mile'); if (j.ok) { M = j; D.mile = j.bal; } draw(el);
@@ -1041,38 +1071,89 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
   }
   // ── 아래에서 올라오는 창 ──
   function sheet(html, onClick) { const el = document.createElement('div'); el.className = 'sheet'; el.innerHTML = '<div class="box">' + html + '</div>'; el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) return el.remove(); onClick && onClick(e, el); }; document.body.appendChild(el); return el; }
-  const shopOpen = () => (D && D.today || '') >= '2026-11-30'; // 2026-11-27 사용자: 상점은 11/30(월)부터 보이게
-  // ── 🛍 포인트 상점 (2026-11-27): 쇼핑몰처럼 — 큰 제목 · 분류 칩 · 사진 카드(2칸) · 판매 수 · 물건 상세 → 주문 / 금요일에 한꺼번에 받기 ──
+  // 🛍 2026-11-28 사용자: 상점은 '준비 중' — 시험하는 직원만 비밀 열쇠로 들어감 (제자들이 못 들어오게 하는 용도). 다 열 때는 SHOP_LIVE = true
+  const SHOP_LIVE = false, SHOP_KEY = '8224ce1f3b455f582f7cd23f2b123ef533be0aa3935c8f652994c2d6924ef83f'; // 열쇠 글자는 적지 않고 지문(SHA-256)만
+  const shopOpen = () => SHOP_LIVE;
+  async function shopGate(open) {
+    let ok = SHOP_LIVE; try { ok = ok || localStorage.getItem('haerang-shop-test') === SHOP_KEY; } catch (_) {}
+    if (ok) return open();
+    sheet('<h3>🛍 포인트 상점은 준비 중이에요</h3><p class="sub" style="font-size:15px;line-height:1.7">곧 열려요! 조금만 기다려 주세요.</p><input id="spw" type="password" placeholder="시험용 열쇠" autocomplete="off" style="width:100%;box-sizing:border-box;margin:6px 0 10px;padding:12px;border-radius:10px;border:1px solid #444;background:#1E1E21;color:#fff;font-size:16px"><button class="big" data-ok style="width:100%;max-width:none">들어가기</button><button data-x style="width:100%;margin-top:10px;background:transparent;border:0;color:var(--muted);font-size:15px;padding:8px">닫기</button>',
+      async (e, sh) => { if (!e.target.closest('[data-ok]')) return; const v = sh.querySelector('#spw').value;
+        const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)))].map(b => b.toString(16).padStart(2, '0')).join('');
+        if (h !== SHOP_KEY) { sh.querySelector('#spw').value = ''; sh.querySelector('#spw').placeholder = '열쇠가 달라요'; return; }
+        try { localStorage.setItem('haerang-shop-test', SHOP_KEY); } catch (_) {} sh.remove(); open(); });
+  }
+  // ── 🛍 포인트 상점 (2026-11-28 사용자: 카카오톡 선물하기 같은 화면 — 할인·랭킹·후기는 빼고) ──
+  //    밝은 전체 화면 · 위 탭(홈/분류/내 주문) · 분류 동그라미 · 추천 가로줄 · 가격대 칩 · 2칸 카드 · 검색 · 상세 화면(아래 고정 주문 버튼) · 주문은 언제든, 금요일에 받기
   async function shopPage(after) {
-    let S = null, cat = '전체'; const won = n => (+n).toLocaleString() + '원';
+    let S = null, tab = 'home', cat = '', price = 0, q = '', cur = null, busy = false;
+    const won = n => (+n).toLocaleString() + '원';
+    const PR = [['전체', 0, 1e9], ['1천원 이하', 0, 1000], ['1천~5천원', 1001, 5000], ['5천~1만원', 5001, 10000], ['1만원 넘게', 10001, 1e9]];
     const ST = { wait: ['금요일에 받아요', 'w'], done: ['받았어요', 'd'], cancel: ['취소됐어요', 'c'] };
-    const pic = (x, big) => x.img ? '<img src="' + esc(x.img) + '" alt="">' : '<span class="spe' + (big ? ' b' : '') + '">' + esc(x.emoji || '🎁') + '</span>';
-    const draw = el => { if (!S) return; const cats = ['전체', ...new Set(S.items.map(x => x.cat).filter(Boolean))]; if (!cats.includes(cat)) cat = '전체';
-      const L = S.items.filter(x => cat === '전체' || x.cat === cat), wait = S.orders.filter(o => o.status === 'wait').length;
-      el.querySelector('.pgb').innerHTML = '<div class="sp">' +
-        '<section class="sph"><h2>해랑경희<br>포인트 상점</h2><p>주문은 언제든, 물건은 <b>금요일</b>에 받아요</p><div class="spb"><span><i>P</i>' + (+S.bal).toLocaleString() + '<small>원</small></span>' + (wait ? '<button data-myo>주문 ' + wait + '개 ›</button>' : '') + '</div></section>' +
-        '<div class="spc">' + cats.map(c => '<button data-cat="' + esc(c) + '" class="' + (c === cat ? 'on' : '') + '">' + esc(c) + '</button>').join('') + '</div>' +
-        '<h3 class="spt">이번 달 물건<small>매달 1일에 다시 채워져요</small></h3>' +
-        (L.length ? '<div class="spg">' + L.map(x => '<button class="spi' + (x.left > 0 ? '' : ' so') + '" data-it="' + x.id + '"><div class="spp">' + pic(x) + (x.left > 0 ? (x.left <= 3 ? '<span class="spl">' + x.left + '개 남음</span>' : '') : '<span class="spx">품절</span>') + '</div>' +
-          '<small class="spk">' + esc(x.cat || '해랑경희') + '</small><b class="spn">' + esc(x.name) + '</b><strong class="spr">' + won(x.price) + '</strong>' + (x.sold ? '<span class="sps">' + x.sold + '개 판매</span>' : '<span class="sps nw">새 물건</span>') + '</button>').join('') + '</div>' : '<div class="empty" style="padding:40px 0">아직 물건이 없어요</div>') +
-        '<h3 class="spt" id="spMy">내 주문</h3>' + (S.orders.length ? S.orders.map(o => { const d = new Date(o.at + 9 * 3600e3), t = ST[o.status] || ST.wait, it = S.items.find(i => i.id === o.item) || o; return '<div class="spo"><div class="spp sm">' + pic(it) + '</div><div class="spod"><b>' + esc(o.iname) + '</b><small>' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + ' · ' + won(o.price) + '</small></div><span class="sos ' + t[1] + '">' + t[0] + '</span>' + (o.status === 'wait' ? '<button data-oc="' + o.id + '">취소</button>' : '') + '</div>'; }).join('') : '<div class="empty" style="padding:24px 0">주문한 물건이 없어요</div>') + '</div>'; };
-    const say = t => sheet('<h3>' + t + '</h3><button class="big" data-x style="width:100%;max-width:none">알겠어요</button>');
-    let el = null;
-    const go = async (path, body) => { const j = await post(path, body); if (!j.ok) { say(j.error || '잠시 뒤에 다시 해 주세요'); return false; } S = j; D.mile = j.bal; draw(el); return true; };
-    const detail = x => { const can = x.left > 0 && S.bal >= x.price;
-      sheet('<div class="spd"><div class="spp">' + pic(x, true) + '</div><small class="spk">' + esc(x.cat || '해랑경희') + '</small><h3>' + esc(x.name) + '</h3><strong class="spr lg">' + won(x.price) + '</strong>' +
-        (x.info ? '<p class="spi2">' + esc(x.info).replace(/\n/g, '<br>') + '</p>' : '') +
-        '<div class="spm"><span>이번 달 남은 개수</span><b>' + (x.left > 0 ? x.left + '개' : '품절') + '</b><span>내 포인트</span><b>' + won(S.bal) + '</b>' + (x.left > 0 ? '<span>주문 뒤 남는 포인트</span><b' + (can ? '' : ' class="neg"') + '>' + (can ? won(S.bal - x.price) : won(x.price - S.bal) + ' 모자라요') + '</b>' : '') + '<span>받는 날</span><b>금요일</b></div>' +
-        '<button class="big" data-ok style="width:100%;max-width:none' + (can ? '' : ';opacity:.35') + '">' + (x.left <= 0 ? '이번 달 품절이에요' : can ? won(x.price) + ' 주문하기' : '포인트가 모자라요') + '</button><button data-x class="spq">닫기</button></div>',
-        async (e2, sh) => { if (!e2.target.closest('[data-ok]') || !can) return; sh.remove(); if (await go('/k/shop-order', { item: x.id })) say('주문했어요! 금요일에 받아요 🎁'); }); };
-    el = page('포인트 상점', '<div class="empty">불러오는 중…</div>', e => {
-      const c0 = e.target.closest('[data-cat]'); if (c0) { cat = c0.dataset.cat; return draw(el); }
-      if (e.target.closest('[data-myo]')) { const m = el.querySelector('#spMy'); return m && m.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-      const b = e.target.closest('[data-it]'); if (b) { const x = S && S.items.find(i => i.id === +b.dataset.it); if (x) detail(x); return; }
-      const c = e.target.closest('[data-oc]'); if (c) return sheet('<h3>주문을 취소할까요?</h3><p class="sub" style="font-size:16px">쓴 포인트는 바로 돌려받아요.</p><button class="big" data-ok style="width:100%;max-width:none">취소하기</button><button data-x class="spq">그대로 두기</button>', async (e2, sh) => { if (!e2.target.closest('[data-ok]')) return; sh.remove(); if (await go('/k/shop-cancel', { id: +c.dataset.oc })) say('취소했어요. 포인트를 돌려받았어요'); });
+    const pic = x => x.img ? '<img src="' + esc(x.img) + '" alt="">' : '<span class="ke">' + esc(x.emoji || '🎁') + '</span>';
+    const card = x => '<button class="kc' + (x.left > 0 ? '' : ' so') + '" data-it="' + x.id + '"><div class="kp">' + pic(x) + (x.left > 0 ? (x.left <= 3 ? '<span class="kl">' + x.left + '개 남음</span>' : '') : '<span class="kx">이번 달 품절</span>') + '</div>' +
+      '<small class="kb">' + esc(x.cat || '해랑경희') + ' ›</small><span class="kn">' + esc(x.name) + '</span><b class="kw">' + won(x.price) + '</b></button>';
+    const grid = L => L.length ? '<div class="kg">' + L.map(card).join('') + '</div>' : '<div class="kz">해당하는 물건이 없어요</div>';
+    const root = document.createElement('div'); root.className = 'ksh'; document.body.appendChild(root);
+    const close = () => { root.remove(); after && after(); };
+    const modal = (html, onOk) => { const m = document.createElement('div'); m.className = 'kmo'; m.innerHTML = '<div class="kmb">' + html + '</div>'; root.appendChild(m);
+      m.onclick = async e => { if (e.target === m || e.target.closest('[data-mx]')) return m.remove(); if (e.target.closest('[data-mok]') && onOk) { m.remove(); await onOk(); } }; };
+    const say = t => modal('<p class="kmt">' + t + '</p><button class="kbt" data-mx>확인</button>');
+    const go = async (path, body) => { if (busy) return false; busy = true; const j = await post(path, body); busy = false; if (!j.ok) { say(esc(j.error || '잠시 뒤에 다시 해 주세요')); return false; } S = j; D.mile = j.bal; draw(); return true; };
+    const head = (title, back) => '<header class="kh"><button data-' + back + ' aria-label="뒤로">‹</button><h1>' + title + '</h1><button data-sr aria-label="찾기">⌕</button><button data-cl aria-label="닫기">✕</button></header>';
+    const draw = () => {
+      if (!S) { root.innerHTML = head('포인트 상점', 'cl') + '<div class="kz">불러오는 중…</div>'; return; }
+      const items = S.items, cats = [...new Set(items.map(x => x.cat).filter(Boolean))], wait = S.orders.filter(o => o.status === 'wait').length;
+      if (cur) { const x = items.find(i => i.id === cur) || null; if (!x) cur = null; else return drawItem(x); }
+      let body = '';
+      if (tab === 'search') { // 글자 칠 때마다 결과 칸만 다시 그림 (한글 입력이 끊기지 않게)
+        if (!root.querySelector('#kq')) { root.innerHTML = '<header class="kh ks"><input id="kq" placeholder="물건 이름을 적어 보세요" autocomplete="off"><button data-sx>취소</button></header><div class="kbd"></div>';
+          const inp = root.querySelector('#kq'); inp.value = q; inp.focus(); inp.oninput = () => { q = inp.value.trim(); draw(); }; }
+        const L = q ? items.filter(x => (x.name + ' ' + (x.cat || '')).includes(q)) : [];
+        root.querySelector('.kbd').innerHTML = q ? '<p class="kc2">찾은 물건 ' + L.length + '개</p>' + grid(L) : '<div class="kz">찾고 싶은 물건 이름을 적어 보세요</div>'; return;
+      }
+      if (tab === 'home') {
+        const rec = items.filter(x => x.left > 0).slice().sort((a, b) => b.id - a.id).slice(0, 8), pr = PR[price];
+        body = '<div class="kpt"><span class="kpi">P</span><div><small>내 포인트</small><b>' + won(S.bal) + '</b></div>' + (wait ? '<button data-tab="my">받을 물건 ' + wait + '개 ›</button>' : '') + '</div>' +
+          (cats.length ? '<div class="kci">' + cats.map(c => { const f = items.find(x => x.cat === c); return '<button data-cat="' + esc(c) + '"><span>' + (f && f.img ? '<img src="' + esc(f.img) + '" alt="">' : esc((f && f.emoji) || '🎁')) + '</span>' + esc(c) + '</button>'; }).join('') + '</div>' : '') +
+          (rec.length ? '<h2 class="kt">이번 달 새로 들어온 물건</h2><div class="kr">' + rec.map(card).join('') + '</div>' : '') +
+          '<h2 class="kt">가격대별로 보기</h2><div class="kch">' + PR.map((p, i) => '<button data-pr="' + i + '" class="' + (i === price ? 'on' : '') + '">' + p[0] + '</button>').join('') + '</div>' +
+          grid(items.filter(x => x.price >= pr[1] && x.price <= pr[2])) + '<p class="kft">주문은 언제든 할 수 있고, 물건은 <b>금요일</b>에 한꺼번에 받아요.<br>물건 개수는 매달 1일에 다시 채워져요.</p>';
+      } else if (tab === 'cat') {
+        const L = items.filter(x => !cat || x.cat === cat);
+        body = '<div class="kch top">' + ['', ...cats].map(c => '<button data-cat2="' + esc(c) + '" class="' + (c === cat ? 'on' : '') + '">' + (c ? esc(c) : '전체') + '</button>').join('') + '</div><p class="kc2">물건 ' + L.length + '개</p>' + grid(L);
+      } else {
+        body = S.orders.length ? '<div class="kol">' + S.orders.map(o => { const d = new Date(o.at + 9 * 3600e3), t = ST[o.status] || ST.wait, it = items.find(i => i.id === o.item) || o;
+          return '<div class="ko"><div class="kp sm">' + pic(it) + '</div><div class="kod"><span class="sos ' + t[1] + '">' + t[0] + '</span><b>' + esc(o.iname) + '</b><small>' + (d.getUTCMonth() + 1) + '월 ' + d.getUTCDate() + '일 주문 · ' + won(o.price) + '</small></div>' + (o.status === 'wait' ? '<button data-oc="' + o.id + '">주문 취소</button>' : '') + '</div>'; }).join('') + '</div>' : '<div class="kz">아직 주문한 물건이 없어요</div>';
+      }
+      root.innerHTML = head('포인트 상점', 'cl') + '<nav class="ktb">' + [['home', '홈'], ['cat', '분류'], ['my', '내 주문' + (wait ? ' ' + wait : '')]].map(([k, t]) => '<button data-tab="' + k + '" class="' + (k === tab ? 'on' : '') + '">' + t + '</button>').join('') + '</nav><div class="kbd">' + body + '</div>';
+    };
+    const drawItem = x => { const can = x.left > 0 && S.bal >= x.price;
+      root.innerHTML = head('포인트 상점', 'bk') + '<div class="kbd kdt"><div class="kp lg">' + pic(x) + '</div><div class="kdi"><small class="kb">' + esc(x.cat || '해랑경희') + ' ›</small><h2>' + esc(x.name) + '</h2><b class="kw lg">' + won(x.price) + '</b></div>' +
+        '<dl class="kinfo"><dt>남은 개수</dt><dd>' + (x.left > 0 ? '이번 달 ' + x.left + '개' : '이번 달 품절 · 1일에 다시 채워져요') + '</dd><dt>받는 날</dt><dd>주문한 주 <b>금요일</b> 도장에서</dd><dt>내 포인트</dt><dd>' + won(S.bal) + (x.left > 0 ? ' → 주문하면 ' + (can ? won(S.bal - x.price) : '<em>' + won(x.price - S.bal) + ' 모자라요</em>') : '') + '</dd></dl>' +
+        (x.info ? '<div class="kdesc"><h3>물건 설명</h3><p>' + esc(x.info).replace(/\n/g, '<br>') + '</p></div>' : '') + '</div>' +
+        '<footer class="kbar"><div><small>내 포인트</small><b>' + won(S.bal) + '</b></div><button data-buy="' + x.id + '"' + (can ? '' : ' class="off"') + '>' + (x.left <= 0 ? '이번 달 품절' : can ? '주문하기' : '포인트가 모자라요') + '</button></footer>';
+      root.querySelector('.kbd').scrollTop = 0; };
+    root.addEventListener('click', e => {
+      const t = e.target;
+      if (t.closest('[data-cl]')) return close();
+      if (t.closest('[data-bk]')) { cur = null; return draw(); }
+      if (t.closest('[data-sr]')) { tab = 'search'; q = ''; cur = null; return draw(); }
+      if (t.closest('[data-sx]')) { tab = 'home'; q = ''; return draw(); }
+      const tb = t.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; return draw(); }
+      const c1 = t.closest('[data-cat]'); if (c1) { tab = 'cat'; cat = c1.dataset.cat; return draw(); }
+      const c2 = t.closest('[data-cat2]'); if (c2) { cat = c2.dataset.cat2; return draw(); }
+      const pr = t.closest('[data-pr]'); if (pr) { price = +pr.dataset.pr; return draw(); }
+      const it = t.closest('[data-it]'); if (it) { cur = +it.dataset.it; return draw(); }
+      const b = t.closest('[data-buy]'); if (b) { const x = S.items.find(i => i.id === +b.dataset.buy); if (!x) return;
+        if (x.left <= 0) return say('이번 달 물건이 다 나갔어요.<br>1일에 다시 채워져요');
+        if (S.bal < x.price) return say('포인트가 ' + won(x.price - S.bal) + ' 모자라요.<br>상점을 더 모아 봐요!');
+        return modal('<div class="kmi"><div class="kp sm">' + pic(x) + '</div><div><b>' + esc(x.name) + '</b><small>' + won(x.price) + '</small></div></div><p class="kmt">이 물건을 주문할까요?</p><p class="kms">남는 포인트 ' + won(S.bal - x.price) + ' · 금요일에 받아요</p><div class="kmr"><button class="kbt g" data-mx>그만두기</button><button class="kbt" data-mok>주문하기</button></div>',
+          async () => { if (await go('/k/shop-order', { item: x.id })) { cur = null; tab = 'my'; draw(); say('주문했어요! 🎁<br>금요일에 도장에서 받아요'); } }); }
+      const oc = t.closest('[data-oc]'); if (oc) return modal('<p class="kmt">주문을 취소할까요?</p><p class="kms">쓴 포인트는 바로 돌려받아요</p><div class="kmr"><button class="kbt g" data-mx>그대로 두기</button><button class="kbt" data-mok>취소하기</button></div>',
+        async () => { if (await go('/k/shop-cancel', { id: +oc.dataset.oc })) say('취소했어요.<br>포인트를 돌려받았어요'); });
     });
-    const back = el.querySelector('[data-back]'); back && back.addEventListener('click', () => after && after());
-    await go('/k/shop');
+    draw(); await go('/k/shop');
   }
   function qrSheet() { sheet('<h3>▦ ' + esc(D.name) + ' 포인트 QR</h3><div class="qrbox">' + (window.qrSvg && D.qr ? qrSvg(D.qr, Math.min(300, innerWidth - 80)) : '<p class="sub">QR을 만들지 못했어요</p>') + '<p class="sub">나만의 포인트 QR이에요. 상점(스티커)을 받을 때 사범님께 보여 주세요.</p></div><button class="big" data-x style="width:100%;max-width:none">닫기</button>'); }
   function textSheet(title, key, max, ph) { // 🎯 내 목표 · ⭐ 선범단 다짐 (제자가 직접)
