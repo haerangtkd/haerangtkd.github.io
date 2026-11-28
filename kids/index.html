@@ -379,7 +379,7 @@
   .ksh .kl{position:absolute;left:6px;top:6px;background:#A40F16;color:#fff;font-size:11px;font-weight:800;border-radius:4px;padding:3px 6px}
   .ksh .kx{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.62);color:#555;font-size:14px;font-weight:800}
   .ksh .kc.so .kn,.ksh .kc.so .kw{color:#aaa}
-  .ksh .kb{display:block;margin-top:8px;font-size:12.5px;font-weight:700;color:#333}
+  .ksh .kb{display:block;margin-top:8px;font-size:12.5px;font-weight:700;color:#333}.ksh .kbl{border:0;background:transparent;padding:6px 8px 6px 0;margin-top:2px;font-size:14px;text-align:left}
   .ksh .kn{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:3px;font-size:13.5px;line-height:1.4;color:#444}
   .ksh .kw{display:block;margin-top:5px;font-size:15.5px;font-weight:800;color:#111}.ksh .kw.lg{font-size:24px;margin-top:8px}
   .ksh .kc2{margin:6px 0 14px;font-size:13.5px;color:#777}
@@ -1129,7 +1129,7 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
       root.innerHTML = head('포인트 상점', 'cl') + '<nav class="ktb">' + [['home', '홈'], ['cat', '분류'], ['my', '내 주문' + (wait ? ' ' + wait : '')]].map(([k, t]) => '<button data-tab="' + k + '" class="' + (k === tab ? 'on' : '') + '">' + t + '</button>').join('') + '</nav><div class="kbd">' + body + '</div>';
     };
     const drawItem = x => { const can = x.left > 0 && S.bal >= x.price;
-      root.innerHTML = head('포인트 상점', 'bk') + '<div class="kbd kdt"><div class="kp lg">' + pic(x) + '</div><div class="kdi"><small class="kb">' + esc(x.cat || '해랑경희') + ' ›</small><h2>' + esc(x.name) + '</h2><b class="kw lg">' + won(x.price) + '</b></div>' +
+      root.innerHTML = head('포인트 상점', 'bk') + '<div class="kbd kdt"><div class="kp lg">' + pic(x) + '</div><div class="kdi">' + (x.cat ? '<button class="kb kbl" data-cat="' + esc(x.cat) + '">' + esc(x.cat) + ' ›</button>' : '<small class="kb">해랑경희</small>') + '<h2>' + esc(x.name) + '</h2><b class="kw lg">' + won(x.price) + '</b></div>' +
         '<dl class="kinfo"><dt>남은 개수</dt><dd>' + (x.left > 0 ? '이번 달 ' + x.left + '개' : '이번 달 품절 · 1일에 다시 채워져요') + '</dd><dt>받는 날</dt><dd>주문한 주 <b>금요일</b> 도장에서</dd><dt>내 포인트</dt><dd>' + won(S.bal) + (x.left > 0 ? ' → 주문하면 ' + (can ? won(S.bal - x.price) : '<em>' + won(x.price - S.bal) + ' 모자라요</em>') : '') + '</dd></dl>' +
         (x.info ? '<div class="kdesc"><h3>물건 설명</h3><p>' + esc(x.info).replace(/\n/g, '<br>') + '</p></div>' : '') + '</div>' +
         '<footer class="kbar"><div><small>내 포인트</small><b>' + won(S.bal) + '</b></div><button data-buy="' + x.id + '"' + (can ? '' : ' class="off"') + '>' + (x.left <= 0 ? '이번 달 품절' : can ? '주문하기' : '포인트가 모자라요') + '</button></footer>';
@@ -1141,7 +1141,7 @@ const prevYm = () => { const d = new Date(Date.UTC(+D.today.slice(0, 4), +D.toda
       if (t.closest('[data-sr]')) { tab = 'search'; q = ''; cur = null; return draw(); }
       if (t.closest('[data-sx]')) { tab = 'home'; q = ''; return draw(); }
       const tb = t.closest('[data-tab]'); if (tb) { tab = tb.dataset.tab; return draw(); }
-      const c1 = t.closest('[data-cat]'); if (c1) { tab = 'cat'; cat = c1.dataset.cat; return draw(); }
+      const c1 = t.closest('[data-cat]'); if (c1) { tab = 'cat'; cat = c1.dataset.cat; cur = null; return draw(); } // 분류 동그라미·상세의 브랜드 줄 → 그 분류 모아 보기
       const c2 = t.closest('[data-cat2]'); if (c2) { cat = c2.dataset.cat2; return draw(); }
       const pr = t.closest('[data-pr]'); if (pr) { price = +pr.dataset.pr; return draw(); }
       const it = t.closest('[data-it]'); if (it) { cur = +it.dataset.it; return draw(); }
