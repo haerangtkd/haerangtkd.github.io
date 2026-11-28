@@ -115,13 +115,15 @@
   .kyLv i{font-style:normal;font-size:30px;width:52px;height:52px;border-radius:14px;background:#141b2d;display:flex;align-items:center;justify-content:center;flex:none;}
   .kyLv b{display:block;font-size:19px;} .kyLv small{color:#9aa6c2;font-size:13px;} .kyLv em{margin-left:auto;font-style:normal;font-size:12px;color:#7fb3ff;white-space:nowrap;}
   .kyHelp{background:#1f2840;border-radius:14px;padding:12px;font-size:13px;line-height:1.7;color:#c3cbe0;}
-  .kyTop{display:flex;align-items:flex-end;gap:8px;font-size:12px;}
+  .kyTop{display:flex;align-items:center;gap:8px;font-size:12px;}
   .kyTop .hp{flex:1;} .kyTop .hp div{height:12px;border-radius:6px;background:#2a3350;overflow:hidden;margin-top:3px;}
   .kyTop .hp span{display:block;height:100%;transition:width .15s;} .kyTop .me span{background:#3d7cf0;} .kyTop .op span{background:#e0342a;margin-left:auto;}
+  .kyTop .kySc{font-size:16px;flex:1;} .kyTop .kySc b{font-size:28px;color:#7fb3ff;} .kyTop .kyLvN{color:#9aa6c2;font-size:13px;}
   .kyTop .op{text-align:right;} .kyTop .tm{background:#26304a;border-radius:10px;padding:3px 9px;font-size:16px;min-width:34px;text-align:center;}
   .kyCv{width:100%;height:230px;border-radius:14px;display:block;background:#1d2540;touch-action:none;flex:none;}
   .kyRow{display:flex;gap:8px;} .kyRow button{flex:1;border:none;border-radius:14px;font:inherit;font-size:17px;padding:14px 0;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none;}
   .kyRow .mv{background:#1f2840;color:#c3cbe0;} .kyRow .bl{background:#2fa65a;box-shadow:0 4px 0 #1f7a40;} .kyRow .at{background:#3d7cf0;box-shadow:0 4px 0 #2756b0;}
+  .kyRow button small{display:block;font-size:12px;opacity:.85;}
   .kyRow button.dn{transform:translateY(3px);box-shadow:none;filter:brightness(1.15);}
   .kyRes{text-align:center;margin-top:30px;} .kyRes p{color:#9aa6c2;margin:4px 0;} .kyRes h2{font-size:44px;margin:6px 0;color:#5b9bff;} .kyRes h2.lose{color:#ff6b5e;} .kyRes h2.draw{color:#c3cbe0;}
   .kyRes button{display:block;width:100%;border:none;border-radius:14px;font:inherit;font-size:18px;padding:14px;margin-top:10px;color:#fff;background:#3d7cf0;} .kyRes button.sub{background:#1f2840;}
@@ -143,6 +145,9 @@
   .rpBtns button{width:92px;height:92px;border-radius:50%;border:5px solid #fff;font-size:46px;padding:0;touch-action:manipulation;box-shadow:0 5px 0 rgba(0,0,0,.2);}
   .rpBtns button:active{transform:translateY(3px);box-shadow:none;}
   .rpBtns .h0{background:#5b9bf5;} .rpBtns .h1{background:#6ad46a;} .rpBtns .h2{background:#f2643c;}
+  .rpBtns.plain button{background:#fff8e6;}
+  .ruler.shake{animation:rlShake .12s infinite alternate;}
+  @keyframes rlShake{from{margin-left:-6px;}to{margin-left:6px;}}
   .rulerBox{position:relative;height:330px;border-radius:20px;background:#fff6e8;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none;}
   .ruler{position:absolute;left:50%;top:16px;transform:translateY(-260px);width:46px;height:200px;margin-left:-23px;background:#f2b134;border-radius:6px;box-shadow:0 3px 0 #c98c1f;display:flex;flex-direction:column;justify-content:space-between;padding:8px 0;}
   .ruler i{display:block;height:3px;width:20px;background:#7a5a1e;}
@@ -152,6 +157,8 @@
   .hole.hit{background:radial-gradient(circle,#c9e7b5,#d9c3a2 70%);}
   .hole.bad{background:radial-gradient(circle,#f3b8ab,#d9c3a2 70%);}
   .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .cards.c5{grid-template-columns:repeat(5,1fr);gap:6px;} .cards.c6{grid-template-columns:repeat(6,1fr);gap:5px;}
+  .cards.c5 .card{font-size:26px;} .cards.c6 .card{font-size:22px;border-radius:9px;}
   .card{aspect-ratio:1;border:none;border-radius:12px;font-size:32px;background:#e8a598;color:var(--ink);padding:0;position:relative;display:flex;align-items:center;justify-content:center;}
   /* 그림은 글자색이 아니라 따로 켜고 끔 (2026-11-17: 휴대폰에서 그림이 안 보이던 것) */
   .card .pic{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;line-height:1;visibility:hidden;}
@@ -268,6 +275,12 @@
   .tgPick button small{display:block;font-size:11px;color:var(--soft);}
   .tgPick button.on{border-color:var(--accent);background:#fff;}
   .tgPick button.soon{opacity:.5;}
+  .lvPick{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:4px 0 12px;}
+  .goInfo .lvPick{display:grid;background:none;padding:0;}
+  .lvPick button{border:2px solid transparent;background:#f6eee2;border-radius:14px;padding:8px 2px;font:inherit;font-size:16px;color:var(--ink);line-height:1.25;}
+  .lvPick button small{display:block;font-size:11px;color:var(--soft);}
+  .lvPick button.on{border-color:var(--accent);background:#fff;}
+  .lvPick button.soon{opacity:.5;}
   .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--soft);}
 </style>
 </head>
@@ -654,6 +667,8 @@ const GAMES = {
   run:  {n:'왕복달리기', d:-1, f:v => (v/10).toFixed(1) + '초'},
   bag:  {n:'샌드백 치기', d:1, f:v => v + '번'},
   ruler:{n:'자를 잡아라', d:-1, f:v => (v/1000).toFixed(3) + '초'},
+  kyo:  {n:'겨루기', d:1, f:v => v + '점'},
+  rps:  {n:'가위바위보', d:1, f:v => v + '점'},
   tg2:  {n:'태극 2장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
   tg3:  {n:'태극 3장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
   tg4:  {n:'태극 4장', d:-1, f:v => v === 0 ? '만점' : v + '번 틀림'},
@@ -1283,7 +1298,7 @@ const ST = {
   brk:{z:'class', n:'격파 놀이', e:'🪵', g:'brk', spot:STAND_SPOT, face:STAND, lp:STAND, ly:2.3, start:() => openGame()},
   bag:{z:'class', n:'샌드백 치기', e:'🥊', g:'bag', spot:BAG_SPOT, face:BAG, lp:BAG, ly:2.9, start:() => startBag()}, /* 2026-11-20 사용자: 20초 안에 몇 번 치는지 · 도장 화면 그대로 버튼만 */
   whack:{z:'class', n:'표적 치기', e:'🎯', g:'whack', spot:{x:-3.6, z:-5.1}, face:{x:-3.6, z:-6.2}, lp:{x:-3.6, z:-6.2}, ly:2.3, start:() => openPanel('표적 치기', gameWhack)},
-  kyo:{z:'class', n:'겨루기', e:'🤜', start:() => openPanel('🤜 겨루기', gameKyo), spot:{x:3.8, z:-4.9}, face:{x:3.8, z:-6.2}, lp:{x:3.8, z:-6.2}, ly:1.7},
+  kyo:{z:'class', n:'겨루기', e:'🤜', g:'kyo', start:() => openPanel('🤜 겨루기', gameKyo), spot:{x:3.8, z:-4.9}, face:{x:3.8, z:-6.2}, lp:{x:3.8, z:-6.2}, ly:1.7},
   rope:{z:'class', n:'줄넘기', e:'🪢', g:'rope', spot:CENTER_ROPE, face:{x:CENTER_ROPE.x, z:-13}, lp:{x:CENTER_ROPE.x, z:CENTER_ROPE.z-1.3}, ly:2.0, start:() => startRope()},
   run:{z:'class', n:'왕복달리기', e:'🏃', g:'run', lock:'gRun', price:RUN_PRICE, spot:{x:3.8, z:2.3}, face:{x:3.8, z:-2}, lp:{x:3.8, z:-.9}, ly:1.6, start:() => openPanel('왕복달리기', gameRun)},
   belt:{z:'rest', n:'띠 순서', e:'🎗️', g:'belt', spot:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z+1.15}, face:{x:BOOTH_POS.belt.x, z:BOOTH_POS.belt.z}, lp:BOOTH_POS.belt, ly:2.3, start:() => openPanel('띠 순서 맞추기', gameBelt)},
@@ -1293,7 +1308,7 @@ const ST = {
   balloon:{z:'rest', n:'풍선 터뜨리기', e:'🎈', soon:1, spot:{x:BOOTH_POS.balloon.x, z:BOOTH_POS.balloon.z+1.15}, face:{x:BOOTH_POS.balloon.x, z:BOOTH_POS.balloon.z}, lp:BOOTH_POS.balloon, ly:2.3},
   order:{z:'rest', n:'순서대로', e:'🔢', soon:1, spot:{x:BOOTH_POS.order.x, z:BOOTH_POS.order.z+1.15}, face:{x:BOOTH_POS.order.x, z:BOOTH_POS.order.z}, lp:BOOTH_POS.order, ly:2.3},
   lr:{z:'rest', n:'좌우로', e:'↔️', soon:1, spot:{x:BOOTH_POS.lr.x, z:BOOTH_POS.lr.z+1.15}, face:{x:BOOTH_POS.lr.x, z:BOOTH_POS.lr.z}, lp:BOOTH_POS.lr, ly:2.3},
-  rps:{z:'rest', n:'가위바위보', e:'✌️', start:() => openPanel('✌️ 가위바위보', gameRps), spot:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z+1.15}, face:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z}, lp:BOOTH_POS.rps, ly:2.3},
+  rps:{z:'rest', n:'가위바위보', e:'✌️', g:'rps', start:() => openPanel('✌️ 가위바위보', gameRps), spot:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z+1.15}, face:{x:BOOTH_POS.rps.x, z:BOOTH_POS.rps.z}, lp:BOOTH_POS.rps, ly:2.3},
   tug:{z:'rest', n:'줄다리기', e:'💪', soon:1, spot:{x:BOOTH_POS.tug.x, z:BOOTH_POS.tug.z+1.15}, face:{x:BOOTH_POS.tug.x, z:BOOTH_POS.tug.z}, lp:BOOTH_POS.tug, ly:2.3}
 };
 ST.locker.lp = {x:-6.4, z:-7.55};
@@ -1329,9 +1344,52 @@ const BESTS = {
   quiz: () => S.bestQuiz ? S.bestQuiz + '/8' : '아직 없어요',
   bag: () => S.bestBag ? S.bestBag + '번' : '아직 없어요',
   ruler: () => S.bestRuler ? (S.bestRuler/1000).toFixed(3) + '초' : '아직 없어요',
-  kyo: () => S.kyoWin ? ['','초급','중급','고급'][S.kyoWin] + ' 이김' : '아직 없어요',
+  kyo: () => S.bestKyo2 ? S.bestKyo2 + '점' : '아직 없어요',
   rps: () => S.bestRps2 ? S.bestRps2 + '점' : '아직 없어요'
 };
+/* ---------- 🎚️ 난이도 초급·중급·고급 (2026-11-28 사용자)
+   초급 = 원래 놀이 · 이번 달 순위도 초급 점수로만.
+   중급 = 초급에서 목표를 한 번 넘긴 뒤 별 20개로 열기, 고급 = 중급에서 목표를 한 번 넘긴 뒤 별 40개로 열기.
+   중급·고급은 순위 없이 목표를 넘기면 별(중급 3개 · 고급 5개). ---------- */
+let LVL = 1;
+const LV_NAME = ['', '초급', '중급', '고급'], LV_PRICE = [0, 0, 20, 40], LV_STAR = [0, 0, 3, 5];
+const msF = v => (v/1000).toFixed(3) + '초', secF = v => (v/10).toFixed(1) + '초';
+const LVC = {
+  rope:  {goal:[0,30,25,20],   d:1,  f:v => v + '번',       h:['','','줄이 더 빨리 돌아요','줄이 아주 빨리 돌아요']},
+  brk:   {goal:[0,6,5,5],      d:1,  f:v => v + '단계',     h:['','','초록 칸이 좁고 바늘이 빨라요','초록 칸이 아주 좁고 바늘이 아주 빨라요']},
+  belt:  {goal:[0,120,150,180],d:-1, f:secF,                h:['','','하나 누를 때마다 띠가 섞여요 · 틀리면 3초','띠 이름 없이 색만 보고 · 매번 섞여요']},
+  whack: {goal:[0,25,22,20],   d:1,  f:v => v + '점',       h:['','','표적이 빨리 사라지고 벌이 많아요','표적이 아주 빨리 사라지고 벌은 2점 빠져요']},
+  mem:   {goal:[0,14,20,26],   d:-1, f:v => v + '번 만에',  h:['','','카드 20장','카드 24장']},
+  quiz:  {goal:[0,6,7,7],      d:1,  f:v => v + '/8',       h:['','','한 문제 6초','한 문제 4초']},
+  run:   {goal:[0,90,115,140], d:-1, f:secF,                h:['','','거리가 더 길어요','거리가 아주 길어요']},
+  bag:   {goal:[0,100,80,55],  d:1,  f:v => v + '번',       h:['','','15초 동안','10초 동안']},
+  ruler: {goal:[0,250,230,210],d:-1, f:msF,                 h:['','','자가 더 빨리 떨어져요','자가 아주 빨리 떨어지고 가끔 흔들려 속여요']},
+  kyo:   {goal:[0,60,50,40],   d:1,  f:v => v + '점',       h:['','상대가 천천히 반응하고 잘 안 막아요','상대가 공격과 막기를 섞어요','상대가 빠르게 반응하고 잘 막아요']},
+  rps:   {goal:[0,120,90,70],  d:1,  f:v => v + '점',       h:['','','누를 때마다 버튼 자리가 바뀌어요','버튼 자리가 바뀌고 색도 없어요']}
+};
+const lvS = g => { S.lv = S.lv || {}; return S.lv[g] = S.lv[g] || {}; };
+const lvOwn = (g, L) => L === 1 || !!lvS(g)['o' + L];
+const lvReady = (g, L) => L === 1 || !!lvS(g)['c' + (L - 1)];
+const lvSel = g => { const v = (S.lvSel || {})[g] || 1; return lvOwn(g, v) || lvReady(g, v) ? v : 1; };
+/* 한 판 끝: 목표를 넘겼는지 보고 별·열림 표시. 돌려주는 글은 결과 문구 뒤에 붙임 */
+function lvEnd(g, v){
+  const c = LVC[g]; if(!c || v == null || !(v >= 0)) return '';
+  const L = LVL, st = lvS(g), ok = c.d > 0 ? v >= c.goal[L] : v <= c.goal[L];
+  let m = '';
+  if(L > 1){ const b = st['b' + L]; if(b == null || (c.d > 0 ? v > b : v < b)) st['b' + L] = v; }
+  if(ok){
+    if(L > 1){ addStars(LV_STAR[L]); m += ' 🎯 ' + LV_NAME[L] + ' 목표 달성! 별 ' + LV_STAR[L] + '개 ⭐'; }
+    if(!st['c' + L]){ st['c' + L] = 1; if(L < 3) m += ' 🔓 이제 ' + LV_NAME[L + 1] + '을 열 수 있어요!'; }
+  } else if(L > 1) m += ' (' + LV_NAME[L] + ' 목표 ' + c.f(c.goal[L]) + ')';
+  save(); return m;
+}
+function lvPick(id){
+  const g = id, c = LVC[g], cur = lvSel(g);
+  return '<div class="lvPick">' + [1,2,3].map(L => {
+    const st = lvS(g), sub = L === 1 ? '순위 놀이' : lvOwn(g, L) ? (st['b' + L] != null ? '최고 ' + c.f(st['b' + L]) : '열림') : lvReady(g, L) ? '⭐' + LV_PRICE[L] : '🔒';
+    return '<button data-lv="' + L + '" class="' + (L === cur ? 'on' : '') + (lvOwn(g, L) || lvReady(g, L) ? '' : ' soon') + '">' + LV_NAME[L] + '<small>' + sub + '</small></button>';
+  }).join('') + '</div>';
+}
 let goId = null;
 function openGo(id){
   const s = ST[id]; goId = id;
@@ -1346,14 +1404,25 @@ function openGo(id){
     rows.push(['🔒 새 놀이', '별 ' + s.price + '개로 열어요'], ['가진 별', '⭐ ' + S.stars]);
     $('goBtn').textContent = S.stars >= s.price ? '⭐' + s.price + ' 내고 열기' : '별 ' + (s.price - S.stars) + '개 더 모아요';
     $('goBtn').disabled = S.stars < s.price;
+  } else if(LVC[id] && lvSel(id) > 1){
+    const L = lvSel(id), c = LVC[id], st = lvS(id);
+    rows.push([LV_NAME[L], c.h[L]]);
+    rows.push(['목표', c.f(c.goal[L]) + (c.d > 0 ? ' 넘기' : ' 안에 들어오') + '면 별 ' + LV_STAR[L] + '개']);
+    if(lvOwn(id, L)){ rows.push(['내 최고 기록', st['b' + L] != null ? c.f(st['b' + L]) : '아직 없어요']); $('goBtn').textContent = LV_NAME[L] + ' 시작!'; $('goBtn').disabled = false; }
+    else { rows.push(['가진 별', '⭐ ' + S.stars]); $('goBtn').textContent = S.stars >= LV_PRICE[L] ? '⭐' + LV_PRICE[L] + ' 내고 ' + LV_NAME[L] + ' 열기' : '별 ' + (LV_PRICE[L] - S.stars) + '개 더 모아요'; $('goBtn').disabled = S.stars < LV_PRICE[L]; }
   } else {
     rows.push(['내 최고 기록', BESTS[id] ? BESTS[id]() : '-']);
     const t = s.g && TOP && TOP.top && TOP.top[s.g], L = t && t.list || [];
     if(s.g && L.length) rows.push(['이번 달 1위', '🥇 ' + escH(L[0].n) + ' · ' + GAMES[s.g].f(L[0].v)]);
     else if(s.g && API && TOK) rows.push(['이번 달 1위', '아직 없어요 · 1등이 되어 봐요!']);
+    if(LVC[id]){ const c = LVC[id]; if(c.h[1]) rows.unshift(['초급', c.h[1]]); if(!lvS(id).c1) rows.push(['중급 열기', '초급에서 ' + c.f(c.goal[1]) + (c.d > 0 ? ' 넘기기' : ' 안에 들어오기')]); }
     $('goBtn').textContent = '시작!'; $('goBtn').disabled = false;
   }
-  $('goInfo').innerHTML = rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+  if(LVC[id] && !s.soon && !(s.lock && !owns(s.lock)) && lvSel(id) > 1 && !lvOwn(id, lvSel(id)) && !lvReady(id, lvSel(id))){ $('goBtn').textContent = LV_NAME[lvSel(id) - 1] + '에서 목표를 넘기면 열려요'; $('goBtn').disabled = true; }
+  $('goInfo').innerHTML = (LVC[id] && !s.soon && !(s.lock && !owns(s.lock)) ? lvPick(id) : '') + rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+  $('goInfo').querySelectorAll('[data-lv]').forEach(b => b.onclick = () => { audio(); sfx.pop(); const L = +b.dataset.lv;
+    if(!lvOwn(id, L) && !lvReady(id, L)){ toast(LV_NAME[L - 1] + '에서 목표(' + LVC[id].f(LVC[id].goal[L - 1]) + ')를 넘기면 열 수 있어요'); return; }
+    S.lvSel = S.lvSel || {}; S.lvSel[id] = L; save(); openGo(id); });
   if(s.g && API && TOK && (!TOP || Date.now() - topAt > 60000)) gameSync(true).then(() => { if(openId === 'goSheet' && goId === id) openGo(id); });
 }
 /* 🥋 품새: 1장은 그냥, 2~6장은 별로 엶(4~6장 2026-11-28), 7·8장은 아직 준비 중 */
@@ -1385,6 +1454,14 @@ $('goBtn').addEventListener('click', () => {
     S.stars -= s.price; S.own.push(s.lock); save(); updateStars(); s.lb.userData.txt = stLabel(goId); s.lb.userData.draw(s.lb.userData.txt);
     sfx.star(); toast(s.n + '이(가) 열렸어요! 🎉'); openGo(goId); return;
   }
+  if(LVC[goId]){
+    const L = lvSel(goId);
+    if(!lvOwn(goId, L)){
+      if(!lvReady(goId, L) || S.stars < LV_PRICE[L]){ sfx.fail(); return; }
+      S.stars -= LV_PRICE[L]; lvS(goId)['o' + L] = 1; save(); updateStars(); sfx.star(); toast(s.n + ' ' + LV_NAME[L] + '이 열렸어요! 🎉'); openGo(goId); return;
+    }
+    LVL = L;
+  } else LVL = 1;
   sfx.pop(); closeSheets(); s.start();
 });
 $('stars').addEventListener('click', () => { audio(); goStation('locker'); });
@@ -1906,11 +1983,11 @@ $('eUp').addEventListener('click', () => {
 /* ---------- 격파 놀이 ---------- */
 const G = {on:false, level:1, x:0, dir:1, wait:0, z0:.4, zw:.26, over:false};
 function newRound(){
-  G.zw = Math.max(.07, .26 - (G.level-1)*.03);
+  G.zw = Math.max([0,.07,.06,.05][LVL], [0,.26,.2,.15][LVL] - (G.level-1)*.03); /* 난이도: 칸 넓이 */
   G.z0 = .08 + Math.random()*(.84 - G.zw);
   $('zone').style.left = (G.z0*100)+'%'; $('zone').style.width = (G.zw*100)+'%';
   $('gLevel').textContent = G.level + '단계';
-  $('gBest').textContent = '최고 기록 ' + S.best + '단계';
+  $('gBest').textContent = LVL > 1 ? LV_NAME[LVL] + ' 목표 ' + LVC.brk.goal[LVL] + '단계' : '최고 기록 ' + S.best + '단계';
 }
 function openGame(){
   openSheet('gameSheet');
@@ -1928,16 +2005,16 @@ $('gBtn').addEventListener('click', () => {
     G.wait = 1.0;
     P.act = null; bagBusy = false; faceTo(STAND.x, STAND.z);
     doAct('kick', .55, () => { breakBoard(); });
-    S.stars++; updateStars(); save();
-    $('gMsg').textContent = lv + '단계 성공! 별 하나 받았어요 ⭐';
+    if(LVL === 1){ S.stars++; updateStars(); save(); }
+    $('gMsg').textContent = lv + '단계 성공!' + (LVL === 1 ? ' 별 하나 받았어요 ⭐' : '');
     setTimeout(() => { if(!G.on) return; G.level++; newRound(); $('gMsg').textContent = '더 빨라져요. 집중!'; }, 900);
   } else {
     G.over = true; sfx.fail();
-    const done = G.level - 1; if(done > 0) monthRec('brk', done);
+    const done = G.level - 1; if(done > 0 && LVL === 1) monthRec('brk', done);
     let msg = done > 0 ? '아깝다! ' + done + '단계까지 성공했어요' : '아깝다! 다시 해 봐요';
-    if(done > S.best){ S.best = done; save(); msg = '새 기록! ' + done + '단계까지 성공했어요 🎉'; }
-    $('gMsg').textContent = msg; $('gBtn').textContent = '다시 하기';
-    $('gBest').textContent = '최고 기록 ' + S.best + '단계';
+    if(LVL === 1 && done > S.best){ S.best = done; save(); msg = '새 기록! ' + done + '단계까지 성공했어요 🎉'; }
+    $('gMsg').textContent = msg + lvEnd('brk', done); $('gBtn').textContent = '다시 하기';
+    if(LVL === 1) $('gBest').textContent = '최고 기록 ' + S.best + '단계';
     floatText('으앗!');
   }
 });
@@ -1966,7 +2043,7 @@ function startRope(){
   ropeG.visible = true; ropeG.position.set(P.root.position.x, .98, P.root.position.z);
   R.on = false; R.over = false; R.count = 0; R.ang = Math.PI;
   $('ropeCount').textContent = '0';
-  $('ropeBest').textContent = '최고 기록 ' + S.bestRope + '번';
+  $('ropeBest').textContent = LVL > 1 ? LV_NAME[LVL] + ' 목표 ' + LVC.rope.goal[LVL] + '번' : '최고 기록 ' + S.bestRope + '번';
   $('ropeMsg').textContent = '줄이 발밑에 올 때 눌러서 뛰어요. 화면 어디든 눌러도 돼요!';
   $('ropeBtn').textContent = '시작';
 }
@@ -1981,12 +2058,12 @@ function ropeJump(){
 }
 $('ropeBtn').addEventListener('pointerdown', e => { e.preventDefault(); audio(); ropeJump(); });
 function ropeFail(){
-  if(R.count > 0) monthRec('rope', R.count);
+  if(R.count > 0 && LVL === 1) monthRec('rope', R.count);
   R.on = false; R.over = true; sfx.fail(); floatText('앗, 걸렸다!');
   let msg = R.count > 0 ? R.count + '번 넘었어요! 다시 해 볼까요?' : '앗, 걸렸어요! 다시 해 봐요';
-  if(R.count > S.bestRope){ S.bestRope = R.count; save(); msg = '새 기록! ' + R.count + '번 넘었어요 🎉'; }
-  $('ropeMsg').textContent = msg; $('ropeBtn').textContent = '다시 하기';
-  $('ropeBest').textContent = '최고 기록 ' + S.bestRope + '번';
+  if(LVL === 1 && R.count > S.bestRope){ S.bestRope = R.count; save(); msg = '새 기록! ' + R.count + '번 넘었어요 🎉'; }
+  $('ropeMsg').textContent = msg + lvEnd('rope', R.count); $('ropeBtn').textContent = '다시 하기';
+  if(LVL === 1) $('ropeBest').textContent = '최고 기록 ' + S.bestRope + '번';
 }
 
 /* ---------- 태극 1장 맞추기 ---------- */
@@ -2262,18 +2339,20 @@ function gameBelt(body){
   const msg = el('p','gMsg','흰띠부터 빨간띠까지 눌러요');
   const again = el('button','big','다시 하기'); again.style.display = 'none';
   body.append(stat, slots, pick, msg, again);
+  const PEN = LVL > 1 ? 3 : 2; /* 난이도: 중급부터 틀리면 3초 · 누를 때마다 섞기, 고급은 이름 없이 색만 */
+  const reshuffle = () => { if(LVL > 1) shuffle([...pick.children]).forEach(c => pick.appendChild(c)); };
   function start(){
     next = 0; pen = 0; done = false; t0 = performance.now(); pick.innerHTML = '';
     [...slots.children].forEach((s,i) => { s.style.background = ''; s.style.borderStyle = 'dashed'; s.textContent = i+1; });
     shuffle(BELT_ORDER.slice()).forEach(bi => {
-      const b = el('button','bbtn','<span style="background:'+beltColor(MAIN_BELTS[bi])+'"></span>'+MAIN_BELTS[bi]);
+      const b = el('button','bbtn','<span style="background:'+beltColor(MAIN_BELTS[bi])+'"></span>'+(LVL === 3 ? '' : MAIN_BELTS[bi]));
       b.onclick = () => {
         audio(); if(done) return;
         if(bi === BELT_ORDER[next]){
           b.classList.add('used'); const s = slots.children[next];
-          s.style.background = beltColor(MAIN_BELTS[bi]); s.style.borderStyle = 'solid'; s.textContent = ''; next++; sfx.tick();
+          s.style.background = beltColor(MAIN_BELTS[bi]); s.style.borderStyle = 'solid'; s.textContent = ''; next++; sfx.tick(); reshuffle();
           if(next === BELT_ORDER.length) finish();
-        } else { pen += 2; b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); sfx.fail(); msg.textContent = '아니에요! 2초 더해져요'; }
+        } else { pen += PEN; b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); sfx.fail(); msg.textContent = '아니에요! ' + PEN + '초 더해져요'; }
       };
       pick.appendChild(b);
     });
@@ -2283,11 +2362,11 @@ function gameBelt(body){
   }
   function finish(){
     done = true; clearInterval(timer);
-    const sec = Math.round(((performance.now()-t0)/1000 + pen)*10)/10; monthRec('belt', Math.round(sec*10));
+    const sec = Math.round(((performance.now()-t0)/1000 + pen)*10)/10; if(LVL === 1) monthRec('belt', Math.round(sec*10));
     $('bTime').textContent = sec.toFixed(1) + '초';
     let m = sec.toFixed(1) + '초 만에 성공!';
-    if(!S.bestBelt || sec < S.bestBelt){ S.bestBelt = sec; m = '새 기록! ' + m; }
-    addStars(1); msg.textContent = m + ' 별 하나 ⭐'; again.style.display = '';
+    if(LVL === 1){ if(!S.bestBelt || sec < S.bestBelt){ S.bestBelt = sec; m = '새 기록! ' + m; } addStars(1); m += ' 별 하나 ⭐'; }
+    msg.textContent = m + lvEnd('belt', Math.round(sec*10)); again.style.display = '';
   }
   again.onclick = () => { audio(); start(); };
   start();
@@ -2296,7 +2375,7 @@ function gameBelt(body){
 
 /* 왕복달리기 (2026-11-19 새 놀이 · 별 50개로 엶 · 이번 달 순위는 아직 없음, 내 최고 기록만) */
 function gameRun(body){
-  const N = 20;
+  const N = [0,20,25,30][LVL]; /* 난이도: 거리 */
   const stat = el('div','stat','<span id="rnLeg">출발 →</span><span id="rnTime">0.0초</span>');
   const tr = el('div','track','<span class="cone" style="left:7%">🚩</span><span class="cone" style="left:93%">🔶</span><span class="runner" id="rnR"><span id="rnE">🏃</span></span>');
   const msg = el('p','gMsg','');
@@ -2343,10 +2422,13 @@ function gameRun(body){
     const sec = Math.round((performance.now()-t0)/100)/10;
     $('rnTime').textContent = sec.toFixed(1) + '초';
     let m = sec.toFixed(1) + '초에 들어왔어요!';
-    if(!S.bestRun || sec < S.bestRun){ S.bestRun = sec; m = '새 기록! ' + m; }
-    monthRec('run', Math.round(sec * 10));
-    const st = sec <= 7 ? 3 : sec <= 10 ? 2 : 1;
-    addStars(st); msg.textContent = m + ' 별 ' + st + '개 ⭐';
+    if(LVL === 1){
+      if(!S.bestRun || sec < S.bestRun){ S.bestRun = sec; m = '새 기록! ' + m; }
+      monthRec('run', Math.round(sec * 10));
+      const st = sec <= 7 ? 3 : sec <= 10 ? 2 : 1;
+      addStars(st); m += ' 별 ' + st + '개 ⭐';
+    }
+    msg.textContent = m + lvEnd('run', Math.round(sec * 10));
     feet.style.display = 'none'; again.style.display = '';
   }
   bL.addEventListener('pointerdown', e => { e.preventDefault(); step(1, bL); });
@@ -2361,9 +2443,10 @@ function gameRun(body){
 const BG = {T0:20, n:0, t0:0, timer:null, done:false};
 function startBag(){
   faceTo(BAG.x, BAG.z); openSheet('bagSheet'); P.mode = 'bag';
+  BG.T0 = [0,20,15,10][LVL]; /* 난이도: 시간 */
   BG.n = 0; BG.t0 = 0; BG.done = false; clearInterval(BG.timer); BG.timer = null;
-  $('bgN').textContent = '0'; $('bgT').textContent = BG.T0 + '초'; $('bgBest').textContent = '최고 기록 ' + (S.bestBag || 0) + '번';
-  $('bgMsg').textContent = '👊 버튼을 빠르게 눌러요! 20초 동안 몇 번 칠까요?'; $('bgBtn').textContent = '👊 치기';
+  $('bgN').textContent = '0'; $('bgT').textContent = BG.T0 + '초'; $('bgBest').textContent = LVL > 1 ? LV_NAME[LVL] + ' 목표 ' + LVC.bag.goal[LVL] + '번' : '최고 기록 ' + (S.bestBag || 0) + '번';
+  $('bgMsg').textContent = '👊 버튼을 빠르게 눌러요! ' + BG.T0 + '초 동안 몇 번 칠까요?'; $('bgBtn').textContent = '👊 치기';
 }
 function bagStop(quit){
   clearInterval(BG.timer); BG.timer = null;
@@ -2373,11 +2456,14 @@ function bagFinish(){
   if(BG.done) return; BG.done = true; bagStop(false);
   const n = BG.n; $('bgT').textContent = '0초';
   let m = n + '번 쳤어요!';
-  if(!S.bestBag || n > S.bestBag){ S.bestBag = n; m = '새 기록! ' + m; }
-  if(n > 0) monthRec('bag', n);
-  const st = n >= 140 ? 3 : n >= 100 ? 2 : n >= 50 ? 1 : 0; /* 버튼 하나라 기준을 올림 */
-  if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
-  $('bgMsg').textContent = m; $('bgBtn').textContent = '다시 하기'; $('bgBest').textContent = '최고 기록 ' + S.bestBag + '번';
+  if(LVL === 1){
+    if(!S.bestBag || n > S.bestBag){ S.bestBag = n; m = '새 기록! ' + m; }
+    if(n > 0) monthRec('bag', n);
+    const st = n >= 140 ? 3 : n >= 100 ? 2 : n >= 50 ? 1 : 0; /* 버튼 하나라 기준을 올림 */
+    if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
+  }
+  m += lvEnd('bag', n);
+  $('bgMsg').textContent = m; $('bgBtn').textContent = '다시 하기'; if(LVL === 1) $('bgBest').textContent = '최고 기록 ' + S.bestBag + '번';
   floatText(n + '번!');
 }
 $('bgBtn').addEventListener('pointerdown', e => {
@@ -2419,13 +2505,16 @@ function gameRuler(body){
   }
   function drawMarks(){ $('rlM').innerHTML = marks.map((v, i) => '<span>' + (i + 1) + '번 ' + (v ? (v/1000).toFixed(3) + '초' : '0') + '</span>').join(''); }
   function next(){
-    state = 'wait'; setY(HIDE); msg.textContent = '집중… 자가 나타나면 바로 눌러요!';
+    state = 'wait'; setY(HIDE); ruler().classList.remove('shake'); msg.textContent = '집중… 자가 나타나면 바로 눌러요!';
     $('rlN').textContent = (round + 1) + ' / ' + R;
-    wait = setTimeout(() => { state = 'show'; setY(0); requestAnimationFrame(() => requestAnimationFrame(() => { if(state !== 'show') return; state = 'fall'; t0 = performance.now(); fall(); })); }, 1200 + Math.random() * 2600);
+    const go = () => requestAnimationFrame(() => requestAnimationFrame(() => { if(state !== 'show') return; ruler().classList.remove('shake'); state = 'fall'; t0 = performance.now(); fall(); }));
+    wait = setTimeout(() => { state = 'show'; setY(0);
+      if(LVL === 3 && Math.random() < .5){ ruler().classList.add('shake'); wait = setTimeout(go, 500 + Math.random() * 700); } /* 고급: 흔들어 속이기 */
+      else go(); }, 1200 + Math.random() * 2600);
   }
   function fall(){
     if(state !== 'fall') return;
-    const dt = (performance.now() - t0) / 1000, y = 0.5 * 1600 * dt * dt; /* 화면에서 떨어지는 느낌 */
+    const dt = (performance.now() - t0) / 1000, y = 0.5 * [0,1600,2300,3000][LVL] * dt * dt; /* 화면에서 떨어지는 느낌 */
     setY(Math.min(y, 320));
     if(y >= 320){ state = 'miss'; setY(HIDE); zero('놓쳤어요'); return; }
     raf = requestAnimationFrame(fall);
@@ -2448,10 +2537,13 @@ function gameRuler(body){
     if(!times.length){ msg.textContent = '3번 모두 0이에요. 다시 도전해 봐요!'; btn.style.display = ''; btn.textContent = '다시 하기'; return; } /* 잡은 기록이 없으면 순위에 안 남김 */
     const best = Math.min(...times);
     let m = '가장 빠른 기록 ' + (best/1000).toFixed(3) + '초!';
-    if(!S.bestRuler || best < S.bestRuler){ S.bestRuler = best; m = '새 기록! ' + m; }
-    monthRec('ruler', best);
-    const st = best <= 220 ? 3 : best <= 300 ? 2 : 1;
-    addStars(st); msg.textContent = m + ' 별 ' + st + '개 ⭐';
+    if(LVL === 1){
+      if(!S.bestRuler || best < S.bestRuler){ S.bestRuler = best; m = '새 기록! ' + m; }
+      monthRec('ruler', best);
+      const st = best <= 220 ? 3 : best <= 300 ? 2 : 1;
+      addStars(st); m += ' 별 ' + st + '개 ⭐';
+    }
+    msg.textContent = m + lvEnd('ruler', best);
     btn.style.display = ''; btn.textContent = '다시 하기';
   }
   box.addEventListener('pointerdown', tap);
@@ -2463,7 +2555,7 @@ function gameRuler(body){
 function gameWhack(body){
   const stat = el('div','stat','<span id="wScore">점수 0</span><span id="wTime">30초</span>');
   const holes = el('div','holes');
-  const msg = el('p','gMsg','🎯 표적만 누르세요! 🐝 벌을 누르면 1점 빠져요');
+  const msg = el('p','gMsg','🎯 표적만 누르세요! 🐝 벌을 누르면 ' + (LVL === 3 ? 2 : 1) + '점 빠져요');
   const btn = el('button','big','시작');
   body.append(stat, holes, msg, btn);
   const H = [];
@@ -2472,7 +2564,7 @@ function gameWhack(body){
     h.onclick = () => {
       if(!on || !h.dataset.k) return;
       if(h.dataset.k === 't'){ score++; h.classList.add('hit'); sfx.hit(); }
-      else { score = Math.max(0, score-1); h.classList.add('bad'); sfx.fail(); }
+      else { score = Math.max(0, score - (LVL === 3 ? 2 : 1)); h.classList.add('bad'); sfx.fail(); }
       h.dataset.k = ''; h.textContent = '';
       setTimeout(() => h.classList.remove('hit','bad'), 150);
       $('wScore').textContent = '점수 ' + score;
@@ -2484,9 +2576,9 @@ function gameWhack(body){
     if(!on) return;
     const free = H.filter(h => !h.dataset.k); if(free.length){
       const h = free[Math.floor(Math.random()*free.length)];
-      const good = Math.random() < .72;
+      const good = Math.random() < [0,.72,.65,.6][LVL]; /* 난이도: 벌 비율 · 사라지는 빠르기 */
       h.dataset.k = good ? 't' : 'b'; h.textContent = good ? '🎯' : '🐝';
-      const life = Math.max(550, 1100 - (30-left)*18);
+      const life = Math.max(550, 1100 - (30-left)*18) * [0,1,.75,.55][LVL];
       setTimeout(() => { if(h.dataset.k){ h.dataset.k = ''; h.textContent = ''; } }, life);
     }
     spawn = setTimeout(pop, Math.max(330, 750 - (30-left)*14));
@@ -2505,49 +2597,39 @@ function gameWhack(body){
       if(left <= 0){
         stop(); btn.style.visibility = ''; btn.textContent = '다시 하기';
         let m = score + '점!';
-        if(score > S.bestWhack){ S.bestWhack = score; m = '새 기록! ' + m; }
-        if(score > 0) monthRec('whack', score);
-        const st = Math.floor(score/10);
-        if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
-        msg.textContent = m;
+        if(LVL === 1){
+          if(score > S.bestWhack){ S.bestWhack = score; m = '새 기록! ' + m; }
+          if(score > 0) monthRec('whack', score);
+          const st = Math.floor(score/10);
+          if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
+        }
+        msg.textContent = m + lvEnd('whack', score);
       }
     }, 1000);
   };
   return stop;
 }
 
-/* 🤜 겨루기 (2026-11-28 사용자 영상처럼): 컴퓨터와 1대1 · 난이도 3단계 · 60초 · 앞뒤 이동 · 막기(누르는 동안) · 발차기(빠르고 약함) · 돌려차기(느리지만 강함) */
+/* 🤜 겨루기 (2026-11-28 사용자: 오락실 농구처럼 점수제) — 30초 동안 컴퓨터를 맞힌 점수 · 발차기 2점 · 돌려차기 3점
+   30점 넘기면 +15초, 70점 넘기면 +15초 · 상대에게 맞으면 점수는 그대로, 잠깐 휘청거려 시간을 잃음 · 난이도는 상대 실력 */
 function gameKyo(body){
   const panel = $('panel'); panel.classList.add('dark');
-  const LV = [null,
-    {n:'초급', e:'🥋', d:'천천히 반응하고 잘 안 막아요', react:.75, block:.12, aggr:.35, star:1},
-    {n:'중급', e:'🥈', d:'공격과 막기를 적당히 섞어요', react:.42, block:.42, aggr:.55, star:2},
-    {n:'고급', e:'🥇', d:'빠르게 반응하고 잘 막아요', react:.2, block:.72, aggr:.75, star:3}];
-  const ATK = { kick:{pre:.1, act:.1, post:.18, reach:78, dmg:5, push:22}, round:{pre:.3, act:.13, post:.38, reach:92, dmg:12, push:42} };
-  let raf = 0, alive = true, lv = 2, F = null;
+  const AI = [null, {react:.75, block:.12, aggr:.35}, {react:.42, block:.42, aggr:.55}, {react:.2, block:.72, aggr:.75}][LVL];
+  const ATK = { kick:{pre:.1, act:.1, post:.18, reach:78, pt:2, push:22}, round:{pre:.3, act:.13, post:.38, reach:92, pt:3, push:42} };
+  const BONUS = [[30, 15], [70, 15]];
+  let raf = 0, alive = true, F = null;
   const keys = {back:false, fwd:false, block:false};
 
-  function menu(){
-    stopFight(); body.innerHTML = '';
-    const best = S.kyoWin || 0;
-    body.append(el('div','kyT','🥋 태권도 겨루기'), el('div','kyS','컴퓨터와 1대1 대결! 난이도를 골라요'));
-    [1,2,3].forEach(i => {
-      const b = el('button','kyLv','<i>' + LV[i].e + '</i><div><b>' + LV[i].n + '</b><small>' + LV[i].d + '</small></div>' + (best >= i ? '<em>이겼어요 ✓</em>' : ''));
-      b.onclick = () => { audio(); sfx.pop(); lv = i; fight(); };
-      body.appendChild(b);
-    });
-    body.appendChild(el('div','kyHelp','🦶 발차기: 빠르고 약해요<br>🌀 돌려차기: 느리지만 강해요<br>🛡️ 막기: 누르고 있는 동안 막아요<br>60초 안에 상대 체력을 먼저 0으로 만들거나, 시간이 끝났을 때 체력이 더 많으면 승리!'));
-  }
-
-  function fighter(x, f){ return {x, f, hp:100, st:'idle', t:0, atk:null, hitT:0, blk:false, walk:0}; }
+  function fighter(x, f){ return {x, f, atk:null, hitT:0, blk:false, walk:0}; }
 
   function fight(){
     body.innerHTML = '';
-    const top = el('div','kyTop','<div class="hp me">🔵 나<div><span id="kyHm" style="width:100%"></span></div></div><div class="tm" id="kyTm">60</div><div class="hp op">컴퓨터 (' + LV[lv].n + ') 🔴<div><span id="kyHo" style="width:100%"></span></div></div>');
+    const top = el('div','kyTop','<div class="kySc">🔵 <b id="kySc">0</b>점</div><div class="kyLvN">' + LV_NAME[LVL] + (LVL > 1 ? ' · 목표 ' + LVC.kyo.goal[LVL] + '점' : '') + '</div><div class="tm" id="kyTm">30</div>');
     const cv = el('canvas','kyCv');
     const r1 = el('div','kyRow','<button class="mv" data-k="back">◀ 뒤로</button><button class="mv" data-k="fwd">앞으로 ▶</button>');
-    const r2 = el('div','kyRow','<button class="bl" data-k="block">🛡️ 막기</button><button class="at" data-a="kick">🦶 발차기</button><button class="at" data-a="round">🌀 돌려차기</button>');
-    body.append(top, cv, r1, r2);
+    const r2 = el('div','kyRow','<button class="bl" data-k="block">🛡️ 막기</button><button class="at" data-a="kick">🦶 발차기<small>2점</small></button><button class="at" data-a="round">🌀 돌려차기<small>3점</small></button>');
+    const help = el('div','kyHelp','30초 동안 상대를 맞혀 점수를 모아요! <b>30점</b>을 넘기면 +15초, <b>70점</b>을 넘기면 +15초 더! 상대 발에 맞으면 잠깐 휘청거려요. 막기는 누르고 있는 동안 막아요.');
+    body.append(top, cv, r1, r2, help);
     body.querySelectorAll('[data-k]').forEach(b => {
       const k = b.dataset.k;
       const on = e => { e.preventDefault(); audio(); keys[k] = true; b.classList.add('dn'); };
@@ -2555,12 +2637,12 @@ function gameKyo(body){
       b.addEventListener('pointerdown', on); ['pointerup','pointerleave','pointercancel'].forEach(t => b.addEventListener(t, off));
     });
     body.querySelectorAll('[data-a]').forEach(b => b.addEventListener('pointerdown', e => {
-      e.preventDefault(); audio(); b.classList.add('dn'); setTimeout(() => b.classList.remove('dn'), 120); attack(F.me, b.dataset.a);
+      e.preventDefault(); audio(); b.classList.add('dn'); setTimeout(() => b.classList.remove('dn'), 120); if(F) attack(F.me, b.dataset.a);
     }));
     const dpr = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth || 340, H = cv.clientHeight || 230;
     cv.width = W * dpr; cv.height = H * dpr;
     const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    F = {g, W, H, floor:H - 34, me:fighter(W * .28, 1), op:fighter(W * .72, -1), time:60, last:performance.now(), ai:{t:.8, blockT:0, want:0}, over:false, fx:[]};
+    F = {g, W, H, floor:H - 34, me:fighter(W * .28, 1), op:fighter(W * .72, -1), time:30, score:0, bonus:0, last:performance.now(), ai:{t:.8, blockT:0, want:0}, over:false, fx:[], banner:null};
     keys.back = keys.fwd = keys.block = false;
     raf = requestAnimationFrame(loop);
   }
@@ -2572,23 +2654,22 @@ function gameKyo(body){
   function stopFight(){ cancelAnimationFrame(raf); raf = 0; if(F) F.over = true; }
 
   function step(dt){
-    const {me, op} = F, L = LV[lv];
+    const {me, op} = F;
     F.time -= dt; if(F.time <= 0){ F.time = 0; return end(); }
-    /* 나 */
     me.blk = keys.block && !me.atk && me.hitT <= 0;
     let mv = 0; if(!me.blk && !me.atk && me.hitT <= 0){ if(keys.fwd) mv += 1; if(keys.back) mv -= 1; }
     me.x += mv * 130 * dt; me.walk += Math.abs(mv) * dt;
     /* 컴퓨터 */
     const ai = F.ai, dist = op.x - me.x;
     ai.t -= dt; ai.blockT -= dt;
-    if(me.atk && !me.atk.seen){ me.atk.seen = true; if(Math.random() < L.block && dist < 110) setTimeout(() => { if(F && !op.atk && op.hitT <= 0){ ai.blockT = .55; } }, L.react * 600); }
+    if(me.atk && !me.atk.seen){ me.atk.seen = true; if(Math.random() < AI.block && dist < 110) setTimeout(() => { if(F && !op.atk && op.hitT <= 0) ai.blockT = .55; }, AI.react * 600); }
     op.blk = ai.blockT > 0 && !op.atk && op.hitT <= 0;
     let om = 0;
     if(!op.blk && !op.atk && op.hitT <= 0){
       if(ai.t <= 0){
-        ai.t = L.react * (.6 + Math.random() * .8);
+        ai.t = AI.react * (.6 + Math.random() * .8);
         const r = Math.random();
-        if(dist < 95 && r < L.aggr) attack(op, Math.random() < .62 ? 'kick' : 'round');
+        if(dist < 95 && r < AI.aggr) attack(op, Math.random() < .62 ? 'kick' : 'round');
         else if(dist < 60) ai.want = -1;
         else if(dist > 85) ai.want = 1;
         else ai.want = Math.random() < .5 ? 0 : (Math.random() < .5 ? 1 : -1);
@@ -2596,55 +2677,55 @@ function gameKyo(body){
       om = ai.want;
     }
     op.x -= om * 110 * dt; op.walk += Math.abs(om) * dt;
-    /* 공격 판정 */
+    /* 맞히기 */
     [[me, op], [op, me]].forEach(([a, d]) => {
       if(!a.atk) return; const A = ATK[a.atk.type]; a.atk.t += dt;
       if(!a.atk.done && a.atk.t >= A.pre){
         a.atk.done = true;
         if(Math.abs(d.x - a.x) <= A.reach){
           if(d.blk){ sfx.hit(); d.x += a.f * 10; F.fx.push({x:(a.x + d.x)/2, y:F.floor - 70, t:0, txt:'막기!', c:'#ffd84d'}); }
-          else {
-            d.hp = Math.max(0, d.hp - A.dmg); d.hitT = .25; d.atk = null; d.x += a.f * A.push;
-            sfx.kick(); sfx.hit(); F.fx.push({x:d.x, y:F.floor - (a.atk.type === 'round' ? 110 : 75), t:0, txt:'-' + A.dmg, c:'#fff'});
-            if(d.hp <= 0) setTimeout(end, 350);
+          else if(a === me){
+            F.score += A.pt; d.hitT = .25; d.atk = null; d.x += a.f * A.push;
+            sfx.kick(); sfx.hit(); F.fx.push({x:d.x, y:F.floor - (a.atk.type === 'round' ? 110 : 75), t:0, txt:'+' + A.pt, c:'#7fd0ff'});
+            const b = BONUS[F.bonus];
+            if(b && F.score >= b[0]){ F.bonus++; F.time += b[1]; sfx.star(); F.banner = {t:0, txt:'⏱ +' + b[1] + '초!'}; }
+          } else {
+            d.hitT = .7; d.atk = null; d.x += a.f * A.push; /* 맞으면 휘청 */
+            sfx.fail(); F.fx.push({x:d.x, y:F.floor - 90, t:0, txt:'휘청!', c:'#ff8a7a'});
           }
         }
       }
-      if(a.atk.t >= A.pre + A.act + A.post) a.atk = null;
+      if(a.atk && a.atk.t >= A.pre + A.act + A.post) a.atk = null;
     });
     me.hitT -= dt; op.hitT -= dt;
-    /* 자리 */
     me.x = Math.max(22, Math.min(F.W - 22, me.x)); op.x = Math.max(22, Math.min(F.W - 22, op.x));
     if(op.x - me.x < 40){ const m = (me.x + op.x) / 2; me.x = m - 20; op.x = m + 20; if(me.x < 22){ me.x = 22; op.x = 62; } if(op.x > F.W - 22){ op.x = F.W - 22; me.x = op.x - 40; } }
     F.fx.forEach(f => f.t += dt); F.fx = F.fx.filter(f => f.t < .8);
-    $('kyHm').style.width = me.hp + '%'; $('kyHo').style.width = op.hp + '%'; $('kyTm').textContent = Math.ceil(F.time);
+    if(F.banner){ F.banner.t += dt; if(F.banner.t > 1.4) F.banner = null; }
+    $('kySc').textContent = F.score; $('kyTm').textContent = Math.ceil(F.time);
   }
 
   function drawFighter(a, body1, gear){
     const g = F.g, y = F.floor, x = a.x, f = a.f;
     const bob = a.atk || a.blk ? 0 : Math.sin(a.walk * 14) * 2;
     let kick = null;
-    if(a.atk){ const A = ATK[a.atk.type], t = a.atk.t; if(t >= A.pre * .5 && t < A.pre + A.act + A.post * .5) kick = {type:a.atk.type}; } /* 2026-11-28 사용자: 다리가 점점 길어지지 않고 한 번에 쭉 뻗은 모양으로 */
+    if(a.atk){ const A = ATK[a.atk.type], t = a.atk.t; if(t >= A.pre * .5 && t < A.pre + A.act + A.post * .5) kick = {type:a.atk.type}; } /* 다리는 한 번에 쭉 뻗은 모양으로 */
     g.save(); g.translate(x, 0);
     if(a.hitT > 0) g.globalAlpha = .55 + .45 * Math.sin(a.hitT * 60);
     g.lineCap = 'round';
-    /* 다리 */
     g.strokeStyle = '#f4f4f4'; g.lineWidth = 9;
     const hipY = y - 46 + bob;
     const leg = (dx) => { g.beginPath(); g.moveTo(dx * .4, hipY); g.lineTo(dx, y); g.stroke(); };
     if(kick){
       leg(-f * 9);
-      const L2 = 50, ang = kick.type === 'round' ? -.7 : -.12; /* 다리 길이는 서 있을 때와 같게 */
+      const L2 = 50, ang = kick.type === 'round' ? -.7 : -.12;
       g.beginPath(); g.moveTo(f * 3, hipY + 2); g.lineTo(f * (3 + L2 * Math.cos(ang)), hipY + 2 + L2 * Math.sin(ang)); g.stroke();
     } else { const s = Math.sin(a.walk * 14) * 5; leg(-7 + s); leg(7 - s); }
-    /* 몸(도복) + 호구 */
     g.fillStyle = '#f4f4f4'; g.fillRect(-10, y - 84 + bob, 20, 40);
     g.fillStyle = body1; g.beginPath(); g.roundRect ? g.roundRect(-12, y - 80 + bob, 24, 28, 6) : g.rect(-12, y - 80 + bob, 24, 28); g.fill();
-    g.fillStyle = '#222'; g.fillRect(-10, y - 50 + bob, 20, 4); /* 띠 */
-    /* 머리 + 헤드기어 */
+    g.fillStyle = '#222'; g.fillRect(-10, y - 50 + bob, 20, 4);
     g.fillStyle = '#f1c9a0'; g.beginPath(); g.arc(0, y - 96 + bob, 11, 0, 7); g.fill();
     g.fillStyle = gear; g.beginPath(); g.arc(0, y - 99 + bob, 12, Math.PI * 1.05, Math.PI * 1.95); g.fill();
-    /* 막기 */
     if(a.blk){ g.fillStyle = '#ffd84d'; g.fillRect(f * 15 - 3, y - 92, 6, 38); }
     else { g.strokeStyle = body1; g.lineWidth = 6; g.beginPath(); g.moveTo(0, y - 74 + bob); g.lineTo(f * 12, y - 66 + bob); g.stroke(); }
     g.restore();
@@ -2658,6 +2739,10 @@ function gameKyo(body){
     drawFighter(F.me, '#3d7cf0', '#2756b0'); drawFighter(F.op, '#e0342a', '#a8231b');
     g.textAlign = 'center'; g.font = '18px ' + FONT;
     F.fx.forEach(f => { g.globalAlpha = 1 - f.t / .8; g.fillStyle = f.c; g.fillText(f.txt, f.x, f.y - f.t * 30); }); g.globalAlpha = 1;
+    /* 다음 보너스까지 */
+    const b = BONUS[F.bonus]; g.font = '13px ' + FONT; g.fillStyle = '#9aa6c2'; g.textAlign = 'left';
+    g.fillText(b ? b[0] + '점 넘기면 +' + b[1] + '초' : '보너스 시간 모두 받았어요!', 10, 20);
+    if(F.banner){ const k = F.banner.t; g.globalAlpha = k < 1 ? 1 : 1 - (k - 1) / .4; g.font = (34 + Math.max(0, .3 - k) * 40) + 'px ' + FONT; g.textAlign = 'center'; g.fillStyle = '#ffd84d'; g.fillText(F.banner.txt, W / 2, H * .38); g.globalAlpha = 1; }
   }
 
   function loop(now){
@@ -2669,21 +2754,23 @@ function gameKyo(body){
 
   function end(){
     if(!F || F.over) return; F.over = true; cancelAnimationFrame(raf);
-    const me = Math.round(F.me.hp), op = Math.round(F.op.hp);
-    const res = me > op ? 'win' : me < op ? 'lose' : 'draw';
-    let extra = '';
-    if(res === 'win'){
-      const st = LV[lv].star; addStars(st); extra = '별 ' + st + '개 ⭐';
-      if(lv > (S.kyoWin || 0)){ S.kyoWin = lv; save(); extra = LV[lv].n + ' 첫 승리! ' + extra; }
-    } else sfx.fail();
+    const sc = F.score;
+    let m = '';
+    if(LVL === 1){
+      if(sc > (S.bestKyo2 || 0)){ S.bestKyo2 = sc; m = '새 기록! '; }
+      if(sc > 0) monthRec('kyo', sc);
+      const st = Math.min(3, Math.floor(sc / 30));
+      if(st){ addStars(st); m += '별 ' + st + '개 ⭐'; } else save();
+    }
+    m += lvEnd('kyo', sc);
     body.innerHTML = '';
-    const box = el('div','kyRes','<p>' + LV[lv].n + ' 대결</p><h2 class="' + res + '">' + (res === 'win' ? '🏆 승리!' : res === 'lose' ? '패배' : '무승부') + '</h2><p>나 ' + me + ' : ' + op + ' 컴퓨터</p>' + (extra ? '<p style="color:#ffd84d">' + extra + '</p>' : ''));
-    const again = el('button', '', '다시 도전'), pick = el('button', 'sub', '난이도 선택');
-    again.onclick = () => { audio(); fight(); }; pick.onclick = () => { audio(); menu(); };
-    box.append(again, pick); body.appendChild(box);
+    const box = el('div','kyRes','<p>' + LV_NAME[LVL] + ' 겨루기 · 시간 끝!</p><h2>' + sc + '점</h2>' + (m ? '<p style="color:#ffd84d">' + m + '</p>' : ''));
+    const again = el('button', '', '다시 하기');
+    again.onclick = () => { audio(); fight(); };
+    box.append(again); body.appendChild(box);
   }
 
-  menu();
+  fight();
   return () => { alive = false; stopFight(); panel.classList.remove('dark'); };
 }
 
@@ -2726,7 +2813,8 @@ function gameRps(body){
     later(() => d.remove(), 300);
     fill();
   }
-  btns.querySelectorAll('button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); audio(); play(+b.dataset.h); }));
+  btns.querySelectorAll('button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); audio(); play(+b.dataset.h); if(LVL > 1 && on) shuffle([...btns.children]).forEach(c => btns.appendChild(c)); })); /* 난이도: 중급부터 버튼 자리 섞기 */
+  if(LVL === 3) btns.classList.add('plain'); /* 고급: 버튼 색 없이 */
   function tick(){
     if(!on) return;
     const left = Math.max(0, endAt - performance.now());
@@ -2741,10 +2829,13 @@ function gameRps(body){
     q.forEach(d => d.style.opacity = .35);
     const b = big('시간 끝!'); b.style.fontSize = '48px';
     let m = score + '점!';
-    if(score > (S.bestRps2 || 0)){ S.bestRps2 = score; m = '새 기록! ' + m; }
-    const st = Math.min(3, Math.floor(score / 40));
-    if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
-    msg.textContent = m; btn.style.display = ''; btn.textContent = '다시 하기';
+    if(LVL === 1){
+      if(score > (S.bestRps2 || 0)){ S.bestRps2 = score; m = '새 기록! ' + m; }
+      if(score > 0) monthRec('rps', score);
+      const st = Math.min(3, Math.floor(score / 40));
+      if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
+    }
+    msg.textContent = m + lvEnd('rps', score); btn.style.display = ''; btn.textContent = '다시 하기';
   }
   function start(){
     stack.innerHTML = ''; q = []; score = 0; show(); msg.textContent = ''; btn.style.display = 'none';
@@ -2762,16 +2853,17 @@ function gameRps(body){
 
 /* 짝 맞추기 */
 function gameMem(body){
-  const PICS = ['🥋','🦶','👊','🥇','🎯','🏆','🙇','⭐']; // 🪵은 예전 휴대폰에 없는 그림이라 바꿈
-  const stat = el('div','stat','<span id="mTry">뒤집은 횟수 0</span><span id="mLeft">남은 짝 8</span>');
-  const grid = el('div','cards');
+  const NP = [0,8,10,12][LVL]; /* 난이도: 짝 수 (카드 16 · 20 · 24장) */
+  const PICS = ['🥋','🦶','👊','🥇','🎯','🏆','🙇','⭐','🥊','🏅','🎽','🔥'].slice(0, NP); // 🪵은 예전 휴대폰에 없는 그림이라 바꿈
+  const stat = el('div','stat','<span id="mTry">뒤집은 횟수 0</span><span id="mLeft">남은 짝 ' + NP + '</span>');
+  const grid = el('div','cards' + (LVL > 1 ? ' c' + (LVL === 2 ? 5 : 6) : ''));
   const msg = el('p','gMsg','같은 그림 두 장을 찾아요');
   const again = el('button','big','다시 하기'); again.style.display = 'none';
   body.append(stat, grid, msg, again);
   let first = null, lock = false, tries = 0, left = 8, tm = null;
   function start(){
-    grid.innerHTML = ''; first = null; lock = false; tries = 0; left = 8;
-    $('mTry').textContent = '뒤집은 횟수 0'; $('mLeft').textContent = '남은 짝 8';
+    grid.innerHTML = ''; first = null; lock = false; tries = 0; left = NP;
+    $('mTry').textContent = '뒤집은 횟수 0'; $('mLeft').textContent = '남은 짝 ' + NP;
     msg.textContent = '같은 그림 두 장을 찾아요'; again.style.display = 'none';
     shuffle(PICS.concat(PICS)).forEach(p => {
       const c = el('button','card', '<span class="pic">' + p + '</span>'); c.dataset.p = p;
@@ -2786,10 +2878,13 @@ function gameMem(body){
           $('mLeft').textContent = '남은 짝 ' + left;
           if(left === 0){
             let m = tries + '번 만에 다 찾았어요!';
-            if(!S.bestMem || tries < S.bestMem){ S.bestMem = tries; m = '새 기록! ' + m; }
-            monthRec('mem', tries);
-            const st = tries <= 12 ? 3 : tries <= 18 ? 2 : 1;
-            addStars(st); msg.textContent = m + ' 별 ' + st + '개 ⭐'; again.style.display = '';
+            if(LVL === 1){
+              if(!S.bestMem || tries < S.bestMem){ S.bestMem = tries; m = '새 기록! ' + m; }
+              monthRec('mem', tries);
+              const st = tries <= 12 ? 3 : tries <= 18 ? 2 : 1;
+              addStars(st); m += ' 별 ' + st + '개 ⭐';
+            }
+            msg.textContent = m + lvEnd('mem', tries); again.style.display = '';
           }
         } else {
           lock = true; const a = first; first = null;
@@ -2868,6 +2963,7 @@ function hkQuiz(D){
   return Q;
 }
 function gameQuiz(body){
+  const QZ_SEC = [0,10,6,4][LVL]; /* 난이도: 한 문제 시간 */
   const stat = el('div','stat','<span id="qNum">1 / ' + QZ_N + '</span><span id="qScore">맞힘 0</span>');
   const tbar = el('div','qtime','<i id="qBar"></i><b id="qSec">' + QZ_SEC + '</b>');
   const qb = el('div','qbox','문제를 불러오는 중…');
@@ -2910,11 +3006,13 @@ function gameQuiz(body){
     if(i < list.length - 1){ i++; show(); return; }
     stopT(); qb.textContent = list.length + '문제 중 ' + score + '개 맞혔어요!'; ch.innerHTML = ''; $('qBar').style.width = '0%'; $('qSec').textContent = '';
     let m = score === list.length ? '해랑경희 박사! 🎉' : score >= 6 ? '해랑경희를 잘 아는군요!' : '다시 도전해 봐요!';
-    if(score > (S.bestQuiz || 0)){ S.bestQuiz = score; m = '새 기록! ' + m; }
-    monthRec('quiz', score);
-    const st = score === list.length ? 2 : score >= 6 ? 1 : 0;
-    if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
-    msg.textContent = m; btn.textContent = '다시 하기';
+    if(LVL === 1){
+      if(score > (S.bestQuiz || 0)){ S.bestQuiz = score; m = '새 기록! ' + m; }
+      monthRec('quiz', score);
+      const st = score === list.length ? 2 : score >= 6 ? 1 : 0;
+      if(st){ addStars(st); m += ' 별 ' + st + '개 ⭐'; } else save();
+    }
+    msg.textContent = m + lvEnd('quiz', score); btn.textContent = '다시 하기';
   };
   start();
   return () => { alive = false; stopT(); };
@@ -3068,13 +3166,13 @@ function loop(now){
   /* 줄 */
   if(P.mode === 'rope'){
     if(R.on){
-      const sp = Math.min(1.25, .62 + R.count*.018);
+      const sp = Math.min([0,1.25,1.45,1.65][LVL], [0,.62,.8,.95][LVL] + R.count*.018); /* 난이도: 줄 빠르기 */
       const prev = R.ang; R.ang += dt * Math.PI*2 * sp;
       const TAU = Math.PI*2;
       if(Math.floor(R.ang/TAU) > Math.floor(prev/TAU)){
         if(pos.y - .08 > .14){
           R.count++; $('ropeCount').textContent = R.count; sfx.tick();
-          if(R.count % 10 === 0){ S.stars++; updateStars(); sfx.star(); floatText('⭐ +1', 2.8); save(); }
+          if(R.count % 10 === 0 && LVL === 1){ S.stars++; updateStars(); sfx.star(); floatText('⭐ +1', 2.8); save(); }
         } else { R.ang = Math.floor(R.ang/TAU)*TAU; ropeFail(); }
       }
     }
@@ -3104,7 +3202,7 @@ function loop(now){
   if(G.on && !G.over){
     if(G.wait > 0) G.wait -= dt;
     else {
-      const sp = .75 + (G.level-1)*.2;
+      const sp = [0,.75,1,1.3][LVL] + (G.level-1)*.2; /* 난이도: 바늘 빠르기 */
       G.x += G.dir * sp * dt;
       if(G.x > 1){ G.x = 1; G.dir = -1; } if(G.x < 0){ G.x = 0; G.dir = 1; }
     }
