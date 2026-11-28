@@ -2620,7 +2620,7 @@ function gameKyo(body){
     const g = F.g, y = F.floor, x = a.x, f = a.f;
     const bob = a.atk || a.blk ? 0 : Math.sin(a.walk * 14) * 2;
     let kick = null;
-    if(a.atk){ const A = ATK[a.atk.type], t = a.atk.t; const k = t < A.pre ? t / A.pre * .5 : t < A.pre + A.act ? 1 : Math.max(0, 1 - (t - A.pre - A.act) / A.post); kick = {type:a.atk.type, k}; }
+    if(a.atk){ const A = ATK[a.atk.type], t = a.atk.t; if(t >= A.pre * .5 && t < A.pre + A.act + A.post * .5) kick = {type:a.atk.type}; } /* 2026-11-28 사용자: 다리가 점점 길어지지 않고 한 번에 쭉 뻗은 모양으로 */
     g.save(); g.translate(x, 0);
     if(a.hitT > 0) g.globalAlpha = .55 + .45 * Math.sin(a.hitT * 60);
     g.lineCap = 'round';
@@ -2628,11 +2628,10 @@ function gameKyo(body){
     g.strokeStyle = '#f4f4f4'; g.lineWidth = 9;
     const hipY = y - 46 + bob;
     const leg = (dx) => { g.beginPath(); g.moveTo(dx * .4, hipY); g.lineTo(dx, y); g.stroke(); };
-    if(kick && kick.k > 0){
-      leg(-f * 8);
-      const len = kick.type === 'round' ? 62 : 52, ang = kick.type === 'round' ? -.75 : -.05;
-      const reach = 10 + len * kick.k;
-      g.beginPath(); g.moveTo(0, hipY); g.lineTo(f * reach * Math.cos(ang * kick.k), hipY + reach * Math.sin(ang * kick.k) * (kick.type === 'round' ? 1 : 0) - (kick.type === 'kick' ? 6 * kick.k : 0)); g.stroke();
+    if(kick){
+      leg(-f * 9);
+      const L2 = 50, ang = kick.type === 'round' ? -.7 : -.12; /* 다리 길이는 서 있을 때와 같게 */
+      g.beginPath(); g.moveTo(f * 3, hipY + 2); g.lineTo(f * (3 + L2 * Math.cos(ang)), hipY + 2 + L2 * Math.sin(ang)); g.stroke();
     } else { const s = Math.sin(a.walk * 14) * 5; leg(-7 + s); leg(7 - s); }
     /* 몸(도복) + 호구 */
     g.fillStyle = '#f4f4f4'; g.fillRect(-10, y - 84 + bob, 20, 40);
