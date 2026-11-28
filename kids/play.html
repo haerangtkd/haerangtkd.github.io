@@ -865,10 +865,8 @@ function drawBand(){
   if(LION.complete && LION.naturalWidth){ const lh = h * .86, lw = lh * LION.naturalWidth / LION.naturalHeight; g.drawImage(LION, X(-4.55) - lw/2, (h - lh)/2, lw, lh); } /* 사자 + 해랑경희 태권도장 + 슬로건 로고 */
   drawTaeguk(g, X(-.3), h/2, h * 1.3);
   /* 오른쪽 선범단 깃발 (2026-11-28 사용자: 선범단 로고) — 빨강·남색·금색 바탕 + 가운데 흰 사자 */
-  const fx = X(4.4), fh = h * .86, fw = fh * 1.5, fy = (h - fh)/2;
-  if(SB_BG.complete && SB_BG.naturalWidth){ const sw = SB_BG.naturalWidth, sh = sw / 1.5; g.drawImage(SB_BG, 0, (SB_BG.naturalHeight - sh)/2, sw, sh, fx - fw/2, fy, fw, fh); }
-  else { g.fillStyle = '#0b2f6b'; g.fillRect(fx - fw/2, fy, fw, fh); }
-  if(SB_AV.complete && SB_AV.naturalWidth){ const a = SB_AV.naturalWidth, c = a * .36, ls = fh * .62; g.drawImage(SB_AV, a/2 - c, a/2 - c, c * 2, c * 2, fx - ls/2, fy + (fh - ls)/2, ls, ls); }
+  const fx = X(4.4), fs = h * .88; /* 2026-11-28 사용자: 깃발 모양이 이상함 → 선범단 둥근 로고 그대로 */
+  if(SB_AV.complete && SB_AV.naturalWidth) g.drawImage(SB_AV, fx - fs/2, (h - fs)/2, fs, fs);
   band.tex.needsUpdate = true;
 }
 drawBand(); LION.onload = drawBand; LION.src = '../img/brand/logo-slogan.png';
@@ -920,7 +918,7 @@ fameM.scale.set(.85,.85,1);
     g.lineWidth=8; g.beginPath(); g.moveTo(128,128); g.lineTo(178,150); g.stroke();
   });
   const m = new THREE.Mesh(new THREE.CircleGeometry(.5, 32), new THREE.MeshBasicMaterial({map:c.tex, transparent:true}));
-  m.position.set(6.1, 2.75, -D/2+.02); scene.add(m);
+  m.position.set(6.05, 2.02, -D/2+.04); scene.add(m); /* 2026-11-28: 위쪽 흰 띠와 겹쳐 깜빡여서 아래로 */
 })();
 
 /* 화분 */
