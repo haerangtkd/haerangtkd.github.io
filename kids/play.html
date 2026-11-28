@@ -1369,7 +1369,11 @@ const LVC = {
 };
 const lvS = g => { S.lv = S.lv || {}; return S.lv[g] = S.lv[g] || {}; };
 const lvOwn = (g, L) => L === 1 || !!lvS(g)['o' + L];
-const lvReady = (g, L) => L === 1 || !!lvS(g)['c' + (L - 1)];
+/* 2026-11-28 사용자: 난이도를 넣기 전에 세운 초급 최고 기록도 인정 (예: 샌드백 347번인데 중급이 안 열림) */
+const LV_OLD = { rope:() => S.bestRope, brk:() => S.best, belt:() => S.bestBelt ? Math.round(S.bestBelt * 10) : null, whack:() => S.bestWhack, mem:() => S.bestMem,
+  quiz:() => S.bestQuiz, run:() => S.bestRun ? Math.round(S.bestRun * 10) : null, bag:() => S.bestBag, ruler:() => S.bestRuler, kyo:() => S.bestKyo2, rps:() => S.bestRps2 };
+function lvOld(g){ const st = lvS(g), c = LVC[g]; if(st.c1 || !LV_OLD[g]) return; const v = LV_OLD[g](); if(v && (c.d > 0 ? v >= c.goal[1] : v <= c.goal[1])){ st.c1 = 1; save(); } }
+const lvReady = (g, L) => { if(L === 2) lvOld(g); return L === 1 || !!lvS(g)['c' + (L - 1)]; };
 const lvSel = g => { const v = (S.lvSel || {})[g] || 1; return lvOwn(g, v) || lvReady(g, v) ? v : 1; };
 /* 한 판 끝: 목표를 넘겼는지 보고 별·열림 표시. 돌려주는 글은 결과 문구 뒤에 붙임 */
 function lvEnd(g, v){
@@ -1415,7 +1419,7 @@ function openGo(id){
     const t = s.g && TOP && TOP.top && TOP.top[s.g], L = t && t.list || [];
     if(s.g && L.length) rows.push(['이번 달 1위', '🥇 ' + escH(L[0].n) + ' · ' + GAMES[s.g].f(L[0].v)]);
     else if(s.g && API && TOK) rows.push(['이번 달 1위', '아직 없어요 · 1등이 되어 봐요!']);
-    if(LVC[id]){ const c = LVC[id]; if(c.h[1]) rows.unshift(['초급', c.h[1]]); if(!lvS(id).c1) rows.push(['중급 열기', '초급에서 ' + c.f(c.goal[1]) + (c.d > 0 ? ' 넘기기' : ' 안에 들어오기')]); }
+    if(LVC[id]){ const c = LVC[id]; lvOld(id); if(c.h[1]) rows.unshift(['초급', c.h[1]]); if(!lvS(id).c1) rows.push(['중급 열기', '초급에서 ' + c.f(c.goal[1]) + (c.d > 0 ? ' 넘기기' : ' 안에 들어오기')]); }
     $('goBtn').textContent = '시작!'; $('goBtn').disabled = false;
   }
   if(LVC[id] && !s.soon && !(s.lock && !owns(s.lock)) && lvSel(id) > 1 && !lvOwn(id, lvSel(id)) && !lvReady(id, lvSel(id))){ $('goBtn').textContent = LV_NAME[lvSel(id) - 1] + '에서 목표를 넘기면 열려요'; $('goBtn').disabled = true; }
