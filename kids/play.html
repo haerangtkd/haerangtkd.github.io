@@ -830,14 +830,55 @@ box(10.8, 2.1, .06, '#b89470', -.3, 1.55, -D/2+.03, scene, false);
 const mirror = box(10.5, 1.85, .05, new THREE.MeshLambertMaterial({color:'#d4e7ee', emissive:'#2a3a40', emissiveIntensity:.15}), -.3, 1.55, -D/2+.07, scene, false);
 for(let k=0;k<3;k++){ const s = box(.25, 1.6, .01, new THREE.MeshBasicMaterial({color:'#ffffff', transparent:true, opacity:.35}), -3.4+k*.45, 1.55, -D/2+.1, scene, false); s.rotation.z = .5; s.castShadow=false; }
 
-/* 간판 */
-const sign = textTex(1024, 160, (g,w,h)=>{
-  g.fillStyle='#8a5a3b'; roundRect(g,0,0,w,h,28); g.fill();
-  g.fillStyle='#fff6e6'; g.font='92px '+FONT; g.textAlign='center'; g.textBaseline='middle';
-  g.fillText('해랑경희 태권도', w/2, h/2+6);
-});
-const signM = new THREE.Mesh(new THREE.PlaneGeometry(5.2, .81), new THREE.MeshBasicMaterial({map:sign.tex, transparent:true}));
-signM.position.set(-.3, 3.08, -D/2+.02); scene.add(signM);
+/* 앞벽 위 (2026-11-28 사용자: 이름 간판 빼고 실제 도장처럼 — 흰 띠 + 파란 불빛 + 왼쪽 로고 · 가운데 태극기 · 오른쪽 선범단 깃발) */
+const BAND_W = W, BAND_H = .8, BAND_Y = 2.99;
+function drawTaeguk(g, cx, cy, fw){
+  const fh = fw * 2 / 3, R = fh / 4, ang = Math.atan2(2, 3);
+  g.fillStyle = '#ffffff'; g.fillRect(cx - fw/2, cy - fh/2, fw, fh);
+  g.strokeStyle = 'rgba(0,0,0,.12)'; g.lineWidth = 2; g.strokeRect(cx - fw/2, cy - fh/2, fw, fh);
+  g.save(); g.translate(cx, cy); g.rotate(ang);
+  g.fillStyle = '#0047a0'; g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#cd2e3a'; g.beginPath(); g.arc(0, 0, R, Math.PI, 0); g.fill();
+  g.beginPath(); g.arc(-R/2, 0, R/2, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#0047a0'; g.beginPath(); g.arc(R/2, 0, R/2, 0, Math.PI * 2); g.fill();
+  g.restore();
+  /* 괘: 건(왼위) 곤(오른아래) 감(오른위) 리(왼아래) — 1 = 이어진 막대, 0 = 끊긴 막대 */
+  const bars = (x, y, rot, pat) => {
+    g.save(); g.translate(cx + x, cy + y); g.rotate(rot); g.fillStyle = '#000';
+    const bw = R * .5, bh = R * .08, gap = R * .06;
+    pat.forEach((b, i) => { const yy = (i - 1) * (bh + gap * 1.6);
+      if(b) g.fillRect(-bw/2, yy - bh/2, bw, bh); else { g.fillRect(-bw/2, yy - bh/2, bw * .45, bh); g.fillRect(bw * .05, yy - bh/2, bw * .45, bh); } });
+    g.restore(); };
+  const d = R * 1.55, ca = Math.cos(ang), sa = Math.sin(ang);
+  bars(-d * ca, -d * sa, ang + Math.PI/2, [1,1,1]);
+  bars(d * ca, d * sa, ang + Math.PI/2, [0,0,0]);
+  bars(d * ca, -d * sa, -ang + Math.PI/2, [0,1,0]);
+  bars(-d * ca, d * sa, -ang + Math.PI/2, [1,0,1]);
+}
+const band = textTex(4096, Math.round(4096 * BAND_H / BAND_W), () => {});
+const LION = new Image(), SB_BG = new Image(), SB_AV = new Image();
+function drawBand(){
+  const g = band.g, w = band.cv.width, h = band.cv.height, X = x => (x + BAND_W/2) / BAND_W * w;
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = '#fbfaf7'; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(0,0,0,.06)'; g.fillRect(0, h - 6, w, 6);
+  if(LION.complete && LION.naturalWidth){ const lh = h * .86, lw = lh * LION.naturalWidth / LION.naturalHeight; g.drawImage(LION, X(-4.55) - lw/2, (h - lh)/2, lw, lh); } /* 사자 + 해랑경희 태권도장 + 슬로건 로고 */
+  drawTaeguk(g, X(-.3), h/2, h * 1.3);
+  /* 오른쪽 선범단 깃발 (2026-11-28 사용자: 선범단 로고) — 빨강·남색·금색 바탕 + 가운데 흰 사자 */
+  const fx = X(4.4), fh = h * .86, fw = fh * 1.5, fy = (h - fh)/2;
+  if(SB_BG.complete && SB_BG.naturalWidth){ const sw = SB_BG.naturalWidth, sh = sw / 1.5; g.drawImage(SB_BG, 0, (SB_BG.naturalHeight - sh)/2, sw, sh, fx - fw/2, fy, fw, fh); }
+  else { g.fillStyle = '#0b2f6b'; g.fillRect(fx - fw/2, fy, fw, fh); }
+  if(SB_AV.complete && SB_AV.naturalWidth){ const a = SB_AV.naturalWidth, c = a * .36, ls = fh * .62; g.drawImage(SB_AV, a/2 - c, a/2 - c, c * 2, c * 2, fx - ls/2, fy + (fh - ls)/2, ls, ls); }
+  band.tex.needsUpdate = true;
+}
+drawBand(); LION.onload = drawBand; LION.src = '../img/brand/logo-slogan.png';
+SB_BG.onload = drawBand; SB_BG.src = 'sb-bg.jpg'; SB_AV.onload = drawBand; SB_AV.src = 'sb-av.png';
+const bandM = new THREE.Mesh(new THREE.PlaneGeometry(BAND_W, BAND_H), new THREE.MeshBasicMaterial({map:band.tex}));
+bandM.position.set(0, BAND_Y, -D/2 + .02); scene.add(bandM);
+/* 파란 불빛 줄 (띠 위) */
+box(BAND_W, .07, .12, new THREE.MeshBasicMaterial({color:'#2f6bff'}), 0, BAND_Y + BAND_H/2 + .05, -D/2 + .08, scene, false);
+{ const glow = new THREE.Mesh(new THREE.PlaneGeometry(BAND_W, .32), new THREE.MeshBasicMaterial({color:'#4f86ff', transparent:true, opacity:.22, depthWrite:false}));
+  glow.position.set(0, BAND_Y + BAND_H/2 + .05, -D/2 + .03); scene.add(glow); }
 
 /* 명예의 전당 (왼쪽 벽) */
 const fame = textTex(768, 384, (g,w,h)=>{
